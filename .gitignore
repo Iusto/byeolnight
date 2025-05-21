@@ -1,0 +1,16 @@
+﻿# IDE
+.idea/
+*.iml
+
+# Build output
+/build/
+.gradle/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Application settings
+.env
