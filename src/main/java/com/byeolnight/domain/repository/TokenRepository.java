@@ -1,5 +1,6 @@
 package com.byeolnight.domain.repository;
 
+import com.byeolnight.domain.entity.token.Token;
 import com.byeolnight.domain.entity.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
