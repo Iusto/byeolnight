@@ -1,7 +1,8 @@
 package com.byeolnight.application;
 
-import com.byeolnight.domain.GalaxyPost;
-import com.byeolnight.infrastructure.GalaxyPostRepository;
+import com.byeolnight.application.post.GalaxyPostService;
+import com.byeolnight.domain.entity.post.Post;
+import com.byeolnight.domain.repository.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GalaxyPostServiceTest {
 
     @Mock
-    private GalaxyPostRepository repository;
+    private PostRepository repository;
 
     @InjectMocks
     private GalaxyPostService service;
@@ -30,11 +31,11 @@ class GalaxyPostServiceTest {
 
     @Test
     void testFindAll() {
-        GalaxyPost post1 = new GalaxyPost();
-        GalaxyPost post2 = new GalaxyPost();
+        Post post1 = new Post();
+        Post post2 = new Post();
         when(repository.findAll()).thenReturn(Arrays.asList(post1, post2));
 
-        List<GalaxyPost> result = service.findAll();
+        List<Post> result = service.findAll();
 
         assertEquals(2, result.size());
         verify(repository, times(1)).findAll();
@@ -42,11 +43,11 @@ class GalaxyPostServiceTest {
 
     @Test
     void testFindById() {
-        GalaxyPost post = new GalaxyPost();
+        Post post = new Post();
         post.setId(1L);
         when(repository.findById(1L)).thenReturn(Optional.of(post));
 
-        Optional<GalaxyPost> result = service.findById(1L);
+        Optional<Post> result = service.findById(1L);
 
         assertTrue(result.isPresent());
         assertEquals(1L, result.get().getId());
@@ -55,10 +56,10 @@ class GalaxyPostServiceTest {
 
     @Test
     void testSave() {
-        GalaxyPost post = new GalaxyPost();
+        Post post = new Post();
         when(repository.save(post)).thenReturn(post);
 
-        GalaxyPost result = service.save(post);
+        Post result = service.save(post);
 
         assertNotNull(result);
         verify(repository, times(1)).save(post);

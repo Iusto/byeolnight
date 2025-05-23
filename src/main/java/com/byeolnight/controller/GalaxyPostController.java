@@ -1,4 +1,4 @@
-package com.byeolnight.api.controller;
+package com.byeolnight.controller;
 
 import com.byeolnight.domain.GalaxyPost;
 import com.byeolnight.application.GalaxyPostService;
