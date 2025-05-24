@@ -3,7 +3,11 @@ package com.byeolnight.controller;
 
 import com.byeolnight.application.user.UserService;
 import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.dto.user.UserResponseDto;
+import com.byeolnight.dto.user.UserSignUpRequestDto;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,10 +21,19 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestParam String email,
-                                      @RequestParam String password,
-                                      @RequestParam String nickname) {
-        User user = userService.register(email, password, nickname);
+    public ResponseEntity<?> register(@RequestBody @Valid UserSignUpRequestDto dto) {
+        User user = userService.register(
+                dto.getEmail(),
+                dto.getPassword(),
+                dto.getNickname(),
+                dto.getPhone()
+        );
         return ResponseEntity.ok(user.getId());
+    }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(UserResponseDto.from(user));
     }
 }

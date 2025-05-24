@@ -43,6 +43,10 @@ public class TokenProvider {
         }
     }
 
+    public boolean validateRefreshToken(String token) {
+        return validate(token); // 같은 유효성 검사 로직 사용
+    }
+
     public String getEmail(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build()
                 .parseClaimsJws(token).getBody().getSubject();

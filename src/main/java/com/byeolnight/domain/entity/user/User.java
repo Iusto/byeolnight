@@ -1,12 +1,16 @@
-
 package com.byeolnight.domain.entity.user;
 
+import com.byeolnight.domain.entity.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.*;
 
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "users")
-public class User {
+public class User extends BaseTimeEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,9 +26,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role = Role.USER;
+    private Role role;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = false)
+    private String phone;
 
     public enum Role {
         USER, ADMIN
