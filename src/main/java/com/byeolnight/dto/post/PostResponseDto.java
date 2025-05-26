@@ -1,7 +1,9 @@
 package com.byeolnight.dto.post;
 
+import com.byeolnight.domain.entity.post.Post;
 import lombok.Builder;
 import lombok.Getter;
+
 import java.time.LocalDateTime;
 
 @Getter
@@ -24,5 +26,17 @@ public class PostResponseDto {
         this.category = category;
         this.viewCount = viewCount;
         this.createdAt = createdAt;
+    }
+
+    public static PostResponseDto from(Post post) {
+        return PostResponseDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .writer(post.getWriter().getNickname())
+                .category(post.getCategory().name())
+                .viewCount(post.getViewCount())
+                .createdAt(post.getCreatedAt())
+                .build();
     }
 }

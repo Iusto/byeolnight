@@ -1,4 +1,4 @@
-package com.byeolnight.dto.auth;
+package com.byeolnight.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

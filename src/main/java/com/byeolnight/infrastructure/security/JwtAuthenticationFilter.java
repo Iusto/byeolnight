@@ -1,46 +1,66 @@
-
 package com.byeolnight.infrastructure.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.application.user.UserService;
 
 import java.io.IOException;
 
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final TokenProvider tokenProvider;
-    private final UserService userService;
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    public JwtAuthenticationFilter(TokenProvider tokenProvider, UserService userService) {
+    private final TokenProvider tokenProvider;
+    private final UserDetailsService userDetailsService;
+
+    public JwtAuthenticationFilter(TokenProvider tokenProvider, UserDetailsService userDetailsService) {
         this.tokenProvider = tokenProvider;
-        this.userService = userService;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String token = resolveToken(request);
-        if (token != null && tokenProvider.validate(token)) {
-            String email = tokenProvider.getEmail(token);
-            User user = userService.findByEmail(email).orElse(null);
+        log.info("Token from header: {}", token);
 
-            if (user != null) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(user, null, null);
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+        if (token == null || !tokenProvider.validate(token)) {
+            log.warn("Token invalid or null");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        String email = tokenProvider.getEmail(token);
+        if (email == null) {
+            log.error("Token is valid but email is null");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+        if (userDetails != null) {
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        } else {
+            log.warn("UserDetails not found for email: {}", email);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
         filterChain.doFilter(request, response);

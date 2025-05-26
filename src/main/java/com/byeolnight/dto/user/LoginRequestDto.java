@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-public class UserLoginRequestDto {
+public class LoginRequestDto {
 
     @Email
     @NotBlank
@@ -16,7 +16,7 @@ public class UserLoginRequestDto {
     private final String password;
 
     @Builder
-    public UserLoginRequestDto(String email, String password) {
+    public LoginRequestDto(String email, String password) {
         this.email = email;
         this.password = password;
     }

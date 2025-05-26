@@ -1,25 +1,27 @@
 
 package com.byeolnight.domain.entity.file;
 
+import com.byeolnight.domain.entity.post.Post;
 import jakarta.persistence.*;
+import lombok.*;
 
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 @Entity
-@Table(name = "files")
 public class File {
-
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue
     private Long id;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Post post;  // ✅ 여기도 @Getter 없으면 접근 불가
+
     private String originalName;
+    private String uuidName;
 
-    @Column(nullable = false)
-    private String storedName;
-
-    @Column(nullable = false)
-    private String path;
-
-    private Long size;
-
-    // Getters and Setters omitted for brevity
+    public void detachFromPost() {
+        this.post = null;
+    }
 }
+
