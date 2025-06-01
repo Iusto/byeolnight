@@ -7,7 +7,7 @@
 
 ## 📌 프로젝트 개요
 
-* **시작**: 2025.05 \~ 진행 중
+* **시작**: 2025.05 ~ 진행 중
 * **개발 형태**: 100% 개인 설계 및 구현 (백엔드 중심)
 * **목표**:
   기존 Outven 프로젝트에서 발생했던 구조적·운영적 한계를 개선하고,
@@ -23,13 +23,13 @@
 ## 🔍 Outven 프로젝트의 한계와 개선 방향
 
 | 항목     | Outven (기존)      | Byeolnight (개선)         | 선택 사유                    |
-| ------ | ---------------- | ----------------------- | ------------------------ |
-| 인증 방식  | HttpSession 기반   | JWT + Redis TTL         | 다중 로그인 제어, 확장성 강화        |
-| 게시판 구조 | 단일 Controller 집중 | Enum 기반 분기 + 게시판 모듈화    | 테스트 용이성, 유지보수성 향상        |
-| 배포 환경  | WAR + 수동 Tomcat  | Docker + GitHub Actions | CI/CD 자동화, 환경 일관성 확보     |
-| 프론트 연동 | Thymeleaf + JSP  | React (API 소비 전용)       | API 우선 구조로 변경, 인증 테스트 연동 |
-| 실시간 기능 | 없음               | WebSocket + STOMP       | 채팅 및 알림 등 양방향 통신 필요      |
-| AI 연동  | 없음               | Galaxy ML + Selenium    | 자동 게시/분류, 콘텐츠 다양성 확보     |
+| -------- | ------------------ | ------------------------- | ---------------------------- |
+| 인증 방식  | HttpSession 기반   | JWT + Redis TTL           | 다중 로그인 제어, 확장성 강화 |
+| 게시판 구조 | 단일 Controller 집중 | Enum 기반 분기 + 게시판 모듈화 | 테스트 용이성, 유지보수성 향상 |
+| 배포 환경  | WAR + 수동 Tomcat  | Docker + GitHub Actions   | CI/CD 자동화, 환경 일관성 확보 |
+| 프론트 연동 | Thymeleaf + JSP    | React (API 소비 전용)      | API 우선 구조로 변경, 인증 테스트 연동 |
+| 실시간 기능 | 없음               | WebSocket + STOMP         | 채팅 및 알림 등 양방향 통신 필요 |
+| AI 연동     | 없음               | Galaxy ML + Selenium      | 자동 게시/분류, 콘텐츠 다양성 확보 |
 
 ---
 
@@ -47,28 +47,28 @@
 
 ## 🧩 핵심 기능 및 설계
 
-| 영역    | 설계/기능                                                 |
-| ----- | ----------------------------------------------------- |
-| 인증/보안 | JWT + Redis TTL 인증, Spring Security, BCrypt 암호화       |
-| 게시판   | CRUD, Soft Delete, 페이징, Enum 기반 게시판 분기 처리             |
-| 실시간   | WebSocket + STOMP 채팅 구조<br>인증된 사용자만 입장 가능<br>공용 대화방 및 1:1 DM 지원<br>채팅 메시지 DB 저장<br>단위 테스트(JUnit + Mockito) 포함 |
-| 자동화   | Selenium 기반 뉴스 크롤러, Galaxy ML 은하 분류 모델 연동             |
-| 문서화   | Swagger + @SecurityRequirement 문서 자동화                 |
-| 배포    | GitHub Actions → Docker 이미지 → EC2 무중단 배포              |
-| 테스트   | JUnit + Mockito 단위/통합 테스트, Postman Collection 시나리오 실행 |
+| 영역    | 설계/기능                                                                 |
+| ------- | -------------------------------------------------------------------------- |
+| 인증/보안 | JWT + Redis TTL 인증, Spring Security, BCrypt 암호화                        |
+| 게시판   | CRUD, Soft Delete, 페이징, Enum 기반 게시판 분기 처리                          |
+| 실시간   | WebSocket + STOMP 채팅 구조<br>인증된 사용자만 입장 가능<br>공용 대화방 및 1:1 DM 준비<br>채팅 메시지 DB 저장<br>JWT 인증 연동 및 STOMP 수신 분기 설계 완료<br>React 연동 완료 (SockJS + @stomp/stompjs)<br>추후 HandshakeInterceptor 도입 예정 |
+| 자동화   | Selenium 기반 뉴스 크롤러, Galaxy ML 은하 분류 모델 연동                          |
+| 문서화   | Swagger + @SecurityRequirement 문서 자동화                                  |
+| 배포     | GitHub Actions → Docker 이미지 → EC2 무중단 배포                             |
+| 테스트   | Postman 시나리오 구성 완료<br>ChatService 테스트 및 principal null 처리 예정         |
 
 ---
 
 ## 🛠 실시간 채팅 기술 설계
 
 - **WebSocket + STOMP 기반 양방향 통신 구현**
-- 공용 채팅방(`/topic/public`)과 1:1 DM(`/queue/user.{id}`) 구조로 분리
+- 공용 채팅방(`/topic/public`)과 1:1 DM(`/queue/user.{id}`) 구조 설계 적용
 - `/ws/chat` 엔드포인트 설정, `@MessageMapping` 기반 메시지 라우팅 처리
-- 채팅 메시지는 DTO → Entity로 변환 후 DB에 저장 (JPA)
-- 인증된 사용자만 채팅 입장 허용 (`Principal` 기반 사용자 추출)
-- 현재는 Spring `SimpleBroker` 사용, 추후 Redis Pub/Sub로 확장 가능
-- `ChatService` 인터페이스 기반 구조로 테스트/확장 용이성 확보
-- JUnit5 + Mockito로 단위 테스트 수행 완료
+- 채팅 메시지는 DTO → Entity로 변환 후 DB에 저장 (JPA 기반)
+- 인증된 사용자만 채팅 입장 허용 (현재는 `Principal` nullable 대응 → 추후 Interceptor 개선 예정)
+- 현재는 Spring `SimpleBroker` 사용, 추후 Redis Pub/Sub로 확장 고려
+- React 클라이언트에서 SockJS + STOMP 연결 구성, 메시지 수신 렌더링 완료
+- 채팅방 구조는 roomId 기반 단일 공용 채널 + DM 채널 분리 구조 (유저 큐 기반)
 
 ---
 
@@ -97,18 +97,20 @@ byeolnight/
 * JWT 서명 무효화 시 401 반환 및 필터 레벨에서 예외 처리 테스트 통과
 * 게시글 목록 API에 초당 100요청 부하 테스트 진행 → 평균 응답 속도 140ms 유지
 * GitHub Actions에서 EC2까지 자동 배포 평균 소요 시간: 약 55초
+* WebSocket 인증 미포함 시 401 발생 → 보안 필터 정상 작동 확인
+* 채팅 메시지 DB 저장 여부 콘솔 및 Hibernate 로그로 검증 완료
 
 ---
 
 ## 📎 기술 대안 비교 및 배제 이유
 
 | 기술 항목   | 사용하지 않은 기술          | 배제 이유                                      | 선택 기술                        |
-| ------- | ------------------- | ------------------------------------------ | ---------------------------- |
-| 실시간 통신  | SSE, Long Polling   | 단방향 통신 제한, 복잡한 유지비용                        | WebSocket + STOMP            |
-| 메시지 브로커 | Kafka               | 인프라 비용, 과도한 설계 복잡도 (단순 채팅 수준엔 과함)          | WebSocket + Redis pub/sub 고려 |
-| DB      | PostgreSQL, MongoDB | 기존 MySQL에 비해 학습 및 운영 부담 증가, 정형 데이터 구조에 비효율 | MySQL 8.0                    |
-| 프론트 템플릿 | Thymeleaf           | 서버 렌더링 제한, API 기반 프론트와 충돌                  | React (API 소비 전용)            |
-| 인증 구조   | OAuth2              | 외부 인증 서비스 필요, 우선순위 아님                      | JWT + Redis 세션 구조            |
+| ----------- | --------------------------- | ---------------------------------------------- | ------------------------------- |
+| 실시간 통신  | SSE, Long Polling           | 단방향 통신 제한, 복잡한 유지비용                        | WebSocket + STOMP              |
+| 메시지 브로커 | Kafka                       | 인프라 비용, 과도한 설계 복잡도 (단순 채팅 수준엔 과함)          | WebSocket + Redis pub/sub 고려 |
+| DB          | PostgreSQL, MongoDB         | 기존 MySQL에 비해 학습 및 운영 부담 증가, 정형 데이터 구조에 비효율 | MySQL 8.0                      |
+| 프론트 템플릿 | Thymeleaf                   | 서버 렌더링 제한, API 기반 프론트와 충돌                  | React (API 소비 전용)          |
+| 인증 구조   | OAuth2                      | 외부 인증 서비스 필요, 우선순위 아님                      | JWT + Redis 세션 구조          |
 
 ---
 
