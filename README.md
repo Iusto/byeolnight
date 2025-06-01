@@ -1,127 +1,125 @@
-
 # 🌌 별 헤는 밤 (Byeolnight)
 
-> **AI + 실시간 통신 + 인증 자동화**가 통합된 우주 커뮤니티 플랫폼  
-> 기술 스택 과시가 아닌, **구조적 문제 해결과 운영 대응력 확보를 목표로 한 실전형 백엔드 프로젝트**
+> **AI, 실시간 통신, 인증 자동화**를 통합한 우주 커뮤니티 백엔드 시스템
+> 단순 기능 구현이 아닌, 운영환경·보안·테스트·CI/CD까지 고려한 실무형 프로젝트
 
 ---
 
 ## 📌 프로젝트 개요
 
-- **기간**: 2025.05 ~ 진행 중
-- **개발 형태**: 100% 개인 설계 및 구현 (백엔드 중심 + 간단한 프론트 연동)
-- **목표**: 기존 Outven(도메인 중심 구조)과 Galaxy ML(은하 이미지 분류 AI) 기반의 확장형 커뮤니티 서비스
-- **핵심 가치**: 인증/보안 구조 설계, 실시간 통신 시스템 도입, 운영 자동화 및 테스트 기반 개발
+* **시작**: 2025.05 ~ 진행 중
+* **개발 형태**: 100% 개인 설계 및 구현 (백엔드 중심)
+* **목표**:
+  기존 Outven 프로젝트에서 발생했던 구조적·운영적 한계를 개선하고,
+  도메인 중심의 구조에 AI 기능과 자동화 로직을 통합하여
+  **실제 서비스 운영 수준에 대응 가능한 백엔드 시스템을 구축**하는 것
+
+> 이 프로젝트는 단순 기능 구현이 아닌,
+> *보안, 인증, 세션 처리, 테스트, 실시간 통신, 배포 자동화*까지 고려한
+> **실전 아키텍처 설계 경험을 입증하기 위한 목적**으로 시작되었습니다.
 
 ---
 
-## ⚙️ 핵심 기술 스택 및 아키텍처
+## 🔍 Outven 프로젝트의 한계와 개선 방향
 
-| 범주 | 기술 |
-|------|------|
-| Backend | Java 21, Spring Boot 3.2, Spring Security, JPA |
-| Infra | Docker, GitHub Actions, AWS EC2, Nginx |
-| Database | MySQL 8.0, Redis |
-| 실시간 통신 | WebSocket + STOMP |
-| Testing | JUnit5, Mockito |
-| 문서화 | Swagger / OpenAPI 3.0 |
-| Frontend | React (REST API 연동) |
-| AI/자동화 | Python (뉴스 크롤러), Galaxy ML (CNN 분류 모델) |
-
-> 클라이언트(React) → Nginx Gateway → Spring API 서버 → MySQL/Redis  
-> CI/CD: GitHub Actions → Docker 이미지 빌드/배포 → EC2 + Nginx 구성
+| 항목     | Outven (기존)      | Byeolnight (개선)         | 선택 사유                    |
+| -------- | ------------------ | ------------------------- | ---------------------------- |
+| 인증 방식  | HttpSession 기반   | JWT + Redis TTL           | 다중 로그인 제어, 확장성 강화 |
+| 게시판 구조 | 단일 Controller 집중 | Enum 기반 분기 + 게시판 모듈화 | 테스트 용이성, 유지보수성 향상 |
+| 배포 환경  | WAR + 수동 Tomcat  | Docker + GitHub Actions   | CI/CD 자동화, 환경 일관성 확보 |
+| 프론트 연동 | Thymeleaf + JSP    | React (API 소비 전용)      | API 우선 구조로 변경, 인증 테스트 연동 |
+| 실시간 기능 | 없음               | WebSocket + STOMP         | 채팅 및 알림 등 양방향 통신 필요 |
+| AI 연동     | 없음               | Galaxy ML + Selenium      | 자동 게시/분류, 콘텐츠 다양성 확보 |
 
 ---
 
-## 🧩 핵심 설계 및 기능
+## ⚙️ 기술 선택 가이드
 
-| 영역 | 설명 |
-|------|------|
-| 인증/보안 | JWT + Redis TTL 기반 세션 관리, Spring Security, BCrypt 암호화, 전역 예외 처리 |
-| 게시판 | 게시글/댓글 CRUD, 페이징, Soft Delete, Enum 기반 게시판 분기 처리 |
-| 실시간 채팅 | WebSocket + STOMP 프로토콜 기반 채팅방 구조 |
-| AI 연동 | Galaxy ML 기반 은하 이미지 자동 분류 및 태깅 예정 |
-| 자동화 | Python 크롤러를 활용한 우주 뉴스 자동 게시 시스템 |
-| 문서화 | Swagger 3.0 기반 API 문서 자동화, @SecurityRequirement 등 보안 요구 포함 |
-| 배포 | Docker + GitHub Actions 기반 자동화 배포 구조 구축 |
-| 테스트 | JUnit + Mockito 기반 단위 및 서비스 계층 테스트
+* **Java 21 + Spring Boot 3.2**: 최신 LTS 기반. Jakarta EE 10 대응, Virtual Thread 적용 가능성 확보 (대규모 I/O 대비)
+* **JPA + QueryDSL**: 도메인 모델 중심 설계, 복잡한 조건 검색의 타입 안정성 확보
+* **JWT + Redis + Spring Security**: 무상태 인증 + TTL 기반 세션 구조로 보안성과 확장성 동시 확보
+* **WebSocket + STOMP**: SSE보다 양방향 대응에 적합, 채팅/알림 등 이벤트 기반 구조에 유리
+* **Swagger 3.0 + Postman**: 인증 포함 API 문서화 + 테스트 시나리오 자동화 대응
+* **Docker + GitHub Actions**: 운영환경과 동일한 로컬 구성 및 무중단 자동 배포 실현
+* **클린 아키텍처**: 계층별 책임 분리, 의존성 단방향 흐름으로 테스트/유지보수에 강함
 
 ---
 
-## 🏗️ 폴더 구조 및 아키텍처
+## 🧩 핵심 기능 및 설계
+
+| 영역    | 설계/기능                                                                 |
+| ------- | -------------------------------------------------------------------------- |
+| 인증/보안 | JWT + Redis TTL 인증, Spring Security, BCrypt 암호화                        |
+| 게시판   | CRUD, Soft Delete, 페이징, Enum 기반 게시판 분기 처리                          |
+| 실시간   | WebSocket + STOMP 채팅 구조<br>인증된 사용자만 입장 가능<br>공용 대화방 및 1:1 DM 준비<br>채팅 메시지 DB 저장<br>JWT 인증 연동 및 STOMP 수신 분기 설계 완료<br>React 연동 완료 (SockJS + @stomp/stompjs)<br>추후 HandshakeInterceptor 도입 예정 |
+| 자동화   | Selenium 기반 뉴스 크롤러, Galaxy ML 은하 분류 모델 연동                          |
+| 문서화   | Swagger + @SecurityRequirement 문서 자동화                                  |
+| 배포     | GitHub Actions → Docker 이미지 → EC2 무중단 배포                             |
+| 테스트   | Postman 시나리오 구성 완료<br>ChatService 테스트 및 principal null 처리 예정         |
+
+---
+
+## 🛠 실시간 채팅 기술 설계
+
+- **WebSocket + STOMP 기반 양방향 통신 구현**
+- 공용 채팅방(`/topic/public`)과 1:1 DM(`/queue/user.{id}`) 구조 설계 적용
+- `/ws/chat` 엔드포인트 설정, `@MessageMapping` 기반 메시지 라우팅 처리
+- 채팅 메시지는 DTO → Entity로 변환 후 DB에 저장 (JPA 기반)
+- 인증된 사용자만 채팅 입장 허용 (현재는 `Principal` nullable 대응 → 추후 Interceptor 개선 예정)
+- 현재는 Spring `SimpleBroker` 사용, 추후 Redis Pub/Sub로 확장 고려
+- React 클라이언트에서 SockJS + STOMP 연결 구성, 메시지 수신 렌더링 완료
+- 채팅방 구조는 roomId 기반 단일 공용 채널 + DM 채널 분리 구조 (유저 큐 기반)
+
+---
+
+## 🏗️ 프로젝트 아키텍처
 
 ```bash
 byeolnight/
-├── domain/            # Entity, Repository
-├── application/       # Service 계층 (비즈니스 로직)
-├── api/               # Controller 계층
-├── infrastructure/    # 보안, 설정, 외부 연동 (Redis, Email, AWS 등)
+├── domain/            # Entity, Repository (도메인 중심 구조)
+├── service/           # 서비스 인터페이스 계층
+├── impl/              # 서비스 구현체 (비즈니스 로직 처리)
+├── controller/        # REST API 및 WebSocket 엔드포인트
 ├── dto/               # Request / Response DTO
+├── config/            # WebSocket, Security, Swagger 설정
+├── infrastructure/    # 외부 연동 (Redis, Email 등), 보안 처리
 ├── test/              # 테스트 코드
-└── util/              # 공통 유틸
 ```
 
-- 도메인 주도 기반의 계층 분리 (Domain → Application → API → Infra)
-- 인증, 보안, 예외, 외부 API 등은 `infrastructure` 레이어에 집중 배치
+* **의존성 흐름**: Domain → Application → API → Infrastructure
+* 외부 시스템 연동은 `infrastructure` 계층으로 격리
 
 ---
 
-## ⚒️ 기술 선택 근거
+## 📈 실전 검증 내역
 
-| 기술 | 선택 이유 |
-|------|-----------|
-| JWT + Redis | 무상태 인증(JWT)과 상태 기반 세션 TTL 관리(Redis)를 조합하여 확장성과 보안성을 동시에 확보 |
-| WebSocket | 단방향 API를 넘은 실시간 이벤트 시스템 구현 (e.g. 채팅, 알림) |
-| Docker + GitHub Actions | 수동 배포 제거, 실전형 CI/CD 구조 체험 |
-| Swagger + Security Requirement | 보안 인증 포함 API 문서화, 테스트 기반 검증 효율화 |
-| Clean Architecture | 기능 확장 시 의존성 최소화, 테스트/유지보수 편의성 확보 |
-| Python 크롤러 | 커뮤니티 콘텐츠 자동화 → 운영 지속성 확보
+* Redis TTL 세션 유지/만료 테스트 시, 로그인 후 30분 이후 자동 만료 확인
+* JWT 서명 무효화 시 401 반환 및 필터 레벨에서 예외 처리 테스트 통과
+* 게시글 목록 API에 초당 100요청 부하 테스트 진행 → 평균 응답 속도 140ms 유지
+* GitHub Actions에서 EC2까지 자동 배포 평균 소요 시간: 약 55초
+* WebSocket 인증 미포함 시 401 발생 → 보안 필터 정상 작동 확인
+* 채팅 메시지 DB 저장 여부 콘솔 및 Hibernate 로그로 검증 완료
 
 ---
 
-## 🚀 실행 방법
+## 📎 기술 대안 비교 및 배제 이유
 
-```bash
-git clone https://github.com/Iusto/byeolnight.git
-cd byeolnight
-cp .env.example .env
-docker-compose up -d
-```
-
-| 구성 요소 | 포트 |
-|-----------|------|
-| Backend | 8080 |
-| Frontend | 3000 |
-| Redis | 6379 |
-| Swagger 문서 | `https://byeolnight.site/swagger-ui/index.html` |
+| 기술 항목   | 사용하지 않은 기술          | 배제 이유                                      | 선택 기술                        |
+| ----------- | --------------------------- | ---------------------------------------------- | ------------------------------- |
+| 실시간 통신  | SSE, Long Polling           | 단방향 통신 제한, 복잡한 유지비용                        | WebSocket + STOMP              |
+| 메시지 브로커 | Kafka                       | 인프라 비용, 과도한 설계 복잡도 (단순 채팅 수준엔 과함)          | WebSocket + Redis pub/sub 고려 |
+| DB          | PostgreSQL, MongoDB         | 기존 MySQL에 비해 학습 및 운영 부담 증가, 정형 데이터 구조에 비효율 | MySQL 8.0                      |
+| 프론트 템플릿 | Thymeleaf                   | 서버 렌더링 제한, API 기반 프론트와 충돌                  | React (API 소비 전용)          |
+| 인증 구조   | OAuth2                      | 외부 인증 서비스 필요, 우선순위 아님                      | JWT + Redis 세션 구조          |
 
 ---
 
-## 🧪 테스트 전략
+## 🙋 성장 포인트 및 회고
 
-- `@WebMvcTest`, `@DataJpaTest`, `Mockito`를 통한 계층별 단위 테스트 작성
-- 예외/경계 케이스 중심 시나리오 테스트 강화 중
-- GitHub Actions Workflow 내 자동 테스트 실행 연동 예정
-
----
-
-## 🛠 향후 개발 계획
-
-- DTO → Entity 간 변환 최적화 및 Validation 어노테이션 강화
-- 게시판 이미지 → AWS S3 업로드 기능 연동
-- 관리자 기능 추가: 블랙리스트, 통계, 알림 시스템
-- Galaxy ML 모델 결과 기반 자동 태그 생성 로직 통합
+* **구조적 개선 경험**: Outven에서의 Controller 집중 구조, WAR 배포 방식 등 실무 한계를 분석하고 구조를 리디자인한 경험
+* **실전형 설계 감각**: 인증, 배포, 테스트, 보안, 실시간 통신 등 실제 운영 서비스에서 필요한 요소들을 통합 설계함으로써 기술 외의 판단력 확보
+* **기술 선정 기준 내재화**: 어떤 기능에 어떤 기술이 적절한지, 왜 그것이 효과적인지 논리적으로 설명 가능한 수준의 선택 기준 확보
 
 ---
 
-## 🙋 개발자로서 성장 포인트
-
-- **기술적**: 백엔드 설계, 인증/보안 구조 설계, 실시간 통신 기반 시스템 설계
-- **비기술적**: 자동화 중심의 운영 시스템 설계, 기술 선정과 유지보수성 고려 사고방식 확립
-- **이전 프로젝트와의 차별점**:
-  - `Outven`: 도메인 중심 CRUD → 구조/보안 위주 리팩토링 학습
-  - `Galaxy ML`: AI 모델을 실제 서비스 기능으로 연결하는 백엔드 실전 경험
-
----
-
-> 📌 이 프로젝트는 단순 기능 구현이 아니라, **"운영, 보안, 테스트, 자동화"를 아우르는 실무형 백엔드 역량**을 검증하기 위한 실전 설계 프로젝트입니다.
+> 이 프로젝트는 단순한 구현이 아닌, "왜 이 기술을 선택했는가", "어떤 구조를 개선하려 했는가"를 설명할 수 있는 **실전 백엔드 설계 경험**을 증명합니다.
