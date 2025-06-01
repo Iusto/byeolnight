@@ -51,11 +51,24 @@
 | ----- | ----------------------------------------------------- |
 | 인증/보안 | JWT + Redis TTL 인증, Spring Security, BCrypt 암호화       |
 | 게시판   | CRUD, Soft Delete, 페이징, Enum 기반 게시판 분기 처리             |
-| 실시간   | WebSocket + STOMP 채팅 구조, 비동기 이벤트 처리                   |
+| 실시간   | WebSocket + STOMP 채팅 구조<br>인증된 사용자만 입장 가능<br>공용 대화방 및 1:1 DM 지원<br>채팅 메시지 DB 저장<br>단위 테스트(JUnit + Mockito) 포함 |
 | 자동화   | Selenium 기반 뉴스 크롤러, Galaxy ML 은하 분류 모델 연동             |
 | 문서화   | Swagger + @SecurityRequirement 문서 자동화                 |
 | 배포    | GitHub Actions → Docker 이미지 → EC2 무중단 배포              |
 | 테스트   | JUnit + Mockito 단위/통합 테스트, Postman Collection 시나리오 실행 |
+
+---
+
+## 🛠 실시간 채팅 기술 설계
+
+- **WebSocket + STOMP 기반 양방향 통신 구현**
+- 공용 채팅방(`/topic/public`)과 1:1 DM(`/queue/user.{id}`) 구조로 분리
+- `/ws/chat` 엔드포인트 설정, `@MessageMapping` 기반 메시지 라우팅 처리
+- 채팅 메시지는 DTO → Entity로 변환 후 DB에 저장 (JPA)
+- 인증된 사용자만 채팅 입장 허용 (`Principal` 기반 사용자 추출)
+- 현재는 Spring `SimpleBroker` 사용, 추후 Redis Pub/Sub로 확장 가능
+- `ChatService` 인터페이스 기반 구조로 테스트/확장 용이성 확보
+- JUnit5 + Mockito로 단위 테스트 수행 완료
 
 ---
 
@@ -64,11 +77,12 @@
 ```bash
 byeolnight/
 ├── domain/            # Entity, Repository (도메인 중심 구조)
-├── application/       # Service 계층 (비즈니스 로직)
-├── api/               # Controller 계층 (HTTP 진입점)
-├── infrastructure/    # 보안, 설정, 외부 연동 (Redis, Email, AWS 등)
+├── service/           # 서비스 인터페이스 계층
+├── impl/              # 서비스 구현체 (비즈니스 로직 처리)
+├── controller/        # REST API 및 WebSocket 엔드포인트
 ├── dto/               # Request / Response DTO
-├── util/              # 공통 유틸리티
+├── config/            # WebSocket, Security, Swagger 설정
+├── infrastructure/    # 외부 연동 (Redis, Email 등), 보안 처리
 ├── test/              # 테스트 코드
 ```
 
