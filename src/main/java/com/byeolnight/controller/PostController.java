@@ -1,6 +1,6 @@
 package com.byeolnight.controller;
 
-import com.byeolnight.application.post.PostService;
+import com.byeolnight.service.post.PostService;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.domain.entity.user.User;

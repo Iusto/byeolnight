@@ -1,6 +1,6 @@
 package com.byeolnight.controller;
 
-import com.byeolnight.application.comment.CommentService;
+import com.byeolnight.service.comment.CommentService;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.domain.entity.user.User;

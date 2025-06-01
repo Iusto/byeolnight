@@ -21,11 +21,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    private final TokenProvider tokenProvider;
+    private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(TokenProvider tokenProvider, UserDetailsService userDetailsService) {
-        this.tokenProvider = tokenProvider;
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
+        this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
     }
 
@@ -36,8 +36,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String uri = request.getRequestURI();
 
-        // ✅ Swagger 관련 요청은 바로 필터 통과시킴
-        if (uri.startsWith("/v3/api-docs") || uri.startsWith("/swagger-ui") || uri.startsWith("/swagger-resources")) {
+        // ✅ 인증이 필요 없는 경로는 필터에서 제외
+        if (uri.startsWith("/api/auth") || uri.startsWith("/v3/api-docs") ||
+            uri.startsWith("/swagger-ui") || uri.startsWith("/swagger-resources") ||
+            uri.startsWith("/ws/chat")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -45,13 +47,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
         log.info("Token from header: {}", token);
 
-        if (token == null || !tokenProvider.validate(token)) {
+        if (token == null || !jwtTokenProvider.validate(token)) {
             log.warn("Token invalid or null");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        String email = tokenProvider.getEmail(token);
+        String email = jwtTokenProvider.getEmail(token);
         if (email == null) {
             log.error("Token is valid but email is null");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

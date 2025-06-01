@@ -1,15 +1,15 @@
 package com.byeolnight.controller;
 
-import com.byeolnight.application.auth.EmailAuthService;
-import com.byeolnight.application.auth.PhoneAuthService;
-import com.byeolnight.application.auth.TokenService;
-import com.byeolnight.application.user.UserService;
+import com.byeolnight.service.auth.EmailAuthService;
+import com.byeolnight.service.auth.PhoneAuthService;
+import com.byeolnight.service.auth.TokenService;
+import com.byeolnight.service.user.UserService;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.auth.*;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.dto.user.LogoutRequestDto;
 import com.byeolnight.dto.user.TokenResponseDto;
-import com.byeolnight.infrastructure.security.TokenProvider;
+import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,14 +21,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserService userService;
-    private final TokenProvider tokenProvider;
+    private final JwtTokenProvider jwtTokenProvider;
     private final EmailAuthService emailAuthService;
     private final PhoneAuthService phoneAuthService;
     private final TokenService tokenService;
@@ -42,14 +44,22 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<CommonResponse<TokenResponseDto>> login(@RequestBody @Valid LoginRequestDto dto) {
-        User user = userService.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        try {
+            User user = userService.findByEmail(dto.getEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String accessToken = tokenProvider.createAccessToken(user);
-        String refreshToken = tokenProvider.createRefreshToken(user);
-        tokenService.saveRefreshToken(user.getEmail(), refreshToken, 1000L * 60 * 60 * 24 * 7);
+            String accessToken = jwtTokenProvider.createAccessToken(user);
+            String refreshToken = jwtTokenProvider.createRefreshToken(user);
+            // tokenService.saveRefreshToken(user.getEmail(), refreshToken, 1000L * 60 * 60 * 24 * 7);
 
-        return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(accessToken, refreshToken)));
+            log.info("✅ JWT Token: " + accessToken);
+            return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(accessToken, refreshToken)));
+
+        } catch (Exception e) {
+            e.printStackTrace(); // ❗ 콘솔에 전체 예외 로그 출력
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("서버 오류가 발생했습니다."));
+        }
     }
 
     @PostMapping("/email/send")
@@ -91,16 +101,16 @@ public class AuthController {
     public ResponseEntity<CommonResponse<TokenResponseDto>> refreshAccessToken(@RequestBody @Valid TokenRefreshRequestDto dto) {
         String refreshToken = dto.getRefreshToken();
 
-        if (!tokenProvider.validateRefreshToken(refreshToken)) {
+        if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail("Invalid refresh token"));
         }
 
-        String email = tokenProvider.getEmail(refreshToken);
+        String email = jwtTokenProvider.getEmail(refreshToken);
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String newAccessToken = tokenProvider.createAccessToken(user);
-        String newRefreshToken = tokenProvider.createRefreshToken(user);
+        String newAccessToken = jwtTokenProvider.createAccessToken(user);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(user);
         tokenService.saveRefreshToken(email, newRefreshToken, 1000L * 60 * 60 * 24 * 7);
 
         return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(newAccessToken, newRefreshToken)));
@@ -110,7 +120,7 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "Redis에서 저장된 RefreshToken을 제거합니다.")
     public ResponseEntity<Void> logout(@RequestBody @Valid LogoutRequestDto dto) {
         String refreshToken = dto.getRefreshToken();
-        String email = tokenProvider.getEmail(refreshToken);
+        String email = jwtTokenProvider.getEmail(refreshToken);
         tokenService.delete(refreshToken, email);
         return ResponseEntity.ok().build();
     }

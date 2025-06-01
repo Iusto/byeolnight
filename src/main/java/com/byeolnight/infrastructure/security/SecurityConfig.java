@@ -1,6 +1,6 @@
 package com.byeolnight.infrastructure.security;
 
-import com.byeolnight.application.user.CustomUserDetailsService;
+import com.byeolnight.service.user.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -17,12 +17,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final TokenProvider tokenProvider;
+    private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(tokenProvider, customUserDetailsService);
+        return new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService);
     }
 
     @Bean
@@ -30,10 +30,11 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/login",
-                                "/api/users/register",
-                                "/v3/api-docs/**",
+                                "/ws/chat/**",
+                                "/api/auth/**",
+                                "/api/users/**",
                                 "/swagger-ui/**",
+                                "/v3/api-docs/**",
                                 "/swagger-resources/**"
                         ).permitAll()
                         .anyRequest().authenticated()

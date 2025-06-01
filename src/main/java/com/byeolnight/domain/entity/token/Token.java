@@ -20,7 +20,7 @@ public class Token {
     @Column(nullable = false)
     private String refreshToken;
 
-    private boolean expired;  // ✅ 여기서 오류났을 가능성
+    private boolean expired;
 
     public void expire() {
         this.expired = true;
