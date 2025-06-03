@@ -1,22 +1,49 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/byeolnight
-    username: root
-    password: m1234
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
-      hibernate:
-        format_sql: true
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+send:
+  from: ${MAIL_FROM}
+
+
+jpa:
+  hibernate:
+    ddl-auto: create
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+
+coolsms:
+  api-key: ${COOLSMS_API_KEY}
+  api-secret: ${COOLSMS_API_SECRET}
+  sender-number: ${COOLSMS_SENDER}
 
 server:
   port: 8080
+
+
+
+#sendgrid:
+#    api-key: YOUR_SENDGRID_API_KEY
+#    from-email: no-reply@byeolnight.com

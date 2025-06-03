@@ -23,6 +23,13 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     // WebSocket 의존성 추가
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    // sendgrid 의존성 추가 (이메일 인증)
+    implementation 'com.sendgrid:sendgrid-java:4.9.3'
+    // 이메일인증 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // 휴대폰 인증
+    implementation 'net.nurigo:sdk:4.3.0'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'

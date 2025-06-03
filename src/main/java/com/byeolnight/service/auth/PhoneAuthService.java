@@ -6,27 +6,33 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class PhoneAuthService {
 
+    private final CoolSmsService coolSmsService;
     private final StringRedisTemplate redisTemplate;
-    private final Random random = new Random();
-    private final long EXPIRE_TIME = 60 * 5; // 5분
 
     public void sendCode(String phone) {
-        String code = String.format("%06d", random.nextInt(999999));
-        redisTemplate.opsForValue().set("phone:auth:" + phone, code, Duration.ofSeconds(EXPIRE_TIME));
-        System.out.println("[Mock SMS] " + phone + " 인증코드: " + code);
+        String code = generateCode();
+        redisTemplate.opsForValue().set("phone:" + phone, code, 5, TimeUnit.MINUTES);
+
+        String text = "[별 헤는 밤] 인증번호는 " + code + "입니다.";
+        coolSmsService.send(phone, text);
     }
 
-    public boolean verifyCode(String phone, String inputCode) {
-        String savedCode = redisTemplate.opsForValue().get("phone:auth:" + phone);
-        boolean valid = savedCode != null && savedCode.equals(inputCode);
-        if (valid) {
-            redisTemplate.opsForValue().set("phone:verified:" + phone, "true");
+    public boolean verifyCode(String phone, String code) {
+        String saved = redisTemplate.opsForValue().get("phone:" + phone);
+        if (saved != null && saved.equals(code)) {
+            redisTemplate.delete("phone:" + phone);
+            return true;
         }
-        return valid;
+        return false;
+    }
+
+    private String generateCode() {
+        return String.valueOf((int)(Math.random() * 900000 + 100000));
     }
 }

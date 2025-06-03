@@ -7,29 +7,36 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
-@Service
 @RequiredArgsConstructor
+@Service
 public class EmailAuthService {
 
     private final StringRedisTemplate redisTemplate;
-    private final Random random = new Random();
-    private final long EXPIRE_TIME = 60 * 5; // 5분
+    private final GmailEmailService gmailEmailService;
 
     public void sendCode(String email) {
-        String code = String.format("%06d", random.nextInt(999999));
-        ValueOperations<String, String> ops = redisTemplate.opsForValue();
-        ops.set(getKey(email), code, Duration.ofSeconds(EXPIRE_TIME));
-        System.out.println("[Mock Email] " + email + " 인증코드: " + code);
+        String code = generateCode();
+        redisTemplate.opsForValue().set("email:" + email, code, 5, TimeUnit.MINUTES);
+
+        String subject = "[별 헤는 밤] 이메일 인증 코드";
+        String body = "인증 코드는: " + code;
+        gmailEmailService.send(email, subject, body);
     }
 
-    public boolean verifyCode(String email, String inputCode) {
-        ValueOperations<String, String> ops = redisTemplate.opsForValue();
-        String savedCode = ops.get(getKey(email));
-        return savedCode != null && savedCode.equals(inputCode);
+    public boolean verifyCode(String email, String code) {
+        String saved = redisTemplate.opsForValue().get("email:" + email);
+        if (saved != null && saved.equals(code)) {
+            redisTemplate.delete("email:" + email);
+            return true;
+        }
+        return false;
     }
 
-    private String getKey(String email) {
-        return "email:auth:" + email;
+    private String generateCode() {
+        return String.valueOf((int)(Math.random() * 900000 + 100000));
     }
 }
+
+

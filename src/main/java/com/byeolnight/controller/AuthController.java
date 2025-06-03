@@ -1,5 +1,6 @@
 package com.byeolnight.controller;
 
+import com.byeolnight.dto.user.UserSignUpRequestDto;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
 import com.byeolnight.service.auth.TokenService;
@@ -16,10 +17,13 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -122,6 +126,37 @@ public class AuthController {
         String refreshToken = dto.getRefreshToken();
         String email = jwtTokenProvider.getEmail(refreshToken);
         tokenService.delete(refreshToken, email);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/signup")
+    @Operation(summary = "회원 가입", description = "회원 계정을 가입 처리합니다.")
+    public ResponseEntity<?> register(@RequestBody @Valid UserSignUpRequestDto dto,
+                                      HttpServletRequest request) {
+        String ip = request.getRemoteAddr();
+        // userService에서 입력검사 후 문제 없을 시 회원가입 처리
+        Long userId = userService.register(dto, ip);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/withdraw")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "회원 탈퇴", description = "탈퇴 사유를 입력받아 회원을 탈퇴 처리합니다.")
+    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal User user,
+                                         @RequestParam(required = false) String reason) {
+        userService.withdraw(user.getId(), reason != null ? reason : "탈퇴 사유 미입력");
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<Void> sendResetLink(@RequestBody @Valid PasswordResetRequestDto dto) {
+        userService.requestPasswordReset(dto.getEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<Void> resetPassword(@RequestBody @Valid PasswordResetConfirmDto dto) {
+        userService.resetPassword(dto.getToken(), dto.getNewPassword());
         return ResponseEntity.ok().build();
     }
 }

@@ -2,30 +2,28 @@ package com.byeolnight.dto.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserSignUpRequestDto {
 
+    @NotBlank
     @Email
-    @NotBlank
-    private final String email;
+    private String email;
 
     @NotBlank
-    private final String password;
+    private String password;
 
     @NotBlank
-    private final String nickname;
+    private String confirmPassword;
 
     @NotBlank
-    private final String phone;
+    private String nickname;
 
-    @Builder
-    public UserSignUpRequestDto(String email, String password, String nickname, String phone) {
-        this.email = email;
-        this.password = password;
-        this.nickname = nickname;
-        this.phone = phone;
-    }
+    @NotBlank
+    private String phone;
 }

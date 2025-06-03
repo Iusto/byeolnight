@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,22 +29,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/register")
-    @Operation(summary = "회원가입", description = "회원가입을 수행합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "회원가입 성공",
-                    content = @Content(schema = @Schema(implementation = Long.class)))
-    })
-    public ResponseEntity<CommonResponse<Long>> register(@RequestBody @Valid UserSignUpRequestDto dto) {
-        User user = userService.register(
-                dto.getEmail(),
-                dto.getPassword(),
-                dto.getNickname(),
-                dto.getPhone()
-        );
-        return ResponseEntity.ok(CommonResponse.success(user.getId()));
-    }
-
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "내 정보 조회", description = "AccessToken을 통해 내 프로필 정보를 조회합니다.")
     @ApiResponses({
@@ -53,7 +38,8 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "권한 없음")
     })
     @GetMapping("/me")
-    public ResponseEntity<CommonResponse<UserResponseDto>> getCurrentUser(@AuthenticationPrincipal User user) {
+    public ResponseEntity<CommonResponse<UserResponseDto>> getCurrentUser(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(CommonResponse.success(UserResponseDto.from(user)));
     }
 

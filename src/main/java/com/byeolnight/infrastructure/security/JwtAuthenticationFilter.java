@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
@@ -29,6 +31,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
+    private boolean isWhitelisted(String uri) {
+        for (String pattern : AuthWhitelist.PATHS) {
+            if (pathMatcher.match(pattern, uri)) return true;
+        }
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -36,10 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String uri = request.getRequestURI();
 
-        // ✅ 인증이 필요 없는 경로는 필터에서 제외
-        if (uri.startsWith("/api/auth") || uri.startsWith("/v3/api-docs") ||
-            uri.startsWith("/swagger-ui") || uri.startsWith("/swagger-resources") ||
-            uri.startsWith("/ws/chat")) {
+        if (isWhitelisted(uri)) {
             filterChain.doFilter(request, response);
             return;
         }
