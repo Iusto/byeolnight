@@ -186,6 +186,7 @@ public class User implements UserDetails {
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
     }
 
+    /** 비밀번호 재설정 */
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }

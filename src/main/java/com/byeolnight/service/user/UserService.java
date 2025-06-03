@@ -145,15 +145,20 @@ public class UserService {
     }
 
     @Transactional
-    public void withdraw(Long userId, String reason) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+    public void withdraw(Long userId, String password, String reason) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
-        if (user.getStatus() == User.UserStatus.WITHDRAWN) {
-            throw new IllegalStateException("이미 탈퇴한 사용자입니다.");
+            if (!passwordEncoder.matches(password, user.getPassword())) {
+                throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
+            }
+
+            user.withdraw(reason);
+        } catch (Exception e) {
+            e.printStackTrace(); // ✅ 반드시 추가
+            throw e; // 다시 던져야 500 응답됨
         }
-
-        user.withdraw(reason);
     }
 
     @Transactional
@@ -185,5 +190,4 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(newPassword));
         resetToken.markAsUsed();
     }
-
 }

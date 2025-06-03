@@ -22,17 +22,16 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
 
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
 send:
   from: ${MAIL_FROM}
-
-
-jpa:
-  hibernate:
-    ddl-auto: create
-  show-sql: true
-  properties:
-    hibernate:
-      format_sql: true
 
 coolsms:
   api-key: ${COOLSMS_API_KEY}
@@ -42,8 +41,6 @@ coolsms:
 server:
   port: 8080
 
-
-
-#sendgrid:
-#    api-key: YOUR_SENDGRID_API_KEY
-#    from-email: no-reply@byeolnight.com
+# sendgrid:
+#   api-key: YOUR_SENDGRID_API_KEY
+#   from-email: no-reply@byeolnight.com

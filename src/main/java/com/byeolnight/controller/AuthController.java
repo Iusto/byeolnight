@@ -1,15 +1,12 @@
 package com.byeolnight.controller;
 
-import com.byeolnight.dto.user.UserSignUpRequestDto;
+import com.byeolnight.dto.user.*;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.user.UserService;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.auth.*;
-import com.byeolnight.dto.user.LoginRequestDto;
-import com.byeolnight.dto.user.LogoutRequestDto;
-import com.byeolnight.dto.user.TokenResponseDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -139,22 +136,39 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/withdraw")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "회원 탈퇴", description = "탈퇴 사유를 입력받아 회원을 탈퇴 처리합니다.")
+    @Operation(summary = "회원 탈퇴", description = "비밀번호 확인 및 탈퇴 사유 입력을 통해 회원을 탈퇴 처리합니다.")
+    @DeleteMapping("/withdraw")
     public ResponseEntity<Void> withdraw(@AuthenticationPrincipal User user,
-                                         @RequestParam(required = false) String reason) {
-        userService.withdraw(user.getId(), reason != null ? reason : "탈퇴 사유 미입력");
-        return ResponseEntity.ok().build();
+                                         @RequestBody @Valid WithdrawRequestDto dto) {
+        try {
+            userService.withdraw(user.getId(), dto.getPassword(), dto.getReason());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            e.printStackTrace(); // 콘솔에 에러 출력
+            throw e;
+        }
     }
 
     @PostMapping("/password/reset-request")
+    @Operation(summary = "비밀번호 재설정 요청", description = "이메일 주소로 비밀번호 재설정 링크 또는 토큰을 전송합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "인증 이메일 전송 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 형식", content = @Content),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content)
+    })
     public ResponseEntity<Void> sendResetLink(@RequestBody @Valid PasswordResetRequestDto dto) {
         userService.requestPasswordReset(dto.getEmail());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/password/reset")
+    @Operation(summary = "비밀번호 재설정", description = "이메일로 받은 토큰을 통해 새 비밀번호로 변경합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "비밀번호 변경 성공"),
+            @ApiResponse(responseCode = "400", description = "유효하지 않은 토큰 또는 비밀번호 조건 미달", content = @Content),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content)
+    })
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid PasswordResetConfirmDto dto) {
         userService.resetPassword(dto.getToken(), dto.getNewPassword());
         return ResponseEntity.ok().build();
