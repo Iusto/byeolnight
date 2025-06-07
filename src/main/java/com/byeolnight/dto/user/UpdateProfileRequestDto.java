@@ -15,4 +15,7 @@ public class UpdateProfileRequestDto {
 
     @NotBlank
     private String phone;
+
+    @NotBlank
+    private String currentPassword;
 }

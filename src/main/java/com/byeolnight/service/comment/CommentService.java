@@ -38,7 +38,7 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getByPostId(Long postId) {
-        return commentRepository.findByPostId(postId).stream()
+        return commentRepository.findAllByPostId(postId).stream()
                 .map(CommentResponseDto::from)
                 .collect(Collectors.toList());
     }

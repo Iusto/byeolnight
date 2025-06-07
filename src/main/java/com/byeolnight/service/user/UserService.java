@@ -1,4 +1,3 @@
-
 package com.byeolnight.service.user;
 
 import com.byeolnight.domain.entity.log.AuditSignupLog;
@@ -11,20 +10,21 @@ import com.byeolnight.domain.repository.PasswordResetTokenRepository;
 import com.byeolnight.domain.repository.UserRepository;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserSignUpRequestDto;
+import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.infrastructure.exception.DuplicateEmailException;
 import com.byeolnight.infrastructure.exception.DuplicateNicknameException;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.infrastructure.exception.PasswordMismatchException;
-import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.GmailEmailService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -96,7 +96,6 @@ public class UserService {
             return user.getId();
 
         } catch (RuntimeException e) {
-            // 만약 위에서 잡지 못한 예외가 있다면, 여기서 FAILURE 처리 가능
             if (!(e instanceof DuplicateEmailException || e instanceof DuplicateNicknameException
                     || e instanceof PasswordMismatchException || e instanceof IllegalArgumentException)) {
                 auditSignupLogRepository.save(
@@ -120,16 +119,22 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
-        // ✅ 닉네임 중복 체크는 반드시 서비스에서 처리
+        // ✅ 현재 비밀번호 검증
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // ✅ 닉네임 중복 검사
         if (!user.getNickname().equals(dto.getNickname()) &&
                 userRepository.existsByNickname(dto.getNickname())) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
-        // ✅ 닉네임 변경 로직 (6개월 제약은 User 엔티티 내부에서 처리)
+        // ✅ 정보 업데이트
         user.updateNickname(dto.getNickname(), LocalDateTime.now());
         user.updatePhone(dto.getPhone());
     }
+
 
     @Transactional
     public void updateNickname(Long userId, String newNickname, String ipAddress) {
@@ -156,8 +161,8 @@ public class UserService {
 
             user.withdraw(reason);
         } catch (Exception e) {
-            e.printStackTrace(); // ✅ 반드시 추가
-            throw e; // 다시 던져야 500 응답됨
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -175,6 +180,13 @@ public class UserService {
         gmailEmailService.send(email, "비밀번호 재설정 링크", resetLink);
     }
 
+    /**
+     * 비밀번호 일치 여부 검증
+     */
+    public boolean checkPassword(String rawPassword, User user) {
+        return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
+
     @Transactional
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
@@ -190,4 +202,31 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(newPassword));
         resetToken.markAsUsed();
     }
+
+    /**
+     * 로그인 실패 처리
+     * - 실패 횟수 증가 및 잠금 여부 판단
+     */
+    @Transactional
+    public void increaseLoginFailCount(User user) {
+        user.loginFail();
+        userRepository.save(user);
+    }
+
+    /**
+     * 로그인 성공 시 실패 횟수 초기화
+     */
+    @Transactional
+    public void resetLoginFailCount(User user) {
+        user.loginSuccess();
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> getAllUserSummaries() {
+        return userRepository.findAll().stream()
+                .map(UserSummaryDto::from)
+                .toList();
+    }
+
 }

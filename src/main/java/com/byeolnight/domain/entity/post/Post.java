@@ -40,6 +40,9 @@ public class Post {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    private boolean blinded = false;
+
     @Builder
     public Post(String title, String content, Category category, User writer) {
         this.title = title;
@@ -65,4 +68,9 @@ public class Post {
     public boolean isDeleted() {
         return this.isDeleted;
     }
+
+    public void blind() {
+        this.blinded = true;
+    }
+
 }

@@ -44,7 +44,7 @@ class UserServiceTest {
     @Test
     @DisplayName("닉네임이 중복되면 예외가 발생한다")
     void testNicknameDuplicate() {
-        UpdateProfileRequestDto dto = new UpdateProfileRequestDto("newNick", "01099998888");
+        UpdateProfileRequestDto dto = new UpdateProfileRequestDto("newNick", "01099998888", "m1234");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.existsByNickname("newNick")).thenReturn(true);
@@ -67,7 +67,7 @@ class UserServiceTest {
                 .nicknameUpdatedAt(LocalDateTime.now().minusMonths(3)) // ❗ 최근에 변경함
                 .build();
 
-        UpdateProfileRequestDto dto = new UpdateProfileRequestDto("newNick", "01099998888");
+        UpdateProfileRequestDto dto = new UpdateProfileRequestDto("newNick", "01099998888", "!m123456789");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.existsByNickname("newNick")).thenReturn(false);
@@ -80,7 +80,7 @@ class UserServiceTest {
     @Test
     @DisplayName("존재하지 않는 사용자는 예외 발생")
     void testUserNotFound() {
-        UpdateProfileRequestDto dto = new UpdateProfileRequestDto("any", "01099998888");
+        UpdateProfileRequestDto dto = new UpdateProfileRequestDto("any", "01099998888", "!m123456789");
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.updateProfile(999L, dto))

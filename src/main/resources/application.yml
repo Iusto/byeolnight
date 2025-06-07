@@ -41,6 +41,19 @@ coolsms:
 server:
   port: 8080
 
+cloud:
+  aws:
+    s3:
+      bucket: ${CLOUD_AWS_S3_BUCKET}
+    credentials:
+      access-key: ${CLOUD_AWS_ACCESS_KEY}
+      secret-key: ${CLOUD_AWS_SECRET_KEY}
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+
+
 # sendgrid:
 #   api-key: YOUR_SENDGRID_API_KEY
 #   from-email: no-reply@byeolnight.com

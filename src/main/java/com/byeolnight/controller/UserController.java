@@ -46,7 +46,10 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "회원 프로필 수정", description = "닉네임 및 전화번호를 수정합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "수정 성공")
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "유효성 검사 실패", content = @Content),
+            @ApiResponse(responseCode = "401", description = "인증 실패 또는 토큰 만료", content = @Content),
+            @ApiResponse(responseCode = "409", description = "중복 닉네임 또는 비밀번호 불일치", content = @Content)
     })
     @PutMapping("/profile")
     public ResponseEntity<CommonResponse<Void>> updateProfile(

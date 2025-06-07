@@ -1,5 +1,7 @@
 package com.byeolnight.controller;
 
+import com.byeolnight.domain.entity.log.AuditRefreshTokenLog;
+import com.byeolnight.domain.repository.AuditRefreshTokenLogRepository;
 import com.byeolnight.dto.user.*;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
@@ -35,8 +37,8 @@ public class AuthController {
     private final EmailAuthService emailAuthService;
     private final PhoneAuthService phoneAuthService;
     private final TokenService tokenService;
+    private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
 
-    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "로그인 성공",
                     content = @Content(schema = @Schema(implementation = TokenResponseDto.class))),
@@ -44,20 +46,36 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping("/login")
+    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     public ResponseEntity<CommonResponse<TokenResponseDto>> login(@RequestBody @Valid LoginRequestDto dto) {
         try {
             User user = userService.findByEmail(dto.getEmail())
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+            if (user.isAccountLocked()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(CommonResponse.fail("계정이 잠겨 있습니다. 관리자에게 문의하세요."));
+            }
+
+            if (!userService.checkPassword(dto.getPassword(), user)) {
+                userService.increaseLoginFailCount(user);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(CommonResponse.fail("비밀번호가 일치하지 않습니다."));
+            }
+
+            userService.resetLoginFailCount(user);
 
             String accessToken = jwtTokenProvider.createAccessToken(user);
             String refreshToken = jwtTokenProvider.createRefreshToken(user);
-            // tokenService.saveRefreshToken(user.getEmail(), refreshToken, 1000L * 60 * 60 * 24 * 7);
 
-            log.info("✅ JWT Token: " + accessToken);
             return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(accessToken, refreshToken)));
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(CommonResponse.fail(e.getMessage()));
+
         } catch (Exception e) {
-            e.printStackTrace(); // ❗ 콘솔에 전체 예외 로그 출력
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(CommonResponse.fail("서버 오류가 발생했습니다."));
         }
@@ -99,7 +117,10 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping("/token/refresh")
-    public ResponseEntity<CommonResponse<TokenResponseDto>> refreshAccessToken(@RequestBody @Valid TokenRefreshRequestDto dto) {
+    public ResponseEntity<CommonResponse<TokenResponseDto>> refreshAccessToken(
+            @RequestBody @Valid TokenRefreshRequestDto dto,
+            HttpServletRequest request
+    ) {
         String refreshToken = dto.getRefreshToken();
 
         if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
@@ -109,6 +130,12 @@ public class AuthController {
         String email = jwtTokenProvider.getEmail(refreshToken);
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String ip = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        AuditRefreshTokenLog logEntry = AuditRefreshTokenLog.of(email, ip, userAgent);
+        auditRefreshTokenLogRepository.save(logEntry);
+        log.info("✅ Refresh Token 재발급 로그 저장: {}", logEntry);
 
         String newAccessToken = jwtTokenProvider.createAccessToken(user);
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user);
@@ -131,7 +158,6 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody @Valid UserSignUpRequestDto dto,
                                       HttpServletRequest request) {
         String ip = request.getRemoteAddr();
-        // userService에서 입력검사 후 문제 없을 시 회원가입 처리
         Long userId = userService.register(dto, ip);
         return ResponseEntity.ok().build();
     }
@@ -145,7 +171,7 @@ public class AuthController {
             userService.withdraw(user.getId(), dto.getPassword(), dto.getReason());
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            e.printStackTrace(); // 콘솔에 에러 출력
+            e.printStackTrace();
             throw e;
         }
     }

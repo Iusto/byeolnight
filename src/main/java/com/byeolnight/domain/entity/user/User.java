@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  * 사용자 엔티티
  * - Spring Security 연동을 위한 UserDetails 구현
- * - 닉네임 변경 제약, 밴 여부, 경험치/레벨 기능 포함
+ * - 닉네임 변경 제약, 밴 여부, 경험치/레벨, 로그인 보안 정책 포함
  */
 @Entity
 @Getter
@@ -23,20 +23,10 @@ import java.util.Objects;
 @Builder
 public class User implements UserDetails {
 
-    /**
-     * 사용자 권한 구분
-     */
     public enum Role {
         USER, ADMIN
     }
 
-    /**
-     * 사용자 상태 구분
-     * - ACTIVE: 정상
-     * - BANNED: 밴 처리됨
-     * - SUSPENDED: 일시 정지
-     * - WITHDRAWN: 탈퇴 처리됨
-     */
     public enum UserStatus {
         ACTIVE, BANNED, SUSPENDED, WITHDRAWN
     }
@@ -75,17 +65,25 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean nicknameChanged = false;
 
-    /** 마지막 닉네임 변경 시점 (가입 시 now(), 이후 변경 시 갱신) */
+    /** 마지막 닉네임 변경 시점 */
     @Column(nullable = false)
     private LocalDateTime nicknameUpdatedAt;
 
-    /** 마지막 로그인 시각 (통계용) */
+    /** 마지막 로그인 시각 */
     @Column
     private LocalDateTime lastLoginAt;
 
-    /** 로그인 실패 횟수 (보안 정책용) */
+    /** 로그인 실패 횟수 (기본값: 0) */
     @Column(nullable = false)
     private int loginFailCount = 0;
+
+    /** 계정 잠금 여부 - true면 로그인 불가 */
+    @Column(nullable = false)
+    private boolean accountLocked = false;
+
+    /** 마지막 로그인 실패 시각 */
+    @Column
+    private LocalDateTime lastFailedLogin;
 
     /** 이메일 인증 여부 */
     @Column(nullable = false)
@@ -95,28 +93,24 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean phoneVerified = false;
 
-    /** 밴 사유 (status = BANNED일 때만 의미 있음) */
+    /** 밴 사유 */
     @Column
     private String banReason;
 
-    /** 유저 레벨 (경험치 기반 성장) */
+    /** 유저 레벨 */
     @Column(nullable = false)
     private int level = 1;
 
-    /** 유저 경험치 (글쓰기/댓글 등 활동 기반 누적) */
+    /** 유저 경험치 */
     @Column(nullable = false)
     private int exp = 0;
 
-    /** 탈퇴 사유 저장 */
+    /** 탈퇴 사유 */
     @Column(length = 255)
     private String withdrawalReason;
 
     // ========================== 도메인 메서드 ==========================
 
-    /**
-     * 닉네임 변경 처리
-     * - 최초 변경 시 nicknameChanged = true로 변경
-     */
     public void updateNickname(String newNickname, LocalDateTime now) {
         if (!this.nickname.equals(newNickname)) {
             if (this.nicknameChanged &&
@@ -124,9 +118,7 @@ public class User implements UserDetails {
                     this.nicknameUpdatedAt.isAfter(now.minusMonths(6))) {
                 throw new IllegalStateException("닉네임은 6개월마다 변경할 수 있습니다.");
             }
-
             this.nickname = newNickname;
-
             if (!this.nicknameChanged) {
                 this.nicknameChanged = true;
             }
@@ -134,35 +126,28 @@ public class User implements UserDetails {
         }
     }
 
-    /** 전화 변호 변경 (전화 번호 변경 시 인증 완료 시에만 수행) */
     public void updatePhone(String newPhone) {
         this.phone = newPhone;
     }
 
-
-    /** 경험치 증가 (레벨업 로직은 별도 Policy에서 수행) */
     public void increaseExp(int value) {
         this.exp += value;
     }
 
-    /** 계정 밴 처리 */
     public void ban(String reason) {
         this.status = UserStatus.BANNED;
         this.banReason = reason;
     }
 
-    /** 계정 밴 해제 */
     public void unban() {
         this.status = UserStatus.ACTIVE;
         this.banReason = null;
     }
 
-    /** 이메일 인증 처리 */
     public void verifyEmail() {
         this.emailVerified = true;
     }
 
-    /** 휴대폰 인증 처리 */
     public void verifyPhone() {
         this.phoneVerified = true;
     }
@@ -171,14 +156,24 @@ public class User implements UserDetails {
     public void loginSuccess() {
         this.lastLoginAt = LocalDateTime.now();
         this.loginFailCount = 0;
+        this.accountLocked = false;
+        this.lastFailedLogin = null;
     }
 
-    /** 로그인 실패 처리 (보안 정책 기반으로 계정 잠금 가능) */
+    /**
+     * 로그인 실패 처리
+     * - 실패 횟수 증가
+     * - 마지막 실패 시간 기록
+     * - 일정 횟수 초과 시 계정 잠금
+     */
     public void loginFail() {
         this.loginFailCount++;
+        this.lastFailedLogin = LocalDateTime.now();
+        if (this.loginFailCount >= 5) {
+            this.accountLocked = true;
+        }
     }
 
-    /** 회원탈퇴 처리 (status = WITHDRAWN) */
     public void withdraw(String reason) {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawalReason = reason;
@@ -186,7 +181,6 @@ public class User implements UserDetails {
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
     }
 
-    /** 비밀번호 재설정 */
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
