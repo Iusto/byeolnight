@@ -1,166 +1,160 @@
-# 🌌 별 헤는 밤 (Byeolnight)
+# 🌌 별 헤는 밤 (Byeolnight) - 커뮤니티 & AI 통합 서비스
 
-> **AI, 실시간 통신, 인증 자동화**를 통합한 우주 커뮤니티 백엔드 시스템
-> 단순 기능 구현이 아닌, 운영환경·보안·테스트·CI/CD까지 고려한 실무형 프로젝트
-
----
-
-## 📌 프로젝트 개요
-
-* **시작**: 2025.05 ~ 진행 중
-* **개발 형태**: 100% 개인 설계 및 구현 (백엔드 중심)
-* **목표**:
-  기존 Outven 프로젝트에서 발생했던 구조적·운영적 한계를 개선하고,
-  도메인 중심의 구조에 AI 기능과 자동화 로직을 통합하여
-  **실제 서비스 운영 수준에 대응 가능한 백엔드 시스템을 구축**하는 것
-
-> 이 프로젝트는 단순 기능 구현이 아닌,
-> *보안, 인증, 세션 처리, 테스트, 실시간 통신, 배포 자동화*까지 고려한
-> **실전 아키텍처 설계 경험을 입증하기 위한 목적**으로 시작되었습니다.
+“기능만 되는 백엔드가 아닌, **운영 환경에서 살아남는 구조**를 설계합니다.”  
+이 프로젝트는 인증/보안/확장성/로깅/클린 아키텍처를 모두 고려한 신입 백엔드 포트폴리오입니다.
 
 ---
 
-## 🔍 Outven 프로젝트의 한계와 개선 방향
+## 🛠 기술 스택 및 선택 이유
 
-| 항목     | Outven (기존)      | Byeolnight (개선)         | 선택 사유                    |
-| -------- | ------------------ | ------------------------- | ---------------------------- |
-| 인증 방식  | HttpSession 기반   | JWT + Redis TTL           | 다중 로그인 제어, 확장성 강화 |
-| 게시판 구조 | 단일 Controller 집중 | Enum 기반 분기 + 게시판 모듈화 | 테스트 용이성, 유지보수성 향상 |
-| 배포 환경  | WAR + 수동 Tomcat  | Docker + GitHub Actions   | CI/CD 자동화, 환경 일관성 확보 |
-| 프론트 연동 | Thymeleaf + JSP    | React (API 소비 전용)      | API 우선 구조로 변경, 인증 테스트 연동 |
-| 실시간 기능 | 없음               | WebSocket + STOMP         | 채팅 및 알림 등 양방향 통신 필요 |
-| AI 연동     | 없음               | Galaxy ML + Selenium      | 자동 게시/분류, 콘텐츠 다양성 확보 |
-
----
-
-## ⚙️ 기술 선택 가이드
-
-* **Java 21 + Spring Boot 3.2**: 최신 LTS 기반. Jakarta EE 10 대응, Virtual Thread 적용 가능성 확보 (대규모 I/O 대비)
-* **JPA + QueryDSL**: 도메인 모델 중심 설계, 복잡한 조건 검색의 타입 안정성 확보
-* **JWT + Redis + Spring Security**: 무상태 인증 + TTL 기반 세션 구조로 보안성과 확장성 동시 확보
-* **WebSocket + STOMP**: SSE보다 양방향 대응에 적합, 채팅/알림 등 이벤트 기반 구조에 유리
-* **Swagger 3.0 + Postman**: 인증 포함 API 문서화 + 테스트 시나리오 자동화 대응
-* **Docker + GitHub Actions**: 운영환경과 동일한 로컬 구성 및 무중단 자동 배포 실현
-* **클린 아키텍처**: 계층별 책임 분리, 의존성 단방향 흐름으로 테스트/유지보수에 강함
+| 분류 | 기술 | 이유 |
+|------|------|------|
+| Language | Java 21 | LTS 버전, Stream + Record + 최신 문법 |
+| Framework | Spring Boot 3.2 | 보안/확장성/생산성 모두 확보 |
+| ORM | Spring Data JPA | Repository 기반 추상화, 도메인 중심 설계 |
+| DB | MySQL | 관계형 데이터 + 운영환경 범용성 |
+| Infra | AWS S3, Redis | 파일 저장, 세션 관리, 캐싱 |
+| CI/CD | GitHub Actions, Docker | 실무 수준 자동 배포 |
+| Test | JUnit5 + Mockito | 서비스 계층 단위 테스트 |
+| Frontend | React (예정) | REST API 연동 + WebSocket 소비자 관점 |
+| API Doc | Swagger (OpenAPI 3.0) | 명세 기반 테스트, 자동 문서화 지원 |
 
 ---
 
-## 🧩 핵심 기능 및 설계
+## 🧱 프로젝트 아키텍처
 
-| 영역    | 설계/기능                                                                 |
-| ------- | -------------------------------------------------------------------------- |
-| 인증/보안 | JWT + Redis TTL 인증, Spring Security, BCrypt 암호화                        |
-| 게시판   | CRUD, Soft Delete, 페이징, Enum 기반 게시판 분기 처리                          |
-| 실시간   | WebSocket + STOMP 채팅 구조<br>인증된 사용자만 입장 가능<br>공용 대화방 및 1:1 DM 준비<br>채팅 메시지 DB 저장<br>JWT 인증 연동 및 STOMP 수신 분기 설계 완료<br>React 연동 완료 (SockJS + @stomp/stompjs)<br>추후 HandshakeInterceptor 도입 예정 |
-| 자동화   | Selenium 기반 뉴스 크롤러, Galaxy ML 은하 분류 모델 연동                          |
-| 문서화   | Swagger + @SecurityRequirement 문서 자동화                                  |
-| 배포     | GitHub Actions → Docker 이미지 → EC2 무중단 배포                             |
-| 테스트   | Postman 시나리오 구성 완료<br>ChatService 테스트 및 principal null 처리 예정         |
-
----
-
-## 🛠 실시간 채팅 기술 설계
-
-- **WebSocket + STOMP 기반 양방향 통신 구현**
-- 공용 채팅방(`/topic/public`)과 1:1 DM(`/queue/user.{id}`) 구조 설계 적용
-- `/ws/chat` 엔드포인트 설정, `@MessageMapping` 기반 메시지 라우팅 처리
-- 채팅 메시지는 DTO → Entity로 변환 후 DB에 저장 (JPA 기반)
-- 인증된 사용자만 채팅 입장 허용 (현재는 `Principal` nullable 대응 → 추후 Interceptor 개선 예정)
-- 현재는 Spring `SimpleBroker` 사용, 추후 Redis Pub/Sub로 확장 고려
-- React 클라이언트에서 SockJS + STOMP 연결 구성, 메시지 수신 렌더링 완료
-- 채팅방 구조는 roomId 기반 단일 공용 채널 + DM 채널 분리 구조 (유저 큐 기반)
-
----
-
-## 🏗️ 프로젝트 아키텍처
-
-```bash
-byeolnight/
-├── domain/            # Entity, Repository (도메인 중심 구조)
-├── service/           # 서비스 인터페이스 계층
-├── impl/              # 서비스 구현체 (비즈니스 로직 처리)
-├── controller/        # REST API 및 WebSocket 엔드포인트
-├── dto/               # Request / Response DTO
-├── config/            # WebSocket, Security, Swagger 설정
-├── infrastructure/    # 외부 연동 (Redis, Email 등), 보안 처리
-├── test/              # 테스트 코드
-```
-
-* **의존성 흐름**: Domain → Application → API → Infrastructure
-* 외부 시스템 연동은 `infrastructure` 계층으로 격리
-
----
-
-## 📈 실전 검증 내역
-
-* Redis TTL 세션 유지/만료 테스트 시, 로그인 후 30분 이후 자동 만료 확인
-* JWT 서명 무효화 시 401 반환 및 필터 레벨에서 예외 처리 테스트 통과
-* 게시글 목록 API에 초당 100요청 부하 테스트 진행 → 평균 응답 속도 140ms 유지
-* GitHub Actions에서 EC2까지 자동 배포 평균 소요 시간: 약 55초
-* WebSocket 인증 미포함 시 401 발생 → 보안 필터 정상 작동 확인
-* 채팅 메시지 DB 저장 여부 콘솔 및 Hibernate 로그로 검증 완료
-
----
-
-## 📎 기술 대안 비교 및 배제 이유
-
-| 기술 항목   | 사용하지 않은 기술          | 배제 이유                                      | 선택 기술                        |
-| ----------- | --------------------------- | ---------------------------------------------- | ------------------------------- |
-| 실시간 통신  | SSE, Long Polling           | 단방향 통신 제한, 복잡한 유지비용                        | WebSocket + STOMP              |
-| 메시지 브로커 | Kafka                       | 인프라 비용, 과도한 설계 복잡도 (단순 채팅 수준엔 과함)          | WebSocket + Redis pub/sub 고려 |
-| DB          | PostgreSQL, MongoDB         | 기존 MySQL에 비해 학습 및 운영 부담 증가, 정형 데이터 구조에 비효율 | MySQL 8.0                      |
-| 프론트 템플릿 | Thymeleaf                   | 서버 렌더링 제한, API 기반 프론트와 충돌                  | React (API 소비 전용)          |
-| 인증 구조   | OAuth2                      | 외부 인증 서비스 필요, 우선순위 아님                      | JWT + Redis 세션 구조          |
-
----
-
-## 🙋 성장 포인트 및 회고
-
-* **구조적 개선 경험**: Outven에서의 Controller 집중 구조, WAR 배포 방식 등 실무 한계를 분석하고 구조를 리디자인한 경험
-* **실전형 설계 감각**: 인증, 배포, 테스트, 보안, 실시간 통신 등 실제 운영 서비스에서 필요한 요소들을 통합 설계함으로써 기술 외의 판단력 확보
-* **기술 선정 기준 내재화**: 어떤 기능에 어떤 기술이 적절한지, 왜 그것이 효과적인지 논리적으로 설명 가능한 수준의 선택 기준 확보
-
----
-
-> 이 프로젝트는 단순한 구현이 아닌, "왜 이 기술을 선택했는가", "어떤 구조를 개선하려 했는가"를 설명할 수 있는 **실전 백엔드 설계 경험**을 증명합니다.
-
+- **DDD 기반 레이어드 구조**: `domain`, `service`, `controller`, `dto`, `infrastructure`
+- **JWT 기반 인증 시스템**: Access / Refresh Token 분리 + Redis 저장
+- **S3 Presigned URL 업로드 방식**: 직접 S3 업로드 가능, 서버 자원 낭비 없음
+- **WebSocket 기반 실시간 채팅**: STOMP 지원 + 확장 고려한 구조 설계
+- **Redis 기반 인증 코드 저장 및 토큰 관리**
+- **Spring Security 권한 관리**: `@PreAuthorize`, `@Secured`, 관리자 페이지 분리
 
 ---
 
 ## 🔐 인증 및 보안 설계
 
-| 기능                 | 설명 |
-|----------------------|------|
-| 이메일 인증           | Gmail SMTP 기반 코드 발송 + Redis TTL 저장 |
-| 휴대폰 인증           | CoolSMS API 연동, Redis 인증코드 저장 및 발송 횟수 제한 |
-| 비밀번호 재설정       | 이메일 인증 후 재설정 토큰 발급, 검증 후 비밀번호 초기화 |
-| 회원 탈퇴             | JWT 인증 기반, 비밀번호 재확인 후 status = `WITHDRAWN` 처리 및 정보 마스킹 |
-| 감사 로그 기록        | 회원가입/닉네임변경/탈퇴 등 주요 이벤트에 대한 Audit 로그 관리 |
+- [x] ✅ 이메일 인증 코드 발송 및 검증 (`/auth/email/send`, `/verify`)
+- [x] ✅ 휴대폰 인증 코드 발송 및 검증 (`/auth/phone/send`, `/verify`)
+- [x] ✅ 회원가입 시 이메일/닉네임 중복 검사 및 비밀번호 정책 적용
+- [x] ✅ 로그인 실패 횟수 누적 + 계정 잠금 처리 (`loginFailCount`, `accountLocked`)
+- [x] ✅ 비밀번호 재확인 후 프로필 수정 가능 (`/users/profile`)
+- [x] ✅ JWT 재발급 시 감사 로그 저장 (`AuditRefreshTokenLog`)
+- [x] ✅ Soft Delete + 블라인드 처리 분리 (운영/보안 분리 설계)
 
+---
 
-## ⚠️ 구현 미확인 항목 (작업계획 기준 자동 진단)
+## 📡 실시간 채팅 구조
 
-- [❌ 미구현] 댓글 기능: 관련 파일 없음
-- [❌ 미구현] 알림 기능: 관련 파일 없음
-- [❌ 미구현] Docker 기반 배포 구조: 관련 파일 없음
-- [❌ 미구현] GitHub Actions 자동화: 관련 파일 없음
-- [❌ 미구현] Redis Pub/Sub 기반 확장: 관련 파일 없음
-- [❌ 미구현] 관리자 기능: 관련 파일 없음
-- [❌ 미구현] 추천 시스템: 관련 파일 없음
-- [❌ 미구현] HandshakeInterceptor: 관련 파일 없음
-- [❌ 미구현] 게시글 첨부 기능: 관련 파일 없음
-- [✅ 구현됨] 회원탈퇴 기능: JWT 인증 + 비밀번호 검증 + 탈퇴 사유 저장 + 정보 마스킹 적용됨
-- [✅ 구현됨] 비밀번호 재설정: 이메일 인증 후 토큰 기반 재설정 절차 구현 완료
-- [❌ 미구현] 게시글 신고/블라인드: 관련 파일 없음
-- [✅ 구현됨] 로그아웃 시 Redis RefreshToken 삭제 및 강제 만료 처리 적용됨
-- [❌ 미구현] 프론트 연동 시나리오 문서화: 관련 파일 없음
-- [❌ 미구현] 이미지 업로드 처리 (예: S3 또는 로컬): 관련 파일 없음
-- [❌ 미구현] Spring RestDocs 도입: 관련 파일 없음
-- [❌ 미구현] 운영 모니터링 도구 (Prometheus 등): 관련 파일 없음
-- [❌ 미구현] 코드 컨벤션 자동화 도구: 관련 파일 없음
-- [❌ 미구현] Refresh Token 구조: 관련 파일 없음
-- [❌ 미구현] 시각화 자료 (ERD, 시퀀스 등): 관련 파일 없음
-- [❌ 미구현] React 로그인 화면: 관련 파일 없음
-- [❌ 미구현] 게시글 목록 조회 연동: 관련 파일 없음
-- [❌ 미구현] 게시글 작성 폼 연동: 관련 파일 없음
-- [✅ 구현됨] 토큰 만료 시 401 반환 및 재로그인 유도 처리됨
+- `/chat.send` → 전체 메시지 브로드캐스트
+- `/chat.dm.{to}` → 1:1 메시지 전송
+- 향후 Redis Pub/Sub으로 메시지 처리 모듈화 예정
+
+---
+
+## 📁 파일 업로드 (S3 Presigned 방식)
+
+- `/api/files/presign` 호출 → S3로 직접 업로드 가능한 URL 발급
+- 사용자 ID 기반 디렉토리 구분: `/uploads/{userId}/{uuid}.jpg`
+- 허용 확장자 제한: `jpg`, `jpeg`, `png`, `gif`
+
+---
+
+## 🔄 API 명세 요약
+
+### 🔑 Auth
+- `POST /auth/signup` 회원가입
+- `POST /auth/login` 로그인
+- `POST /auth/logout` 로그아웃
+- `POST /auth/token/refresh` JWT 재발급
+- `POST /auth/withdraw` 회원 탈퇴
+- `POST /auth/email/send` 이메일 인증코드 전송
+- `POST /auth/email/verify` 이메일 인증코드 확인
+- `POST /auth/phone/send` 휴대폰 인증코드 전송
+- `POST /auth/phone/verify` 휴대폰 인증코드 확인
+- `POST /auth/password/reset-request` 비밀번호 초기화 요청
+- `POST /auth/password/reset` 비밀번호 재설정
+
+### 👤 User
+- `GET /users/me` 내 정보 조회
+- `PUT /users/profile` 프로필 수정
+
+### 📄 Post
+- `GET /posts/{id}` 게시글 상세
+- `GET /posts` 게시글 목록
+- `POST /posts` 게시글 작성
+- `PUT /posts/{id}` 게시글 수정
+- `DELETE /posts/{id}` 게시글 삭제
+- `POST /posts/posts/{postId}/like` 추천
+- `POST /posts/{postId}/report` 신고
+
+### 💬 Comment
+- `POST /comments` 댓글 작성
+- `GET /comments/post/{postId}` 댓글 목록
+- `PUT /comments/{id}` 댓글 수정
+- `DELETE /comments/{id}` 댓글 삭제
+
+### 📁 File (S3)
+- `POST /files/presign` 업로드용 URL 요청
+
+### 👮 Admin
+- `GET /admin/users` 전체 사용자 조회 (관리자 권한)
+
+---
+
+## ✅ 구현 기능 체크리스트
+
+| 기능 | 구현 여부 |
+|------|-----------|
+| 이메일 인증 | ✅ 완료 |
+| 휴대폰 인증 | ✅ 완료 |
+| 회원가입 / 로그인 / 로그아웃 | ✅ 완료 |
+| JWT Access / Refresh 분리 | ✅ 완료 |
+| Refresh Token Redis 저장 | ✅ 완료 |
+| Refresh 재발급 시 감사 로그 저장 | ✅ 완료 |
+| 게시글 작성 / 수정 / 삭제 (Soft Delete) | ✅ 완료 |
+| 댓글 작성 / 수정 / 삭제 | ✅ 완료 |
+| 추천 / 중복 추천 방지 | ✅ 완료 |
+| 게시글 신고 / 블라인드 처리 | ✅ 완료 |
+| S3 Presigned 업로드 | ✅ 완료 |
+| 관리자 유저 목록 조회 | ✅ 완료 |
+| 닉네임 변경 6개월 제한 | ✅ 완료 |
+| 로그인 실패 횟수 누적 / 계정 잠금 | ✅ 완료 |
+| WebSocket 채팅 | ✅ 완료 (SimpleBroker 기반) |
+| Swagger 문서화 | ✅ 완료 |
+
+---
+
+## 🧠 회고 및 기술 선택 기준
+
+- **왜 직접 구현했는가?**  
+  직접 경험을 통해 운영 환경에서의 보안/확장성/에러처리 관점을 내재화하기 위함입니다.  
+  단순한 기능 구현이 아닌, **시스템을 책임지는 백엔드**가 되기 위한 설계입니다.
+
+- **어떤 경험을 얻었는가?**  
+  - Redis 캐시, 토큰 저장, 인증 시스템 분리 설계 경험
+  - 인증/보안 정책 설계 (계정 잠금, 감사 로그, 닉네임 제한 등)
+  - Spring Security & Swagger 통합 경험
+  - Presigned URL을 통한 안전한 파일 업로드 구조 설계
+
+---
+
+## 🧪 테스트 코드 계획 (작성 중)
+
+- UserService 테스트
+- 로그인 / 실패 → 계정 잠금 흐름
+- 게시글 좋아요/신고 관련 예외 흐름 테스트
+- S3Service mock 테스트
+
+---
+
+## 🚀 예정된 작업
+
+- [ ] React 기반 UI 구성
+- [ ] Axios/React-Query 연동
+- [ ] 채팅 연동 (SockJS + Stomp.js)
+- [ ] 도메인 + Docker 배포
+
+---
+
+👨‍💻 감사합니다. “운영 가능한 실전 백엔드”를 계속 만들어 가고 있습니다.
