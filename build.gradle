@@ -1,0 +1,71 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.4'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.byeolnight'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '21'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Starter
+    implementation 'org.springframework.boot:spring-boot-starter-web'               // Web MVC
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'         // JPA & Hibernate
+    implementation 'org.springframework.boot:spring-boot-starter-security'         // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-validation'       // Bean Validation
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'       // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'        // WebSocket
+
+    // Swagger(OpenAPI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+    // JSON 직렬화/역직렬화
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // JWT 관련
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // 이메일 인증
+    implementation 'org.springframework.boot:spring-boot-starter-mail'             // JavaMailSender
+    implementation 'com.sendgrid:sendgrid-java:4.9.3'                               // SendGrid
+
+    // 휴대폰 인증 (쿨SMS, Nurigo)
+    implementation 'net.nurigo:sdk:4.3.0'
+
+    // AWS S3 SDK (v2)
+    implementation platform("software.amazon.awssdk:bom:2.25.17")                  // AWS SDK 버전 통합
+    implementation 'software.amazon.awssdk:s3'                                      // S3 Presigned URL 등
+    implementation 'software.amazon.awssdk:auth'                                    // 인증 관련 클래스
+
+    // MySQL JDBC
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // 테스트 관련
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}

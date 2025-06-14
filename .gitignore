@@ -1,0 +1,32 @@
+﻿# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# Build output
+/build/
+/dist/
+/out/
+.gradle/
+
+# Dependency directories
+/node_modules/
+
+# Environment files
+.env*
+**/.env*
+
+# Application config
+*.local
+*.env.local
+
+# Others
+*.bak
+*.swp
