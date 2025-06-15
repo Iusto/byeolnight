@@ -121,20 +121,20 @@
 - `POST /api/posts/{postId}/report` 신고
 
 ### 💬 Comment
-- `POST /api/comments`
-- `GET /api/comments/post/{postId}`
-- `PUT /api/comments/{id}`
-- `DELETE /api/comments/{id}`
+- `POST /api/comments` 댓글 수정
+- `GET /api/comments/post/{postId}` 게시글 댓글 목록 조회
+- `PUT /api/comments/{id}` 댓글 생성
+- `DELETE /api/comments/{id}` 댓글 삭제
 
 ### 📁 File (S3)
 - `POST /api/files/presign`
 
 ### 👮 Admin
-- `GET /api/admin/users`
-- `GET /api/admin/test`
-- `PATCH /api/admin/users/{id}/lock`
-- `PATCH /api/admin/users/{userId}/status`
-- `DELETE /api/admin/users/{userId}`
+- `GET /api/admin/users` 전체 사용자 조회
+- `GET /api/admin/test` 관리자 인증
+- `PATCH /api/admin/users/{id}/lock` 사용자 계정 잠금
+- `PATCH /api/admin/users/{userId}/status` 회원 상태 변경
+- `DELETE /api/admin/users/{userId}` 회원 강제 탈퇴
 
 ---
 
