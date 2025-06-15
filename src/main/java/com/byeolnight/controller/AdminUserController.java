@@ -26,7 +26,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin")
-@SecurityRequirement(name = "bearerAuth") // Swagger 문서에서 인증 헤더 자동 포함
+@SecurityRequirement(name = "BearerAuth")
 public class AdminUserController {
 
     private final UserService userService;
