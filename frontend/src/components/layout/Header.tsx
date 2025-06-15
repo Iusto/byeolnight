@@ -1,7 +1,14 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 const Header = () => {
-  const isLoggedIn = false // TODO: 추후 상태로 대체
+  const { isLoggedIn, logout } = useAuth(); // ✅ 상태 훅은 컴포넌트 내부에서 호출
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <header className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
@@ -10,7 +17,12 @@ const Header = () => {
         {isLoggedIn ? (
           <>
             <Link to="/board" className="text-gray-700 hover:text-blue-600">게시판</Link>
-            <button className="text-red-500 hover:underline">로그아웃</button>
+            <button
+              onClick={handleLogout}
+              className="text-red-500 hover:underline"
+            >
+              로그아웃
+            </button>
           </>
         ) : (
           <>
@@ -20,7 +32,7 @@ const Header = () => {
         )}
       </nav>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

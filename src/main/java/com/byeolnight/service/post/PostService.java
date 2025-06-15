@@ -11,6 +11,7 @@ import com.byeolnight.domain.repository.UserRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,16 +39,21 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PostResponseDto getPostById(Long postId, User viewer) {
+    public PostResponseDto getPostById(Long postId, @Nullable User viewer) {
         Post post = postRepository.findById(postId)
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
 
-        boolean likedByMe = postLikeRepository.existsByUserAndPost(viewer, post); // 내가 추천했는지
-        long likeCount = postLikeRepository.countByPost(post);                    // 추천 수
+        long likeCount = postLikeRepository.countByPost(post);
+
+        boolean likedByMe = false;
+        if (viewer != null) {
+            likedByMe = postLikeRepository.existsByUserAndPost(viewer, post);
+        }
 
         return PostResponseDto.of(post, likedByMe, likeCount);
     }
+
 
 
     @Transactional(readOnly = true)
