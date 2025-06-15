@@ -39,30 +39,39 @@ public class AuthController {
     private final TokenService tokenService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
 
+    @PostMapping("/login")
+    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "로그인 성공",
                     content = @Content(schema = @Schema(implementation = TokenResponseDto.class))),
             @ApiResponse(responseCode = "401", description = "로그인 실패"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    @PostMapping("/login")
-    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     public ResponseEntity<CommonResponse<TokenResponseDto>> login(@RequestBody @Valid LoginRequestDto dto) {
         try {
             User user = userService.findByEmail(dto.getEmail())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
+            // ✅ 계정 상태 확인
+            if (user.getStatus() != User.UserStatus.ACTIVE) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(CommonResponse.fail("해당 계정은 로그인할 수 없습니다. 현재 상태: " + user.getStatus()));
+            }
+
+            // ✅ 계정 잠금 여부 확인
             if (user.isAccountLocked()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("계정이 잠겨 있습니다. 관리자에게 문의하세요."));
             }
 
+            // ✅ 비밀번호 확인
             if (!userService.checkPassword(dto.getPassword(), user)) {
                 userService.increaseLoginFailCount(user);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("비밀번호가 일치하지 않습니다."));
             }
 
+            // ✅ 로그인 성공 처리
             userService.resetLoginFailCount(user);
 
             String accessToken = jwtTokenProvider.createAccessToken(user);
@@ -145,13 +154,33 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "로그아웃", description = "Redis에서 저장된 RefreshToken을 제거합니다.")
-    public ResponseEntity<Void> logout(@RequestBody @Valid LogoutRequestDto dto) {
+    @Operation(summary = "로그아웃", description = "AccessToken을 블랙리스트에 등록하고, Redis에서 RefreshToken을 제거합니다.")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<Void> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody @Valid LogoutRequestDto dto
+    ) {
+        // 1. RefreshToken에서 사용자 이메일 추출
         String refreshToken = dto.getRefreshToken();
         String email = jwtTokenProvider.getEmail(refreshToken);
+
+        // 2. Redis에서 RefreshToken 제거
         tokenService.delete(refreshToken, email);
+        log.info("🧼 RefreshToken 삭제 완료: {}", email);
+
+        // 3. AccessToken 추출 (Authorization 헤더: "Bearer {token}")
+        String accessToken = resolveToken(authHeader);
+
+        // 4. AccessToken 남은 만료시간 계산
+        long expirationMillis = jwtTokenProvider.getExpiration(accessToken);
+
+        // 5. AccessToken을 Redis 블랙리스트에 등록
+        tokenService.blacklistAccessToken(accessToken, expirationMillis);
+        log.info("🚫 AccessToken 블랙리스트 등록: {}", accessToken);
+
         return ResponseEntity.ok().build();
     }
+
 
     @PostMapping("/signup")
     @Operation(summary = "회원 가입", description = "회원 계정을 가입 처리합니다.")
@@ -199,4 +228,15 @@ public class AuthController {
         userService.resetPassword(dto.getToken(), dto.getNewPassword());
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Authorization 헤더에서 Bearer AccessToken 추출
+     */
+    private String resolveToken(String bearer) {
+        if (bearer != null && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+        return null;
+    }
+
 }

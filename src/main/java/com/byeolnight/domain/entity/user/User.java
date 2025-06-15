@@ -12,9 +12,9 @@ import java.util.Collections;
 import java.util.Objects;
 
 /**
- * 사용자 엔티티
- * - Spring Security 연동을 위한 UserDetails 구현
- * - 닉네임 변경 제약, 밴 여부, 경험치/레벨, 로그인 보안 정책 포함
+ * 사용자 엔티티 클래스
+ * - Spring Security의 UserDetails를 구현하여 인증/인가 기능 지원
+ * - 다양한 상태 값, 보안 속성, 경험치/레벨 시스템, 탈퇴 등 도메인 요구사항을 포함함
  */
 @Entity
 @Getter
@@ -23,27 +23,30 @@ import java.util.Objects;
 @Builder(toBuilder = true)
 public class User implements UserDetails {
 
+    /** 사용자 역할 열거형 (일반 사용자, 관리자) */
     public enum Role {
         USER, ADMIN
     }
 
+    /** 사용자 상태 열거형 */
     public enum UserStatus {
         ACTIVE, BANNED, SUSPENDED, WITHDRAWN
     }
 
+    /** 기본키 ID */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 이메일(로그인 ID) */
+    /** 이메일 (로그인 ID) */
     @Column(nullable = false)
     private String email;
 
-    /** 비밀번호(BCrypt 암호화 저장) */
+    /** 비밀번호 (BCrypt 암호화 저장) */
     @Column(nullable = false)
     private String password;
 
-    /** 유저 닉네임 */
+    /** 닉네임 */
     @Column(nullable = false)
     private String nickname;
 
@@ -51,21 +54,21 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String phone;
 
-    /** 유저 권한 (USER / ADMIN) */
+    /** 사용자 권한 (USER 또는 ADMIN) */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    /** 유저 현재 상태 (정상/밴/정지/탈퇴) */
+    /** 사용자 계정 상태 (정상, 밴, 정지, 탈퇴) */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
 
-    /** 닉네임 변경 여부 (최초 변경 허용용) */
+    /** 닉네임을 한 번이라도 변경한 적 있는지 여부 */
     @Column(nullable = false)
     private boolean nicknameChanged = false;
 
-    /** 마지막 닉네임 변경 시점 */
+    /** 마지막 닉네임 변경 시각 */
     @Column(nullable = false)
     private LocalDateTime nicknameUpdatedAt;
 
@@ -73,11 +76,11 @@ public class User implements UserDetails {
     @Column
     private LocalDateTime lastLoginAt;
 
-    /** 로그인 실패 횟수 (기본값: 0) */
+    /** 로그인 실패 횟수 */
     @Column(nullable = false)
     private int loginFailCount = 0;
 
-    /** 계정 잠금 여부 - true면 로그인 불가 */
+    /** 계정 잠금 여부 */
     @Column(nullable = false)
     private boolean accountLocked = false;
 
@@ -93,15 +96,15 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean phoneVerified = false;
 
-    /** 밴 사유 */
+    /** 계정 밴 사유 */
     @Column
     private String banReason;
 
-    /** 유저 레벨 */
+    /** 사용자 레벨 */
     @Column(nullable = false)
     private int level = 1;
 
-    /** 유저 경험치 */
+    /** 사용자 경험치 */
     @Column(nullable = false)
     private int exp = 0;
 
@@ -111,10 +114,13 @@ public class User implements UserDetails {
 
     // ========================== 도메인 메서드 ==========================
 
+    /**
+     * 닉네임 업데이트
+     * - 6개월 내 변경 이력 있으면 예외 발생
+     */
     public void updateNickname(String newNickname, LocalDateTime now) {
         if (!this.nickname.equals(newNickname)) {
-            if (this.nicknameChanged &&
-                    this.nicknameUpdatedAt != null &&
+            if (this.nicknameChanged && this.nicknameUpdatedAt != null &&
                     this.nicknameUpdatedAt.isAfter(now.minusMonths(6))) {
                 throw new IllegalStateException("닉네임은 6개월마다 변경할 수 있습니다.");
             }
@@ -126,33 +132,42 @@ public class User implements UserDetails {
         }
     }
 
+    /** 전화번호 업데이트 */
     public void updatePhone(String newPhone) {
         this.phone = newPhone;
     }
 
+    /** 경험치 증가 */
     public void increaseExp(int value) {
         this.exp += value;
     }
 
+    /** 계정 밴 처리 */
     public void ban(String reason) {
         this.status = UserStatus.BANNED;
         this.banReason = reason;
     }
 
+    /** 계정 밴 해제 */
     public void unban() {
         this.status = UserStatus.ACTIVE;
         this.banReason = null;
     }
 
+    /** 이메일 인증 완료 처리 */
     public void verifyEmail() {
         this.emailVerified = true;
     }
 
+    /** 휴대폰 인증 완료 처리 */
     public void verifyPhone() {
         this.phoneVerified = true;
     }
 
-    /** 로그인 성공 처리 (로그인 시각 기록 + 실패횟수 초기화) */
+    /**
+     * 로그인 성공 처리
+     * - 로그인 성공 시각 갱신, 실패 횟수 초기화, 잠금 해제
+     */
     public void loginSuccess() {
         this.lastLoginAt = LocalDateTime.now();
         this.loginFailCount = 0;
@@ -162,9 +177,7 @@ public class User implements UserDetails {
 
     /**
      * 로그인 실패 처리
-     * - 실패 횟수 증가
-     * - 마지막 실패 시간 기록
-     * - 일정 횟수 초과 시 계정 잠금
+     * - 실패 횟수 누적, 실패 시각 갱신, 5회 이상 실패 시 계정 잠금
      */
     public void loginFail() {
         this.loginFailCount++;
@@ -174,6 +187,10 @@ public class User implements UserDetails {
         }
     }
 
+    /**
+     * 회원 탈퇴 처리
+     * - 상태 변경 및 개인정보 마스킹
+     */
     public void withdraw(String reason) {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawalReason = reason;
@@ -181,39 +198,56 @@ public class User implements UserDetails {
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
     }
 
+    /** 비밀번호 변경 */
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
 
+    /** 관리자에 의한 계정 잠금 */
+    public void lockAccount() {
+        this.accountLocked = true;
+    }
+
+    /**
+     * 계정 상태 변경 메서드
+     */
+    public void changeStatus(UserStatus newStatus) {
+        this.status = newStatus;
+    }
+
     // ======================== Spring Security ========================
 
+    /** Spring Security: 권한 반환 */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
+    /** 사용자명(email) 반환 */
     @Override
     public String getUsername() {
         return email;
     }
 
+    /** 계정 만료 여부 */
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
 
-    /** 정지/밴 상태면 로그인 불가 */
+    /** 계정 잠금 여부 */
     @Override
     public boolean isAccountNonLocked() {
         return status != UserStatus.BANNED && status != UserStatus.SUSPENDED;
     }
 
+    /** 비밀번호 만료 여부 */
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
-    /** ACTIVE 상태만 로그인 허용 */
+    /** 계정 활성 여부 */
     @Override
     public boolean isEnabled() {
         return status == UserStatus.ACTIVE;
@@ -221,6 +255,7 @@ public class User implements UserDetails {
 
     // =========================== equals ============================
 
+    /** 동일성 비교 (ID 기준) */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

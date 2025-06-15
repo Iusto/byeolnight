@@ -78,6 +78,48 @@
 ## 🔄 API 명세 요약
 
 ### 🔑 Auth
+- `POST /api/auth/signup` 회원가입
+- `POST /api/auth/login` 로그인
+- `POST /api/auth/logout` 로그아웃
+- `POST /api/auth/token/refresh` JWT 재발급
+- `DELETE /api/auth/withdraw` 회원 탈퇴
+- `POST /api/auth/email/send` 이메일 인증코드 전송
+- `POST /api/auth/email/verify` 이메일 인증코드 확인
+- `POST /api/auth/phone/send` 휴대폰 인증코드 전송
+- `POST /api/auth/phone/verify` 휴대폰 인증코드 확인
+- `POST /api/auth/password/reset-request` 비밀번호 초기화 요청
+- `POST /api/auth/password/reset` 비밀번호 재설정
+
+### 👤 User
+- `GET /api/users/me` 내 정보 조회
+- `PUT /api/users/profile` 프로필 수정
+
+### 📄 Post
+- `GET /api/public/posts` 게시글 목록 조회
+- `GET /api/public/posts/{id}` 게시글 상세
+- `POST /api/member/posts` 게시글 작성
+- `PUT /api/member/posts/{id}` 게시글 수정
+- `DELETE /api/member/posts/{id}` 게시글 삭제
+- `POST /api/member/posts/posts/{postId}/like` 게시글 추천
+- `POST /api/posts/{postId}/report` 게시글 신고
+
+### 💬 Comment
+- `POST /api/comments` 댓글 작성
+- `GET /api/comments/post/{postId}` 댓글 목록
+- `PUT /api/comments/{commentId}` 댓글 수정
+- `DELETE /api/comments/{commentId}` 댓글 삭제
+
+### 📁 File (S3)
+- `POST /api/files/presign` 업로드용 URL 요청
+
+### 👮 Admin
+- `GET /api/admin/users` 전체 사용자 요약 조회 (관리자 전용)
+- `GET /api/admin/test` 관리자 인증 테스트
+- `PATCH /api/admin/users/{id}/lock` 사용자 계정 잠금
+- `PATCH /api/admin/users/{userId}/status` 회원 상태 변경
+- `DELETE /api/admin/users/{userId}` 회원 강제 탈퇴
+
+### 🔑 Auth
 - `POST /auth/signup` 회원가입
 - `POST /auth/login` 로그인
 - `POST /auth/logout` 로그아웃
@@ -237,3 +279,32 @@ docker-compose up --build
 
 - Java, MySQL, Redis 등은 **모두 Docker로 격리 실행**되므로
 - 타 컴퓨터에서도 Docker만 설치하면 동일한 환경을 재현할 수 있습니다.
+
+---
+
+## 🔧 관리자 기능 및 보안 강화 기능 업데이트 (2025-06-15)
+
+### ✅ 관리자 기능 추가
+- 관리자 전용 API 경로 `/api/admin/**` 구현
+- `@PreAuthorize("hasRole('ADMIN')")` 기반 Role 인증 적용
+- 주요 기능:
+  - 전체 사용자 요약 정보 조회
+  - 사용자 계정 상태 변경 (ACTIVE, SUSPENDED 등)
+  - 관리자에 의한 강제 탈퇴 처리
+
+### 🔐 로그인 보안 정책 강화
+- 로그인 시 유저 상태(`UserStatus`) 확인 로직 추가
+- `SUSPENDED`, `BANNED` 계정은 로그인 불가 처리
+- 실패 시 `401 Unauthorized` 응답과 명확한 메시지 제공
+
+### ✅ API 테스트 결과
+- `/api/admin/test` → ADMIN 토큰으로 200 인증 성공
+- `/api/admin/test` → USER 토큰으로 403 Forbidden 반환 확인
+- 계정 상태 변경 성공 (e.g., SUSPENDED → 로그인 차단 테스트 통과)
+- 관리자 권한으로 강제 탈퇴 API 테스트 완료
+
+### 🛠️ 기타
+- `UserStatus` 열거형 기반 상태 제어 로직 일원화
+- `User` 엔티티 내 `changeStatus(UserStatus)` 도메인 메서드 추가
+- Swagger에서 관리자 인증 자동 설정 (`@SecurityRequirement(name = "bearerAuth")`)
+- `.yml` 설정으로 Spring Redis, JWT 인증 정상 동작 확인

@@ -7,7 +7,6 @@ import com.byeolnight.domain.repository.PostLikeRepository;
 import com.byeolnight.domain.repository.PostRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
-import com.byeolnight.infrastructure.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
