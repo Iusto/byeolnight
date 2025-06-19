@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { fetchUser } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -11,8 +13,9 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-        const res = await axios.post('/api/auth/login', { email, password })
-        localStorage.setItem('accessToken', res.data.data.accessToken)
+      const res = await axios.post('/api/auth/login', { email, password })
+      localStorage.setItem('accessToken', res.data.data.accessToken)
+      await fetchUser()
       navigate('/')
     } catch (err) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.')
@@ -20,13 +23,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 bg-white p-6 rounded shadow">
+    <div className="max-w-md mx-auto mt-20 bg-white p-6 rounded shadow text-black">
       <h2 className="text-xl font-bold mb-4">🔐 로그인</h2>
       <form onSubmit={handleLogin} className="space-y-4">
         <input
           type="email"
           placeholder="이메일"
-          className="w-full border p-2 rounded text-black"
+          className="w-full border p-2 rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -34,7 +37,7 @@ export default function LoginPage() {
         <input
           type="password"
           placeholder="비밀번호"
-          className="w-full border p-2 rounded text-black"
+          className="w-full border p-2 rounded"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
