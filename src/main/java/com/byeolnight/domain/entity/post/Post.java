@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 public class Post {
 
     public enum Category {
-        NEWS, DISCUSSION, IMAGE
+        NEWS, DISCUSSION, IMAGE,
+        EVENT, REVIEW
     }
 
     @Id

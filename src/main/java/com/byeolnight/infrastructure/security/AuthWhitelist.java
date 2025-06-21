@@ -7,7 +7,7 @@ public class AuthWhitelist {
             "/api/auth/email/**",
             "/api/auth/phone/**",
             "/api/auth/token/refresh",
-            "/api/users/register",
+            "/api/auth/check-nickname",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",

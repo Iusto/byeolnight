@@ -26,7 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
-    private final TokenService tokenService; // ✅ 블랙리스트 조회용 서비스 주입
+    private final TokenService tokenService;
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
                                    UserDetailsService userDetailsService,
@@ -37,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 화이트리스트 경로는 필터를 타지 않도록 예외 처리
+     * 화이트리스트 경로는 인증 없이 통과
      */
     private boolean isWhitelisted(String uri) {
         for (String pattern : AuthWhitelist.PATHS) {
@@ -52,58 +52,57 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String uri = request.getRequestURI();
+        String method = request.getMethod();
+
+        log.debug("🔍 요청 URI: {} {}", method, uri);
 
         if (isWhitelisted(uri)) {
+            log.debug("✅ 화이트리스트 경로, 인증 없이 통과");
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 1. Authorization 헤더에서 토큰 추출
         String token = resolveToken(request);
-        log.info("Token from header: {}", token);
+        log.debug("🪪 추출된 토큰: {}", token);
 
-        // 2. 토큰이 없거나 유효하지 않은 경우
-        if (token == null || !jwtTokenProvider.validate(token)) {
-            log.warn("Token invalid or null");
+        if (token == null) {
+            log.warn("❌ Authorization 헤더 없음 또는 형식 오류");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        // 3. 🔒 블랙리스트 등록 여부 확인
+        if (!jwtTokenProvider.validate(token)) {
+            log.warn("❌ JWT 유효성 검사 실패");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         if (tokenService.isAccessTokenBlacklisted(token)) {
-            log.warn("Token is blacklisted: {}", token);
+            log.warn("❌ 블랙리스트 토큰 접근 차단됨");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        // 4. 토큰에서 사용자 정보 추출
         String email = jwtTokenProvider.getEmail(token);
         if (email == null) {
-            log.error("Token is valid but email is null");
+            log.error("❌ 토큰에서 이메일 추출 실패");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        // 5. 사용자 정보 로드 후 SecurityContext에 등록
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
 
-        if (userDetails != null) {
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-        } else {
-            log.warn("UserDetails not found for email: {}", email);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
+        log.debug("✅ 인증 성공: {}", email);
 
-        // 6. 인증 완료 후 다음 필터로 전달
         filterChain.doFilter(request, response);
     }
 
     /**
-     * Authorization 헤더에서 Bearer 토큰만 추출
+     * Authorization 헤더에서 Bearer 토큰 추출
      */
     private String resolveToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");

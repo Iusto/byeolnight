@@ -1,7 +1,5 @@
 package com.byeolnight.infrastructure.security;
 
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.UserRepository;
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.user.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,37 +7,27 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Spring Security 전반을 설정하는 클래스
- * - JWT 기반 인증 필터 등록
- * - URL 접근 권한 관리
- * - 비밀번호 인코딩, 인증 매니저 설정
- */
 @Configuration
 @RequiredArgsConstructor
-@EnableMethodSecurity(prePostEnabled = true) // @PreAuthorize 등을 메서드 단위에서 활성화
+@EnableMethodSecurity(prePostEnabled = true) // @PreAuthorize, @PostAuthorize 사용 가능
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
-    private final TokenService tokenService; // ✅ Redis 블랙리스트 조회용
-    private final UserRepository userRepository;
+    private final TokenService tokenService;
 
     /**
-     * JWT 인증 필터 등록 (DI: 토큰 제공자 + 사용자 서비스 + 토큰 서비스)
+     * JWT 인증 필터 빈 등록
      */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
@@ -47,30 +35,32 @@ public class SecurityConfig {
     }
 
     /**
-     * Spring Security 필터 체인 구성
-     * - CSRF 비활성화 (JWT 기반이므로)
-     * - 인증/인가 설정
-     * - JWT 필터 등록 (기존 UsernamePasswordAuthenticationFilter 앞에)
-     * - 인증 실패 시 401 반환 처리
+     * Spring Security 설정
+     * - CSRF 비활성화 (JWT 기반 API)
+     * - 경로별 접근 제어
+     * - JWT 인증 필터 등록
+     * - 인증 실패 및 권한 부족 핸들링
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(AuthWhitelist.PATHS).permitAll() // 화이트리스트 경로는 인증 제외
-                        .anyRequest().authenticated()                    // 그 외 요청은 인증 필요
+                        .requestMatchers(AuthWhitelist.PATHS).permitAll() // 인증 제외 경로
+                        .anyRequest().authenticated()                    // 그 외는 인증 필요
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(
-                        (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-                ));
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class) // JWT 필터 등록
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED) // 인증 실패 응답
+                        )
+                        .accessDeniedHandler(accessDeniedHandler()) // 인가 실패 응답
+                );
 
         return http.build();
     }
 
     /**
-     * 비밀번호 암호화용 인코더
-     * - BCrypt 사용
+     * 비밀번호 암호화를 위한 인코더 (BCrypt 사용)
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -78,8 +68,7 @@ public class SecurityConfig {
     }
 
     /**
-     * 인증 매니저 등록
-     * - 로그인 시 AuthenticationManager를 통해 인증 처리됨
+     * 로그인 인증에 사용되는 AuthenticationManager 등록
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -87,8 +76,7 @@ public class SecurityConfig {
     }
 
     /**
-     * 관리자 권한 인증
-     * - 로그인 시 AuthenticationManager를 통해 인증 처리됨
+     * 접근 권한 부족 시 403 반환 처리 핸들러
      */
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {

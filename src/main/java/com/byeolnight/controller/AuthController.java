@@ -26,6 +26,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @RequiredArgsConstructor
 @RestController
@@ -98,7 +101,7 @@ public class AuthController {
     }
 
     @PostMapping("/email/verify")
-    @Operation(summary = "이메일 인증 코드 검증", description = "전송된 인증 코드를 검증합니다.")
+    @Operation(summary = "이메일 인증 코드 검증", description = "전송된 이메일 인증 코드를 검증합니다.")
     public ResponseEntity<Boolean> verifyEmailCode(@RequestBody @Valid EmailVerifyRequestDto dto) {
         boolean isValid = emailAuthService.verifyCode(dto.getEmail(), dto.getCode());
         return ResponseEntity.ok(isValid);
@@ -113,10 +116,29 @@ public class AuthController {
 
     @PostMapping("/phone/verify")
     @Operation(summary = "휴대폰 인증 코드 검증", description = "전송된 휴대폰 인증 코드를 검증합니다.")
-    public ResponseEntity<Boolean> verifyPhoneCode(@RequestBody @Valid PhoneVerifyRequestDto dto) {
-        boolean isValid = phoneAuthService.verifyCode(dto.getPhone(), dto.getCode());
-        return ResponseEntity.ok(isValid);
+    public ResponseEntity<Map<String, Object>> verifyPhoneCode(@RequestBody @Valid PhoneVerifyRequestDto dto) {
+        Map<String, Object> response = new HashMap<>();
+        String phone = dto.getPhone();
+        String code = dto.getCode();
+
+        if (phoneAuthService.isAlreadyVerified(phone)) {
+            response.put("success", false);
+            response.put("message", "이미 인증된 전화번호입니다.");
+            return ResponseEntity.ok(response);
+        }
+
+        boolean isValid = phoneAuthService.verifyCode(phone, code);
+        if (isValid) {
+            response.put("success", true);
+            response.put("message", "인증에 성공했습니다.");
+        } else {
+            response.put("success", false);
+            response.put("message", "인증 코드가 일치하지 않습니다.");
+        }
+
+        return ResponseEntity.ok(response);
     }
+
 
     @Operation(summary = "JWT 재발급", description = "RefreshToken을 통해 새로운 AccessToken을 발급받습니다.")
     @ApiResponses({
@@ -154,33 +176,22 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "로그아웃", description = "AccessToken을 블랙리스트에 등록하고, Redis에서 RefreshToken을 제거합니다.")
+    @Operation(summary = "로그아웃", description = "AccessToken을 블랙리스트에 등록합니다.")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Void> logout(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody @Valid LogoutRequestDto dto
+            @RequestHeader("Authorization") String authHeader
     ) {
-        // 1. RefreshToken에서 사용자 이메일 추출
-        String refreshToken = dto.getRefreshToken();
-        String email = jwtTokenProvider.getEmail(refreshToken);
-
-        // 2. Redis에서 RefreshToken 제거
-        tokenService.delete(refreshToken, email);
-        log.info("🧼 RefreshToken 삭제 완료: {}", email);
-
-        // 3. AccessToken 추출 (Authorization 헤더: "Bearer {token}")
         String accessToken = resolveToken(authHeader);
 
-        // 4. AccessToken 남은 만료시간 계산
+        // accessToken 만료 시간 계산
         long expirationMillis = jwtTokenProvider.getExpiration(accessToken);
 
-        // 5. AccessToken을 Redis 블랙리스트에 등록
+        // accessToken 블랙리스트 등록
         tokenService.blacklistAccessToken(accessToken, expirationMillis);
         log.info("🚫 AccessToken 블랙리스트 등록: {}", accessToken);
 
         return ResponseEntity.ok().build();
     }
-
 
     @PostMapping("/signup")
     @Operation(summary = "회원 가입", description = "회원 계정을 가입 처리합니다.")
@@ -237,6 +248,30 @@ public class AuthController {
             return bearer.substring(7);
         }
         return null;
+    }
+
+    /**
+     * 닉네임 중복 확인 API
+     * - 회원가입 및 프로필 수정 시 닉네임 사용 가능 여부 확인 용도
+     * - 로그인 필요 없음
+     *
+     * 예: GET /api/auth/check-nickname?value=Jade99
+     * 응답: true (중복됨), false (사용 가능)
+     */
+    @Operation(
+            summary = "닉네임 중복 확인",
+            description = "회원가입 또는 프로필 수정 시 입력한 닉네임이 이미 사용 중인지 확인합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "중복 여부 반환 성공",
+                    content = @Content(schema = @Schema(implementation = Boolean.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 형식", content = @Content),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content)
+    })
+    @GetMapping("/check-nickname")
+    public ResponseEntity<Boolean> checkNickname(@RequestParam("value") String nickname) {
+        boolean exists = userService.isNicknameDuplicated(nickname);
+        return ResponseEntity.ok(exists);
     }
 
 }

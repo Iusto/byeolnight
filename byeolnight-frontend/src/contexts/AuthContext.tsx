@@ -13,14 +13,14 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   fetchUser: () => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   fetchUser: async () => {},
-  logout: () => {},
+  logout: async () => {}
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -38,9 +38,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('accessToken')
-    setUser(null)
+  const logout = async () => {
+    const accessToken = localStorage.getItem('accessToken')
+    const refreshToken = localStorage.getItem('refreshToken')
+
+    try {
+      if (accessToken && refreshToken) {
+        await api.post('/auth/logout', { refreshToken }, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
+      }
+    } catch (err) {
+      console.error('❌ 로그아웃 API 실패', err)
+    } finally {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      setUser(null)
+    }
   }
 
   useEffect(() => {

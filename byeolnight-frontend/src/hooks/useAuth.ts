@@ -15,10 +15,17 @@ export function useAuth() {
 
   useEffect(() => {
     const fetchMe = async () => {
+      const token = localStorage.getItem('accessToken')
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
       try {
         const res = await api.get('/users/me')
         setUser(res.data.data)
       } catch (err) {
+        console.error('❌ 사용자 정보 조회 실패', err)
         setUser(null)
       } finally {
         setLoading(false)

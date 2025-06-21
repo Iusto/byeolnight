@@ -1,9 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import api from '../lib/axios'
 import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 export default function MePage() {
+  const navigate = useNavigate()
   const { user, fetchUser } = useAuth()
+
+  // ✅ 로그인 안 한 경우 로그인 페이지로 이동
+  useEffect(() => {
+    if (!user) {
+      navigate('/login')
+    }
+  }, [user, navigate])
+
   const [nickname, setNickname] = useState(user?.nickname || '')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')

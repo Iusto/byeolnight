@@ -10,6 +10,7 @@ import com.byeolnight.domain.repository.PostRepository;
 import com.byeolnight.domain.repository.UserRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
+import com.byeolnight.infrastructure.exception.InvalidRequestException;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -121,6 +122,32 @@ public class PostService {
         if (reportCount >= 5 && !post.isBlinded()) {
             post.blind(); // post.setBlinded(true)
             // (선택) 블라인드 로그를 남길 수 있음
+        }
+    }
+
+    public Page<PostResponseDto> getFilteredPosts(String category, String sort, Pageable pageable) {
+        Post.Category categoryEnum = null;
+        if (category != null) {
+            try {
+                categoryEnum = Post.Category.valueOf(category.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new InvalidRequestException("잘못된 카테고리입니다.");
+            }
+        }
+
+        // ⭐ 인기순 정렬: JPQL 기반 likeCount 기준
+        if ("POPULAR".equalsIgnoreCase(sort)) {
+            return postRepository.findPostsByCategoryOrderByLikeCountDesc(categoryEnum, pageable)
+                    .map(PostResponseDto::from);
+        }
+
+        // ✅ 최신순 정렬
+        if (categoryEnum != null) {
+            return postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable)
+                    .map(PostResponseDto::from);
+        } else {
+            return postRepository.findByIsDeletedFalseOrderByCreatedAtDesc(pageable)
+                    .map(PostResponseDto::from);
         }
     }
 

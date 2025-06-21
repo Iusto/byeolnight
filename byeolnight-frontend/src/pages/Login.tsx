@@ -3,7 +3,7 @@ import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-export default function LoginPage() {
+export default function Login() {
   const navigate = useNavigate()
   const { fetchUser } = useAuth()
   const [email, setEmail] = useState('')
@@ -23,30 +23,39 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 bg-white p-6 rounded shadow text-black">
-      <h2 className="text-xl font-bold mb-4">🔐 로그인</h2>
-      <form onSubmit={handleLogin} className="space-y-4">
-        <input
-          type="email"
-          placeholder="이메일"
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="비밀번호"
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button type="submit" className="w-full bg-black text-white py-2 rounded hover:bg-gray-800">
-          로그인
-        </button>
-      </form>
+    <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
+        <h2 className="text-2xl font-bold mb-6 text-center">🔐 로그인</h2>
+        <form onSubmit={handleLogin} className="space-y-5">
+
+          <input
+            type="email"
+            placeholder="이메일"
+            className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="비밀번호"
+            className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+
+          <button
+            type="submit"
+            className="w-full bg-purple-700 hover:bg-purple-800 text-white py-2 rounded transition-colors"
+          >
+            🌌 로그인
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

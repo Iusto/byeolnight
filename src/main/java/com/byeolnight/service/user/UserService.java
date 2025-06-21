@@ -96,6 +96,13 @@ public class UserService {
     }
 
     /**
+     * 닉네임 중복 검사
+     */
+    public boolean isNicknameDuplicated(String nickname) {
+        return userRepository.existsByNickname(nickname);
+    }
+
+    /**
      * 비밀번호 형식 검증
      */
     private boolean isValidPassword(String password) {

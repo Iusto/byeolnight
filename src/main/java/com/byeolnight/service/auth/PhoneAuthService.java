@@ -1,11 +1,11 @@
 package com.byeolnight.service.auth;
 
+import com.byeolnight.service.auth.CoolSmsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -24,12 +24,20 @@ public class PhoneAuthService {
     }
 
     public boolean verifyCode(String phone, String code) {
+        // 이미 인증된 경우
+        if (isAlreadyVerified(phone)) return false;
+
         String saved = redisTemplate.opsForValue().get("phone:" + phone);
         if (saved != null && saved.equals(code)) {
             redisTemplate.delete("phone:" + phone);
+            redisTemplate.opsForValue().set("verified:phone:" + phone, "true", Duration.ofMinutes(10));
             return true;
         }
         return false;
+    }
+
+    public boolean isAlreadyVerified(String phone) {
+        return Boolean.TRUE.toString().equals(redisTemplate.opsForValue().get("verified:phone:" + phone));
     }
 
     private String generateCode() {
