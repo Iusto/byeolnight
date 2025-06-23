@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "posts")
@@ -13,8 +15,7 @@ import java.time.LocalDateTime;
 public class Post {
 
     public enum Category {
-        NEWS, DISCUSSION, IMAGE,
-        EVENT, REVIEW
+        NEWS, DISCUSSION, IMAGE, EVENT, REVIEW
     }
 
     @Id
@@ -29,20 +30,30 @@ public class Post {
     private String content;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "writer_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "writer_id", nullable = false)
     private User writer;
 
+    @Column(nullable = false)
     private int viewCount = 0;
-    private boolean isDeleted = false;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    private int likes = 0;
+
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @Column(nullable = false)
     private boolean blinded = false;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
     @Builder
     public Post(String title, String content, Category category, User writer) {
@@ -50,13 +61,26 @@ public class Post {
         this.content = content;
         this.category = category;
         this.writer = writer;
+    }
+
+    @PrePersist
+    public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void update(String title, String content, Category category) {
-        if (title == null || title.isBlank()) throw new IllegalArgumentException("제목은 비어 있을 수 없습니다.");
-        if (content == null || content.isBlank()) throw new IllegalArgumentException("내용은 비어 있을 수 없습니다.");
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("제목은 비어 있을 수 없습니다.");
+        }
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("내용은 비어 있을 수 없습니다.");
+        }
         this.title = title;
         this.content = content;
         this.category = category;
@@ -66,12 +90,29 @@ public class Post {
         this.isDeleted = true;
     }
 
-    public boolean isDeleted() {
-        return this.isDeleted;
-    }
-
     public void blind() {
         this.blinded = true;
     }
 
+    public void increaseLikes() {
+        this.likes++;
+    }
+
+    public void decreaseLikes() {
+        if (this.likes > 0) {
+            this.likes--;
+        }
+    }
+
+    public boolean isDeleted() {
+        return this.isDeleted;
+    }
+
+    public boolean isBlinded() {
+        return this.blinded;
+    }
+
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
 }

@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { fetchUser } = useAuth()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -13,11 +12,8 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const res = await axios.post('/api/auth/login', { email, password })
-      localStorage.setItem('accessToken', res.data.data.accessToken)
-      await fetchUser()
-      navigate('/')
-    } catch (err) {
+      await login(email, password)
+    } catch {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.')
     }
   }

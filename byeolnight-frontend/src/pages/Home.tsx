@@ -19,10 +19,10 @@ export default function Home() {
 
         <div className="flex flex-col md:flex-row gap-8">
           <main className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <PostPreviewSection title="🔥 인기 게시글" apiUrl="/api/public/posts?sort=popular" />
-            <PostPreviewSection title="🌌 밤하늘 별 사진 게시판" apiUrl="/api/public/posts?category=IMAGE" />
-            <PostPreviewSection title="🛰️ 우주 뉴스 게시판" apiUrl="/api/public/posts?category=NEWS" />
-            <PostPreviewSection title="🔭 천문대 견학 게시판" apiUrl="/api/public/posts?category=DISCUSSION" />
+            <PostPreviewSection title="🔥 인기 게시글" apiUrl="/public/posts?sort=popular" />
+            <PostPreviewSection title="🌌 밤하늘 별 사진 게시판" apiUrl="/public/posts?category=IMAGE" />
+            <PostPreviewSection title="🛰️ 우주 뉴스 게시판" apiUrl="/public/posts?category=NEWS" />
+            <PostPreviewSection title="🔭 천문대 견학 게시판" apiUrl="/public/posts?category=DISCUSSION" />
           </main>
 
           <aside className="w-full md:w-80">

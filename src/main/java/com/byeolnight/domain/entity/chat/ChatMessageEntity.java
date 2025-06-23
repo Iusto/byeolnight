@@ -2,30 +2,38 @@ package com.byeolnight.domain.entity.chat;
 
 import com.byeolnight.dto.chat.ChatMessageDto;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_messages")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+@Table(name = "chat_messages")
 public class ChatMessageEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String roomId;  // 기존 @ManyToOne → 단순 필드로 변경
+    @Column(nullable = false)
+    private String roomId;
+
+    @Column(nullable = false)
     private String sender;
+
+    @Column(nullable = false)
     private String message;
+
+    @Column(nullable = false)
     private LocalDateTime timestamp;
 
     public ChatMessageEntity(ChatMessageDto dto) {
         this.roomId = dto.getRoomId();
         this.sender = dto.getSender();
         this.message = dto.getMessage();
-        this.timestamp = dto.getTimestamp();
+        this.timestamp = dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now();
     }
 }

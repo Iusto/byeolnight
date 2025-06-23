@@ -4,7 +4,7 @@ import com.byeolnight.domain.entity.comment.Comment;
 import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.CommentRepository;
-import com.byeolnight.domain.repository.PostRepository;
+import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;

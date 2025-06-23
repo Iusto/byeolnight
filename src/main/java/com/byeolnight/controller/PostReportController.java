@@ -3,6 +3,7 @@ package com.byeolnight.controller;
 import com.byeolnight.dto.post.PostReportRequestDto;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
+import com.byeolnight.service.post.PostReportService;
 import com.byeolnight.service.post.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/posts")
 public class PostReportController {
 
-    private final PostService postService;
+    private final PostReportService postReportService;
 
     /**
      * 게시글 신고 API
@@ -44,7 +45,7 @@ public class PostReportController {
             @RequestBody PostReportRequestDto dto,
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        postService.reportPost(user.getId(), postId, dto.getReason());
+        postReportService.reportPost(user.getId(), postId, dto.getReason());
         return ResponseEntity.ok(CommonResponse.success("신고가 접수되었습니다."));
     }
 }

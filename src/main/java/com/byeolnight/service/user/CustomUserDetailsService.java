@@ -1,6 +1,6 @@
 package com.byeolnight.service.user;
 
-import com.byeolnight.domain.repository.UserRepository;
+import com.byeolnight.domain.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

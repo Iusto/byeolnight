@@ -18,10 +18,14 @@ public class PostRequestDto {
     @NotNull
     private final Category category;
 
+    @NotNull
+    private String writer;
+
     @Builder
-    public PostRequestDto(String title, String content, Category category) {
+    public PostRequestDto(String title, String content, Category category, String writer) {
         this.title = title;
         this.content = content;
         this.category = category;
+        this.writer = writer;
     }
 }

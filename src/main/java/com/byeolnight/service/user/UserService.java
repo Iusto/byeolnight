@@ -7,14 +7,11 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.AuditSignupLogRepository;
 import com.byeolnight.domain.repository.NicknameChangeHistoryRepository;
 import com.byeolnight.domain.repository.PasswordResetTokenRepository;
-import com.byeolnight.domain.repository.UserRepository;
+import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserSignUpRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
-import com.byeolnight.infrastructure.exception.DuplicateEmailException;
-import com.byeolnight.infrastructure.exception.DuplicateNicknameException;
-import com.byeolnight.infrastructure.exception.NotFoundException;
-import com.byeolnight.infrastructure.exception.PasswordMismatchException;
+import com.byeolnight.infrastructure.exception.*;
 import com.byeolnight.service.auth.GmailEmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -176,7 +173,7 @@ public class UserService {
     @Transactional
     public void requestPasswordReset(String email) {
         if (!userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("존재하지 않는 이메일입니다.");
+            throw new EmailNotFoundException("존재하지 않는 이메일입니다.");
         }
         String token = UUID.randomUUID().toString();
         PasswordResetToken resetToken = PasswordResetToken.create(email, token, Duration.ofMinutes(30));
@@ -200,7 +197,7 @@ public class UserService {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
         if (!resetToken.isValid()) {
-            throw new IllegalStateException("만료되었거나 이미 사용된 토큰입니다.");
+            throw new ExpiredResetTokenException("만료되었거나 이미 사용된 토큰입니다.");
         }
         User user = userRepository.findByEmail(resetToken.getEmail())
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));

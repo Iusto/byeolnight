@@ -1,25 +1,27 @@
 package com.byeolnight.infrastructure.security;
 
+import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.service.user.CustomUserDetailsService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import com.byeolnight.domain.entity.user.User;
 
 import java.security.Key;
 import java.util.Date;
 
-/**
- * JWT 생성 및 검증을 담당하는 유틸리티 클래스
- */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    // 서명에 사용할 비밀키
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final CustomUserDetailsService customUserDetailsService;
 
-    // 유효시간
+    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     private final long ACCESS_TOKEN_VALIDITY = 1000 * 60 * 30; // 30분
     private final long REFRESH_TOKEN_VALIDITY = 1000L * 60 * 60 * 24 * 7; // 7일
 
@@ -51,17 +53,14 @@ public class JwtTokenProvider {
      */
     public boolean validate(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token); // 이 줄에서 유효성 검사 수행
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
             log.warn("⏰ JWT 만료됨: {}", e.getMessage());
         } catch (JwtException e) {
             log.warn("❌ JWT 검증 실패: {}", e.getMessage());
         } catch (Exception e) {
-            log.warn("❓ 기타 JWT 예외: {}", e.getClass().getSimpleName() + " - " + e.getMessage());
+            log.warn("❓ 기타 JWT 예외: {}", e.getMessage());
         }
         return false;
     }
@@ -82,9 +81,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Claims 전체 추출
-     */
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -93,10 +89,18 @@ public class JwtTokenProvider {
                 .getBody();
     }
 
-    /**
-     * 만료 시간 계산
-     */
     public long getExpiration(String token) {
         return extractAllClaims(token).getExpiration().getTime() - System.currentTimeMillis();
+    }
+
+    /**
+     * 토큰 기반 인증 객체 생성
+     */
+    public Authentication getAuthentication(String token) {
+        String email = getEmail(token);
+        if (email == null) throw new RuntimeException("이메일 추출 실패");
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 }

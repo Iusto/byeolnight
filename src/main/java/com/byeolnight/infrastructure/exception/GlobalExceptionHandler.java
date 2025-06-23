@@ -52,6 +52,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 이메일 없음 예외
+     */
+    @ExceptionHandler(EmailNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotFound(EmailNotFoundException ex, HttpServletRequest req) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
+    }
+
+
+    /**
      * 도메인 - 중복 닉네임
      */
     @ExceptionHandler(DuplicateNicknameException.class)
@@ -73,6 +82,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex, HttpServletRequest req) {
         return buildResponse(HttpStatus.NOT_FOUND, ex, req);
+    }
+
+    /**
+     * 도메인 - 유효하지 않은 토큰
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
+    }
+
+    /**
+     * 도메인 - 만료되었거나 이미 사용된 토큰
+     */
+    @ExceptionHandler(ExpiredResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredResetToken(ExpiredResetTokenException ex, HttpServletRequest req) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
     }
 
     /**

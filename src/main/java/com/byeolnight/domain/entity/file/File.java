@@ -1,4 +1,3 @@
-
 package com.byeolnight.domain.entity.file;
 
 import com.byeolnight.domain.entity.post.Post;
@@ -11,17 +10,33 @@ import lombok.*;
 @Builder
 @Entity
 public class File {
-    @Id @GeneratedValue
+
+    @Id
+    @GeneratedValue
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Post post;  // ✅ 여기도 @Getter 없으면 접근 불가
+    private Post post;
 
-    private String originalName;
-    private String uuidName;
+    @Column(nullable = false)
+    private String originalName; // 원본 파일명 (예: "내사진.png")
+
+    @Column(nullable = false)
+    private String s3Key; // S3 내 저장 경로 및 파일명 (예: "posts/uuid_내사진.png")
+
+    @Column(nullable = false)
+    private String url; // S3 접근용 URL
 
     public void detachFromPost() {
         this.post = null;
     }
-}
 
+    public static File of(Post post, String originalName, String s3Key, String url) {
+        return File.builder()
+                .post(post)
+                .originalName(originalName)
+                .s3Key(s3Key)
+                .url(url)
+                .build();
+    }
+}
