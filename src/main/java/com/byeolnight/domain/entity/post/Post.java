@@ -41,7 +41,7 @@ public class Post {
     private int viewCount = 0;
 
     @Column(nullable = false)
-    private int likes = 0;
+    private int likeCount = 0;
 
     @Column(nullable = false)
     private boolean isDeleted = false;
@@ -63,17 +63,6 @@ public class Post {
         this.writer = writer;
     }
 
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public void update(String title, String content, Category category) {
         if (title == null || title.isBlank()) {
             throw new IllegalArgumentException("제목은 비어 있을 수 없습니다.");
@@ -92,16 +81,6 @@ public class Post {
 
     public void blind() {
         this.blinded = true;
-    }
-
-    public void increaseLikes() {
-        this.likes++;
-    }
-
-    public void decreaseLikes() {
-        if (this.likes > 0) {
-            this.likes--;
-        }
     }
 
     public boolean isDeleted() {

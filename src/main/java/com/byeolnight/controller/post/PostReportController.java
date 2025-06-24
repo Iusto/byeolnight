@@ -1,10 +1,9 @@
-package com.byeolnight.controller;
+package com.byeolnight.controller.post;
 
 import com.byeolnight.dto.post.PostReportRequestDto;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.post.PostReportService;
-import com.byeolnight.service.post.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

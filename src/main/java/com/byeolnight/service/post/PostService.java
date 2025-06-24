@@ -5,8 +5,8 @@ import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.post.Post.Category;
 import com.byeolnight.domain.entity.post.PostLike;
 import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.domain.repository.post.FileRepository;
+import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.domain.repository.post.PopularPostRepository;
 import com.byeolnight.domain.repository.post.PostLikeRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
@@ -35,7 +35,8 @@ public class PostService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
 
-    public Long createPost(PostRequestDto dto, User user, List<FileDto> files) {
+    @Transactional
+    public Long createPost(PostRequestDto dto, User user) {
         Post post = Post.builder()
                 .title(dto.getTitle())
                 .content(dto.getContent())
@@ -43,12 +44,18 @@ public class PostService {
                 .writer(user)
                 .build();
         postRepository.save(post);
-        handleImageUpload(files, post);
+
+        // 이미지 엔티티 저장
+        dto.getImages().forEach(image -> {
+            File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+            fileRepository.save(file);
+        });
+
         return post.getId();
     }
 
     @Transactional
-    public void updatePost(Long postId, PostRequestDto dto, User user, List<FileDto> files) {
+    public void updatePost(Long postId, PostRequestDto dto, User user) {
         Post post = getPostOrThrow(postId);
 
         if (!post.getWriter().equals(user)) {
@@ -57,26 +64,31 @@ public class PostService {
 
         post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
 
+        // 기존 이미지 삭제
         fileRepository.deleteAllByPost(post);
-        handleImageUpload(files, post);
+
+        // 새 이미지 저장
+        dto.getImages().forEach(image -> {
+            File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+            fileRepository.save(file);
+        });
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponseDto getPostById(Long postId, User currentUser) {
         Post post = postRepository.findWithWriterById(postId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 게시글입니다."));
 
-        if (post.isDeleted()) throw new NotFoundException("삭제된 게시글입니다.");
+        if (post.isDeleted() || post.isBlinded()) {
+            throw new NotFoundException("삭제되었거나 블라인드 처리된 게시글입니다.");
+        }
+
+        post.increaseViewCount(); // ✅ 조회수 증가
 
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
         long likeCount = postLikeRepository.countByPost(post);
 
         return PostResponseDto.of(post, likedByMe, likeCount);
-    }
-
-    public Page<PostResponseDto> getAllPosts(Pageable pageable) {
-        return postRepository.findAllByIsDeletedFalse(pageable)
-                .map(PostResponseDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -89,15 +101,14 @@ public class PostService {
 
         if ("popular".equalsIgnoreCase(sort)) {
             LocalDateTime threshold = LocalDateTime.now().minusDays(30);
-
-            // 추천수 10개 이상, 최근 30일 게시글 ID 조회
             List<Long> hotIds = popularPostRepository.findPopularPostIdsSince(threshold);
             if (hotIds.isEmpty()) return Page.empty(pageable);
 
-            // 작성자(writer) fetch join으로 Lazy 초기화
-            List<Post> posts = postRepository.findPostsByIds(hotIds);
+            // writer 포함 조회 후 blind 필터링
+            List<Post> posts = postRepository.findPostsByIds(hotIds).stream()
+                    .filter(post -> !post.isBlinded())
+                    .toList();
 
-            // ID 기준으로 Map 변환 후 hotIds 순서대로 정렬
             Map<Long, Post> postMap = posts.stream()
                     .collect(Collectors.toMap(Post::getId, p -> p));
 
@@ -106,7 +117,6 @@ public class PostService {
                     .filter(Objects::nonNull)
                     .toList();
 
-            // 페이지네이션 적용
             int start = (int) pageable.getOffset();
             int end = Math.min(start + pageable.getPageSize(), sorted.size());
             if (start >= sorted.size()) return Page.empty(pageable);
@@ -121,14 +131,13 @@ public class PostService {
 
         // 최신순 정렬
         if (categoryEnum != null) {
-            return postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable)
+            return postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable)
                     .map(PostResponseDto::from);
         } else {
-            return postRepository.findByIsDeletedFalseOrderByCreatedAtDesc(pageable)
+            return postRepository.findByIsDeletedFalseAndBlindedFalseOrderByCreatedAtDesc(pageable)
                     .map(PostResponseDto::from);
         }
     }
-
 
     @Transactional
     public void deletePost(Long postId, User user) {
@@ -169,13 +178,19 @@ public class PostService {
         }
     }
 
-    private void handleImageUpload(List<FileDto> files, Post post) {
-        if (files == null || files.isEmpty()) return;
-
-        List<File> entities = files.stream()
-                .map(dto -> File.of(post, dto.originalName(), dto.s3Key(), dto.url()))
+    // 관리자 기능(블라인드 처리된 게시글 조회)
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getBlindedPosts() {
+        return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
+                .map(PostResponseDto::from)
                 .toList();
+    }
 
-        fileRepository.saveAll(entities);
+    // 관리자 기능(게시글 블라인드 처리)
+    @Transactional
+    public void blindPost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        post.blind(); // 엔티티 메서드 사용
     }
 }

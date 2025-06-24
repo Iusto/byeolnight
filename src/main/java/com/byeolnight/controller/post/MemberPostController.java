@@ -33,9 +33,8 @@ public class MemberPostController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CommonResponse<Long>> create(
             @RequestPart("requestDto") @Valid PostRequestDto requestDto,
-            @RequestPart(value = "files", required = false) List<FileDto> files,
             @AuthenticationPrincipal User user) {
-        Long postId = postService.createPost(requestDto, user, files);
+        Long postId = postService.createPost(requestDto, user);
         return ResponseEntity.ok(CommonResponse.success(postId));
     }
 
@@ -48,9 +47,8 @@ public class MemberPostController {
     public ResponseEntity<CommonResponse<Void>> update(
             @PathVariable Long id,
             @RequestPart("requestDto") @Valid PostRequestDto requestDto,
-            @RequestPart(value = "files", required = false) List<FileDto> files,
             @AuthenticationPrincipal User user) {
-        postService.updatePost(id, requestDto, user, files);
+        postService.updatePost(id, requestDto, user);
         return ResponseEntity.ok(CommonResponse.success());
     }
 

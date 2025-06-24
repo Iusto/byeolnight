@@ -14,11 +14,12 @@ public interface PopularPostRepository extends JpaRepository<PopularPost, Long> 
     void deleteByPost(Post post);
 
     @Query("""
-        SELECT p.id FROM Post p
-        WHERE p.isDeleted = false
-        AND SIZE(p.likes) >= 10
-        AND p.createdAt >= :threshold
-        ORDER BY SIZE(p.likes) DESC, p.createdAt DESC
+    SELECT p.id FROM Post p
+    WHERE p.isDeleted = false
+    AND p.blinded = false
+    AND p.likeCount >= 10
+    AND p.createdAt >= :threshold
+    ORDER BY p.likeCount DESC, p.createdAt DESC
     """)
     List<Long> findPopularPostIdsSince(@Param("threshold") LocalDateTime threshold);
 }

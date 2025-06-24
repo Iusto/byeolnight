@@ -15,30 +15,31 @@ import java.util.Optional;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
-    // 🔹 전체 게시글 목록 조회 (isDeleted = false 조건)
-    Page<Post> findAllByIsDeletedFalse(Pageable pageable);
+    // ✅ blinded = false 조건 추가한 최신순 조회 (카테고리 X)
+    Page<Post> findByIsDeletedFalseAndBlindedFalseOrderByCreatedAtDesc(Pageable pageable);
 
-    // 🔹 카테고리별 게시글 목록 조회 (최신순, 삭제되지 않은 게시글만)
-    Page<Post> findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
-
-    // 🔹 전체 게시글 목록 조회 (최신순, 삭제되지 않은 게시글만)
-    Page<Post> findByIsDeletedFalseOrderByCreatedAtDesc(Pageable pageable);
+    // ✅ blinded = false 조건 추가한 최신순 조회 (카테고리 O)
+    Page<Post> findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
 
     // 🔹 다건 조회용: 추천순 정렬 등 ID 리스트로 여러 게시글을 fetch join으로 조회할 때 사용
     // - writer 정보를 lazy loading 없이 한 번에 가져옴 (N+1 문제 해결 목적)
+    // blinded = false
     @Query("""
-        SELECT DISTINCT p FROM Post p
-        JOIN FETCH p.writer
-        WHERE p.id IN :ids AND p.isDeleted = false
+    SELECT DISTINCT p FROM Post p
+    JOIN FETCH p.writer
+    WHERE p.id IN :ids AND p.isDeleted = false AND p.blinded = false
     """)
     List<Post> findPostsByIds(@Param("ids") List<Long> ids);
 
     // 🔹 단건 조회용: 게시글 상세 조회 시 writer 정보까지 즉시 로딩(fetch join)하여 반환
-    // - Hibernate.initialize() 대신 fetch join으로 lazy 예외 방지
+    // blinded = false
     @Query("""
-        SELECT p FROM Post p
-        JOIN FETCH p.writer
-        WHERE p.id = :id AND p.isDeleted = false
+    SELECT p FROM Post p
+    JOIN FETCH p.writer
+    WHERE p.id = :id AND p.isDeleted = false AND p.blinded = false
     """)
     Optional<Post> findWithWriterById(@Param("id") Long id);
+
+    // 블라인드 게시글만 조회
+    List<Post> findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc();
 }

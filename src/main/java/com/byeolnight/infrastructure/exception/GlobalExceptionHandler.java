@@ -101,6 +101,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 도메인 - 닉네임 변경 6개월 제한
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest req) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, req); // 400 Bad Request로 보냄
+    }
+
+    /**
      * 기타 예외 처리
      */
     @ExceptionHandler(Exception.class)
