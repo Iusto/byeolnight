@@ -1,10 +1,11 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL, // ← 환경변수에서 가져오기
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // ← 필요 시 쿠키 인증 사용
 });
 
 instance.interceptors.request.use(

@@ -103,4 +103,11 @@ public class JwtTokenProvider {
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
+
+    /**
+     * refresh 토큰 getter
+     */
+    public long getRefreshTokenValidity() {
+        return REFRESH_TOKEN_VALIDITY;
+    }
 }

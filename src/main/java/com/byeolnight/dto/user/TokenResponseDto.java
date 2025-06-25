@@ -11,7 +11,4 @@ public class TokenResponseDto {
 
     @Schema(description = "Access Token (30분 유효)", example = "eyJhbGciOiJIUzI1...")
     private String accessToken;
-
-    @Schema(description = "Refresh Token (7일 유효)", example = "eyJhbGciOiJIUzI1...")
-    private String refreshToken;
 }

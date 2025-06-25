@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserStatusChangeRequest {
+public class UserStatusChangeRequestDto {
     private User.UserStatus status;
     private String reason;
 }

@@ -1,7 +1,11 @@
-package com.byeolnight.controller;
+package com.byeolnight.controller.auth;
 
+import com.byeolnight.domain.entity.log.AuditLoginLog;
 import com.byeolnight.domain.entity.log.AuditRefreshTokenLog;
-import com.byeolnight.domain.repository.AuditRefreshTokenLogRepository;
+import com.byeolnight.domain.entity.log.AuditSignupLog;
+import com.byeolnight.domain.repository.log.AuditLoginLogRepository;
+import com.byeolnight.domain.repository.log.AuditRefreshTokenLogRepository;
+import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
 import com.byeolnight.dto.user.*;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.service.auth.EmailAuthService;
@@ -17,9 +21,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -40,42 +48,91 @@ public class AuthController {
     private final PhoneAuthService phoneAuthService;
     private final TokenService tokenService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
+    private final AuditSignupLogRepository auditSignupLogRepository;
+    private final AuditLoginLogRepository auditLoginLogRepository;
+    private final StringRedisTemplate redisTemplate;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "로그인 성공",
-                    content = @Content(schema = @Schema(implementation = TokenResponseDto.class))),
-            @ApiResponse(responseCode = "401", description = "로그인 실패"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
-    })
-    public ResponseEntity<CommonResponse<TokenResponseDto>> login(@RequestBody @Valid LoginRequestDto dto) {
+    public ResponseEntity<CommonResponse<TokenResponseDto>> login(
+            @RequestBody @Valid LoginRequestDto dto,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
         try {
-            User user = userService.findByEmail(dto.getEmail())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+            String ip = request.getRemoteAddr();
+            String userAgent = request.getHeader("User-Agent");
 
+            // ✅ [1] 사전 보안 검사: 차단된 IP인지 확인
+            if (Boolean.TRUE.equals(redisTemplate.hasKey("blocked:ip:" + ip))) {
+                log.warn("🚫 차단된 IP 로그인 시도: {}", ip);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(CommonResponse.fail("해당 IP는 비정상적인 로그인 시도로 인해 차단되었습니다."));
+            }
+
+            // ✅ [2] 사용자 존재 여부 확인
+            User user = userService.findByEmail(dto.getEmail())
+                    .orElseThrow(() -> {
+                        // 로그인 시도에 사용된 이메일이 존재하지 않으면 로그인 실패 기록
+                        auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ip, "존재하지 않는 이메일"));
+                        return new IllegalArgumentException("존재하지 않는 사용자입니다.");
+                    });
+
+            // ✅ [3] 계정 상태 확인 (탈퇴, 정지, 밴 등)
             if (user.getStatus() != User.UserStatus.ACTIVE) {
+                auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "비활성 상태: " + user.getStatus()));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("해당 계정은 로그인할 수 없습니다. 현재 상태: " + user.getStatus()));
             }
 
+            // ✅ [4] 계정이 잠겨 있는 경우 로그인 차단
             if (user.isAccountLocked()) {
+                auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "계정 잠김 상태"));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("계정이 잠겨 있습니다. 관리자에게 문의하세요."));
             }
 
+            // ✅ [5] 비밀번호 검증 실패 시 로그인 실패 처리 및 실패 횟수 증가
             if (!userService.checkPassword(dto.getPassword(), user)) {
-                userService.increaseLoginFailCount(user);
+                userService.increaseLoginFailCount(user, ip, userAgent);
+
+                // 로그인 실패 10회 도달 시 계정 잠금 안내 메시지 반환
+                if (user.getLoginFailCount() == 10) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(CommonResponse.fail("비밀번호가 10회 이상 틀렸습니다. 계정이 잠겼습니다. 비밀번호를 초기화해야 잠금이 해제됩니다."));
+                }
+
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("비밀번호가 일치하지 않습니다."));
             }
 
+            // ✅ [6] 로그인 성공 처리 (실패 횟수 초기화, 마지막 로그인 기록 등)
             userService.resetLoginFailCount(user);
 
+            // ✅ [7] 성공 로그 기록
+            auditLoginLogRepository.save(AuditLoginLog.of(user.getEmail(), ip, userAgent));
+
+            // ✅ [8] Access & Refresh Token 발급
             String accessToken = jwtTokenProvider.createAccessToken(user);
             String refreshToken = jwtTokenProvider.createRefreshToken(user);
+            long refreshTokenValidity = jwtTokenProvider.getRefreshTokenValidity();
 
-            return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(accessToken, refreshToken)));
+            // ✅ [9] Refresh Token을 Redis에 저장
+            tokenService.saveRefreshToken(user.getEmail(), refreshToken, refreshTokenValidity);
+
+            // ✅ [10] HttpOnly 쿠키로 RefreshToken 클라이언트에 전달
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(refreshTokenValidity / 1000)
+                    .build();
+
+            // ✅ [11] AccessToken은 JSON으로 응답
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                    .body(CommonResponse.success(new TokenResponseDto(accessToken)));
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -87,6 +144,8 @@ public class AuthController {
                     .body(CommonResponse.fail("서버 오류가 발생했습니다."));
         }
     }
+
+
 
     @PostMapping("/email/send")
     @Operation(summary = "이메일 인증 코드 전송", description = "이메일로 인증 코드를 전송합니다.")
@@ -155,53 +214,105 @@ public class AuthController {
     }
 
     @PostMapping("/token/refresh")
-    @Operation(summary = "Refresh Token 재발급", description = "Refresh Token을 사용하여 새로운 Access Token을 발급합니다.")
+    @Operation(summary = "Access Token 재발급", description = "HttpOnly 쿠키에 저장된 Refresh Token을 사용하여 새로운 Access Token을 발급합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Refresh Token 재발급 성공",
+            @ApiResponse(responseCode = "200", description = "Access Token 재발급 성공",
                     content = @Content(schema = @Schema(implementation = TokenResponseDto.class))),
-            @ApiResponse(responseCode = "401", description = "잘못된 Refresh Token"),
+            @ApiResponse(responseCode = "401", description = "Refresh Token이 유효하지 않음"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<CommonResponse<TokenResponseDto>> refreshAccessToken(
-            @RequestBody @Valid TokenRefreshRequestDto dto,
-            HttpServletRequest request
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            HttpServletRequest request,
+            HttpServletResponse response
     ) {
-        String refreshToken = dto.getRefreshToken();
+        try {
+            // 1. Refresh Token 존재 및 유효성 검증
+            if (refreshToken == null || !jwtTokenProvider.validateRefreshToken(refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail("유효하지 않은 Refresh Token"));
+            }
 
-        if (!jwtTokenProvider.validate(refreshToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail("Invalid refresh token"));
+            // 2. 이메일 추출 + 유저 조회
+            String email = jwtTokenProvider.getEmail(refreshToken);
+            User user = userService.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+
+            // 3. 로그 기록
+            String ip = request.getRemoteAddr();
+            String userAgent = request.getHeader("User-Agent");
+            AuditRefreshTokenLog logEntry = AuditRefreshTokenLog.of(email, ip, userAgent);
+            auditRefreshTokenLogRepository.save(logEntry);
+            log.info("✅ Refresh Token 재발급 로그 저장: {}", logEntry);
+
+            // 4. 새 토큰 생성
+            String newAccessToken = jwtTokenProvider.createAccessToken(user);
+            String newRefreshToken = jwtTokenProvider.createRefreshToken(user);
+            long refreshTokenValidity = jwtTokenProvider.getRefreshTokenValidity();
+
+            // 5. Redis 갱신 (Rotation)
+            tokenService.saveRefreshToken(email, newRefreshToken, refreshTokenValidity);
+
+            // 6. 새 Refresh Token을 HttpOnly 쿠키로 전달
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(refreshTokenValidity / 1000)
+                    .build();
+            response.setHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+            // 7. Access Token만 응답 본문에 포함
+            return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(newAccessToken)));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("서버 오류가 발생했습니다."));
         }
-
-        String email = jwtTokenProvider.getEmail(refreshToken);
-        User user = userService.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        String ip = request.getRemoteAddr();
-        String userAgent = request.getHeader("User-Agent");
-        AuditRefreshTokenLog logEntry = AuditRefreshTokenLog.of(email, ip, userAgent);
-        auditRefreshTokenLogRepository.save(logEntry);
-        log.info("✅ Refresh Token 재발급 로그 저장: {}", logEntry);
-
-        String newAccessToken = jwtTokenProvider.createAccessToken(user);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(user);
-        tokenService.saveRefreshToken(email, newRefreshToken, 1000L * 60 * 60 * 24 * 7);
-
-        return ResponseEntity.ok(CommonResponse.success(new TokenResponseDto(newAccessToken, newRefreshToken)));
     }
 
+
     @PostMapping("/logout")
-    @Operation(summary = "로그아웃", description = "사용자 로그아웃을 처리하고, 해당 토큰을 블랙리스트에 추가합니다.")
+    @Operation(summary = "로그아웃", description = "사용자 로그아웃을 처리하고, 해당 토큰을 블랙리스트에 추가하고 Refresh Token을 무효화합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "로그아웃 성공"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<Void> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(name = "refreshToken", required = false) String refreshToken, // 👈 쿠키에서 추출
+            HttpServletResponse response
+    ) {
         String accessToken = resolveToken(authHeader);
+        String email = jwtTokenProvider.getEmail(accessToken); // 이메일 추출
+
+        // 1. Access Token 블랙리스트 등록
         long expirationMillis = jwtTokenProvider.getExpiration(accessToken);
         tokenService.blacklistAccessToken(accessToken, expirationMillis);
         log.info("🚫 AccessToken 블랙리스트 등록: {}", accessToken);
+
+        // 2. Refresh Token Redis에서 제거
+        if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
+            tokenService.delete(refreshToken, email); // Redis에서 refresh:email 키 삭제
+            log.info("🧹 RefreshToken 삭제 완료: {}", email);
+        } else {
+            log.warn("⚠️ 유효하지 않은 Refresh Token 또는 쿠키 없음");
+        }
+
+        // 3. 클라이언트에 쿠키 삭제 지시
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(0) // ⏱️ 쿠키 만료
+                .build();
+        response.setHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+
         return ResponseEntity.ok().build();
     }
+
 
     private String resolveToken(String bearer) {
         if (bearer != null && bearer.startsWith("Bearer ")) {

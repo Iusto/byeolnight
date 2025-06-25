@@ -1,46 +1,69 @@
-import PostPreviewSection from '../components/PostPreviewSection'
-import ChatSidebar from '../components/ChatSidebar'
-import { useAuth } from '../hooks/useAuth'
+import { useEffect, useState } from 'react';
+import axios from '../lib/axios';
+import { Link } from 'react-router-dom';
+import ChatSidebar from '../components/ChatSidebar';
+
+interface Post {
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  writer: string;
+  likeCount: number;
+  blinded: boolean;
+}
 
 export default function Home() {
-  const { user } = useAuth()
+  const [posts, setPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    axios
+      .get('/api/public/posts', { params: { category: 'NEWS', sort: 'popular' } })
+      .then((res) => setPosts(res.data.data.content))
+      .catch((err) => console.error('인기 게시글 불러오기 실패', err));
+  }, []);
 
   return (
-    <div className="bg-gradient-to-b from-[#0f172a] to-[#1e293b] min-h-screen text-white">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center justify-center gap-2">
-            🌌 <span>별 헤는 밤에 오신 것을 환영합니다</span>
-          </h1>
-          <p className="mt-2 text-gray-300 text-sm md:text-base">
-            커뮤니티에 오신 것을 진심으로 환영합니다. 자유롭게 별 이야기를 나누어보세요!
-          </p>
-        </header>
+    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-10 px-4">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+        {/* 메인 콘텐츠 */}
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold mb-6 drop-shadow-glow">🔥 인기 게시글</h2>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {posts.map((post) => (
+              <li
+                key={post.id}
+                className="bg-[#1f2336]/80 backdrop-blur-md p-4 rounded-xl shadow hover:shadow-purple-600 transition"
+              >
+                <Link to={`/posts/${post.id}`}>
+                  <h3 className="text-lg font-semibold mb-1">{post.title}</h3>
+                  <p className="text-sm text-gray-300 line-clamp-2">{post.content}</p>
+                  <div className="text-xs text-gray-400 mt-2">
+                    ✍ {post.writer} · ❤️ {post.likeCount}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          <main className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <PostPreviewSection title="🔥 인기 게시글" apiUrl="/public/posts?sort=popular" />
-            <PostPreviewSection title="🌌 밤하늘 별 사진 게시판" apiUrl="/public/posts?category=IMAGE" />
-            <PostPreviewSection title="🛰️ 우주 뉴스 게시판" apiUrl="/public/posts?category=NEWS" />
-            <PostPreviewSection title="🔭 천문대 견학 게시판" apiUrl="/public/posts?category=DISCUSSION" />
-          </main>
+          {/* 추후 기능 Placeholder */}
+          <div className="mt-12 space-y-8">
+            <div className="text-xl font-semibold text-starlight">🌌 밤하늘 별 사진</div>
+            <div className="text-gray-400">[ 향후 이미지 게시판 연동 예정 ]</div>
 
-          <aside className="w-full md:w-80">
-            {user ? (
-              <ChatSidebar />
-            ) : (
-              <section className="bg-[#1f2937] rounded-lg p-4 shadow text-white">
-                <h2 className="text-lg font-semibold mb-2">💬 공용 채팅방</h2>
-                <p className="text-gray-400">로그인 시 채팅 이용이 가능합니다.</p>
-              </section>
-            )}
-          </aside>
+            <div className="text-xl font-semibold text-starlight">🪐 천문대 견학 일정 안내</div>
+            <div className="text-gray-400">[ 향후 크롤링 게시판 연동 예정 ]</div>
+
+            <div className="text-xl font-semibold text-starlight">🚀 우주 뉴스</div>
+            <div className="text-gray-400">[ 향후 뉴스 API 또는 크롤링 연동 예정 ]</div>
+          </div>
         </div>
 
-        <footer className="mt-12 text-center text-sm text-gray-400">
-          © 2025 별 헤는 밤 커뮤니티
-        </footer>
+        {/* 채팅 사이드바 */}
+        <div className="w-full lg:w-72">
+          <ChatSidebar />
+        </div>
       </div>
     </div>
-  )
+  );
 }

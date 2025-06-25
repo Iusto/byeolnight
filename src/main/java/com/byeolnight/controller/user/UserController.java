@@ -1,10 +1,9 @@
-package com.byeolnight.controller;
+package com.byeolnight.controller.user;
 
 import com.byeolnight.service.user.UserService;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserResponseDto;
-import com.byeolnight.dto.user.UserSignUpRequestDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,7 +12,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

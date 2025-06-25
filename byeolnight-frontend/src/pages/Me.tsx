@@ -1,75 +1,25 @@
-import { useEffect, useState } from 'react'
-import api from '../lib/axios'
-import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext';
 
-export default function MePage() {
-  const navigate = useNavigate()
-  const { user, fetchUser } = useAuth()
+export default function Me() {
+  const { user, loading } = useAuth();
 
-  // ✅ 로그인 안 한 경우 로그인 페이지로 이동
-  useEffect(() => {
-    if (!user) {
-      navigate('/login')
-    }
-  }, [user, navigate])
-
-  const [nickname, setNickname] = useState(user?.nickname || '')
-  const [password, setPassword] = useState('')
-  const [message, setMessage] = useState('')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      await api.put('/users/profile', {
-        nickname,
-        password: password || undefined,
-      })
-      setMessage('프로필이 수정되었습니다.')
-      setPassword('')
-      fetchUser()
-    } catch {
-      setMessage('수정 중 오류가 발생했습니다.')
-    }
-  }
+  if (loading) return <div className="text-white p-8">로딩 중...</div>;
+  if (!user) return <div className="text-white p-8">로그인이 필요합니다.</div>;
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white text-black p-6 rounded shadow">
-      <h2 className="text-xl font-bold mb-4">🙋 내 정보 수정</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-1 text-sm font-medium">이메일</label>
-          <input
-            type="email"
-            value={user?.email || ''}
-            disabled
-            className="w-full border p-2 rounded bg-gray-100"
-          />
+    <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex justify-center pt-20 text-white">
+      <div className="w-full max-w-lg bg-[#1f2336] p-8 rounded-xl shadow-lg">
+        <h2 className="text-2xl font-bold mb-6">🙋 내 정보</h2>
+        <ul className="space-y-4 text-base">
+          <li><strong>이메일:</strong> {user.email}</li>
+          <li><strong>닉네임:</strong> {user.nickname}</li>
+          <li><strong>전화번호:</strong> {user.phone}</li>
+          <li><strong>권한:</strong> {user.role}</li>
+        </ul>
+        <div className="mt-8 text-right">
+          <a href="/profile" className="text-blue-400 hover:underline">프로필 수정</a>
         </div>
-        <div>
-          <label className="block mb-1 text-sm font-medium">닉네임</label>
-          <input
-            type="text"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            className="w-full border p-2 rounded"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 text-sm font-medium">새 비밀번호 (선택)</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="변경 시 입력"
-            className="w-full border p-2 rounded"
-          />
-        </div>
-        <button type="submit" className="w-full bg-black text-white py-2 rounded hover:bg-gray-800">
-          수정하기
-        </button>
-        {message && <p className="text-center text-sm mt-2 text-blue-600">{message}</p>}
-      </form>
+      </div>
     </div>
-  )
+  );
 }

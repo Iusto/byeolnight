@@ -1,109 +1,109 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from '../lib/axios';
 
-type Category = "NEWS" | "DISCUSSION" | "IMAGE";
+interface FileDto {
+  originalName: string;
+  s3Key: string;
+  url: string;
+}
 
 export default function PostEdit() {
   const { id } = useParams();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState<Category>("NEWS");
-  const [author, setAuthor] = useState("");
-  const [error, setError] = useState("");
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [category, setCategory] = useState('NEWS');
+  const [images, setImages] = useState<FileDto[]>([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`/api/public/posts/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("게시글 정보를 불러올 수 없습니다.");
-        return res.json();
-      })
-      .then((data) => {
-        setTitle(data.title);
-        setContent(data.content);
-        setCategory(data.category);
-        setAuthor(data.author);
-      })
-      .catch((err) => setError(err.message));
+    const fetchPost = async () => {
+      try {
+        const res = await axios.get(`/public/posts/${id}`);
+        const post = res.data.data;
+        setTitle(post.title);
+        setContent(post.content);
+        setCategory(post.category);
+        setImages(post.images || []);
+      } catch {
+        setError('게시글을 불러오지 못했습니다.');
+      }
+    };
+
+    fetchPost();
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setError('');
     try {
-      const res = await fetch(`/api/member/posts/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({ title, content, category }),
+      await axios.put(`/member/posts/${id}`, {
+        title,
+        content,
+        category,
+        images,
       });
-
-      if (!res.ok) throw new Error("수정에 실패했습니다.");
-
       navigate(`/posts/${id}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch {
+      setError('수정 실패');
     }
   };
 
-  if (user.nickname !== author) {
-    return <div className="text-center text-red-500 mt-10">본인만 수정할 수 있습니다.</div>;
-  }
-
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">✏️ 게시글 수정</h1>
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        <div>
-          <label className="block mb-1">카테고리</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as Category)}
-            className="w-full p-2 bg-[#1b1b3a] rounded"
-          >
-            <option value="NEWS">뉴스</option>
-            <option value="DISCUSSION">토론</option>
-            <option value="IMAGE">이미지</option>
-          </select>
-        </div>
-        <div>
-          <label className="block mb-1">제목</label>
+    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+      <div className="max-w-2xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-lg">
+        <h2 className="text-3xl font-bold mb-6 drop-shadow-glow">✏ 게시글 수정</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="제목"
             required
-            className="w-full p-2 rounded bg-[#1b1b3a]"
+            className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none"
           />
-        </div>
-        <div>
-          <label className="block mb-1">내용</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            rows={6}
+            placeholder="내용"
             required
-            rows={8}
-            className="w-full p-2 rounded bg-[#1b1b3a]"
+            className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none"
           />
-        </div>
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-        >
-          수정 완료
-        </button>
-      </form>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none"
+          >
+            <option value="NEWS">뉴스</option>
+            <option value="DISCUSSION">토론</option>
+            <option value="IMAGE">사진</option>
+            <option value="EVENT">행사</option>
+            <option value="REVIEW">후기</option>
+          </select>
+
+          {/* 이미지 이름 출력 */}
+          {images.length > 0 && (
+            <ul className="text-sm text-green-400">
+              {images.map((img, i) => (
+                <li key={i}>✔ {img.originalName}</li>
+              ))}
+            </ul>
+          )}
+
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+
+          <button
+            type="submit"
+            className="w-full bg-blue-500 hover:bg-blue-600 py-2 rounded transition"
+          >
+            수정 완료
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -24,7 +24,7 @@ public class PostRequestDto {
     private List<FileDto> images;
 
     @Builder
-    public PostRequestDto(String title, String content, Category category, String writer) {
+    public PostRequestDto(String title, String content, Category category, List<FileDto> images) {
         this.title = title;
         this.content = content;
         this.category = category;

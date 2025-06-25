@@ -1,4 +1,4 @@
-package com.byeolnight.controller;
+package com.byeolnight.controller.post;
 
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;

@@ -1,4 +1,4 @@
-package com.byeolnight.domain.repository;
+package com.byeolnight.domain.repository.log;
 
 import com.byeolnight.domain.entity.log.NicknameChangeHistory;
 import org.springframework.data.jpa.repository.JpaRepository;

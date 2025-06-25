@@ -1,6 +1,6 @@
 // App.tsx
 import { Routes, Route } from 'react-router-dom'
-import AppLayout from './components/Layout/AppLayout'
+import Layout from './components/Layout';
 import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
@@ -13,7 +13,7 @@ import PostEdit from './pages/PostEdit'
 function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />

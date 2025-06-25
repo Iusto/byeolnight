@@ -114,10 +114,40 @@ public class User implements UserDetails {
 
     // ========================== 도메인 메서드 ==========================
 
-    /**
-     * 닉네임 업데이트
-     * - 6개월 내 변경 이력 있으면 예외 발생
-     */
+    // ======================== 🧑‍💼 관리자 기능 ========================
+
+    /** 관리자에 의한 계정 잠금 */
+    public void lockAccount() {
+        this.accountLocked = true;
+    }
+
+    /** 계정 잠금 해제 및 실패 횟수 초기화 */
+    public void unlockAccount() {
+        this.accountLocked = false;
+        this.loginFailCount = 0;
+        this.lastFailedLogin = null;
+    }
+
+    /** 계정 상태 변경 메서드 */
+    public void changeStatus(UserStatus newStatus) {
+        this.status = newStatus;
+    }
+
+    /** 계정 밴 처리 */
+    public void ban(String reason) {
+        this.status = UserStatus.BANNED;
+        this.banReason = reason;
+    }
+
+    /** 계정 밴 해제 */
+    public void unban() {
+        this.status = UserStatus.ACTIVE;
+        this.banReason = null;
+    }
+
+// ======================== 🙋 일반 유저 기능 ========================
+
+    /** 닉네임 업데이트 */
     public void updateNickname(String newNickname, LocalDateTime now) {
         if (!this.nickname.equals(newNickname)) {
             if (this.nicknameChanged && this.nicknameUpdatedAt != null &&
@@ -137,23 +167,6 @@ public class User implements UserDetails {
         this.phone = newPhone;
     }
 
-    /** 경험치 증가 */
-    public void increaseExp(int value) {
-        this.exp += value;
-    }
-
-    /** 계정 밴 처리 */
-    public void ban(String reason) {
-        this.status = UserStatus.BANNED;
-        this.banReason = reason;
-    }
-
-    /** 계정 밴 해제 */
-    public void unban() {
-        this.status = UserStatus.ACTIVE;
-        this.banReason = null;
-    }
-
     /** 이메일 인증 완료 처리 */
     public void verifyEmail() {
         this.emailVerified = true;
@@ -164,10 +177,17 @@ public class User implements UserDetails {
         this.phoneVerified = true;
     }
 
-    /**
-     * 로그인 성공 처리
-     * - 로그인 성공 시각 갱신, 실패 횟수 초기화, 잠금 해제
-     */
+    /** 경험치 증가 */
+    public void increaseExp(int value) {
+        this.exp += value;
+    }
+
+    /** 비밀번호 변경 */
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    /** 로그인 성공 처리 */
     public void loginSuccess() {
         this.lastLoginAt = LocalDateTime.now();
         this.loginFailCount = 0;
@@ -175,10 +195,7 @@ public class User implements UserDetails {
         this.lastFailedLogin = null;
     }
 
-    /**
-     * 로그인 실패 처리
-     * - 실패 횟수 누적, 실패 시각 갱신, 5회 이상 실패 시 계정 잠금
-     */
+    /** 로그인 실패 처리 */
     public void loginFail() {
         this.loginFailCount++;
         this.lastFailedLogin = LocalDateTime.now();
@@ -187,10 +204,7 @@ public class User implements UserDetails {
         }
     }
 
-    /**
-     * 회원 탈퇴 처리
-     * - 상태 변경 및 개인정보 마스킹
-     */
+    /** 회원 탈퇴 처리 */
     public void withdraw(String reason) {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawalReason = reason;
@@ -198,64 +212,40 @@ public class User implements UserDetails {
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
     }
 
-    /** 비밀번호 변경 */
-    public void changePassword(String encodedPassword) {
-        this.password = encodedPassword;
-    }
+// ======================== 🔐 Spring Security 구현부 ========================
 
-    /** 관리자에 의한 계정 잠금 */
-    public void lockAccount() {
-        this.accountLocked = true;
-    }
-
-    /**
-     * 계정 상태 변경 메서드
-     */
-    public void changeStatus(UserStatus newStatus) {
-        this.status = newStatus;
-    }
-
-    // ======================== Spring Security ========================
-
-    /** Spring Security: 권한 반환 */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
-    /** 사용자명(email) 반환 */
     @Override
     public String getUsername() {
         return email;
     }
 
-    /** 계정 만료 여부 */
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
 
-    /** 계정 잠금 여부 */
     @Override
     public boolean isAccountNonLocked() {
         return status != UserStatus.BANNED && status != UserStatus.SUSPENDED;
     }
 
-    /** 비밀번호 만료 여부 */
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
-    /** 계정 활성 여부 */
     @Override
     public boolean isEnabled() {
         return status == UserStatus.ACTIVE;
     }
 
-    // =========================== equals ============================
+// ======================== ⚖ equals & hashCode ========================
 
-    /** 동일성 비교 (ID 기준) */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

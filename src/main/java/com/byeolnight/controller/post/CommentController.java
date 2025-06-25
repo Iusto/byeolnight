@@ -1,4 +1,4 @@
-package com.byeolnight.controller;
+package com.byeolnight.controller.post;
 
 import com.byeolnight.service.comment.CommentService;
 import com.byeolnight.dto.comment.CommentRequestDto;
@@ -7,11 +7,7 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

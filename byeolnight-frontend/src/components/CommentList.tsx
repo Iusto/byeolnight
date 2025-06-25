@@ -1,62 +1,106 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import CommentForm from "./CommentForm";
-import { useAuth } from "../contexts/AuthContext";
+import { useState } from 'react';
+import axios from '../lib/axios';
+import { useAuth } from '../contexts/AuthContext';
 
-export type Comment = {
+interface Comment {
   id: number;
   content: string;
-  author: string;
+  writer: string;
   createdAt: string;
-  parentId: number | null;
-};
+}
 
-export default function CommentList() {
-  const { id: postId } = useParams();
+interface Props {
+  comments: Comment[];
+  postId: number;
+  onRefresh: () => void;
+}
+
+export default function CommentList({ comments, postId, onRefresh }: Props) {
   const { user } = useAuth();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState('');
 
-  const fetchComments = () => {
-    fetch(`/api/comments/post/${postId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("댓글을 불러오지 못했습니다.");
-        return res.json();
-      })
-      .then((data) => setComments(data))
-      .catch((err) => setError(err.message));
+  const handleEdit = (comment: Comment) => {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
   };
 
-  useEffect(() => {
-    fetchComments();
-  }, [postId]);
+  const handleUpdate = async (id: number) => {
+    try {
+      await axios.put(`/comments/${id}`, { content: editContent });
+      setEditingId(null);
+      setEditContent('');
+      onRefresh();
+    } catch {
+      alert('댓글 수정 실패');
+    }
+  };
 
-  const nestedComments = (parentId: number | null) =>
-    comments
-      .filter((c) => c.parentId === parentId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-  const renderComments = (parentId: number | null = null, depth: number = 0) =>
-    nestedComments(parentId).map((comment) => (
-      <div key={comment.id} className="mb-2 ml-[${depth * 20}px]">
-        <div className="p-2 bg-[#1e1e3f] rounded">
-          <div className="text-sm text-gray-300">{comment.content}</div>
-          <div className="text-xs text-gray-500 mt-1">
-            {comment.author} · {new Date(comment.createdAt).toLocaleString()}
-          </div>
-        </div>
-        <CommentForm parentId={comment.id} postId={Number(postId)} onSubmit={fetchComments} />
-        {renderComments(comment.id, depth + 1)}
-      </div>
-    ));
-
-  if (error) return <div className="text-red-500 mt-6">{error}</div>;
+  const handleDelete = async (id: number) => {
+    if (!confirm('댓글을 삭제할까요?')) return;
+    try {
+      await axios.delete(`/comments/${id}`);
+      onRefresh();
+    } catch {
+      alert('댓글 삭제 실패');
+    }
+  };
 
   return (
-    <div className="mt-8">
-      <h2 className="text-lg font-bold mb-2">💬 댓글</h2>
-      <CommentForm parentId={null} postId={Number(postId)} onSubmit={fetchComments} />
-      <div className="mt-4">{renderComments()}</div>
-    </div>
+    <ul className="space-y-4">
+      {comments.map((c) => (
+        <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
+          {editingId === c.id ? (
+            <div className="space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full p-2 rounded bg-[#1f2336] text-white text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleUpdate(c.id)}
+                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 rounded"
+                >
+                  저장
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingId(null);
+                    setEditContent('');
+                  }}
+                  className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600 rounded"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm">{c.content}</p>
+              <div className="text-xs text-gray-400 mt-1 flex justify-between items-center">
+                <span>✍ {c.writer} · {new Date(c.createdAt).toLocaleString()}</span>
+                {user?.nickname === c.writer && (
+                  <div className="space-x-2 text-right">
+                    <button
+                      onClick={() => handleEdit(c)}
+                      className="text-blue-400 hover:underline text-xs"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => handleDelete(c.id)}
+                      className="text-red-400 hover:underline text-xs"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -1,130 +1,100 @@
 package com.byeolnight.infrastructure.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
+import com.byeolnight.infrastructure.common.CommonResponse;
+import com.byeolnight.infrastructure.exception.DuplicateEmailException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.time.LocalDateTime;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * 공통 에러 응답 DTO
+     * 유효성 검사 실패 (DTO validation)
      */
-    private record ErrorResponse(
-            LocalDateTime timestamp,
-            int status,
-            String error,
-            String message,
-            String path
-    ) {}
-
-    /**
-     * 보안 - 인증 실패
-     */
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, ex, req);
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<CommonResponse<?>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldError() != null ?
+                ex.getBindingResult().getFieldError().getDefaultMessage() : "잘못된 요청입니다.";
+        return ResponseEntity.badRequest().body(CommonResponse.fail(message));
     }
 
     /**
-     * 보안 - 인가 실패
+     * 단일 파라미터 유효성 검사 실패 (e.g., @RequestParam)
      */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.FORBIDDEN, ex, req);
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<CommonResponse<?>> handleConstraint(ConstraintViolationException ex) {
+        return ResponseEntity.badRequest().body(CommonResponse.fail("유효하지 않은 입력입니다."));
     }
 
     /**
-     * 도메인 - 중복 이메일
+     * 이메일 중복 예외
      */
     @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateEmail(DuplicateEmailException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
+    public ResponseEntity<CommonResponse<?>> handleDuplicateEmail(DuplicateEmailException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(CommonResponse.fail("이미 사용 중인 이메일입니다."));
+    }
+
+    /**
+     * 닉네임 중복 예외
+     */
+    @ExceptionHandler(DuplicateNicknameException.class)
+    public ResponseEntity<CommonResponse<?>> handleDuplicateNickname(DuplicateNicknameException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(CommonResponse.fail("이미 사용 중인 닉네임입니다."));
     }
 
     /**
      * 이메일 없음 예외
      */
     @ExceptionHandler(EmailNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEmailNotFound(EmailNotFoundException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
-    }
-
-
-    /**
-     * 도메인 - 중복 닉네임
-     */
-    @ExceptionHandler(DuplicateNicknameException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateNickname(DuplicateNicknameException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
+    public ResponseEntity<CommonResponse<?>> handleEmailNotFound(EmailNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(CommonResponse.fail("등록되지 않은 이메일입니다."));
     }
 
     /**
-     * 도메인 - 비밀번호 불일치
+     * 비밀번호 불일치 예외
      */
     @ExceptionHandler(PasswordMismatchException.class)
-    public ResponseEntity<ErrorResponse> handlePasswordMismatch(PasswordMismatchException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, ex, req);
+    public ResponseEntity<CommonResponse<?>> handlePasswordMismatch(PasswordMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail("비밀번호가 일치하지 않습니다."));
     }
 
     /**
-     * 도메인 - 엔티티 찾을 수 없음
+     * 잘못된 요청 예외
+     */
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<CommonResponse<?>> handleInvalidRequest(InvalidRequestException ex) {
+        return ResponseEntity.badRequest().body(CommonResponse.fail(ex.getMessage()));
+    }
+
+    /**
+     * 리소스 없음 예외
      */
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex, req);
+    public ResponseEntity<CommonResponse<?>> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(CommonResponse.fail(ex.getMessage()));
     }
 
     /**
-     * 도메인 - 유효하지 않은 토큰
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
-    }
-
-    /**
-     * 도메인 - 만료되었거나 이미 사용된 토큰
+     * 만료된 비밀번호 초기화 토큰 예외
      */
     @ExceptionHandler(ExpiredResetTokenException.class)
-    public ResponseEntity<ErrorResponse> handleExpiredResetToken(ExpiredResetTokenException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex, req);
+    public ResponseEntity<CommonResponse<?>> handleExpiredResetToken(ExpiredResetTokenException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(CommonResponse.fail("비밀번호 초기화 토큰이 만료되었습니다."));
     }
 
     /**
-     * 도메인 - 닉네임 변경 6개월 제한
-     */
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex, req); // 400 Bad Request로 보냄
-    }
-
-    /**
-     * 기타 예외 처리
+     * 그 외 알 수 없는 서버 에러
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex, HttpServletRequest req) {
-        log.error("❌ 예상치 못한 오류 발생", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex, req);
-    }
-
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, Exception ex, HttpServletRequest req) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                status.value(),
-                status.getReasonPhrase(),
-                ex.getMessage(),
-                req.getRequestURI()
-        );
-        return ResponseEntity.status(status).body(response);
+    public ResponseEntity<CommonResponse<?>> handleException(Exception ex) {
+        log.error("[서버 에러]", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(CommonResponse.fail("서버 오류가 발생했습니다."));
     }
 }

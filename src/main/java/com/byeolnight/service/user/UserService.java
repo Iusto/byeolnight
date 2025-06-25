@@ -4,8 +4,8 @@ import com.byeolnight.domain.entity.log.AuditSignupLog;
 import com.byeolnight.domain.entity.log.NicknameChangeHistory;
 import com.byeolnight.domain.entity.token.PasswordResetToken;
 import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.AuditSignupLogRepository;
-import com.byeolnight.domain.repository.NicknameChangeHistoryRepository;
+import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
+import com.byeolnight.domain.repository.log.NicknameChangeHistoryRepository;
 import com.byeolnight.domain.repository.PasswordResetTokenRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
@@ -196,22 +196,61 @@ public class UserService {
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
+
         if (!resetToken.isValid()) {
             throw new ExpiredResetTokenException("만료되었거나 이미 사용된 토큰입니다.");
         }
+
         User user = userRepository.findByEmail(resetToken.getEmail())
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        // ✅ 비밀번호 변경
         user.changePassword(passwordEncoder.encode(newPassword));
+
+        // ✅ 계정 잠금 해제 및 실패 횟수 초기화
+        user.loginSuccess();  // 내부적으로 failCount 초기화 + 잠금 해제 + 마지막 로그인 시각 갱신
+
+        // ✅ 비밀번호 재설정에 사용된 토큰을 더 이상 재사용하지 못하게 처리
         resetToken.markAsUsed();
     }
 
     /**
-     * 로그인 실패 시 실패 횟수 증가
+     * 로그인 실패 시 실패 횟수 증가 + 보안 정책 적용
+     * - 5회: 사용자 경고 로그 기록
+     * - 10회: 계정 잠금 처리
+     * - 15회: IP 차단 처리 (1일간 Redis에 저장)
      */
     @Transactional
-    public void increaseLoginFailCount(User user) {
+    public void increaseLoginFailCount(User user, String ipAddress, String userAgent) {
+        // 1. 로그인 실패 처리 (실패 횟수 +1, 마지막 실패 시간 갱신)
         user.loginFail();
         userRepository.save(user);
+
+        int failCount = user.getLoginFailCount();
+        String email = user.getEmail();
+
+        // 2. 보안 로그 기록 (5, 10, 15회 시점에만 기록)
+        if (failCount == 5 || failCount == 10 || failCount == 15) {
+            String reason = switch (failCount) {
+                case 5 -> "로그인 5회 실패 - 사용자 경고 로그 기록";
+                case 10 -> "로그인 10회 실패 - 계정 잠금 처리됨";
+                case 15 -> "로그인 15회 실패 - IP 차단 처리됨";
+                default -> "로그인 실패 경고";
+            };
+
+            auditSignupLogRepository.save(
+                    AuditSignupLog.failure(email, ipAddress, reason)
+            );
+        }
+
+        // 3. 로그인 실패 15회 도달 시 IP 차단 처리 (Redis에 24시간 저장)
+        if (failCount == 15) {
+            redisTemplate.opsForValue().set(
+                    "blocked:ip:" + ipAddress,
+                    "true",
+                    Duration.ofDays(1)
+            );
+        }
     }
 
     /**
@@ -241,6 +280,16 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         user.lockAccount();
+    }
+
+    /**
+     * 관리자 - 사용자 계정 잠금해제 처리
+     */
+    @Transactional
+    public void unlockUserAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        user.unlockAccount();
     }
 
     /**
