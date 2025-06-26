@@ -8,13 +8,20 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false) // ✅ 로딩 상태 추가
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true) // 시작 시 true
+    setError('')
+
     try {
       await login(email, password)
+      // 로그인 성공 시 navigate가 내부에 포함되어 있으면 생략 가능
     } catch {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+    } finally {
+      setLoading(false) // 끝날 때 false
     }
   }
 
@@ -23,7 +30,6 @@ export default function Login() {
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
         <h2 className="text-2xl font-bold mb-6 text-center">🔐 로그인</h2>
         <form onSubmit={handleLogin} className="space-y-5">
-
           <input
             type="email"
             placeholder="이메일"
@@ -31,6 +37,7 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={loading}
           />
 
           <input
@@ -40,15 +47,21 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={loading}
           />
 
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
           <button
             type="submit"
-            className="w-full bg-purple-700 hover:bg-purple-800 text-white py-2 rounded transition-colors"
+            disabled={loading}
+            className={`w-full py-2 rounded transition-colors ${
+              loading
+                ? 'bg-gray-600 cursor-not-allowed'
+                : 'bg-purple-700 hover:bg-purple-800'
+            }`}
           >
-            🌌 로그인
+            {loading ? '🌠 로그인 중...' : '🌌 로그인'}
           </button>
         </form>
       </div>
