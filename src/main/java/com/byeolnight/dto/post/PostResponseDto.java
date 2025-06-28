@@ -1,9 +1,12 @@
 package com.byeolnight.dto.post;
 
 import com.byeolnight.domain.entity.post.Post;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.LocalDateTime;
 
 /**
  * 게시글 상세 응답 DTO
@@ -15,23 +18,22 @@ import lombok.Getter;
 @AllArgsConstructor
 public class PostResponseDto {
 
-    private Long id;                  // 게시글 ID
-    private String title;             // 제목
-    private String content;           // 본문
-    private String category;          // 카테고리 (enum → 문자열)
-    private String writer;            // 작성자 닉네임
-    private boolean blinded;          // 블라인드 여부
-    private long likeCount;           // 추천 수
-    private boolean likedByMe;        // 현재 유저가 추천했는지 여부
+    private Long id;
+    private String title;
+    private String content;
+    private String category;
+    private String writer;
+    private boolean blinded;
+    private long likeCount;
+    private boolean likedByMe;
+    private boolean hot;
+    private long viewCount;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime updatedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime createdAt;
 
-    /**
-     * 상세 조회용 팩토리 메서드
-     * @param post Post 엔티티
-     * @param likedByMe 현재 사용자가 추천했는지 여부
-     * @param likeCount 총 추천 수
-     * @return PostResponseDto
-     */
-    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount) {
+    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot) {
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -41,16 +43,14 @@ public class PostResponseDto {
                 .blinded(post.isBlinded())
                 .likeCount(likeCount)
                 .likedByMe(likedByMe)
+                .hot(isHot)
+                .viewCount(post.getViewCount())
+                .updatedAt(post.getUpdatedAt())
+                .createdAt(post.getCreatedAt())
                 .build();
     }
 
-    /**
-     * 게시글 리스트용 요약 팩토리 메서드
-     * - 추천 수, 추천 여부는 포함하지 않음
-     * @param post Post 엔티티
-     * @return PostResponseDto
-     */
-    public static PostResponseDto from(Post post) {
+    public static PostResponseDto from(Post post, boolean isHot) {
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -58,8 +58,16 @@ public class PostResponseDto {
                 .category(post.getCategory().name())
                 .writer(post.getWriter().getNickname())
                 .blinded(post.isBlinded())
-                .likeCount(0)      // 기본값 (리스트용)
-                .likedByMe(false)  // 기본값 (리스트용)
+                .likeCount(post.getLikeCount())
+                .likedByMe(false)
+                .hot(isHot)
+                .viewCount(post.getViewCount())
+                .updatedAt(post.getUpdatedAt())
+                .createdAt(post.getCreatedAt())
                 .build();
+    }
+
+    public static PostResponseDto from(Post post) {
+        return from(post, false);
     }
 }

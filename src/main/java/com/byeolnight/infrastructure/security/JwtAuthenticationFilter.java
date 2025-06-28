@@ -58,6 +58,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (isWhitelisted(uri)) {
             log.debug("✅ 화이트리스트 경로, 인증 없이 통과");
+
+            // ✅ 토큰이 있더라도 화이트리스트는 무조건 통과
             filterChain.doFilter(request, response);
             return;
         }

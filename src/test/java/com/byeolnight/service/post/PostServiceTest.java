@@ -5,7 +5,6 @@ import com.byeolnight.domain.entity.post.Post.Category;
 import com.byeolnight.domain.entity.post.PostLike;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.post.FileRepository;
-import com.byeolnight.domain.repository.post.PopularPostRepository;
 import com.byeolnight.domain.repository.post.PostLikeRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
@@ -32,7 +31,6 @@ class PostServiceTest {
 
     @Mock private PostRepository postRepository;
     @Mock private PostLikeRepository postLikeRepository;
-    @Mock private PopularPostRepository popularPostRepository;
     @Mock private FileRepository fileRepository;
     @Mock private UserRepository userRepository;
     @Mock private S3Service s3Service;

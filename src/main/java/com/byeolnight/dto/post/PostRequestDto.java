@@ -3,31 +3,25 @@ package com.byeolnight.dto.post;
 import com.byeolnight.dto.file.FileDto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 import com.byeolnight.domain.entity.post.Post.Category;
 
 import java.util.List;
 
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class PostRequestDto {
 
     @NotBlank
-    private final String title;
+    private String title;
 
     @NotBlank
-    private final String content;
+    private String content;
 
     @NotNull
-    private final Category category;
+    private Category category;
 
     private List<FileDto> images;
-
-    @Builder
-    public PostRequestDto(String title, String content, Category category, List<FileDto> images) {
-        this.title = title;
-        this.content = content;
-        this.category = category;
-        this.images = images;
-    }
 }

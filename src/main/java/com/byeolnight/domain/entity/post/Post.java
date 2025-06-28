@@ -15,7 +15,7 @@ import java.util.List;
 public class Post {
 
     public enum Category {
-        NEWS, DISCUSSION, IMAGE, EVENT, REVIEW
+        NEWS, DISCUSSION, IMAGE, EVENT, REVIEW, FREE, NOTICE
     }
 
     @Id
@@ -93,5 +93,28 @@ public class Post {
 
     public void increaseViewCount() {
         this.viewCount++;
+    }
+
+    public enum SortType {
+        RECENT("recent"),
+        POPULAR("popular");
+
+        private final String value;
+
+        SortType(String value) {
+            this.value = value;
+        }
+
+        public static SortType from(String value) {
+            if (value == null || value.isBlank()) return RECENT;
+            for (SortType sort : values()) {
+                if (sort.value.equalsIgnoreCase(value)) return sort;
+            }
+            throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다.");
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 }

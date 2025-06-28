@@ -6,11 +6,9 @@ import com.byeolnight.domain.entity.post.Post.Category;
 import com.byeolnight.domain.entity.post.PostLike;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.post.FileRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
-import com.byeolnight.domain.repository.post.PopularPostRepository;
-import com.byeolnight.domain.repository.post.PostLikeRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.dto.file.FileDto;
+import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.domain.repository.post.PostLikeRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
@@ -30,13 +28,14 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
-    private final PopularPostRepository popularPostRepository;
     private final FileRepository fileRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
+        validateAdminCategoryWrite(dto.getCategory(), user);
+
         Post post = Post.builder()
                 .title(dto.getTitle())
                 .content(dto.getContent())
@@ -45,7 +44,6 @@ public class PostService {
                 .build();
         postRepository.save(post);
 
-        // 이미지 엔티티 저장
         dto.getImages().forEach(image -> {
             File file = File.of(post, image.originalName(), image.s3Key(), image.url());
             fileRepository.save(file);
@@ -62,9 +60,13 @@ public class PostService {
             throw new IllegalArgumentException("본인이 작성한 글만 수정할 수 있습니다.");
         }
 
+        validateAdminCategoryWrite(dto.getCategory(), user);
+
         post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
 
-        // 기존 이미지 삭제
+        // S3 이미지 삭제 + DB 삭제
+        List<File> oldFiles = fileRepository.findAllByPost(post);
+        oldFiles.forEach(file -> s3Service.deleteObject(file.getS3Key()));
         fileRepository.deleteAllByPost(post);
 
         // 새 이미지 저장
@@ -83,60 +85,68 @@ public class PostService {
             throw new NotFoundException("삭제되었거나 블라인드 처리된 게시글입니다.");
         }
 
-        post.increaseViewCount(); // ✅ 조회수 증가
+        post.increaseViewCount();
 
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
         long likeCount = postLikeRepository.countByPost(post);
 
-        return PostResponseDto.of(post, likedByMe, likeCount);
+        return PostResponseDto.of(post, likedByMe, likeCount, false); // 상세 조회에서는 HOT 여부 false로 간주
     }
 
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getFilteredPosts(String category, String sort, Pageable pageable) {
+    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, Pageable pageable) {
         Category categoryEnum = parseCategory(category);
+        if (categoryEnum == null) throw new IllegalArgumentException("카테고리 누락");
 
-        if (!"recent".equalsIgnoreCase(sort) && !"popular".equalsIgnoreCase(sort)) {
-            throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다.");
+        Post.SortType sort = Post.SortType.from(sortParam);
+        LocalDateTime threshold = LocalDateTime.now().minusDays(30);
+
+        switch (sort) {
+            case RECENT -> {
+                // ✅ 한 달 이내 추천수 5 이상인 게시글 중 추천순으로 4개 조회 (HOT)
+                List<Post> hotPosts = postRepository.findTopHotPostsByCategory(categoryEnum, threshold, PageRequest.of(0, 4));
+                Page<Post> recentPosts = postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable);
+
+                Set<Long> hotIds = hotPosts.stream().map(Post::getId).collect(Collectors.toSet());
+
+                List<PostResponseDto> combined = new ArrayList<>();
+
+                // HOT 게시글은 HOT 플래그 true
+                hotPosts.forEach(p -> combined.add(PostResponseDto.of(p, false, p.getLikeCount(), true)));
+
+                // 나머지 일반 게시글은 HOT 플래그 false
+                recentPosts.getContent().stream()
+                        .filter(p -> !hotIds.contains(p.getId()))
+                        .map(p -> PostResponseDto.of(p, false, p.getLikeCount(), false))
+                        .forEach(combined::add);
+
+                return new PageImpl<>(combined, pageable, combined.size());
+            }
+
+            case POPULAR -> {
+                // ✅ 추천순 정렬: 날짜 무관, HOT 여부 무관, 추천 수 높은 게시글 30개
+                Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
+                List<PostResponseDto> dtos = popularPosts.getContent().stream()
+                        .map(p -> PostResponseDto.of(p, false, p.getLikeCount(), false)) // HOT 표시 없음
+                        .toList();
+
+                return new PageImpl<>(dtos, pageable, popularPosts.getTotalElements());
+            }
         }
 
-        if ("popular".equalsIgnoreCase(sort)) {
-            LocalDateTime threshold = LocalDateTime.now().minusDays(30);
-            List<Long> hotIds = popularPostRepository.findPopularPostIdsSince(threshold);
-            if (hotIds.isEmpty()) return Page.empty(pageable);
+        throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다.");
+    }
 
-            // writer 포함 조회 후 blind 필터링
-            List<Post> posts = postRepository.findPostsByIds(hotIds).stream()
-                    .filter(post -> !post.isBlinded())
-                    .toList();
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getTopHotPostsAcrossAllCategories(int size) {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(30);
+        Pageable pageable = PageRequest.of(0, size);
 
-            Map<Long, Post> postMap = posts.stream()
-                    .collect(Collectors.toMap(Post::getId, p -> p));
+        List<Post> hotPosts = postRepository.findTopHotPostsAcrossAllCategories(threshold, pageable);
 
-            List<Post> sorted = hotIds.stream()
-                    .map(postMap::get)
-                    .filter(Objects::nonNull)
-                    .toList();
-
-            int start = (int) pageable.getOffset();
-            int end = Math.min(start + pageable.getPageSize(), sorted.size());
-            if (start >= sorted.size()) return Page.empty(pageable);
-            List<Post> paged = sorted.subList(start, end);
-
-            return new PageImpl<>(
-                    paged.stream().map(PostResponseDto::from).toList(),
-                    pageable,
-                    sorted.size()
-            );
-        }
-
-        // 최신순 정렬
-        if (categoryEnum != null) {
-            return postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable)
-                    .map(PostResponseDto::from);
-        } else {
-            return postRepository.findByIsDeletedFalseAndBlindedFalseOrderByCreatedAtDesc(pageable)
-                    .map(PostResponseDto::from);
-        }
+        return hotPosts.stream()
+                .map(p -> PostResponseDto.of(p, false, p.getLikeCount(), true)) // HOT 플래그 true
+                .toList();
     }
 
     @Transactional
@@ -147,7 +157,13 @@ public class PostService {
             throw new IllegalArgumentException("본인이 작성한 글만 삭제할 수 있습니다.");
         }
 
+        validateAdminCategoryWrite(post.getCategory(), user);
+
+        // 이미지 S3 삭제 + DB 삭제
+        List<File> files = fileRepository.findAllByPost(post);
+        files.forEach(file -> s3Service.deleteObject(file.getS3Key()));
         fileRepository.deleteAllByPost(post);
+
         post.softDelete();
     }
 
@@ -174,11 +190,10 @@ public class PostService {
         try {
             return Category.valueOf(category.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 카테고리입니다. (NEWS, DISCUSSION, IMAGE, EVENT, REVIEW 중 선택)");
+            throw new IllegalArgumentException("잘못된 카테고리입니다. (NEWS, DISCUSSION, IMAGE, EVENT, REVIEW, FREE, NOTICE 중 선택)");
         }
     }
 
-    // 관리자 기능(블라인드 처리된 게시글 조회)
     @Transactional(readOnly = true)
     public List<PostResponseDto> getBlindedPosts() {
         return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
@@ -186,11 +201,17 @@ public class PostService {
                 .toList();
     }
 
-    // 관리자 기능(게시글 블라인드 처리)
     @Transactional
     public void blindPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
-        post.blind(); // 엔티티 메서드 사용
+        post.blind();
+    }
+
+    private void validateAdminCategoryWrite(Post.Category category, User user) {
+        if ((category == Post.Category.NEWS || category == Post.Category.EVENT || category == Post.Category.NOTICE)
+                && user.getRole() != User.Role.ADMIN) {
+            throw new IllegalArgumentException("해당 카테고리의 게시글은 관리자만 작성, 수정, 삭제할 수 있습니다.");
+        }
     }
 }
