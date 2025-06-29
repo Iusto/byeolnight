@@ -28,6 +28,7 @@ public class PostResponseDto {
     private boolean likedByMe;
     private boolean hot;
     private long viewCount;
+    private String dDay; // D-Day 표시용
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
@@ -45,6 +46,7 @@ public class PostResponseDto {
                 .likedByMe(likedByMe)
                 .hot(isHot)
                 .viewCount(post.getViewCount())
+                .dDay(calculateDDay(post))
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
                 .build();
@@ -62,6 +64,7 @@ public class PostResponseDto {
                 .likedByMe(false)
                 .hot(isHot)
                 .viewCount(post.getViewCount())
+                .dDay(calculateDDay(post))
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
                 .build();
@@ -69,5 +72,39 @@ public class PostResponseDto {
 
     public static PostResponseDto from(Post post) {
         return from(post, false);
+    }
+
+    private static String calculateDDay(Post post) {
+        // EVENT 카테고리이고 제목에 날짜 정보가 있는 경우만 D-Day 계산
+        if (post.getCategory() != Post.Category.EVENT) {
+            return null;
+        }
+        
+        try {
+            // 콘텐츠에서 날짜 추출 (예: "2024-12-21" 형식)
+            String content = post.getContent();
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\*\\*\ub2e4\uc74c \uacac\ud559\uc77c\\*\\*: (\\d{4}-\\d{2}-\\d{2})");
+            java.util.regex.Matcher matcher = pattern.matcher(content);
+            
+            if (matcher.find()) {
+                String dateStr = matcher.group(1);
+                java.time.LocalDate eventDate = java.time.LocalDate.parse(dateStr);
+                java.time.LocalDate today = java.time.LocalDate.now();
+                
+                long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate);
+                
+                if (daysBetween > 0) {
+                    return "D-" + daysBetween;
+                } else if (daysBetween == 0) {
+                    return "D-Day";
+                } else {
+                    return "종료";
+                }
+            }
+        } catch (Exception e) {
+            // 날짜 파싱 실패 시 null 반환
+        }
+        
+        return null;
     }
 }

@@ -31,6 +31,7 @@ public class PostService {
     private final FileRepository fileRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
+    private final com.byeolnight.service.certificate.CertificateService certificateService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
@@ -48,6 +49,14 @@ public class PostService {
             File file = File.of(post, image.originalName(), image.s3Key(), image.url());
             fileRepository.save(file);
         });
+
+        // 게시글 작성 인증서 발급 체크
+        certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POST_WRITE);
+        
+        // IMAGE 카테고리 게시글 작성 시 별 관측 매니아 인증서 체크
+        if (dto.getCategory() == Post.Category.IMAGE) {
+            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_VIEW);
+        }
 
         return post.getId();
     }
@@ -78,6 +87,10 @@ public class PostService {
 
     @Transactional
     public PostResponseDto getPostById(Long postId, User currentUser) {
+        if (postId == null || postId <= 0) {
+            throw new IllegalArgumentException("유효하지 않은 게시글 ID입니다.");
+        }
+        
         Post post = postRepository.findWithWriterById(postId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 게시글입니다."));
 
@@ -87,10 +100,11 @@ public class PostService {
 
         post.increaseViewCount();
 
+        // 비로그인 사용자도 게시글 조회 가능
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
         long likeCount = postLikeRepository.countByPost(post);
 
-        return PostResponseDto.of(post, likedByMe, likeCount, false); // 상세 조회에서는 HOT 여부 false로 간주
+        return PostResponseDto.of(post, likedByMe, likeCount, false);
     }
 
     @Transactional(readOnly = true)
@@ -112,12 +126,18 @@ public class PostService {
                 List<PostResponseDto> combined = new ArrayList<>();
 
                 // HOT 게시글은 HOT 플래그 true
-                hotPosts.forEach(p -> combined.add(PostResponseDto.of(p, false, p.getLikeCount(), true)));
+                hotPosts.forEach(p -> {
+                    long actualLikeCount = postLikeRepository.countByPost(p);
+                    combined.add(PostResponseDto.of(p, false, actualLikeCount, true));
+                });
 
                 // 나머지 일반 게시글은 HOT 플래그 false
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
-                        .map(p -> PostResponseDto.of(p, false, p.getLikeCount(), false))
+                        .map(p -> {
+                            long actualLikeCount = postLikeRepository.countByPost(p);
+                            return PostResponseDto.of(p, false, actualLikeCount, false);
+                        })
                         .forEach(combined::add);
 
                 return new PageImpl<>(combined, pageable, combined.size());
@@ -127,7 +147,10 @@ public class PostService {
                 // ✅ 추천순 정렬: 날짜 무관, HOT 여부 무관, 추천 수 높은 게시글 30개
                 Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
                 List<PostResponseDto> dtos = popularPosts.getContent().stream()
-                        .map(p -> PostResponseDto.of(p, false, p.getLikeCount(), false)) // HOT 표시 없음
+                        .map(p -> {
+                            long actualLikeCount = postLikeRepository.countByPost(p);
+                            return PostResponseDto.of(p, false, actualLikeCount, false);
+                        })
                         .toList();
 
                 return new PageImpl<>(dtos, pageable, popularPosts.getTotalElements());
@@ -145,7 +168,11 @@ public class PostService {
         List<Post> hotPosts = postRepository.findTopHotPostsAcrossAllCategories(threshold, pageable);
 
         return hotPosts.stream()
-                .map(p -> PostResponseDto.of(p, false, p.getLikeCount(), true)) // HOT 플래그 true
+                .map(p -> {
+                    // 실제 PostLike 테이블에서 추천수 계산
+                    long actualLikeCount = postLikeRepository.countByPost(p);
+                    return PostResponseDto.of(p, false, actualLikeCount, true);
+                })
                 .toList();
     }
 
@@ -167,17 +194,22 @@ public class PostService {
         post.softDelete();
     }
 
+    @Transactional
     public void likePost(Long userId, Long postId) {
         Post post = getPostOrThrow(postId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
         if (postLikeRepository.existsByUserAndPost(user, post)) {
-            throw new IllegalArgumentException("이미 추천한 게시글입니다.");
+            throw new IllegalArgumentException("이미 추천한 글입니다.");
         }
 
         PostLike like = PostLike.of(user, post);
         postLikeRepository.save(like);
+        
+        // Post 엔티티의 likeCount 필드 업데이트
+        post.increaseLikeCount();
+        postRepository.save(post);
     }
 
     private Post getPostOrThrow(Long postId) {
@@ -208,10 +240,61 @@ public class PostService {
         post.blind();
     }
 
+    @Transactional
+    public void unblindPost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        post.unblind();
+    }
+
+    @Transactional
+    public void deletePostPermanently(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        
+        // 이미지 S3 삭제 + DB 삭제
+        List<File> files = fileRepository.findAllByPost(post);
+        files.forEach(file -> s3Service.deleteObject(file.getS3Key()));
+        fileRepository.deleteAllByPost(post);
+        
+        // 게시글 완전 삭제
+        postRepository.delete(post);
+    }
+
     private void validateAdminCategoryWrite(Post.Category category, User user) {
         if ((category == Post.Category.NEWS || category == Post.Category.EVENT || category == Post.Category.NOTICE)
                 && user.getRole() != User.Role.ADMIN) {
             throw new IllegalArgumentException("해당 카테고리의 게시글은 관리자만 작성, 수정, 삭제할 수 있습니다.");
         }
+    }
+
+    @Transactional
+    public void createNewsPost(String title, String content, Post.Category category, User writer) {
+        Post post = Post.builder()
+                .title(title)
+                .content(content)
+                .category(category)
+                .writer(writer)
+                .build();
+        // createdAt, updatedAt은 @CreationTimestamp/@UpdateTimestamp로 자동 설정
+        postRepository.save(post);
+    }
+    
+    @Transactional
+    public void createEventPost(String title, String content, User writer) {
+        Post post = Post.builder()
+                .title(title)
+                .content(content)
+                .category(Post.Category.EVENT)
+                .writer(writer)
+                .build();
+        postRepository.save(post);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getReportedPosts() {
+        return postRepository.findReportedPosts().stream()
+                .map(PostResponseDto::from)
+                .toList();
     }
 }

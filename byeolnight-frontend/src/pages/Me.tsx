@@ -1,4 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 export default function Me() {
   const { user, loading } = useAuth();
@@ -16,8 +17,19 @@ export default function Me() {
           <li><strong>전화번호:</strong> {user.phone}</li>
           <li><strong>권한:</strong> {user.role}</li>
         </ul>
-        <div className="mt-8 text-right">
-          <a href="/profile" className="text-blue-400 hover:underline">프로필 수정</a>
+        <div className="mt-8 flex justify-between">
+          <Link 
+            to="/profile/edit" 
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors font-medium"
+          >
+            프로필 수정
+          </Link>
+          <Link 
+            to="/password-change" 
+            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors font-medium"
+          >
+            비밀번호 변경
+          </Link>
         </div>
       </div>
     </div>

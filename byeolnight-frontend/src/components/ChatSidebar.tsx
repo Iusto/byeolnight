@@ -3,11 +3,15 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from '../lib/axios';
+import AdminChatControls from './AdminChatControls';
+import AdminDashboard from './AdminDashboard';
 
 interface ChatMessage {
+  id?: string;
   sender: string;
   message: string;
   timestamp: string;
+  isBlinded?: boolean;
 }
 
 export default function ChatSidebar() {
@@ -16,6 +20,11 @@ export default function ChatSidebar() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [bannedUsers, setBannedUsers] = useState<Set<string>>(new Set());
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [banStatus, setBanStatus] = useState<{banned: boolean, reason?: string, duration?: number, bannedUntil?: string} | null>(null);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
   const retryCount = useRef(0);
   const stompClientRef = useRef<Client | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null); // ✅ 채팅창 컨테이너 ref
@@ -29,6 +38,7 @@ export default function ChatSidebar() {
       },
       onConnect: () => {
         setConnecting(false);
+        setConnected(true);
         setError('');
         retryCount.current = 0;
 
@@ -36,6 +46,26 @@ export default function ChatSidebar() {
           const payload = JSON.parse(message.body);
           setMessages((prev) => [...prev.slice(-10), payload]); // 최신 10개 유지
         });
+        
+        // 개인 채팅 금지 알림 구독
+        if (user) {
+          client.subscribe(`/queue/user.${user.nickname}.ban`, (message) => {
+            const banData = JSON.parse(message.body);
+            setBanStatus(banData);
+            
+            if (banData.banned) {
+              // 금지 종료 시간 계산
+              const endTime = new Date().getTime() + (banData.duration * 60 * 1000);
+              banData.bannedUntil = new Date(endTime).toISOString();
+              setBanStatus(banData);
+              setError(`채팅이 제한되었습니다.`);
+            } else {
+              setError('');
+              setBanStatus(null);
+              setRemainingTime(0);
+            }
+          });
+        }
       },
       onStompError: () => handleConnectionError(),
       onWebSocketError: () => handleConnectionError(),
@@ -46,16 +76,18 @@ export default function ChatSidebar() {
   };
 
   const handleConnectionError = () => {
-    setConnecting(true);
-    retryCount.current += 1;
+    setConnecting(false);
+    setConnected(false);
+    setError('채팅 연결 실패');
+  };
 
-    if (retryCount.current <= 5) {
-      setTimeout(() => {
-        connect();
-      }, 5000);
-    } else {
-      setError('채팅 서버에 연결할 수 없습니다.');
-      setConnecting(false);
+  // 수동 재연결 함수
+  const handleRetryConnection = () => {
+    if (user) {
+      setError('');
+      setConnecting(true);
+      retryCount.current = 0;
+      connect();
     }
   };
 
@@ -64,10 +96,14 @@ export default function ChatSidebar() {
       const res = await axios.get('/public/chat', {
         params: { roomId: 'public' },
       });
-      const history = res.data || [];
-      setMessages(history.slice(-10));
+      const history = res.data?.data || res.data || [];
+      if (Array.isArray(history) && history.length > 0) {
+        setMessages(history.slice(-20)); // 최근 20개 메시지 로드
+      }
     } catch (err) {
-      console.error('초기 채팅 내역 불러오기 실패', err);
+      console.error('이전 채팅 내역 불러오기 실패:', err);
+      // 이전 내역 로드 실패 시 빈 배열로 시작
+      setMessages([]);
     }
   };
 
@@ -79,14 +115,135 @@ export default function ChatSidebar() {
     }
   }, [messages]);
 
+  // 채팅 금지 타이머
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (banStatus?.banned && banStatus.bannedUntil) {
+      interval = setInterval(() => {
+        const now = new Date().getTime();
+        const endTime = new Date(banStatus.bannedUntil!).getTime();
+        const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+        
+        setRemainingTime(remaining);
+        
+        if (remaining <= 0) {
+          setBanStatus(null);
+          setError('');
+          clearInterval(interval);
+        }
+      }, 1000);
+    } else if (banStatus?.banned && banStatus.duration) {
+      // 백엔드에서 받은 남은 시간(분)을 초로 변환
+      const initialSeconds = banStatus.duration * 60;
+      setRemainingTime(initialSeconds);
+      
+      interval = setInterval(() => {
+        setRemainingTime(prev => {
+          const newTime = Math.max(0, prev - 1);
+          if (newTime <= 0) {
+            setBanStatus(null);
+            setError('');
+            clearInterval(interval);
+          }
+          return newTime;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [banStatus]);
+
+  // 시간 포맷 함수
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // 사용자 채팅 금지 상태 확인
+  const checkBanStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await axios.get('/admin/chat/ban-status');
+      const banData = response.data;
+      
+      if (banData.banned) {
+        // 금지 종료 시간 설정
+        setBanStatus({
+          banned: true,
+          reason: banData.reason,
+          duration: banData.remainingMinutes,
+          bannedUntil: banData.bannedUntil
+        });
+        setError(`채팅이 제한되었습니다.`);
+      } else {
+        setBanStatus(null);
+      }
+    } catch (error) {
+      console.error('채팅 금지 상태 확인 실패:', error);
+    }
+  };
+
+  useEffect(() => {
+    // 채팅 내역은 모두 로드
     loadInitialMessages();
-    connect();
+
+    // 로그인한 사용자만 WebSocket 연결 시도
+    if (user) {
+      setConnecting(true);
+      connect();
+      checkBanStatus(); // 로그인 시 채팅 금지 상태 확인
+    } else {
+      // 비로그인 사용자는 연결 상태 초기화
+      setConnecting(false);
+      setConnected(false);
+      setError('');
+      setBanStatus(null);
+    }
+
     return () => stompClientRef.current?.deactivate();
-  }, []);
+  }, [user]); // user 상태 변경 시 재실행
+
+  // 관리자 권한 확인
+  const isAdmin = user?.role === 'ADMIN' || user?.isAdmin;
+
+  // 메시지 블라인드 처리
+  const handleMessageBlind = (messageId: string) => {
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, isBlinded: true } : msg
+      )
+    );
+  };
+
+  // 메시지 블라인드 해제
+  const handleMessageUnblind = (messageId: string) => {
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, isBlinded: false } : msg
+      )
+    );
+  };
+
+  // 사용자 제재 처리
+  const handleUserBan = (username: string) => {
+    setBannedUsers(prev => new Set([...prev, username]));
+    // 메시지는 유지하고 제재 상태만 기록
+  };
 
   const sendMessage = () => {
     if (!input.trim() || !user) return;
+
+    // 제재된 사용자는 메시지 전송 불가
+    if (banStatus?.banned || bannedUsers.has(user.nickname)) {
+      const reason = banStatus?.reason || '채팅이 제한되었습니다.';
+      setError(reason + ' 관리자에게 문의하세요.');
+      return;
+    }
 
     const client = stompClientRef.current;
     if (!client || !client.connected) {
@@ -107,68 +264,183 @@ export default function ChatSidebar() {
   };
 
   return (
-    <div className="bg-[#1f2336]/70 backdrop-blur-md p-4 rounded-xl h-[600px] flex flex-col">
-      <h3 className="text-lg font-semibold mb-2 text-purple-300">💬 실시간 채팅</h3>
+    <div className="space-y-4">
+      {/* 관리자 대시보드 */}
+      {isAdmin && showAdminDashboard && <AdminDashboard />}
+
+      <div className="bg-[#1f2336]/70 backdrop-blur-md p-4 rounded-xl h-[600px] flex flex-col">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-purple-300">💬 실시간 채팅</h3>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdminDashboard(!showAdminDashboard)}
+              className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors"
+              title="관리자 대시보드"
+            >
+              🛡️ 관리
+            </button>
+          )}
+        </div>
 
       <div className="flex-1 overflow-hidden">
         <div
           ref={scrollContainerRef}
           className="h-full overflow-y-auto pr-1 space-y-2 mb-3 scrollbar-thin scrollbar-thumb-purple-700 scrollbar-track-transparent"
         >
-          {messages.map((msg, idx) => {
-            const isMe = msg.sender === user?.nickname;
-            return (
-              <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[70%] px-3 py-2 rounded text-sm ${
-                    isMe
-                      ? 'bg-purple-600 text-white rounded-br-none'
-                      : 'bg-black/40 text-white rounded-bl-none'
-                  }`}
-                >
-                  {!isMe && (
-                    <div className="font-bold text-purple-300 mb-1">{msg.sender}</div>
-                  )}
-                  {msg.message}
-                </div>
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              <div className="text-center">
+                <div className="text-2xl mb-2">🌌</div>
+                <p>아직 채팅 내역이 없습니다.</p>
+                {user ? (
+                  <p>첫 번째 메시지를 보내보세요!</p>
+                ) : (
+                  <p>로그인 후 채팅에 참여하세요!</p>
+                )}
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            messages.map((msg, idx) => {
+              const isMe = msg.sender === user?.nickname;
+              const timestamp = new Date(msg.timestamp).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+
+              return (
+                <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
+                  <div
+                    className={`max-w-[70%] px-3 py-2 rounded text-sm relative ${
+                      isMe
+                        ? 'bg-purple-600 text-white rounded-br-none'
+                        : 'bg-black/40 text-white rounded-bl-none'
+                    } ${
+                      msg.isBlinded ? 'opacity-50 bg-gray-600' : ''
+                    }`}
+                  >
+                    {!isMe && (
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="font-bold text-purple-300">{msg.sender}</div>
+                        {isAdmin && !isMe && (
+                          <AdminChatControls
+                            messageId={msg.id || `${idx}`}
+                            sender={msg.sender}
+                            isBlinded={msg.isBlinded}
+                            onMessageBlind={handleMessageBlind}
+                            onMessageUnblind={handleMessageUnblind}
+                            onUserBan={handleUserBan}
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      {msg.isBlinded ? (
+                        <span className="text-gray-400 italic">
+                          🙈 이 메시지는 관리자에 의해 블라인드 처리되었습니다.
+                        </span>
+                      ) : (
+                        msg.message
+                      )}
+                    </div>
+                    <div className={`text-xs mt-1 opacity-70 ${
+                      isMe ? 'text-purple-200' : 'text-gray-400'
+                    }`}>
+                      {timestamp}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
-      {error && <div className="text-sm text-red-400 mb-2">⚠️ {error}</div>}
-      {connecting && !error && (
-        <div className="text-sm text-yellow-300 mb-2">🔄 채팅 서버에 연결 중...</div>
+      {/* 연결 상태 표시 */}
+      {user && (
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 text-sm">
+            {connecting && (
+              <>
+                <div className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></div>
+                <span className="text-yellow-300">채팅 연결 중...</span>
+              </>
+            )}
+            {connected && !connecting && !error && (
+              <>
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-green-400">채팅 연결 완료</span>
+              </>
+            )}
+            {error && !connecting && (
+              <>
+                <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                <span className="text-red-400">{error}</span>
+              </>
+            )}
+          </div>
+          {error && !connecting && (
+            <button
+              onClick={handleRetryConnection}
+              className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition-colors"
+              title="연결 재시도"
+            >
+              🔄
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 채팅 금지 상태 표시 */}
+      {banStatus?.banned && (
+        <div className="mb-2 p-3 bg-red-900/50 border border-red-500 rounded-lg">
+          <div className="text-red-300 text-sm font-semibold flex items-center justify-between">
+            <span>🚫 채팅이 제한되었습니다</span>
+            <span className="text-orange-300 font-mono text-lg">
+              {formatTime(remainingTime)}
+            </span>
+          </div>
+          <div className="text-red-200 text-xs mt-1">
+            사유: {banStatus.reason || '관리자에 의한 제재'}
+          </div>
+        </div>
       )}
 
       {user ? (
         <div className="flex">
           <input
             type="text"
-            className="flex-1 px-3 py-2 rounded-l bg-black/30 text-white placeholder-gray-400"
-            placeholder="별빛처럼 속삭이세요..."
+            className={`flex-1 px-3 py-2 rounded-l text-white placeholder-gray-400 ${
+              banStatus?.banned 
+                ? 'bg-red-900/30 border border-red-500 cursor-not-allowed' 
+                : 'bg-black/30'
+            }`}
+            placeholder={banStatus?.banned ? `채팅정지당한 상태입니다` : '별빛처럼 속삭이세요...'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={connecting || !!error}
+            disabled={connecting || !!error || banStatus?.banned}
           />
           <button
             onClick={sendMessage}
-            className="bg-purple-600 text-white px-4 rounded-r hover:bg-purple-700"
-            disabled={connecting || !!error}
+            className={`px-4 rounded-r transition ${
+              banStatus?.banned
+                ? 'bg-red-600 cursor-not-allowed'
+                : 'bg-purple-600 hover:bg-purple-700'
+            } text-white`}
+            disabled={connecting || !!error || banStatus?.banned}
           >
-            전송
+            {banStatus?.banned ? '금지됨' : '전송'}
           </button>
         </div>
       ) : (
         <input
           type="text"
           className="w-full px-3 py-2 rounded bg-black/30 text-gray-400 cursor-not-allowed"
-          placeholder="로그인 시 사용 가능합니다"
+          placeholder="메시지 전송은 로그인 후 가능합니다"
           disabled
         />
       )}
+      </div>
     </div>
   );
 }

@@ -7,8 +7,39 @@ export default function Login() {
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false) // ✅ 로딩 상태 추가
+  const [loading, setLoading] = useState(false)
+
+  // 에러 메시지를 사용자 친화적으로 변환하는 함수
+  const getErrorMessage = (serverMessage: string): string => {
+    // 계정 상태 관련 에러
+    if (serverMessage.includes('BANNED')) {
+      return '해당 계정은 이용 정지된 상태입니다. 관리자에게 문의하세요.'
+    }
+    if (serverMessage.includes('SUSPENDED')) {
+      return '해당 계정은 일시 정지된 상태입니다. 관리자에게 문의하세요.'
+    }
+    if (serverMessage.includes('WITHDRAWN')) {
+      return '해당 계정은 탈퇴된 상태입니다. 새로운 계정을 만들어 주세요.'
+    }
+    
+    // 계정 잠금 관련 에러
+    if (serverMessage.includes('계정이 잠겨 있습니다')) {
+      return '계정이 잠겨 있습니다. 관리자에게 문의하거나 비밀번호 초기화를 이용하세요.'
+    }
+    if (serverMessage.includes('비밀번호가 10회 이상 틀렸습니다')) {
+      return '비밀번호를 10회 이상 잘못 입력하여 계정이 잠겼습니다. 비밀번호 초기화를 이용해 주세요.'
+    }
+    
+    // IP 차단 관련 에러
+    if (serverMessage.includes('차단된 IP')) {
+      return '비정상적인 로그인 시도로 인해 접속이 제한되었습니다. 잠시 후 다시 시도해 주세요.'
+    }
+    
+    // 기본 에러 메시지 그대로 반환
+    return serverMessage
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -16,10 +47,11 @@ export default function Login() {
     setError('')
 
     try {
-      await login(email, password)
-      // 로그인 성공 시 navigate가 내부에 포함되어 있으면 생략 가능
-    } catch {
-      setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+      await login(email, password, rememberMe)
+    } catch (err: any) {
+      // 서버에서 온 구체적인 에러 메시지를 사용자 친화적으로 변환
+      const errorMessage = getErrorMessage(err.message || '로그인에 실패했습니다.')
+      setError(errorMessage)
     } finally {
       setLoading(false) // 끝날 때 false
     }
@@ -50,6 +82,19 @@ export default function Login() {
             disabled={loading}
           />
 
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 text-purple-600 bg-[#2a2e44] border-gray-600 rounded focus:ring-purple-500"
+            />
+            <label htmlFor="rememberMe" className="text-sm text-gray-300">
+              로그인 상태 유지
+            </label>
+          </div>
+
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
           <button
@@ -64,6 +109,24 @@ export default function Login() {
             {loading ? '🌠 로그인 중...' : '🌌 로그인'}
           </button>
         </form>
+        
+        <div className="mt-4 text-center space-y-2">
+          <button
+            onClick={() => navigate('/password-reset')}
+            className="text-purple-400 hover:text-purple-300 text-sm underline"
+          >
+            비밀번호를 잊으셨나요?
+          </button>
+          <div className="text-gray-400 text-sm">
+            계정이 없으신가요?{' '}
+            <button
+              onClick={() => navigate('/signup')}
+              className="text-purple-400 hover:text-purple-300 underline"
+            >
+              회원가입
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

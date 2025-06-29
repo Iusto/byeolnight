@@ -4,6 +4,7 @@ package com.byeolnight.controller.chat;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.chat.ChatMessageDto;
 import com.byeolnight.service.chat.ChatService;
+import com.byeolnight.service.chat.AdminChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,11 +27,18 @@ public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatService chatService;
+    private final AdminChatService adminChatService;
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageDto chatMessage, Principal principal) {
         if (principal instanceof Authentication auth && auth.getPrincipal() instanceof User user) {
             chatMessage.setSender(user.getNickname());  // ✅ 이메일 대신 닉네임 사용
+            
+            // 채팅 금지 사용자 확인
+            if (adminChatService.isUserBanned(user.getNickname())) {
+                log.warn("채팅 금지된 사용자의 메시지 차단: {}", user.getNickname());
+                return; // 메시지 전송 차단
+            }
         } else {
             log.warn("⚠️ principal is null or invalid. fallback to sender from payload: {}", chatMessage.getSender());
         }

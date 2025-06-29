@@ -62,15 +62,18 @@ public class User implements UserDetails {
     /** 사용자 계정 상태 (정상, 밴, 정지, 탈퇴) */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private UserStatus status = UserStatus.ACTIVE;
 
     /** 닉네임을 한 번이라도 변경한 적 있는지 여부 */
     @Column(nullable = false)
+    @Builder.Default
     private boolean nicknameChanged = false;
 
     /** 마지막 닉네임 변경 시각 */
     @Column(nullable = false)
-    private LocalDateTime nicknameUpdatedAt;
+    @Builder.Default
+    private LocalDateTime nicknameUpdatedAt = LocalDateTime.now();
 
     /** 마지막 로그인 시각 */
     @Column
@@ -78,10 +81,12 @@ public class User implements UserDetails {
 
     /** 로그인 실패 횟수 */
     @Column(nullable = false)
+    @Builder.Default
     private int loginFailCount = 0;
 
     /** 계정 잠금 여부 */
     @Column(nullable = false)
+    @Builder.Default
     private boolean accountLocked = false;
 
     /** 마지막 로그인 실패 시각 */
@@ -90,10 +95,12 @@ public class User implements UserDetails {
 
     /** 이메일 인증 여부 */
     @Column(nullable = false)
+    @Builder.Default
     private boolean emailVerified = false;
 
     /** 휴대폰 인증 여부 */
     @Column(nullable = false)
+    @Builder.Default
     private boolean phoneVerified = false;
 
     /** 계정 밴 사유 */
@@ -102,11 +109,17 @@ public class User implements UserDetails {
 
     /** 사용자 레벨 */
     @Column(nullable = false)
+    @Builder.Default
     private int level = 1;
 
-    /** 사용자 경험치 */
+    /** 사용자 포인트 (스텔라 아이콘 구매용) */
     @Column(nullable = false)
-    private int exp = 0;
+    @Builder.Default
+    private int points = 0;
+
+    /** 현재 장착 중인 스텔라 아이콘 ID */
+    @Column
+    private Long equippedIconId;
 
     /** 탈퇴 사유 */
     @Column(length = 255)
@@ -177,9 +190,27 @@ public class User implements UserDetails {
         this.phoneVerified = true;
     }
 
-    /** 경험치 증가 */
-    public void increaseExp(int value) {
-        this.exp += value;
+    /** 포인트 증가 */
+    public void increasePoints(int value) {
+        this.points += value;
+    }
+
+    /** 포인트 차감 (구매 시) */
+    public void decreasePoints(int value) {
+        if (this.points < value) {
+            throw new IllegalArgumentException("포인트가 부족합니다.");
+        }
+        this.points -= value;
+    }
+
+    /** 스텔라 아이콘 장착 */
+    public void equipIcon(Long iconId) {
+        this.equippedIconId = iconId;
+    }
+
+    /** 스텔라 아이콘 해제 */
+    public void unequipIcon() {
+        this.equippedIconId = null;
     }
 
     /** 비밀번호 변경 */

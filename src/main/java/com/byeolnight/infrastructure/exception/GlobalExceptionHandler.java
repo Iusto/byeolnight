@@ -81,6 +81,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 잘못된 인수 예외
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<CommonResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(CommonResponse.fail(ex.getMessage()));
+    }
+
+    /**
      * 만료된 비밀번호 초기화 토큰 예외
      */
     @ExceptionHandler(ExpiredResetTokenException.class)

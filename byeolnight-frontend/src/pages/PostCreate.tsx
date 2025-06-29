@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
+import { useAuth } from '../contexts/AuthContext';
 
 interface FileDto {
   originalName: string;
@@ -10,6 +11,7 @@ interface FileDto {
 
 export default function PostCreate() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('NEWS');
@@ -44,6 +46,11 @@ export default function PostCreate() {
     e.preventDefault();
     setError('');
 
+    if (!user) {
+      setError('로그인이 필요합니다.');
+      return;
+    }
+
     try {
       await axios.post('/member/posts', {
         title,
@@ -57,6 +64,23 @@ export default function PostCreate() {
       setError(msg);
     }
   };
+
+  // 로그인 검증
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center text-white">
+        <div className="text-center">
+          <p className="text-lg mb-4">게시글 작성은 로그인이 필요합니다.</p>
+          <button 
+            onClick={() => navigate('/login')}
+            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded"
+          >
+            로그인 하러 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex justify-center pt-20 text-white">

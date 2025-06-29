@@ -8,13 +8,18 @@ interface User {
   nickname: string;
   phone: string;
   role: string;
+  representativeCertificate?: {
+    icon: string;
+    name: string;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,44 +32,139 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchMyInfo = async () => {
     try {
       const res = await axios.get('/users/me');
-      setUser(res.data.data);
+      const userData = res.data;
+      
+      // 대표 인증서 정보도 가져오기
+      try {
+        const certRes = await axios.get('/member/certificates/representative');
+        if (certRes.data?.data) {
+          userData.representativeCertificate = {
+            icon: certRes.data.data.icon,
+            name: certRes.data.data.name
+          };
+        }
+      } catch (certErr) {
+        console.log('대표 인증서 조회 실패 (정상)', certErr);
+      }
+      
+      setUser(userData);
+      return true;
     } catch (err) {
       console.error('내 정보 조회 실패:', err);
       setUser(null);
-    } finally {
-      setLoading(false);
+      return false;
     }
   };
 
-  const login = async (email: string, password: string) => {
+  // 토큰 갱신 함수
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const res = await axios.post('/auth/token/refresh');
+      const newToken = res.data?.accessToken;
+      
+      if (newToken) {
+        localStorage.setItem('accessToken', newToken);
+        await fetchMyInfo();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('토큰 갱신 실패:', error);
+      return false;
+    }
+  };
+
+  const login = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       const res = await axios.post('/auth/login', {
         email,
         password,
       });
 
-      const token = res.data.data.accessToken;
-      localStorage.setItem('accessToken', token);
+      const token = res.data?.accessToken;
+      if (token) {
+        localStorage.setItem('accessToken', token);
+        
+        // 로그인 유지 옵션 저장
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
 
-      await fetchMyInfo();
-      navigate('/');
-    } catch (err) {
-      throw new Error('로그인 실패');
+        await fetchMyInfo();
+        navigate('/');
+      } else {
+        throw new Error('토큰을 받지 못했습니다.');
+      }
+    } catch (err: any) {
+      // 서버에서 온 구체적인 에러 메시지 전달
+      const errorMessage = err?.response?.data?.message || '로그인에 실패했습니다.';
+      throw new Error(errorMessage);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    setUser(null);
-    navigate('/login');
+  const logout = async () => {
+    try {
+      // 백엔드 로그아웃 API 호출
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        await axios.post('/auth/logout', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      console.error('로그아웃 API 호출 실패:', error);
+    } finally {
+      // 로컬 상태 정리
+      localStorage.removeItem('accessToken');
+      setUser(null);
+      navigate('/login');
+    }
   };
 
+  // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
-    fetchMyInfo();
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      const rememberMe = localStorage.getItem('rememberMe');
+      
+      if (token) {
+        // 사용자 정보 조회 시도
+        const success = await fetchMyInfo();
+        
+        // 실패 시 토큰 갱신 시도 (로그인 유지 옵션이 있는 경우)
+        if (!success && rememberMe === 'true') {
+          const refreshSuccess = await refreshToken();
+          if (!refreshSuccess) {
+            // 토큰 갱신도 실패하면 로그아웃
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('rememberMe');
+          }
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
+  // 주기적으로 토큰 갱신 (로그인 유지 옵션이 있는 경우)
+  useEffect(() => {
+    const rememberMe = localStorage.getItem('rememberMe');
+    if (user && rememberMe === 'true') {
+      // 25분마다 토큰 갱신 시도 (Access Token이 30분이므로)
+      const interval = setInterval(() => {
+        refreshToken();
+      }, 25 * 60 * 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshToken }}>
       {children}
     </AuthContext.Provider>
   );

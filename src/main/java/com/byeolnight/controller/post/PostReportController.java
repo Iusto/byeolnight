@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/posts")
+@RequestMapping("/api/member/posts")
 public class PostReportController {
 
     private final PostReportService postReportService;
@@ -44,7 +44,7 @@ public class PostReportController {
             @RequestBody PostReportRequestDto dto,
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        postReportService.reportPost(user.getId(), postId, dto.getReason());
+        postReportService.reportPost(user.getId(), postId, dto.getReason(), dto.getDescription());
         return ResponseEntity.ok(CommonResponse.success("신고가 접수되었습니다."));
     }
 }

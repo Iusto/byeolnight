@@ -12,9 +12,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ChatMessageDto {
+    private String id; // 메시지 ID 추가
     private String roomId;
     private String sender;
     private String message;
     @Builder.Default
-    private LocalDateTime timestamp = LocalDateTime.now(); // 기본값 설정
+    private LocalDateTime timestamp = LocalDateTime.now();
 }

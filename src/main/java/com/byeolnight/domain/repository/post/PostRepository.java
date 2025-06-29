@@ -87,4 +87,42 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     ORDER BY p.likeCount DESC
     """)
     List<Post> findTopHotPostsAcrossAllCategories(@Param("threshold") LocalDateTime threshold, Pageable pageable);
+
+    /**
+     * 제목과 카테고리로 게시글 존재 여부 확인 (중복 방지용)
+     */
+    boolean existsByTitleAndCategory(String title, Category category);
+
+    /**
+     * 사용자별 작성 게시글 수 조회 (삭제되지 않은 것만)
+     */
+    long countByWriterAndIsDeletedFalse(com.byeolnight.domain.entity.user.User writer);
+
+    /**
+     * 사용자별 특정 카테고리 게시글 수 조회 (삭제되지 않은 것만)
+     */
+    long countByWriterAndCategoryAndIsDeletedFalse(com.byeolnight.domain.entity.user.User writer, Category category);
+    
+    /**
+     * 중복 이벤트 검사: 동일 제목, 카테고리, 작성자, 특정 날짜 이후
+     */
+    boolean existsByTitleAndCategoryAndWriterAndCreatedAtAfter(
+        String title, 
+        Category category, 
+        com.byeolnight.domain.entity.user.User writer, 
+        LocalDateTime createdAt
+    );
+
+    /**
+     * 신고된 게시글 조회 (신고 수 1개 이상)
+     */
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    JOIN PostReport pr ON pr.post = p
+    WHERE p.isDeleted = false
+    GROUP BY p
+    HAVING COUNT(pr) > 0
+    ORDER BY COUNT(pr) DESC, p.createdAt DESC
+    """)
+    List<Post> findReportedPosts();
 }

@@ -14,7 +14,6 @@ import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.infrastructure.exception.*;
 import com.byeolnight.service.auth.GmailEmailService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,8 +38,10 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final StringRedisTemplate redisTemplate;
     private final GmailEmailService gmailEmailService;
+    private final UserSecurityService userSecurityService;
+    private final com.byeolnight.domain.repository.post.PostRepository postRepository;
+    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
 
     /**
      * 회원가입 처리
@@ -59,7 +60,7 @@ public class UserService {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "비밀번호 불일치"));
                 throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
             }
-            if (!isValidPassword(dto.getPassword())) {
+            if (!userSecurityService.isValidPassword(dto.getPassword())) {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "비밀번호 정책 위반"));
                 throw new IllegalArgumentException("비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다.");
             }
@@ -77,7 +78,7 @@ public class UserService {
                     .phoneVerified(false)
                     .loginFailCount(0)
                     .level(1)
-                    .exp(0)
+                    .points(0)
                     .build();
             userRepository.save(user);
             auditSignupLogRepository.save(AuditSignupLog.success(dto.getEmail(), ipAddress));
@@ -85,8 +86,13 @@ public class UserService {
         } catch (RuntimeException e) {
             if (!(e instanceof DuplicateEmailException || e instanceof DuplicateNicknameException
                     || e instanceof PasswordMismatchException || e instanceof IllegalArgumentException)) {
+                // 오류 메시지 길이 제한 (500자)
+                String errorMessage = e.getMessage();
+                if (errorMessage != null && errorMessage.length() > 450) {
+                    errorMessage = errorMessage.substring(0, 450) + "...";
+                }
                 auditSignupLogRepository.save(
-                        AuditSignupLog.failure(dto.getEmail(), ipAddress, "기타 오류: " + e.getMessage()));
+                        AuditSignupLog.failure(dto.getEmail(), ipAddress, "기타 오류: " + errorMessage));
             }
             throw e;
         }
@@ -99,18 +105,52 @@ public class UserService {
         return userRepository.existsByNickname(nickname);
     }
 
-    /**
-     * 비밀번호 형식 검증
-     */
-    private boolean isValidPassword(String password) {
-        return password.matches("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$");
-    }
+
 
     /**
      * 이메일로 사용자 조회
      */
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    /**
+     * ID로 사용자 조회
+     */
+    public User findById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    /**
+     * 닉네임으로 사용자 조회
+     */
+    public Optional<User> findByNickname(String nickname) {
+        return userRepository.findByNickname(nickname);
+    }
+
+    /**
+     * 닉네임으로 사용자 프로필 조회
+     */
+    @Transactional(readOnly = true)
+    public com.byeolnight.dto.user.UserProfileDto getUserProfileByNickname(String nickname) {
+        System.out.println("프로필 조회 요청: " + nickname); // 디버그용 로그
+        
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> {
+                    System.out.println("사용자를 찾을 수 없음: " + nickname);
+                    return new NotFoundException("사용자를 찾을 수 없습니다.");
+                });
+        
+        System.out.println("사용자 찾음: " + user.getNickname() + ", ID: " + user.getId());
+        
+        // 게시글 수와 댓글 수 조회
+        long postCount = postRepository.countByWriterAndIsDeletedFalse(user);
+        long commentCount = commentRepository.countByWriter(user);
+        
+        System.out.println("게시글 수: " + postCount + ", 댓글 수: " + commentCount);
+        
+        return com.byeolnight.dto.user.UserProfileDto.from(user, postCount, commentCount);
     }
 
     /**
@@ -123,11 +163,24 @@ public class UserService {
         if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
-        if (!user.getNickname().equals(dto.getNickname()) &&
-                userRepository.existsByNickname(dto.getNickname())) {
-            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        
+        // 닉네임이 변경된 경우에만 검증 수행
+        if (!user.getNickname().equals(dto.getNickname())) {
+            // 중복 닉네임 검사
+            if (userRepository.existsByNickname(dto.getNickname())) {
+                throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            }
+            
+            // 6개월 제한 검사
+            if (user.isNicknameChanged() && user.getNicknameUpdatedAt() != null &&
+                    user.getNicknameUpdatedAt().isAfter(LocalDateTime.now().minusMonths(6))) {
+                throw new IllegalArgumentException("닉네임은 6개월마다 변경할 수 있습니다. 다음 변경 가능 시기: " + 
+                        user.getNicknameUpdatedAt().plusMonths(6).toLocalDate());
+            }
+            
+            user.updateNickname(dto.getNickname(), LocalDateTime.now());
         }
-        user.updateNickname(dto.getNickname(), LocalDateTime.now());
+        
         user.updatePhone(dto.getPhone());
     }
 
@@ -216,41 +269,11 @@ public class UserService {
 
     /**
      * 로그인 실패 시 실패 횟수 증가 + 보안 정책 적용
-     * - 5회: 사용자 경고 로그 기록
-     * - 10회: 계정 잠금 처리
-     * - 15회: IP 차단 처리 (1일간 Redis에 저장)
      */
     @Transactional
     public void increaseLoginFailCount(User user, String ipAddress, String userAgent) {
-        // 1. 로그인 실패 처리 (실패 횟수 +1, 마지막 실패 시간 갱신)
-        user.loginFail();
+        userSecurityService.handleLoginFailure(user, ipAddress, userAgent);
         userRepository.save(user);
-
-        int failCount = user.getLoginFailCount();
-        String email = user.getEmail();
-
-        // 2. 보안 로그 기록 (5, 10, 15회 시점에만 기록)
-        if (failCount == 5 || failCount == 10 || failCount == 15) {
-            String reason = switch (failCount) {
-                case 5 -> "로그인 5회 실패 - 사용자 경고 로그 기록";
-                case 10 -> "로그인 10회 실패 - 계정 잠금 처리됨";
-                case 15 -> "로그인 15회 실패 - IP 차단 처리됨";
-                default -> "로그인 실패 경고";
-            };
-
-            auditSignupLogRepository.save(
-                    AuditSignupLog.failure(email, ipAddress, reason)
-            );
-        }
-
-        // 3. 로그인 실패 15회 도달 시 IP 차단 처리 (Redis에 24시간 저장)
-        if (failCount == 15) {
-            redisTemplate.opsForValue().set(
-                    "blocked:ip:" + ipAddress,
-                    "true",
-                    Duration.ofDays(1)
-            );
-        }
     }
 
     /**
@@ -263,11 +286,12 @@ public class UserService {
     }
 
     /**
-     * 관리자 - 전체 사용자 요약 정보 조회
+     * 관리자 - 전체 사용자 요약 정보 조회 (관리자 제외)
      */
     @Transactional(readOnly = true)
     public List<UserSummaryDto> getAllUserSummaries() {
         return userRepository.findAll().stream()
+                .filter(user -> user.getRole() != User.Role.ADMIN) // 관리자 제외
                 .map(UserSummaryDto::from)
                 .toList();
     }
@@ -301,10 +325,54 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
         switch (status) {
-            case BANNED -> user.ban(reason);
-            case ACTIVE -> user.unban(); // 이미 존재하는 도메인 메서드
-            case SUSPENDED -> user.changeStatus(User.UserStatus.SUSPENDED);
-            default -> throw new IllegalArgumentException("허용되지 않은 상태 변경입니다.");
+            case BANNED:
+                user.ban(reason);
+                break;
+            case ACTIVE:
+                user.unban();
+                break;
+            case SUSPENDED:
+                user.changeStatus(User.UserStatus.SUSPENDED);
+                break;
+            default:
+                throw new IllegalArgumentException("허용되지 않은 상태 변경입니다.");
         }
+    }
+
+    /**
+     * 비밀번호 변경
+     */
+    @Transactional
+    public void changePassword(Long userId, com.byeolnight.dto.user.PasswordChangeRequestDto dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new PasswordMismatchException("현재 비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 새 비밀번호 유효성 검사
+        if (!userSecurityService.isValidPassword(dto.getNewPassword())) {
+            throw new IllegalArgumentException("비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다.");
+        }
+        
+        // 비밀번호 변경
+        user.changePassword(passwordEncoder.encode(dto.getNewPassword()));
+    }
+
+    /**
+     * 특정 사용자의 장착 중인 아이콘 조회
+     */
+    public com.byeolnight.dto.shop.EquippedIconDto getUserEquippedIcon(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        if (user.getEquippedIconId() == null) {
+            return null;
+        }
+
+        // StellaIconRepository를 직접 주입받지 않고 다른 방법 사용
+        return null; // 임시로 null 반환
     }
 }

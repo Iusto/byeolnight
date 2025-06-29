@@ -12,4 +12,6 @@ public class PostReportRequestDto {
 
     @NotBlank(message = "신고 사유를 입력해주세요.")
     private String reason;
+    
+    private String description; // 상세 설명 (선택사항)
 }

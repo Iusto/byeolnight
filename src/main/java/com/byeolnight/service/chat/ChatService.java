@@ -1,7 +1,7 @@
 package com.byeolnight.service.chat;
 
-import com.byeolnight.domain.entity.chat.ChatMessageEntity;
-import com.byeolnight.domain.repository.ChatMessageRepository;
+import com.byeolnight.domain.entity.chat.ChatMessage;
+import com.byeolnight.domain.repository.chat.ChatMessageRepository;
 import com.byeolnight.dto.chat.ChatMessageDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,18 +20,27 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
 
     public void sendMessage(ChatMessageDto dto) {
-        ChatMessageEntity entity = new ChatMessageEntity(dto);
-        chatMessageRepository.save(entity);
+        ChatMessage entity = ChatMessage.builder()
+                .roomId(dto.getRoomId())
+                .sender(dto.getSender())
+                .message(dto.getMessage())
+                .build();
+        
+        ChatMessage saved = chatMessageRepository.save(entity);
+        dto.setId(saved.getId().toString());
         messagingTemplate.convertAndSend("/topic/public", dto);
     }
 
 
     public List<ChatMessageDto> getRecentMessages(String roomId) {
-        return chatMessageRepository.findTop100ByRoomIdOrderByTimestampAsc(roomId).stream()
+        return chatMessageRepository.findTop100ByRoomIdOrderByTimestampAsc(roomId,
+                org.springframework.data.domain.PageRequest.of(0, 100))
+                .stream()
                 .map(entity -> ChatMessageDto.builder()
+                        .id(entity.getId().toString())
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
-                        .message(entity.getMessage())
+                        .message(entity.getIsBlinded() ? "🙈 블라인드 처리된 메시지" : entity.getMessage())
                         .timestamp(entity.getTimestamp())
                         .build())
                 .toList();
@@ -75,10 +84,17 @@ public class ChatService {
     public void save(ChatMessageDto dto) {
         if (dto.getMessage() == null || dto.getMessage().trim().isEmpty()) {
             log.warn("❌ 저장 거부: message가 null 또는 빈 문자열입니다. dto: {}", dto);
-            return; // 저장하지 않고 종료
+            return;
         }
 
-        ChatMessageEntity entity = new ChatMessageEntity(dto);
-        chatMessageRepository.save(entity);
+        ChatMessage entity = ChatMessage.builder()
+                .roomId(dto.getRoomId())
+                .sender(dto.getSender())
+                .message(dto.getMessage())
+                .build();
+        
+        ChatMessage saved = chatMessageRepository.save(entity);
+        // DTO에 ID 설정 (프론트엔드에서 사용)
+        dto.setId(saved.getId().toString());
     }
 }

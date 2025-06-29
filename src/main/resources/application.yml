@@ -52,3 +52,23 @@ cloud:
       static: ap-northeast-2
     stack:
       auto: false
+
+# 애플리케이션 보안 설정
+app:
+  security:
+    max-login-attempts: 10
+    ip-block-duration: 24h
+    password-reset-validity: 30m
+  jwt:
+    secret: ${JWT_SECRET:defaultSecretKeyForDevelopmentOnlyNotForProduction}
+    access-token-validity: 30m
+    refresh-token-validity: 7d
+
+# 크롤러 설정
+crawler:
+  news:
+    api:
+      key: ${CRAWLER_NEWS_API_KEY:byeolnight-crawler-news}
+  event:
+    api:
+      key: ${CRAWLER_EVENT_API_KEY:byeolnight-crawler-event}

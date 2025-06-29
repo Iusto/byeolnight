@@ -6,12 +6,14 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 
 @Slf4j
@@ -21,9 +23,19 @@ public class JwtTokenProvider {
 
     private final CustomUserDetailsService customUserDetailsService;
 
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private final long ACCESS_TOKEN_VALIDITY = 1000 * 60 * 30; // 30분
-    private final long REFRESH_TOKEN_VALIDITY = 1000L * 60 * 60 * 24 * 7; // 7일
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${app.jwt.access-token-validity}")
+    private Duration accessTokenValidity;
+
+    @Value("${app.jwt.refresh-token-validity}")
+    private Duration refreshTokenValidity;
+
+    // JWT 서명용 키 생성
+    private Key getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
 
     /**
      * AccessToken 생성
@@ -32,8 +44,8 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("role", user.getRole().name())
-                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
-                .signWith(key)
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenValidity.toMillis()))
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -43,8 +55,8 @@ public class JwtTokenProvider {
     public String createRefreshToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmail())
-                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY))
-                .signWith(key)
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenValidity.toMillis()))
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -53,7 +65,7 @@ public class JwtTokenProvider {
      */
     public boolean validate(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
             log.warn("⏰ JWT 만료됨: {}", e.getMessage());
@@ -83,7 +95,7 @@ public class JwtTokenProvider {
 
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -105,9 +117,9 @@ public class JwtTokenProvider {
     }
 
     /**
-     * refresh 토큰 getter
+     * refresh 토큰 유효기간 getter
      */
     public long getRefreshTokenValidity() {
-        return REFRESH_TOKEN_VALIDITY;
+        return refreshTokenValidity.toMillis();
     }
 }

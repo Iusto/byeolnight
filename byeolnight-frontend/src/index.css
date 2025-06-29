@@ -2,9 +2,186 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 스텔라 아이콘 애니메이션 */
+@keyframes stella-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes stella-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.5)); }
+  50% { filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8)); }
+}
+
+@keyframes stella-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes stella-bounce {
+  0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
+  40%, 43% { transform: translateY(-8px); }
+  70% { transform: translateY(-4px); }
+  90% { transform: translateY(-2px); }
+}
+
+@keyframes stella-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes stella-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes stella-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes stella-heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes stella-blink {
+  0%, 90% { opacity: 1; }
+  95% { opacity: 0.3; }
+}
+
+/* 애니메이션 클래스 */
+.animate-pulse { animation: stella-pulse 2s ease-in-out infinite; }
+.animate-glow { animation: stella-glow 2s ease-in-out infinite; }
+.animate-glow-slow { animation: stella-glow 3s ease-in-out infinite; }
+.animate-rotate { animation: stella-rotate 3s linear infinite; }
+.animate-spin-slow { animation: stella-rotate 4s linear infinite; }
+.animate-bounce { animation: stella-bounce 1s infinite; }
+.animate-bounce-slow { animation: stella-bounce 2s infinite; }
+.animate-shimmer { 
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: stella-shimmer 2s infinite;
+}
+.animate-gradient {
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  animation: stella-gradient 4s ease infinite;
+}
+.animate-float { animation: stella-float 3s ease-in-out infinite; }
+.animate-float-glow { 
+  animation: stella-float 3s ease-in-out infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-heartbeat { animation: stella-heartbeat 1.5s ease-in-out infinite; }
+.animate-blink { animation: stella-blink 3s infinite; }
+.animate-blink-fast { animation: stella-blink 1s infinite; }
+.animate-pulse-fast { animation: stella-pulse 1s ease-in-out infinite; }
+.animate-halo {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  animation: stella-glow 2s ease-in-out infinite;
+}
+.animate-wave {
+  animation: stella-float 2s ease-in-out infinite;
+}
+.animate-wave-slow {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-love {
+  animation: stella-heartbeat 1s ease-in-out infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-flicker {
+  animation: stella-blink 0.5s infinite;
+}
+.animate-heatwave {
+  animation: stella-shimmer 1.5s infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-petal {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-glitch {
+  animation: stella-blink 0.1s infinite;
+}
+.animate-pixelate {
+  image-rendering: pixelated;
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-icepulse {
+  filter: hue-rotate(180deg);
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-vortex {
+  animation: stella-rotate 2s linear infinite;
+}
+.animate-swing {
+  transform-origin: top center;
+  animation: stella-float 3s ease-in-out infinite;
+}
+.animate-shine {
+  animation: stella-shimmer 3s infinite;
+}
+.animate-dualcore {
+  animation: stella-pulse 1s ease-in-out infinite, stella-rotate 4s linear infinite;
+}
+.animate-trail {
+  animation: stella-shimmer 2s infinite;
+}
+.animate-implode {
+  animation: stella-heartbeat 2s ease-in-out infinite reverse;
+}
+.animate-snow {
+  animation: stella-float 5s ease-in-out infinite;
+}
+.animate-sway {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-flare {
+  animation: stella-glow 1s ease-in-out infinite;
+}
+.animate-fade {
+  animation: stella-pulse 3s ease-in-out infinite;
+}
+.animate-fire {
+  animation: stella-glow 1.5s ease-in-out infinite, stella-float 2s ease-in-out infinite;
+}
+.animate-box {
+  animation: stella-bounce 2s infinite;
+}
+.animate-orbit {
+  animation: stella-rotate 6s linear infinite;
+}
+.animate-focus {
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-rain {
+  animation: stella-float 1s ease-in-out infinite;
+}
+.animate-darkshine {
+  filter: brightness(0.7);
+  animation: stella-shimmer 3s infinite;
+}
+.animate-dimflare {
+  filter: brightness(0.8);
+  animation: stella-glow 2s ease-in-out infinite;
+}
+.animate-glitter {
+  animation: stella-shimmer 1s infinite;
+}
+.animate-drip {
+  animation: stella-float 6s ease-in-out infinite;
+}
+.animate-sparkle {
+  animation: stella-shimmer 1.5s infinite, stella-pulse 2s ease-in-out infinite;
+}
+.animate-eclipse {
+  animation: stella-pulse 4s ease-in-out infinite;
+}
+.animate-glow-fast {
+  animation: stella-glow 1s ease-in-out infinite;
+}
+
 /* Tailwind 기반 우주 테마 */
 body {
-  @apply bg-space text-starlight;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;

@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.1.1",
+    "@types/sockjs-client": "^1.5.4",
     "axios": "^1.10.0",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "jwt-decode": "^4.0.0",
     "react": "^19.1.0",

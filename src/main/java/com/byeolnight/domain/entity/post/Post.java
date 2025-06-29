@@ -3,6 +3,8 @@ package com.byeolnight.domain.entity.post;
 import com.byeolnight.domain.entity.user.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,7 +28,7 @@ public class Post {
     private String title;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)
@@ -49,10 +51,12 @@ public class Post {
     @Column(nullable = false)
     private boolean blinded = false;
 
-    @Column(nullable = false, updatable = false)
+    @CreationTimestamp  // 생성 시 자동으로 현재 시간 설정
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @UpdateTimestamp    // 수정 시 자동으로 현재 시간 설정
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Builder
@@ -83,6 +87,10 @@ public class Post {
         this.blinded = true;
     }
 
+    public void unblind() {
+        this.blinded = false;
+    }
+
     public boolean isDeleted() {
         return this.isDeleted;
     }
@@ -93,6 +101,10 @@ public class Post {
 
     public void increaseViewCount() {
         this.viewCount++;
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount++;
     }
 
     public enum SortType {

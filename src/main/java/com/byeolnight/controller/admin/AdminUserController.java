@@ -3,6 +3,7 @@ package com.byeolnight.controller.admin;
 import com.byeolnight.dto.admin.IpBlockRequestDto;
 import com.byeolnight.dto.admin.UserStatusChangeRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
+import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -30,6 +31,7 @@ public class AdminUserController {
 
     private final UserService userService;
     private final StringRedisTemplate redisTemplate;
+    private final PostService postService;
 
     @Operation(summary = "전체 사용자 요약 조회", description = "관리자 권한으로 전체 사용자 목록을 조회합니다.")
     @ApiResponses({
@@ -52,8 +54,27 @@ public class AdminUserController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/users/{id}/lock")
-    public ResponseEntity<Void> lockUser(@PathVariable Long id) {
+    public ResponseEntity<Void> lockUser(@PathVariable Long id, 
+                                        @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser) {
+        // 자기 자신의 계정은 잠금할 수 없음
+        if (currentUser.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
         userService.lockUserAccount(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "사용자 계정 잠금 해제", description = "관리자 권한으로 특정 사용자의 계정 잠금을 해제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "계정 잠금 해제 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "사용자 없음")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/users/{id}/unlock")
+    public ResponseEntity<Void> unlockUser(@PathVariable Long id, 
+                                          @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser) {
+        userService.unlockUserAccount(id);
         return ResponseEntity.ok().build();
     }
 
@@ -72,8 +93,13 @@ public class AdminUserController {
     @PatchMapping("/users/{userId}/status")
     public ResponseEntity<Void> changeUserStatus(
             @PathVariable Long userId,
-            @RequestBody UserStatusChangeRequestDto request
+            @RequestBody UserStatusChangeRequestDto request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
     ) {
+        // 자기 자신의 계정 상태는 변경할 수 없음
+        if (currentUser.getId().equals(userId)) {
+            return ResponseEntity.badRequest().build();
+        }
         userService.changeUserStatus(userId, request.getStatus(), request.getReason());
         return ResponseEntity.ok().build();
     }
@@ -87,8 +113,13 @@ public class AdminUserController {
     @DeleteMapping("/users/{userId}")
     public ResponseEntity<Void> forceWithdrawUser(
             @PathVariable Long userId,
-            @RequestParam(required = false) String reason
+            @RequestParam(required = false) String reason,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
     ) {
+        // 자기 자신의 계정은 탈퇴시킬 수 없음
+        if (currentUser.getId().equals(userId)) {
+            return ResponseEntity.badRequest().build();
+        }
         userService.withdraw(userId, reason != null ? reason : "관리자에 의한 탈퇴 처리");
         return ResponseEntity.ok().build();
     }
@@ -99,15 +130,15 @@ public class AdminUserController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/blocked-ips")
-    public ResponseEntity<List<String>> getBlockedIps() {
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<List<String>>> getBlockedIps() {
         Set<String> keys = redisTemplate.keys("blocked-ip:*");
         if (keys == null || keys.isEmpty()) {
-            return ResponseEntity.ok(Collections.emptyList());
+            return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(Collections.emptyList()));
         }
         List<String> ipList = keys.stream()
                 .map(key -> key.replace("blocked-ip:", ""))
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(ipList);
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(ipList));
     }
 
     @Operation(
@@ -119,10 +150,11 @@ public class AdminUserController {
             @ApiResponse(responseCode = "403", description = "권한 없음")
     })
     @SecurityRequirement(name = "BearerAuth")
-    @DeleteMapping("/blocked-ips/{ip}")
-    public ResponseEntity<Void> unblockIp(@PathVariable String ip) {
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/blocked-ips")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> unblockIp(@RequestParam String ip) {
         redisTemplate.delete("blocked-ip:" + ip);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("IP 차단이 해제되었습니다."));
     }
 
     @Operation(summary = "특정 IP 수동 차단", description = "관리자가 특정 IP를 수동으로 차단합니다.")
@@ -132,15 +164,16 @@ public class AdminUserController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/blocked-ips")
-    public ResponseEntity<Void> blockIpManually(@RequestBody IpBlockRequestDto request) {
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> blockIpManually(@RequestBody IpBlockRequestDto request) {
         String ip = request.getIp();
         long duration = request.getDurationMinutes();
 
         if (!ip.matches("^\\d{1,3}(\\.\\d{1,3}){3}$")) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                    .body(com.byeolnight.infrastructure.common.CommonResponse.fail("잘못된 IP 형식입니다."));
         }
 
         redisTemplate.opsForValue().set("blocked-ip:" + ip, "true", duration, TimeUnit.MINUTES);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("IP가 차단되었습니다."));
     }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import AgreementModal from '../components/AgreementModal';
@@ -24,40 +24,293 @@ export default function Signup() {
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [showModal, setShowModal] = useState<'terms' | 'privacy' | null>(null);
+  const [loading, setLoading] = useState({
+    emailSend: false,
+    emailVerify: false,
+    phoneSend: false,
+    phoneVerify: false,
+    nicknameCheck: false,
+    signup: false,
+  });
+  const [emailTimer, setEmailTimer] = useState(0);
+  const [phoneTimer, setPhoneTimer] = useState(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // 휴대폰번호는 숫자만 입력 허용
+    if (name === 'phone') {
+      const numbersOnly = value.replace(/[^0-9]/g, '');
+      setForm((prev) => ({
+        ...prev,
+        [name]: numbersOnly,
+      }));
+    } else if (name === 'nickname') {
+      // 닉네임은 한글, 영어만 허용 (8자 제한)
+      const nicknameRegex = /^[가-힣a-zA-Z]{0,8}$/;
+      if (nicknameRegex.test(value)) {
+        setForm((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      }
+      // 유효하지 않은 문자는 입력 차단
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+    
+    // 입력 변경 시 관련 검증 상태 초기화
+    if (name === 'nickname') setNicknameChecked(false);
+    if (name === 'email') setEmailVerified(false);
+    if (name === 'phone') setPhoneVerified(false);
+    
+    setError('');
+  };
+
+  // 이메일 형식 검증
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // 비밀번호 형식 검증
+  const validatePassword = (password: string) => {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  // 휴대폰 번호 형식 검증 (숫자만 11자)
+  const validatePhone = (phone: string) => {
+    const phoneRegex = /^01[0-9][0-9]{8}$/;
+    return phoneRegex.test(phone) && phone.length === 11;
+  };
+
+  // 닉네임 형식 검증 (한글, 영어만 허용, 2-8자)
+  const validateNickname = (nickname: string) => {
+    const nicknameRegex = /^[가-힣a-zA-Z]{2,8}$/;
+    return nicknameRegex.test(nickname);
+  };
+
+  const sendEmailCode = async () => {
+    if (!form.email) {
+      setError('이메일을 입력해주세요.');
+      return;
+    }
+    
+    if (!validateEmail(form.email)) {
+      setError('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, emailSend: true }));
+    try {
+      await axios.post('/auth/email/send', { email: form.email });
+      alert('이메일 인증 코드가 전송되었습니다.');
+      setError('');
+      setEmailTimer(300); // 5분 타이머 시작
+    } catch (err: any) {
+      setError(err?.response?.data?.message || '이메일 전송 실패');
+    } finally {
+      setLoading(prev => ({ ...prev, emailSend: false }));
+    }
+  };
+
+  const verifyEmailCode = async () => {
+    if (!form.emailCode) {
+      setError('인증 코드를 입력해주세요.');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, emailVerify: true }));
+    try {
+      const res = await axios.post('/auth/email/verify', {
+        email: form.email,
+        code: form.emailCode,
+      });
+      if (res.data === true) {
+        setEmailVerified(true);
+        alert('이메일 인증 성공');
+        setError('');
+      } else {
+        setError('이메일 인증 코드가 유효하지 않습니다.');
+      }
+    } catch (err: any) {
+      setError('이메일 인증 실패');
+    } finally {
+      setLoading(prev => ({ ...prev, emailVerify: false }));
+    }
+  };
+
+  const sendPhoneCode = async () => {
+    if (!form.phone) {
+      setError('휴대폰 번호를 입력해주세요.');
+      return;
+    }
+    
+    if (!validatePhone(form.phone)) {
+      setError('올바른 휴대폰 번호 형식을 입력해주세요. (11자 숫자: 01012345678)');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, phoneSend: true }));
+    try {
+      await axios.post('/auth/phone/send', { phone: form.phone });
+      alert('휴대폰 인증 코드가 전송되었습니다.');
+      setError('');
+      setPhoneTimer(300); // 5분 타이머 시작
+    } catch (err: any) {
+      setError(err?.response?.data?.message || '휴대폰 인증 코드 전송 실패');
+    } finally {
+      setLoading(prev => ({ ...prev, phoneSend: false }));
+    }
+  };
+
+  const verifyPhoneCode = async () => {
+    if (!form.phoneCode) {
+      setError('인증 코드를 입력해주세요.');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, phoneVerify: true }));
+    try {
+      const res = await axios.post('/auth/phone/verify', {
+        phone: form.phone,
+        code: form.phoneCode,
+      });
+      if (res.data === true) {
+        setPhoneVerified(true);
+        alert('전화번호 인증 성공');
+        setError('');
+      } else {
+        setError('전화번호 인증 코드가 유효하지 않습니다.');
+      }
+    } catch (err: any) {
+      setError('전화번호 인증 실패');
+    } finally {
+      setLoading(prev => ({ ...prev, phoneVerify: false }));
+    }
+  };
+
+  const checkNickname = async () => {
+    if (!form.nickname) {
+      setError('닉네임을 입력해주세요.');
+      return;
+    }
+    
+    if (!validateNickname(form.nickname)) {
+      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다. (특수문자 불가)');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, nicknameCheck: true }));
+    try {
+      const res = await axios.get('/auth/check-nickname', {
+        params: { value: form.nickname },
+      });
+      if (res.data === true) {
+        setNicknameChecked(true);
+        alert('사용 가능한 닉네임입니다.');
+        setError('');
+      } else {
+        setError('이미 사용 중인 닉네임입니다.');
+      }
+    } catch (err: any) {
+      setError('닉네임 중복 확인 실패');
+    } finally {
+      setLoading(prev => ({ ...prev, nicknameCheck: false }));
+    }
+  };
+
+  // 타이머 효과
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (emailTimer > 0) {
+      interval = setInterval(() => {
+        setEmailTimer(prev => prev - 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [emailTimer]);
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (phoneTimer > 0) {
+      interval = setInterval(() => {
+        setPhoneTimer(prev => prev - 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [phoneTimer]);
+  
+  // 시간 포맷 함수
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // 입력 검증
+    if (!validateEmail(form.email)) {
+      setError('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+    
+    if (!validateNickname(form.nickname)) {
+      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다. (특수문자 불가)');
+      return;
+    }
+    
+    if (!validatePhone(form.phone)) {
+      setError('올바른 휴대폰 번호 형식을 입력해주세요. (11자 숫자: 01012345678)');
+      return;
+    }
+    
+    if (!validatePassword(form.password)) {
+      setError('비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다.');
+      return;
+    }
+
     if (!termsAgreed || !privacyAgreed) {
       setError('이용약관 및 개인정보 처리방침에 모두 동의해야 합니다.');
       return;
     }
+    
     if (form.password !== form.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
     }
+    
     if (!emailVerified) {
       setError('이메일 인증을 완료해주세요.');
       return;
     }
+    
     if (!phoneVerified) {
       setError('전화번호 인증을 완료해주세요.');
       return;
     }
+    
     if (!nicknameChecked) {
       setError('닉네임 중복 확인을 해주세요.');
       return;
     }
 
+    setLoading(prev => ({ ...prev, signup: true }));
     try {
       await axios.post('/auth/signup', {
         ...form,
@@ -68,54 +321,8 @@ export default function Signup() {
     } catch (err: any) {
       const message = err?.response?.data?.message || '회원가입 실패';
       setError(message);
-    }
-  };
-
-  const sendEmailCode = async () => {
-    await axios.post('/auth/email/send', { email: form.email });
-    alert('이메일 인증 코드가 전송되었습니다.');
-  };
-
-  const verifyEmailCode = async () => {
-    const res = await axios.post('/auth/email/verify', {
-      email: form.email,
-      code: form.emailCode,
-    });
-    if (res.data === true) {
-      setEmailVerified(true);
-      alert('이메일 인증 성공');
-    } else {
-      setError('이메일 인증 코드가 유효하지 않습니다.');
-    }
-  };
-
-  const sendPhoneCode = async () => {
-    await axios.post('/auth/phone/send', { phone: form.phone });
-    alert('휴대폰 인증 코드가 전송되었습니다.');
-  };
-
-  const verifyPhoneCode = async () => {
-    const res = await axios.post('/auth/phone/verify', {
-      phone: form.phone,
-      code: form.phoneCode,
-    });
-    if (res.data.success) {
-      setPhoneVerified(true);
-      alert('전화번호 인증 성공');
-    } else {
-      setError(res.data.message);
-    }
-  };
-
-  const checkNickname = async () => {
-    const res = await axios.get('/auth/check-nickname', {
-      params: { value: form.nickname },
-    });
-    if (!res.data) {
-      setNicknameChecked(true);
-      alert('사용 가능한 닉네임입니다.');
-    } else {
-      setError('이미 사용 중인 닉네임입니다.');
+    } finally {
+      setLoading(prev => ({ ...prev, signup: false }));
     }
   };
 
@@ -124,57 +331,207 @@ export default function Signup() {
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
         <h2 className="text-2xl font-bold mb-6 text-center">🌟 회원가입</h2>
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+          {/* 이메일 인증 */}
           <div className="space-y-1">
-            <input type="email" name="email" placeholder="이메일" value={form.email} onChange={handleChange} className="w-full px-4 py-2 rounded bg-[#2a2e45]" required />
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="이메일" 
+              value={form.email} 
+              onChange={handleChange} 
+              className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+              required 
+            />
             <div className="flex gap-2">
-              <button type="button" onClick={sendEmailCode} className="flex-1 bg-gray-600 py-1 rounded">코드 전송</button>
-              <input type="text" name="emailCode" placeholder="인증코드" value={form.emailCode} onChange={handleChange} className="flex-1 px-2 rounded bg-[#2a2e45]" />
-              <button type="button" onClick={verifyEmailCode} className="flex-1 bg-blue-600 py-1 rounded">인증 확인</button>
+              <button 
+                type="button" 
+                onClick={sendEmailCode} 
+                disabled={loading.emailSend || !form.email}
+                className="w-20 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors text-xs"
+              >
+                {loading.emailSend ? '전송중' : '전송'}
+              </button>
+              <div className="flex-1 relative">
+                <input 
+                  type="text" 
+                  name="emailCode" 
+                  placeholder="인증코드" 
+                  value={form.emailCode} 
+                  onChange={handleChange} 
+                  className="w-full px-3 pr-16 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                />
+                {emailTimer > 0 && (
+                  <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-orange-400 font-mono">
+                    {formatTime(emailTimer)}
+                  </span>
+                )}
+              </div>
+              <button 
+                type="button" 
+                onClick={verifyEmailCode} 
+                disabled={loading.emailVerify || !form.emailCode}
+                className="w-16 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 py-1 rounded transition-colors text-xs"
+              >
+                {loading.emailVerify ? '확인중' : '확인'}
+              </button>
             </div>
+            {emailVerified && <p className="text-green-400 text-xs">✓ 이메일 인증 완료</p>}
           </div>
 
+          {/* 닉네임 중복 확인 */}
           <div className="space-y-1">
-            <input type="text" name="nickname" placeholder="닉네임" value={form.nickname} onChange={handleChange} className="w-full px-4 py-2 rounded bg-[#2a2e45]" required />
-            <button type="button" onClick={checkNickname} className="w-full bg-gray-600 py-1 rounded">닉네임 중복 확인</button>
+            <input 
+              type="text" 
+              name="nickname" 
+              placeholder="닉네임 (2-8자, 한글/영어만)" 
+              value={form.nickname} 
+              onChange={handleChange} 
+              className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+              required 
+            />
+            <p className="text-xs text-gray-400">* 한글 또는 영어만 가능, 특수문자 불가 (2-8자)</p>
+            <button 
+              type="button" 
+              onClick={checkNickname} 
+              disabled={loading.nicknameCheck || !form.nickname}
+              className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors"
+            >
+              {loading.nicknameCheck ? '확인중...' : '닉네임 중복 확인'}
+            </button>
+            {nicknameChecked && <p className="text-green-400 text-xs">✓ 사용 가능한 닉네임</p>}
           </div>
 
+          {/* 휴대폰 인증 */}
           <div className="space-y-1">
-            <input type="tel" name="phone" placeholder="휴대폰 번호" value={form.phone} onChange={handleChange} className="w-full px-4 py-2 rounded bg-[#2a2e45]" required />
+            <input 
+              type="tel" 
+              name="phone" 
+              placeholder="휴대폰 번호 (숫자만 입력: 01012345678)" 
+              value={form.phone} 
+              onChange={handleChange} 
+              className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+              required 
+            />
+            <p className="text-xs text-gray-400">* 휴대폰번호는 숫자만 입력해주세요 (하이픈 제외)</p>
             <div className="flex gap-2">
-              <button type="button" onClick={sendPhoneCode} className="flex-1 bg-gray-600 py-1 rounded">코드 전송</button>
-              <input type="text" name="phoneCode" placeholder="인증코드" value={form.phoneCode} onChange={handleChange} className="flex-1 px-2 rounded bg-[#2a2e45]" />
-              <button type="button" onClick={verifyPhoneCode} className="flex-1 bg-blue-600 py-1 rounded">인증 확인</button>
+              <button 
+                type="button" 
+                onClick={sendPhoneCode} 
+                disabled={loading.phoneSend || !form.phone}
+                className="w-20 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors text-xs"
+              >
+                {loading.phoneSend ? '전송중' : '전송'}
+              </button>
+              <div className="flex-1 relative">
+                <input 
+                  type="text" 
+                  name="phoneCode" 
+                  placeholder="인증코드" 
+                  value={form.phoneCode} 
+                  onChange={handleChange} 
+                  className="w-full px-3 pr-16 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                />
+                {phoneTimer > 0 && (
+                  <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-orange-400 font-mono">
+                    {formatTime(phoneTimer)}
+                  </span>
+                )}
+              </div>
+              <button 
+                type="button" 
+                onClick={verifyPhoneCode} 
+                disabled={loading.phoneVerify || !form.phoneCode}
+                className="w-16 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 py-1 rounded transition-colors text-xs"
+              >
+                {loading.phoneVerify ? '확인중' : '확인'}
+              </button>
             </div>
+            {phoneVerified && <p className="text-green-400 text-xs">✓ 휴대폰 인증 완료</p>}
           </div>
 
-          <input type="password" name="password" placeholder="비밀번호" value={form.password} onChange={handleChange} className="w-full px-4 py-2 rounded bg-[#2a2e45]" required />
-          <input type="password" name="confirmPassword" placeholder="비밀번호 확인" value={form.confirmPassword} onChange={handleChange} className="w-full px-4 py-2 rounded bg-[#2a2e45]" required />
+          {/* 비밀번호 */}
+          <input 
+            type="password" 
+            name="password" 
+            placeholder="비밀번호 (8자 이상, 영문/숫자/특수문자 포함)" 
+            value={form.password} 
+            onChange={handleChange} 
+            className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+            required 
+          />
+          <input 
+            type="password" 
+            name="confirmPassword" 
+            placeholder="비밀번호 확인" 
+            value={form.confirmPassword} 
+            onChange={handleChange} 
+            className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
+            required 
+          />
 
+          {/* 약관 동의 */}
           <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked={termsAgreed} readOnly />
+              <input 
+                type="checkbox" 
+                checked={termsAgreed} 
+                onChange={(e) => setTermsAgreed(e.target.checked)}
+                className="w-4 h-4"
+              />
               <span className="text-gray-300">이용약관에 동의합니다</span>
-              <button type="button" onClick={() => setShowModal('terms')} className="text-purple-400 underline">[약관 보기]</button>
+              <button 
+                type="button" 
+                onClick={() => setShowModal('terms')} 
+                className="text-purple-400 underline"
+              >
+                [약관 보기]
+              </button>
             </div>
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked={privacyAgreed} readOnly />
+              <input 
+                type="checkbox" 
+                checked={privacyAgreed} 
+                onChange={(e) => setPrivacyAgreed(e.target.checked)}
+                className="w-4 h-4"
+              />
               <span className="text-gray-300">개인정보 처리방침에 동의합니다</span>
-              <button type="button" onClick={() => setShowModal('privacy')} className="text-purple-400 underline">[방침 보기]</button>
+              <button 
+                type="button" 
+                onClick={() => setShowModal('privacy')} 
+                className="text-purple-400 underline"
+              >
+                [방침 보기]
+              </button>
             </div>
           </div>
 
           {error && <p className="text-red-400 text-xs text-center">{error}</p>}
-          <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 transition-colors py-2 rounded">회원가입</button>
+          
+          <button 
+            type="submit" 
+            disabled={loading.signup}
+            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 transition-colors py-2 rounded"
+          >
+            {loading.signup ? '가입 중...' : '회원가입'}
+          </button>
         </form>
       </div>
 
       {showModal === 'terms' && (
-        <AgreementModal title="이용약관" onClose={() => setShowModal(null)} onAgree={() => { setTermsAgreed(true); setShowModal(null); }}>
+        <AgreementModal 
+          title="이용약관" 
+          onClose={() => setShowModal(null)} 
+          onAgree={() => { setTermsAgreed(true); setShowModal(null); }}
+        >
           <TermsOfService />
         </AgreementModal>
       )}
       {showModal === 'privacy' && (
-        <AgreementModal title="개인정보 처리방침" onClose={() => setShowModal(null)} onAgree={() => { setPrivacyAgreed(true); setShowModal(null); }}>
+        <AgreementModal 
+          title="개인정보 처리방침" 
+          onClose={() => setShowModal(null)} 
+          onAgree={() => { setPrivacyAgreed(true); setShowModal(null); }}
+        >
           <PrivacyPolicy />
         </AgreementModal>
       )}

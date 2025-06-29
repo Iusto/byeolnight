@@ -14,6 +14,7 @@ interface Post {
   likeCount: number;
   likedByMe: boolean;
   hot: boolean;
+  dDay?: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -45,9 +46,13 @@ export default function PostList() {
         const res = await axios.get('/public/posts', {
           params: { category, sort, page, size: 30 },
         });
-        setPosts(res.data.data.content);
+        // 응답 구조 안전하게 처리
+        const responseData = res.data?.data || res.data;
+        const content = responseData?.content || [];
+        setPosts(content);
       } catch (err) {
         console.error('게시글 목록 조회 실패', err);
+        setPosts([]); // 오류 시 빈 배열로 설정
       } finally {
         setLoading(false);
       }
@@ -92,9 +97,42 @@ export default function PostList() {
           ))}
         </div>
 
+        {/* 뉴스 카테고리 자동 업데이트 안내 */}
+        {category === 'NEWS' && (
+          <div className="mb-6 p-4 bg-blue-900/30 rounded-lg border border-blue-600/30">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl">🤖</span>
+              <h3 className="text-lg font-semibold text-blue-200">자동 뉴스 업데이트</h3>
+            </div>
+            <p className="text-blue-200 text-sm leading-relaxed">
+              <strong>뉴스봇</strong>이 매일 <strong>오전 6시</strong>와 <strong>오후 12시</strong>에 우주 뉴스를 자동 수집합니다.
+              <br />
+              <strong>대상 출처:</strong> 사이언스타임즈, 한국천문연구원, 동아사이언스, 국립과천과학관
+              <br />
+              매번 새 게시글로 등록되며, 중복 가능성은 낮습니다.
+            </p>
+          </div>
+        )}
+        
+        {/* 이벤트 카테고리 자동 업데이트 안내 */}
+        {category === 'EVENT' && (
+          <div className="mb-6 p-4 bg-orange-900/30 rounded-lg border border-orange-600/30">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl">🤖</span>
+              <h3 className="text-lg font-semibold text-orange-200">자동 이벤트 업데이트</h3>
+            </div>
+            <p className="text-orange-200 text-sm leading-relaxed">
+              <strong>천문대봇</strong>이 매일 <strong>오전 7시</strong>에 전국 12개 천문대 일정을 자동 수집합니다.
+              <br />
+              <strong>대상 천문대:</strong> 국립과천과학관, 시립서울천문대, 인천학생과학관 등 수도권 천문대
+              <br />
+              동일 제목+일정이면 중복 등록 방지, 전체 삭제 후 재등록 가능
+            </p>
+          </div>
+        )}
+
         {/* 정렬 및 글쓰기 */}
         <div className="flex justify-between items-center mb-6">
-          <div />
           <div className="flex items-center gap-2">
             <label className="text-base text-gray-300">정렬:</label>
             <select
@@ -105,15 +143,15 @@ export default function PostList() {
               <option value="recent">최신순</option>
               <option value="popular">추천순</option>
             </select>
-            {canWrite && (
-              <Link
-                to={`/posts/write?category=${category}`}
-                className="ml-4 px-3 py-1 text-sm bg-blue-500 rounded hover:bg-blue-600"
-              >
-                ✍ 글쓰기
-              </Link>
-            )}
           </div>
+          {canWrite && (
+            <Link
+              to={`/posts/write?category=${category}`}
+              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              ✍️ 글쓰기
+            </Link>
+          )}
         </div>
 
         {loading ? (
@@ -134,6 +172,7 @@ export default function PostList() {
                     >
                       <Link to={`/posts/${post.id}`} className="block h-full">
                         <h3 className="text-lg font-bold mb-1 text-white">
+                          {post.dDay && <span className="text-orange-300 text-sm mr-2">[{post.dDay}]</span>}
                           🔥 {post.title}{' '}
                           {post.blinded && <span className="text-red-400 text-sm">(블라인드)</span>}
                         </h3>
@@ -162,6 +201,7 @@ export default function PostList() {
                   <Link to={`/posts/${post.id}`} className="block">
                     <div className="flex justify-between items-center">
                       <h4 className="text-base font-semibold text-white">
+                        {post.dDay && <span className="text-orange-300 text-sm mr-2">[{post.dDay}]</span>}
                         {post.title}{' '}
                         {post.blinded && <span className="text-red-400 text-sm">(블라인드)</span>}
                       </h4>

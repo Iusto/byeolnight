@@ -23,7 +23,7 @@ public class PostReportService {
     private static final int BLIND_THRESHOLD = 10;
 
     @Transactional
-    public void reportPost(Long userId, Long postId, String reason) {
+    public void reportPost(Long userId, Long postId, String reason, String description) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         Post post = postRepository.findById(postId)
@@ -33,13 +33,14 @@ public class PostReportService {
             throw new IllegalStateException("이미 신고한 게시글입니다.");
         }
 
-        PostReport report = PostReport.of(user, post, reason);
+        PostReport report = PostReport.of(user, post, reason, description);
         postReportRepository.save(report);
 
+        // 신고 수 3개 이상이면 자동 블라인드
         long reportCount = postReportRepository.countByPost(post);
-        if (reportCount >= BLIND_THRESHOLD && !post.isBlinded()) {
-            post.blind(); // ✅ 상태 변경
-            if (!postBlindLogRepository.existsByPostId(post.getId())) { // ✅ post -> post.getId()
+        if (reportCount >= 3 && !post.isBlinded()) {
+            post.blind();
+            if (!postBlindLogRepository.existsByPostId(post.getId())) {
                 postBlindLogRepository.save(PostBlindLog.of(post, PostBlindLog.Reason.REPORT));
             }
         }

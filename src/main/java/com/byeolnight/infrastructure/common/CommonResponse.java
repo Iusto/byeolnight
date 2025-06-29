@@ -33,4 +33,8 @@ public class CommonResponse<T> {
     public static <T> CommonResponse<T> fail(String message) {
         return new CommonResponse<>(false, message, null);
     }
+
+    public static <T> CommonResponse<T> error(String message) {
+        return new CommonResponse<>(false, message, null);
+    }
 }

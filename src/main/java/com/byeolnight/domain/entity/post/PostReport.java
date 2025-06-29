@@ -26,6 +26,9 @@ public class PostReport {
     @Column(nullable = false, length = 255)
     private String reason; // 사용자 입력 신고 사유
 
+    @Column(length = 500)
+    private String description; // 상세 설명
+
     @Column(nullable = false)
     private boolean reviewed = false; // 운영자 검토 여부
 
@@ -40,13 +43,14 @@ public class PostReport {
         this.createdAt = LocalDateTime.now();
     }
 
-    public static PostReport of(User reporter, Post post, String reason) {
-        return new PostReport(post, reporter, reason);
+    public static PostReport of(User reporter, Post post, String reason, String description) {
+        return new PostReport(post, reporter, reason, description);
     }
 
-    private PostReport(Post post, User user, String reason) {
+    private PostReport(Post post, User user, String reason, String description) {
         this.post = post;
         this.user = user;
         this.reason = reason;
+        this.description = description;
     }
 }

@@ -41,6 +41,15 @@ public class UserController {
         return ResponseEntity.ok(CommonResponse.success(UserResponseDto.from(user)));
     }
 
+    /**
+     * 특정 사용자의 장착 중인 아이콘 조회
+     */
+    @GetMapping("/{userId}/equipped-icon")
+    public ResponseEntity<CommonResponse<com.byeolnight.dto.shop.EquippedIconDto>> getUserEquippedIcon(@PathVariable Long userId) {
+        com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(userId);
+        return ResponseEntity.ok(CommonResponse.success(equippedIcon));
+    }
+
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "회원 프로필 수정", description = "닉네임 및 전화번호를 수정합니다.")
     @ApiResponses({
@@ -54,6 +63,21 @@ public class UserController {
             @Parameter(hidden = true) @AuthenticationPrincipal User user,
             @Valid @RequestBody UpdateProfileRequestDto dto) {
         userService.updateProfile(user.getId(), dto);
+        return ResponseEntity.ok(CommonResponse.success());
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인하고 새 비밀번호로 변경합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "변경 성공"),
+            @ApiResponse(responseCode = "400", description = "유효성 검사 실패"),
+            @ApiResponse(responseCode = "401", description = "현재 비밀번호 불일치")
+    })
+    @PutMapping("/password")
+    public ResponseEntity<CommonResponse<Void>> changePassword(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user,
+            @Valid @RequestBody com.byeolnight.dto.user.PasswordChangeRequestDto dto) {
+        userService.changePassword(user.getId(), dto);
         return ResponseEntity.ok(CommonResponse.success());
     }
 }

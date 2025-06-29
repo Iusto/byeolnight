@@ -30,6 +30,10 @@ public class Comment {
     @Column(nullable = false)
     private String content;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean blinded = false;
+
     private LocalDateTime createdAt;
 
     @PrePersist
@@ -43,6 +47,16 @@ public class Comment {
             throw new IllegalArgumentException("댓글 내용은 비어있을 수 없습니다.");
         }
         this.content = content;
+    }
+
+    // ✅ 댓글 블라인드 처리
+    public void blind() {
+        this.blinded = true;
+    }
+
+    // ✅ 댓글 블라인드 해제
+    public void unblind() {
+        this.blinded = false;
     }
 }
 

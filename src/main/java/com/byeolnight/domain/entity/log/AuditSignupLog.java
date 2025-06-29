@@ -23,6 +23,7 @@ public class AuditSignupLog extends BaseTimeEntity {
     @Column(nullable = false)
     private Result result;
 
+    @Column(columnDefinition = "TEXT")
     private String failureReason;
 
     public enum Result {
