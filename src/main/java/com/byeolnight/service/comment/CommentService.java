@@ -22,6 +22,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final com.byeolnight.service.user.PointService pointService;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -43,6 +44,9 @@ public class CommentService {
             // 인증서 발급 실패해도 댓글 등록은 성공하도록 처리
             System.err.println("인증서 발급 실패: " + e.getMessage());
         }
+        
+        // 댓글 작성 포인트 지급
+        pointService.awardCommentWritePoints(user, commentId, dto.getContent());
         
         return commentId;
     }
@@ -86,6 +90,9 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
         comment.blind();
+        
+        // 규정 위반 페널티 적용
+        pointService.applyPenalty(comment.getWriter(), "댓글 블라인드 처리", commentId.toString());
     }
 
     // 관리자 기능: 댓글 블라인드 해제
@@ -101,6 +108,10 @@ public class CommentService {
     public void deleteCommentPermanently(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+        
+        // 규정 위반 페널티 적용 (삭제 전에)
+        pointService.applyPenalty(comment.getWriter(), "댓글 삭제", commentId.toString());
+        
         commentRepository.delete(comment);
     }
 }

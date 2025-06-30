@@ -26,7 +26,7 @@
     </logger>
 
     <!-- 크롤러 컨트롤러 전용 로거 -->
-    <logger name="com.byeolnight.controller.admin.CrawlerController" level="INFO" additivity="false">
+    <logger name="com.byeolnight.controller.ai.CrawlerController" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="CRAWLER_FILE"/>
     </logger>

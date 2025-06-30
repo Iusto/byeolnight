@@ -43,6 +43,8 @@ public class AuthController {
     private final UserService userService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final com.byeolnight.service.user.PointService pointService;
+    private final com.byeolnight.service.user.MissionService missionService;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
@@ -84,6 +86,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<CommonResponse<String>> sendEmailCode(@RequestBody @Valid EmailRequestDto dto) {
+        // 이메일 중복 검사
+        if (userService.findByEmail(dto.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(CommonResponse.fail("이미 가입된 이메일입니다."));
+        }
+        
         emailAuthService.sendCode(dto.getEmail());
         return ResponseEntity.ok(CommonResponse.success("이메일 인증 코드가 전송되었습니다."));
     }
@@ -108,8 +116,20 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<CommonResponse<String>> sendPhoneCode(@RequestBody @Valid PhoneRequestDto dto) {
-        phoneAuthService.sendCode(dto.getPhone());
-        return ResponseEntity.ok(CommonResponse.success("전화번호 인증 코드가 전송되었습니다."));
+        try {
+            // 핸드폰번호 중복 검사
+            if (userService.isPhoneDuplicated(dto.getPhone())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(CommonResponse.fail("이미 가입된 번호입니다."));
+            }
+            
+            phoneAuthService.sendCode(dto.getPhone());
+            return ResponseEntity.ok(CommonResponse.success("전화번호 인증 코드가 전송되었습니다."));
+        } catch (Exception e) {
+            log.error("휴대폰 인증 코드 전송 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("휴대폰 인증 코드 전송에 실패했습니다."));
+        }
     }
 
     @PostMapping("/phone/verify")
@@ -308,6 +328,37 @@ public class AuthController {
     public ResponseEntity<CommonResponse<Boolean>> checkNickname(@RequestParam("value") String nickname) {
         boolean exists = userService.isNicknameDuplicated(nickname);
         return ResponseEntity.ok(CommonResponse.success(!exists)); // 사용 가능하면 true
+    }
+
+    @PostMapping("/attendance")
+    @Operation(summary = "출석 체크", description = "일일 출석 체크를 하고 포인트를 지급받습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "출석 체크 성공"),
+            @ApiResponse(responseCode = "400", description = "이미 출석함"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    public ResponseEntity<CommonResponse<String>> checkAttendance(@AuthenticationPrincipal User user) {
+        try {
+            boolean success = pointService.checkDailyAttendance(user);
+            if (success) {
+                // 출석 성공 후 주간 미션 체크
+                boolean missionCompleted = missionService.checkWeeklyAttendanceMission(user);
+                
+                String message = "출석 체크 완료! 스텔라 10개를 획득했습니다.";
+                if (missionCompleted) {
+                    message += " 추가로 주간 미션을 완료하여 스텔라 50개를 더 획득했습니다!";
+                }
+                
+                return ResponseEntity.ok(CommonResponse.success(message));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(CommonResponse.fail("오늘은 이미 출석하셨습니다."));
+            }
+        } catch (Exception e) {
+            log.error("출석 체크 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("출석 체크 중 오류가 발생했습니다."));
+        }
     }
 
     /**

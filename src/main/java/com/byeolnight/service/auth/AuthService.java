@@ -62,7 +62,7 @@ public class AuthService {
     private void validateIpNotBlocked(String ip) {
         if (userSecurityService.isIpBlocked(ip)) {
             log.warn("🚫 차단된 IP 로그인 시도: {}", ip);
-            throw new SecurityException("해당 IP는 비정상적인 로그인 시도로 인해 차단되었습니다.");
+            throw new SecurityException("🚫 해당 IP는 비정상적인 로그인 시도(15회 이상)로 인해 1시간 차단되었습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
 
@@ -83,7 +83,7 @@ public class AuthService {
         // 계정 잠금 확인
         if (user.isAccountLocked()) {
             auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "계정 잠김 상태"));
-            throw new BadCredentialsException("계정이 잠겨 있습니다. 관리자에게 문의하세요.");
+            throw new BadCredentialsException("🔒 계정이 잠겨 있습니다. 비밀번호 초기화를 통해 잠금을 해제하거나 관리자에게 문의하세요.");
         }
 
         return user;
@@ -94,11 +94,27 @@ public class AuthService {
             userService.increaseLoginFailCount(user, ip, userAgent);
             log.info("로그인 시도 실패: 비밀번호 불일치 - {} (IP: {})", user.getEmail(), ip);
 
-            if (user.getLoginFailCount() >= 10) {
+            int failCount = user.getLoginFailCount();
+            
+            // IP 차단 경고 (15회 시 차단)
+            if (failCount >= 15) {
+                throw new BadCredentialsException("비정상적인 로그인 시도로 인해 IP가 차단되었습니다. 잠시 후 다시 시도해 주세요.");
+            }
+            
+            // 계정 잠금 상태 확인 (10회 이상)
+            if (failCount >= 10) {
+                user.lockAccount(); // 계정 잠금 처리
                 throw new BadCredentialsException("비밀번호가 10회 이상 틀렸습니다. 계정이 잠겼습니다. 비밀번호를 초기화해야 잠금이 해제됩니다.");
             }
+            
+            // 5회 이상 실패 시 경고 메시지
+            if (failCount >= 5) {
+                int remainingAttempts = 10 - failCount;
+                throw new BadCredentialsException("⚠️ 경고: 비밀번호를 " + failCount + "회 틀렸습니다. " + remainingAttempts + "회 더 틀리면 계정이 잠깁니다.");
+            }
 
-            throw new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
+            // 기본 실패 메시지 (1-4회)
+            throw new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다. (" + failCount + "/10)");
         }
     }
 

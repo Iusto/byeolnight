@@ -14,18 +14,18 @@ public class UserSummaryDto {
     private Long id;
     private String email;
     private String nickname;
-    private String phone;
     private String role;
     private UserStatus status;
+    private boolean accountLocked;
 
     public static UserSummaryDto from(User user) {
         return new UserSummaryDto(
                 user.getId(),
                 user.getEmail(),
                 user.getNickname(),
-                user.getPhone(),
                 user.getRole().name(),
-                user.getStatus()
+                user.getStatus(),
+                user.isAccountLocked()
         );
     }
 }

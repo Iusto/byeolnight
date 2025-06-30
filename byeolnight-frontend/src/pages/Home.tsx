@@ -50,14 +50,14 @@ export default function Home() {
         setStarPhotos([]);
       });
 
-    // 천문대 일정
+    // 우주 전시회
     axios.get('/public/posts', { params: { category: 'EVENT', sort: 'recent', size: 5 } })
       .then(res => {
         const content = res.data?.content || [];
         setEventPosts(Array.isArray(content) ? content : []);
       })
       .catch(err => {
-        console.error('천문대 게시판 불러오기 실패', err);
+        console.error('우주 전시회 게시판 불러오기 실패', err);
         setEventPosts([]);
       });
 
@@ -165,8 +165,34 @@ export default function Home() {
 
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
+            {/* 📢 공지사항 */}
+            <Section 
+              title="공지사항" 
+              icon="📢" 
+              link="/posts?category=NOTICE&sort=recent"
+              bgColor="bg-gradient-to-br from-green-900/30 to-emerald-900/30"
+              borderColor="border-green-500/30"
+            >
+              <div className="space-y-3">
+                {noticePosts.map((post) => (
+                  <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
+                    <Link to={`/posts/${post.id}`} className="block">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-green-100 flex items-center gap-2">
+                          <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">공지</span>
+                          {post.title}
+                        </span>
+                        <span className="text-green-300 text-sm">👁 {post.viewCount}</span>
+                      </div>
+                      <div className="text-green-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
             {/* 🔥 인기 게시글 */}
-            <div className="mt-6">
+            <div className="mt-8">
               <h2 className="text-2xl font-bold text-white drop-shadow-glow mb-4">🔥 인기 게시글</h2>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {posts.map((post) => (
@@ -213,10 +239,10 @@ export default function Home() {
               </div>
             </Section>
 
-            {/* 🪐 천문대 견학 일정 */}
+            {/* 🏛️ 우주 전시회 */}
             <Section 
-              title="천문대 견학 일정" 
-              icon="🪐" 
+              title="우주 전시회" 
+              icon="🏛️" 
               link="/posts?category=EVENT&sort=recent"
               bgColor="bg-gradient-to-br from-orange-900/30 to-red-900/30"
               borderColor="border-orange-500/30"
@@ -224,7 +250,7 @@ export default function Home() {
               <div className="mb-3 p-2 bg-orange-800/30 rounded-lg border border-orange-600/30">
                 <p className="text-orange-200 text-xs flex items-center gap-2">
                   <span className="text-green-400">🤖</span>
-                  <span>천문대봇이 매일 오전 7시에 전국 천문대 일정을 자동 수집합니다</span>
+                  <span>우주전시회봇이 매일 오전 7시에 전국 우주 관련 전시회 정보를 자동 수집합니다</span>
                 </p>
               </div>
               <div className="space-y-3">
@@ -297,32 +323,6 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="text-purple-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </Section>
-
-            {/* 📢 공지사항 */}
-            <Section 
-              title="공지사항" 
-              icon="📢" 
-              link="/posts?category=NOTICE&sort=recent"
-              bgColor="bg-gradient-to-br from-green-900/30 to-emerald-900/30"
-              borderColor="border-green-500/30"
-            >
-              <div className="space-y-3">
-                {noticePosts.map((post) => (
-                  <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
-                    <Link to={`/posts/${post.id}`} className="block">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-green-100 flex items-center gap-2">
-                          <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">공지</span>
-                          {post.title}
-                        </span>
-                        <span className="text-green-300 text-sm">👁 {post.viewCount}</span>
-                      </div>
-                      <div className="text-green-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}

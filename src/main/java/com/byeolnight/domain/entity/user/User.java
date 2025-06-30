@@ -50,9 +50,13 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String nickname;
 
-    /** 전화번호 */
+    /** 전화번호 (암호화 저장) */
     @Column(nullable = false)
     private String phone;
+
+    /** 전화번호 해시값 (중복 검사용) */
+    @Column(nullable = false, unique = true)
+    private String phoneHash;
 
     /** 사용자 권한 (USER 또는 ADMIN) */
     @Enumerated(EnumType.STRING)
@@ -175,9 +179,14 @@ public class User implements UserDetails {
         }
     }
 
-    /** 전화번호 업데이트 */
+    /** 전화번호 업데이트 (암호화하여 저장) */
     public void updatePhone(String newPhone) {
-        this.phone = newPhone;
+        this.phone = newPhone; // 서비스 레이어에서 암호화된 값을 전달받음
+    }
+
+    /** 암호화된 전화번호 직접 설정 (내부 사용) */
+    public void setEncryptedPhone(String encryptedPhone) {
+        this.phone = encryptedPhone;
     }
 
     /** 이메일 인증 완료 처리 */
@@ -230,9 +239,7 @@ public class User implements UserDetails {
     public void loginFail() {
         this.loginFailCount++;
         this.lastFailedLogin = LocalDateTime.now();
-        if (this.loginFailCount >= 5) {
-            this.accountLocked = true;
-        }
+        // 계정 잠금은 AuthService에서 별도로 처리
     }
 
     /** 회원 탈퇴 처리 */

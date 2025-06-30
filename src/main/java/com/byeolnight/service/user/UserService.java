@@ -13,6 +13,7 @@ import com.byeolnight.dto.user.UserSignUpRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.infrastructure.exception.*;
 import com.byeolnight.service.auth.GmailEmailService;
+import com.byeolnight.infrastructure.security.EncryptionUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 /**
  * 사용자 관련 비즈니스 로직 처리 서비스
@@ -42,6 +44,7 @@ public class UserService {
     private final UserSecurityService userSecurityService;
     private final com.byeolnight.domain.repository.post.PostRepository postRepository;
     private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    private final EncryptionUtil encryptionUtil;
 
     /**
      * 회원가입 처리
@@ -56,6 +59,12 @@ public class UserService {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 닉네임"));
                 throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
             }
+            // 핸드폰번호 중복 검사
+            String phoneHash = encryptionUtil.hashPhone(dto.getPhone());
+            if (userRepository.existsByPhoneHash(phoneHash)) {
+                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 핸드폰번호"));
+                throw new IllegalArgumentException("이미 사용 중인 핸드폰번호입니다.");
+            }
             if (!dto.getPassword().equals(dto.getConfirmPassword())) {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "비밀번호 불일치"));
                 throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
@@ -69,7 +78,8 @@ public class UserService {
                     .email(dto.getEmail())
                     .password(passwordEncoder.encode(dto.getPassword()))
                     .nickname(dto.getNickname())
-                    .phone(dto.getPhone())
+                    .phone(encryptionUtil.encrypt(dto.getPhone())) // 전화번호 암호화
+                    .phoneHash(phoneHash) // 전화번호 해시값
                     .nicknameChanged(false)
                     .nicknameUpdatedAt(LocalDateTime.now())
                     .role(User.Role.USER)
@@ -103,6 +113,14 @@ public class UserService {
      */
     public boolean isNicknameDuplicated(String nickname) {
         return userRepository.existsByNickname(nickname);
+    }
+
+    /**
+     * 핸드폰번호 중복 검사
+     */
+    public boolean isPhoneDuplicated(String phone) {
+        String phoneHash = encryptionUtil.hashPhone(phone);
+        return userRepository.existsByPhoneHash(phoneHash);
     }
 
 
@@ -166,8 +184,8 @@ public class UserService {
         
         // 닉네임이 변경된 경우에만 검증 수행
         if (!user.getNickname().equals(dto.getNickname())) {
-            // 중복 닉네임 검사
-            if (userRepository.existsByNickname(dto.getNickname())) {
+            // 닉네임 중복 검사
+            if (isNicknameDuplicated(dto.getNickname())) {
                 throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
             }
             
@@ -181,7 +199,7 @@ public class UserService {
             user.updateNickname(dto.getNickname(), LocalDateTime.now());
         }
         
-        user.updatePhone(dto.getPhone());
+        // 전화번호 변경 기능 제거됨
     }
 
     /**
@@ -372,7 +390,41 @@ public class UserService {
             return null;
         }
 
-        // StellaIconRepository를 직접 주입받지 않고 다른 방법 사용
-        return null; // 임시로 null 반환
+        // 장착된 아이콘 정보는 StellaShopService에서 처리
+        return null;
+    }
+
+    /**
+     * 사용자의 복호화된 전화번호 조회 (관리자 또는 본인만 가능)
+     */
+    public String getDecryptedPhone(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        return encryptionUtil.decrypt(user.getPhone());
+    }
+
+    /**
+     * 기존 평문 전화번호를 암호화하여 마이그레이션 (관리자 전용)
+     * 주의: 이 메서드는 한 번만 실행해야 합니다.
+     */
+    @Transactional
+    public void migratePhoneEncryption() {
+        List<User> users = userRepository.findAll();
+        int migratedCount = 0;
+        
+        for (User user : users) {
+            try {
+                // 이미 암호화된 데이터인지 확인 (복호화 시도)
+                encryptionUtil.decrypt(user.getPhone());
+                // 복호화가 성공하면 이미 암호화된 데이터
+            } catch (Exception e) {
+                // 복호화 실패 = 평문 데이터로 간주하고 암호화 수행
+                String encryptedPhone = encryptionUtil.encrypt(user.getPhone());
+                user.setEncryptedPhone(encryptedPhone);
+                migratedCount++;
+            }
+        }
+        
+        System.out.println("전화번호 암호화 마이그레이션 완료: " + migratedCount + "건 처리");
     }
 }

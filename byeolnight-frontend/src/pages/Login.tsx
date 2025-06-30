@@ -26,15 +26,20 @@ export default function Login() {
     
     // 계정 잠금 관련 에러
     if (serverMessage.includes('계정이 잠겨 있습니다')) {
-      return '계정이 잠겨 있습니다. 관리자에게 문의하거나 비밀번호 초기화를 이용하세요.'
+      return serverMessage // 서버에서 온 메시지 그대로 사용 (이모지 포함)
     }
     if (serverMessage.includes('비밀번호가 10회 이상 틀렸습니다')) {
-      return '비밀번호를 10회 이상 잘못 입력하여 계정이 잠겼습니다. 비밀번호 초기화를 이용해 주세요.'
+      return serverMessage // 서버에서 온 메시지 그대로 사용
     }
     
     // IP 차단 관련 에러
-    if (serverMessage.includes('차단된 IP')) {
-      return '비정상적인 로그인 시도로 인해 접속이 제한되었습니다. 잠시 후 다시 시도해 주세요.'
+    if (serverMessage.includes('IP가 차단되었습니다') || serverMessage.includes('차단된 IP')) {
+      return serverMessage // 서버에서 온 메시지 그대로 사용 (이모지 포함)
+    }
+    
+    // 경고 메시지 (⚠️ 이모지 포함)
+    if (serverMessage.includes('⚠️ 경고')) {
+      return serverMessage // 서버에서 온 경고 메시지 그대로 사용
     }
     
     // 기본 에러 메시지 그대로 반환
@@ -95,7 +100,17 @@ export default function Login() {
             </label>
           </div>
 
-          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          {error && (
+            <div className={`text-sm text-center p-3 rounded ${
+              error.includes('⚠️ 경고') 
+                ? 'text-yellow-300 bg-yellow-900/20 border border-yellow-600/30' 
+                : error.includes('🔒') || error.includes('🚫')
+                ? 'text-red-300 bg-red-900/20 border border-red-600/30'
+                : 'text-red-400'
+            }`}>
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"

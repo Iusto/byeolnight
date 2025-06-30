@@ -87,4 +87,15 @@ public class StellaShopController {
         stellaShopService.unequipIcon(user);
         return ResponseEntity.ok(CommonResponse.success("아이콘을 해제했습니다."));
     }
+
+    @Operation(summary = "스텔라 아이콘 초기화 (개발용)")
+    @PostMapping("/init-icons")
+    public ResponseEntity<CommonResponse<String>> initIcons() {
+        try {
+            stellaShopService.initializeDefaultIcons();
+            return ResponseEntity.ok(CommonResponse.success("스텔라 아이콘이 초기화되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.ok(CommonResponse.error("초기화 실패: " + e.getMessage()));
+        }
+    }
 }

@@ -13,6 +13,7 @@ import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.user.PointService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -32,6 +33,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final PointService pointService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
@@ -57,6 +59,9 @@ public class PostService {
         if (dto.getCategory() == Post.Category.IMAGE) {
             certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_VIEW);
         }
+
+        // 게시글 작성 포인트 지급
+        pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
 
         return post.getId();
     }
@@ -210,6 +215,10 @@ public class PostService {
         // Post 엔티티의 likeCount 필드 업데이트
         post.increaseLikeCount();
         postRepository.save(post);
+
+        // 포인트 지급
+        pointService.awardGiveLikePoints(user, postId.toString()); // 추천하는 사용자에게
+        pointService.awardReceiveLikePoints(post.getWriter(), postId.toString()); // 글 작성자에게
     }
 
     private Post getPostOrThrow(Long postId) {
@@ -238,6 +247,9 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
         post.blind();
+        
+        // 규정 위반 페널티 적용
+        pointService.applyPenalty(post.getWriter(), "게시글 블라인드 처리", postId.toString());
     }
 
     @Transactional
@@ -251,6 +263,9 @@ public class PostService {
     public void deletePostPermanently(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        
+        // 규정 위반 페널티 적용 (삭제 전에)
+        pointService.applyPenalty(post.getWriter(), "게시글 삭제", postId.toString());
         
         // 이미지 S3 삭제 + DB 삭제
         List<File> files = fileRepository.findAllByPost(post);

@@ -132,6 +132,7 @@ export default function Signup() {
       });
       if (res.data === true) {
         setEmailVerified(true);
+        setEmailTimer(0); // 인증 완료 시 타이머 중지
         alert('이메일 인증 성공');
         setError('');
       } else {
@@ -182,6 +183,7 @@ export default function Signup() {
       });
       if (res.data === true) {
         setPhoneVerified(true);
+        setPhoneTimer(0); // 인증 완료 시 타이머 중지
         alert('전화번호 인증 성공');
         setError('');
       } else {
@@ -413,6 +415,7 @@ export default function Signup() {
               required 
             />
             <p className="text-xs text-gray-400">* 휴대폰번호는 숫자만 입력해주세요 (하이픈 제외)</p>
+            <p className="text-xs text-green-400">🔒 입력하신 휴대폰번호는 암호화되어 안전하게 저장됩니다</p>
             <div className="flex gap-2">
               <button 
                 type="button" 
@@ -475,8 +478,8 @@ export default function Signup() {
               <input 
                 type="checkbox" 
                 checked={termsAgreed} 
-                onChange={(e) => setTermsAgreed(e.target.checked)}
-                className="w-4 h-4"
+                readOnly
+                className="w-4 h-4 pointer-events-none"
               />
               <span className="text-gray-300">이용약관에 동의합니다</span>
               <button 
@@ -491,8 +494,8 @@ export default function Signup() {
               <input 
                 type="checkbox" 
                 checked={privacyAgreed} 
-                onChange={(e) => setPrivacyAgreed(e.target.checked)}
-                className="w-4 h-4"
+                readOnly
+                className="w-4 h-4 pointer-events-none"
               />
               <span className="text-gray-300">개인정보 처리방침에 동의합니다</span>
               <button 

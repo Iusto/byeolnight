@@ -8,9 +8,9 @@ interface UserSummary {
   id: number;
   email: string;
   nickname: string;
-  phone: string;
   role: string;
   status: 'ACTIVE' | 'BANNED' | 'SUSPENDED' | 'WITHDRAWN';
+  accountLocked: boolean;
 }
 
 interface BlindedPost {
@@ -36,6 +36,9 @@ export default function AdminUserPage() {
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [modalAction, setModalAction] = useState<{ type: string; userId: number; status?: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'WITHDRAWN'>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [postSearchTerm, setPostSearchTerm] = useState('');
+  const [ipSearchTerm, setIpSearchTerm] = useState('');
   const { user: currentUser } = useAuth(); // 현재 로그인한 사용자
 
   const fetchUsers = async () => {
@@ -257,8 +260,18 @@ export default function AdminUserPage() {
         {activeTab === 'users' ? (
           // 사용자 관리 섹션
           <div>
-            {/* 상태 필터 */}
-            <div className="flex gap-2 mb-4 justify-center">
+            {/* 검색 및 필터 */}
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex justify-center">
+                <input
+                  type="text"
+                  placeholder="이메일, 닉네임으로 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-80 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div className="flex gap-2 justify-center">
               <button
                 onClick={() => setStatusFilter('ALL')}
                 className={`px-4 py-2 rounded text-sm transition ${
@@ -289,6 +302,7 @@ export default function AdminUserPage() {
               >
                 탈퇴 계정
               </button>
+              </div>
             </div>
             
             {loading ? (
@@ -309,10 +323,17 @@ export default function AdminUserPage() {
               <tbody>
                 {users && users.length > 0 ? users
                   .filter(user => {
-                    if (statusFilter === 'ALL') return true;
-                    if (statusFilter === 'ACTIVE') return user.status !== 'WITHDRAWN';
-                    if (statusFilter === 'WITHDRAWN') return user.status === 'WITHDRAWN';
-                    return true;
+                    // 상태 필터
+                    let statusMatch = true;
+                    if (statusFilter === 'ACTIVE') statusMatch = user.status !== 'WITHDRAWN';
+                    else if (statusFilter === 'WITHDRAWN') statusMatch = user.status === 'WITHDRAWN';
+                    
+                    // 검색 필터
+                    const searchMatch = searchTerm === '' || 
+                      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      user.nickname.toLowerCase().includes(searchTerm.toLowerCase());
+                    
+                    return statusMatch && searchMatch;
                   })
                   .map((user) => (
                   <tr key={user.id} className="border-t border-gray-700">
@@ -325,41 +346,43 @@ export default function AdminUserPage() {
                     <td className="p-3 text-center space-x-1">
                       {user.status === 'WITHDRAWN' ? (
                         <span className="text-gray-400 text-xs">탈퇴된 계정</span>
-                      ) : user.status === 'ACTIVE' ? (
-                        <>
-                          <button
-                            onClick={() => handleLock(user.id)}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-black px-2 py-1 rounded text-xs font-medium"
-                          >
-                            잠금
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(user.id, 'SUSPENDED')}
-                            className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium"
-                          >
-                            정지
-                          </button>
-                          <button
-                            onClick={() => handleDelete(user.id)}
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded text-xs font-medium"
-                          >
-                            탈퇴
-                          </button>
-                        </>
                       ) : (
                         <>
-                          <button
-                            onClick={() => handleUnlock(user.id)}
-                            className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium"
-                          >
-                            해제
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(user.id, 'ACTIVE')}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium"
-                          >
-                            복구
-                          </button>
+                          {/* 잠금/해제 버튼 */}
+                          {user.accountLocked ? (
+                            <button
+                              onClick={() => handleUnlock(user.id)}
+                              className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium"
+                            >
+                              잠금해제
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleLock(user.id)}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-black px-2 py-1 rounded text-xs font-medium"
+                            >
+                              잠금
+                            </button>
+                          )}
+                          
+                          {/* 상태 변경 버튼 */}
+                          {user.status === 'ACTIVE' ? (
+                            <button
+                              onClick={() => handleStatusChange(user.id, 'SUSPENDED')}
+                              className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium"
+                            >
+                              정지
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleStatusChange(user.id, 'ACTIVE')}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium"
+                            >
+                              복구
+                            </button>
+                          )}
+                          
+                          {/* 탈퇴 버튼 */}
                           <button
                             onClick={() => handleDelete(user.id)}
                             className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded text-xs font-medium"
@@ -384,13 +407,32 @@ export default function AdminUserPage() {
         ) : activeTab === 'posts' ? (
           // 블라인드 게시글 관리 섹션
           <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
-            <h3 className="text-xl font-semibold text-white mb-6">🙈 블라인드 처리된 게시글</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">🙈 블라인드 처리된 게시글</h3>
+              <input
+                type="text"
+                placeholder="제목, 작성자로 검색..."
+                value={postSearchTerm}
+                onChange={(e) => setPostSearchTerm(e.target.value)}
+                className="w-64 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
             
-            {blindedPosts.length === 0 ? (
+            {blindedPosts.filter(post => 
+              postSearchTerm === '' ||
+              post.title.toLowerCase().includes(postSearchTerm.toLowerCase()) ||
+              post.writer.nickname.toLowerCase().includes(postSearchTerm.toLowerCase())
+            ).length === 0 ? (
               <p className="text-center text-gray-400 py-8">블라인드 처리된 게시글이 없습니다.</p>
             ) : (
               <div className="grid gap-4">
-                {blindedPosts.map((post) => (
+                {blindedPosts
+                  .filter(post => 
+                    postSearchTerm === '' ||
+                    post.title.toLowerCase().includes(postSearchTerm.toLowerCase()) ||
+                    post.writer.nickname.toLowerCase().includes(postSearchTerm.toLowerCase())
+                  )
+                  .map((post) => (
                   <div key={post.id} className="bg-[#2a2e45] p-4 rounded-lg">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
@@ -430,19 +472,32 @@ export default function AdminUserPage() {
           <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-semibold text-white">🚫 차단된 IP 목록</h3>
-              <button
-                onClick={() => setShowIpModal(true)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition"
-              >
-                + IP 차단 추가
-              </button>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="text"
+                  placeholder="IP 주소로 검색... (ex: 192.168)"
+                  value={ipSearchTerm}
+                  onChange={(e) => setIpSearchTerm(e.target.value)}
+                  className="w-64 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <button
+                  onClick={() => setShowIpModal(true)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition"
+                >
+                  + IP 차단 추가
+                </button>
+              </div>
             </div>
             
-            {blockedIps.length === 0 ? (
+            {blockedIps.filter(ip => 
+              ipSearchTerm === '' || ip.includes(ipSearchTerm)
+            ).length === 0 ? (
               <p className="text-center text-gray-400 py-8">차단된 IP가 없습니다.</p>
             ) : (
               <div className="grid gap-3">
-                {blockedIps.map((ip) => (
+                {blockedIps
+                  .filter(ip => ipSearchTerm === '' || ip.includes(ipSearchTerm))
+                  .map((ip) => (
                   <div key={ip} className="flex justify-between items-center bg-[#2a2e45] p-4 rounded-lg">
                     <div>
                       <span className="text-white font-mono">{ip}</span>

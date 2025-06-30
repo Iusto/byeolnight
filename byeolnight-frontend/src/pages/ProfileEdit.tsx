@@ -10,12 +10,13 @@ export default function ProfileEdit() {
 
   const [form, setForm] = useState({
     nickname: '',
-    phone: '',
     currentPassword: '',
   });
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [nicknameChecked, setNicknameChecked] = useState(false);
+  const [nicknameCheckLoading, setNicknameCheckLoading] = useState(false);
 
   // 닉네임 변경 가능 여부 및 다음 변경 가능 시기 계산
   const getNicknameChangeInfo = () => {
@@ -38,7 +39,6 @@ export default function ProfileEdit() {
     if (user) {
       setForm({
         nickname: user.nickname || '',
-        phone: user.phone || '',
         currentPassword: '',
       });
     }
@@ -47,15 +47,13 @@ export default function ProfileEdit() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // 닉네임 입력 시 검증
+    setForm({ ...form, [name]: value });
+    
+    // 닉네임 변경 시 중복검사 초기화
     if (name === 'nickname') {
-      const nicknameRegex = /^[가-힣a-zA-Z]{0,8}$/;
-      if (!nicknameRegex.test(value)) {
-        return; // 유효하지 않은 문자는 입력 차단
-      }
+      setNicknameChecked(false);
     }
     
-    setForm({ ...form, [name]: value });
     setError(''); // 입력 시 에러 메시지 제거
   };
 
@@ -80,6 +78,13 @@ export default function ProfileEdit() {
       return;
     }
     
+    // 닉네임이 변경되었으면 중복검사 필수
+    if (form.nickname !== user?.nickname && !nicknameChecked) {
+      setError('닉네임 중복 확인을 해주세요.');
+      setLoading(false);
+      return;
+    }
+    
     // 비밀번호 확인
     if (!form.currentPassword) {
       setError('현재 비밀번호를 입력해주세요.');
@@ -90,7 +95,6 @@ export default function ProfileEdit() {
     try {
       await axios.put('/users/profile', {
         nickname: form.nickname,
-        phone: form.phone,
         currentPassword: form.currentPassword,
       });
       
@@ -110,6 +114,63 @@ export default function ProfileEdit() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 닉네임 중복 검사
+  const checkNickname = async () => {
+    if (!form.nickname) {
+      setError('닉네임을 입력해주세요.');
+      return;
+    }
+    
+    if (!validateNickname(form.nickname)) {
+      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다.');
+      return;
+    }
+    
+    // 기존 닉네임과 동일한 경우
+    if (form.nickname === user?.nickname) {
+      setNicknameChecked(true);
+      setError('');
+      return;
+    }
+
+    setNicknameCheckLoading(true);
+    try {
+      const res = await axios.get('/auth/check-nickname', {
+        params: { value: form.nickname },
+      });
+      console.log('API 전체 응답:', res);
+      console.log('API 데이터:', res.data);
+      console.log('API 결과값:', res.data.data);
+      
+      // CommonResponse 구조: { success: boolean, data: boolean, message: string }
+      const isAvailable = res.data.data;
+      
+      if (isAvailable === true) {
+        setNicknameChecked(true);
+        setError('');
+        alert('사용 가능한 닉네임입니다.');
+      } else if (isAvailable === false) {
+        setError('이미 사용 중인 닉네임입니다.');
+        setNicknameChecked(false);
+      } else {
+        console.error('예상치 못한 API 응답:', isAvailable);
+        setError('닉네임 중복 확인 실패');
+        setNicknameChecked(false);
+      }
+    } catch (err: any) {
+      setError('닉네임 중복 확인 실패');
+      setNicknameChecked(false);
+    } finally {
+      setNicknameCheckLoading(false);
+    }
+  };
+  
+  // 닉네임 유효성 검사
+  const validateNickname = (nickname: string) => {
+    const nicknameRegex = /^[가-힣a-zA-Z]{2,8}$/;
+    return nicknameRegex.test(nickname);
   };
 
   if (!user) {
@@ -144,20 +205,33 @@ export default function ProfileEdit() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium mb-2">닉네임</label>
-            <input
-              type="text"
-              name="nickname"
-              value={form.nickname}
-              onChange={handleChange}
-              placeholder="닉네임 (2-8자, 한글/영어만)"
-              className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
-                !nicknameInfo.canChange && user?.nicknameChanged
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed focus:ring-gray-500'
-                  : 'bg-[#2a2e45] focus:ring-purple-500'
-              }`}
-              disabled={!nicknameInfo.canChange && user?.nicknameChanged}
-              required
-            />
+            <div className="space-y-2">
+              <input
+                type="text"
+                name="nickname"
+                value={form.nickname}
+                onChange={handleChange}
+                placeholder="닉네임 (2-8자, 한글/영어만)"
+                className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
+                  !nicknameInfo.canChange && user?.nicknameChanged
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed focus:ring-gray-500'
+                    : 'bg-[#2a2e45] focus:ring-purple-500'
+                }`}
+                disabled={!nicknameInfo.canChange && user?.nicknameChanged}
+                required
+              />
+              <button
+                type="button"
+                onClick={checkNickname}
+                disabled={nicknameCheckLoading || !form.nickname || (!nicknameInfo.canChange && user?.nicknameChanged)}
+                className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-2 rounded transition-colors text-sm"
+              >
+                {nicknameCheckLoading ? '확인중...' : '닉네임 중복 확인'}
+              </button>
+              {nicknameChecked && (
+                <p className="text-green-400 text-sm">✓ 사용 가능한 닉네임</p>
+              )}
+            </div>
             <div className="text-xs mt-1 space-y-1">
               <p className="text-gray-400">* 한글 또는 영어만 가능, 특수문자 불가 (2-8자)</p>
               <p className="text-yellow-400">* 닉네임은 6개월마다 변경 가능합니다</p>
@@ -172,18 +246,7 @@ export default function ProfileEdit() {
             </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-2">전화번호</label>
-            <input
-              type="tel"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              placeholder="전화번호"
-              className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500"
-              required
-            />
-          </div>
+
           
           <div>
             <label className="block text-sm font-medium mb-2">현재 비밀번호 확인</label>

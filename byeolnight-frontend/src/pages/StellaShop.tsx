@@ -112,6 +112,16 @@ export default function StellaShop() {
     }
   };
 
+  const initializeIcons = async () => {
+    try {
+      await axios.post('/shop/init-icons');
+      alert('스텔라 아이콘이 초기화되었습니다!');
+      fetchIcons();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || '초기화에 실패했습니다.');
+    }
+  };
+
   const ShopIconCard = ({ icon }: { icon: StellaIconData }) => (
     <div className="bg-[#1f2336]/80 backdrop-blur-md border border-gray-700 rounded-xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300">
       <div className="text-center">
@@ -273,7 +283,13 @@ export default function StellaShop() {
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">🌌</div>
                 <h3 className="text-2xl font-semibold mb-2 text-gray-300">준비 중입니다</h3>
-                <p className="text-gray-400">곧 멋진 스텔라 아이콘들이 출시될 예정입니다!</p>
+                <p className="text-gray-400 mb-4">곧 멋진 스텔라 아이콘들이 출시될 예정입니다!</p>
+                <button
+                  onClick={initializeIcons}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition"
+                >
+                  아이콘 초기화 (개발용)
+                </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

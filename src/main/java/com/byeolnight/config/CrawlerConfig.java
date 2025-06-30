@@ -9,7 +9,7 @@ public class CrawlerConfig {
     @Value("${crawler.news.api.key:byeolnight-crawler-news}")
     private String newsApiKey;
     
-    @Value("${crawler.event.api.key:byeolnight-crawler-event}")
+    @Value("${crawler.event.api.key:byeolnight-crawler-exhibitions}")
     private String eventApiKey;
     
     public boolean isValidNewsApiKey(String apiKey) {

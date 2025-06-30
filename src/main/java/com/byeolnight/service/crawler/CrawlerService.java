@@ -52,9 +52,9 @@ public class CrawlerService {
                 .orElseThrow(() -> new RuntimeException("뉴스봇 사용자를 찾을 수 없습니다."));
     }
     
-    private User getObservatoryBotUser() {
-        return userRepository.findByEmail("observatorybot@byeolnight.com")
-                .orElseThrow(() -> new RuntimeException("천문대봇 사용자를 찾을 수 없습니다."));
+    private User getEventBotUser() {
+        return userRepository.findByEmail("exhibitionbot@byeolnight.com")
+                .orElseThrow(() -> new RuntimeException("우주전시회봇 사용자를 찾을 수 없습니다."));
     }
     
     private boolean isDuplicateEvent(EventDto eventDto, User writer) {
@@ -111,29 +111,29 @@ public class CrawlerService {
     @Transactional
     public void processEventData(EventDto eventDto) {
         try {
-            // 천문대봇 계정 조회
-            User observatoryBot = getObservatoryBotUser();
+            // 우주 전시회 봇 계정 조회
+            User eventBot = getEventBotUser();
             
-            // 중복 처리: 동일 제목+일정이면 skip
-            if (isDuplicateEvent(eventDto, observatoryBot)) {
-                log.info("중복 이벤트 게시글 스킵: {}", eventDto.getTitle());
+            // 중복 처리: 동일 제목+기간이면 skip
+            if (isDuplicateEvent(eventDto, eventBot)) {
+                log.info("중복 전시회 게시글 스킵: {}", eventDto.getTitle());
                 return;
             }
             
-            // 이벤트 게시글 생성
+            // 전시회 게시글 생성
             String formattedContent = formatEventContent(eventDto);
             
             postService.createEventPost(
                 eventDto.getTitle(),
                 formattedContent,
-                observatoryBot
+                eventBot
             );
             
-            log.info("이벤트 게시글 등록 완료: {}", eventDto.getTitle());
+            log.info("전시회 게시글 등록 완료: {}", eventDto.getTitle());
             
         } catch (Exception e) {
-            log.error("이벤트 처리 중 오류 발생 - 제목: {}, 오류: {}", eventDto.getTitle(), e.getMessage(), e);
-            throw new RuntimeException("이벤트 처리 실패", e);
+            log.error("전시회 처리 중 오류 발생 - 제목: {}, 오류: {}", eventDto.getTitle(), e.getMessage(), e);
+            throw new RuntimeException("전시회 처리 실패", e);
         }
     }
     
@@ -145,44 +145,49 @@ public class CrawlerService {
             content.append(eventDto.getContent()).append("\n\n");
         }
         
-        // 천문대 정보 섹션
+        // 전시회 정보 섹션
         content.append("---\n");
-        content.append("🌌 **천문대 정보**\n\n");
+        content.append("🌌 **우주 전시회 정보**\n\n");
         
-        // 천문대 유형 표시
-        if (eventDto.getObservatoryType() != null) {
-            String typeIcon = getObservatoryTypeIcon(eventDto.getObservatoryType());
-            content.append(typeIcon).append(" **분류:** ").append(eventDto.getObservatoryType()).append("\n");
+        // 전시회 유형 표시
+        if (eventDto.getExhibitionType() != null) {
+            String typeIcon = getExhibitionTypeIcon(eventDto.getExhibitionType());
+            content.append(typeIcon).append(" **전시 유형:** ").append(eventDto.getExhibitionType()).append("\n");
         }
         
-        // 프로그램명
-        if (eventDto.getProgramName() != null) {
-            content.append("🎆 **프로그램:** ").append(eventDto.getProgramName()).append("\n");
+        // 전시회명
+        if (eventDto.getExhibitionName() != null) {
+            content.append("🎆 **전시회명:** ").append(eventDto.getExhibitionName()).append("\n");
         }
         
-        // 일정 (운영 시간 및 요일)
+        // 전시 기간
         if (eventDto.getEventDate() != null) {
-            content.append("📅 **일정:** ").append(eventDto.getEventDate()).append("\n");
+            content.append("📅 **전시 기간:** ").append(eventDto.getEventDate()).append("\n");
         }
         
-        // 위치 (정확한 주소)
+        // 전시 장소
         if (eventDto.getLocation() != null) {
-            content.append("📍 **위치:** ").append(eventDto.getLocation()).append("\n");
+            content.append("📍 **전시 장소:** ").append(eventDto.getLocation()).append("\n");
         }
         
-        // 참가비 (요금 정보)
+        // 관람료
         if (eventDto.getFee() != null) {
-            content.append("💰 **참가비:** ").append(eventDto.getFee()).append("\n");
+            content.append("💰 **관람료:** ").append(eventDto.getFee()).append("\n");
         }
         
-        // 연락처 (예약 및 문의 전화번호)
+        // 주최기관
+        if (eventDto.getOrganizer() != null) {
+            content.append("🏢 **주최기관:** ").append(eventDto.getOrganizer()).append("\n");
+        }
+        
+        // 문의 연락처
         if (eventDto.getContact() != null) {
-            content.append("📞 **연락처:** ").append(eventDto.getContact()).append("\n");
+            content.append("📞 **문의:** ").append(eventDto.getContact()).append("\n");
         }
         
-        // 신청방법 (온라인 예약 링크)
+        // 예약/티켓 구매
         if (eventDto.getRegistrationUrl() != null) {
-            content.append("🔗 **신청방법:** [온라인 예약](").append(eventDto.getRegistrationUrl()).append(")\n");
+            content.append("🔗 **예약/티켓:** [예약 바로가기](").append(eventDto.getRegistrationUrl()).append(")\n");
         }
         
         // 출처 정보
@@ -209,15 +214,17 @@ public class CrawlerService {
         return content.toString();
     }
     
-    private String getObservatoryTypeIcon(String type) {
+    private String getExhibitionTypeIcon(String type) {
         if (type == null) return "🌌";
         
-        if (type.contains("한국천문연구원")) {
-            return "🏢"; // 한국천문연구원 산하
-        } else if (type.contains("공립과학관")) {
-            return "🏛️"; // 공립 과학관
-        } else if (type.contains("지역천문대")) {
-            return "🌟"; // 지역 천문대
+        if (type.contains("상설전시")) {
+            return "🏛️"; // 상설 전시
+        } else if (type.contains("기획전시")) {
+            return "🎆"; // 기획 전시
+        } else if (type.contains("특별전시")) {
+            return "⭐"; // 특별 전시
+        } else if (type.contains("체험전시")) {
+            return "🔭"; // 체험 전시
         }
         
         return "🌌"; // 기본 아이콘

@@ -8,6 +8,8 @@ interface User {
   nickname: string;
   phone: string;
   role: string;
+  points: number;
+  equippedIconId?: number;
   representativeCertificate?: {
     icon: string;
     name: string;

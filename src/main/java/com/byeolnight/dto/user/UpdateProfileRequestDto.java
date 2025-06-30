@@ -19,9 +19,6 @@ public class UpdateProfileRequestDto {
     @Pattern(regexp = "^[가-힣a-zA-Z]+$", message = "닉네임은 한글 또는 영어만 가능합니다.")
     private String nickname;
 
-    @NotBlank(message = "전화번호를 입력해주세요.")
-    private String phone;
-
     @NotBlank(message = "현재 비밀번호를 입력해주세요.")
     private String currentPassword;
 }

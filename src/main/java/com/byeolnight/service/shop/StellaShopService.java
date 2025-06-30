@@ -96,4 +96,73 @@ public class StellaShopService {
         user.unequipIcon();
         userRepository.save(user);
     }
+
+    /**
+     * 기본 아이콘 초기화
+     */
+    @Transactional
+    public void initializeDefaultIcons() {
+        if (stellaIconRepository.count() > 0) {
+            return; // 이미 데이터가 있으면 스킵
+        }
+
+        List<StellaIcon> icons = List.of(
+            StellaIcon.builder()
+                .name("반짝이는 별")
+                .description("가장 기본적인 별 아이콘입니다.")
+                .iconUrl("/icons/basic_star.svg")
+                .price(0)
+                .grade(StellaIcon.IconGrade.COMMON)
+                .type(StellaIcon.IconType.STATIC)
+                .available(true)
+                .animationClass("")
+                .build(),
+            
+            StellaIcon.builder()
+                .name("반짝이는 유성")
+                .description("처음 포인트를 획득하면 구매할 수 있습니다.")
+                .iconUrl("/icons/shiny_meteor.svg")
+                .price(50)
+                .grade(StellaIcon.IconGrade.COMMON)
+                .type(StellaIcon.IconType.ANIMATED)
+                .available(true)
+                .animationClass("animate-pulse")
+                .build(),
+
+            StellaIcon.builder()
+                .name("황혼의 행성")
+                .description("아름다운 황혼 빛의 행성")
+                .iconUrl("/icons/twilight_planet.svg")
+                .price(100)
+                .grade(StellaIcon.IconGrade.RARE)
+                .type(StellaIcon.IconType.ANIMATED)
+                .available(true)
+                .animationClass("animate-pulse")
+                .build(),
+
+            StellaIcon.builder()
+                .name("자정의 달")
+                .description("신비로운 자정의 달")
+                .iconUrl("/icons/midnight_moon.svg")
+                .price(150)
+                .grade(StellaIcon.IconGrade.RARE)
+                .type(StellaIcon.IconType.ANIMATED)
+                .available(true)
+                .animationClass("animate-bounce")
+                .build(),
+
+            StellaIcon.builder()
+                .name("오로라 피닉스")
+                .description("전설의 불사조 아이콘")
+                .iconUrl("/icons/aurora_phoenix.svg")
+                .price(300)
+                .grade(StellaIcon.IconGrade.LEGENDARY)
+                .type(StellaIcon.IconType.SPECIAL)
+                .available(true)
+                .animationClass("animate-pulse")
+                .build()
+        );
+
+        stellaIconRepository.saveAll(icons);
+    }
 }

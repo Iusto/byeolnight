@@ -1,8 +1,30 @@
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import WithdrawModal from '../components/WithdrawModal';
+import axios from '../lib/axios';
 
 export default function Me() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  const handleWithdraw = async (password: string, reason: string) => {
+    try {
+      await axios.delete('/auth/withdraw', {
+        data: {
+          password,
+          reason
+        }
+      });
+      alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
+      logout();
+      navigate('/');
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || '회원 탈퇴에 실패했습니다.';
+      alert(errorMsg);
+    }
+  };
 
   if (loading) return <div className="text-white p-8">로딩 중...</div>;
   if (!user) return <div className="text-white p-8">로그인이 필요합니다.</div>;
@@ -17,20 +39,37 @@ export default function Me() {
           <li><strong>전화번호:</strong> {user.phone}</li>
           <li><strong>권한:</strong> {user.role}</li>
         </ul>
-        <div className="mt-8 flex justify-between">
-          <Link 
-            to="/profile/edit" 
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors font-medium"
-          >
-            프로필 수정
-          </Link>
-          <Link 
-            to="/password-change" 
-            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors font-medium"
-          >
-            비밀번호 변경
-          </Link>
+        <div className="mt-8 space-y-3">
+          <div className="flex justify-between">
+            <Link 
+              to="/profile/edit" 
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors font-medium"
+            >
+              프로필 수정
+            </Link>
+            <Link 
+              to="/password-change" 
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors font-medium"
+            >
+              비밀번호 변경
+            </Link>
+          </div>
+          <div className="text-center">
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded transition-colors font-medium"
+            >
+              회원 탈퇴
+            </button>
+          </div>
         </div>
+        
+        {/* 회원탈퇴 모달 */}
+        <WithdrawModal 
+          isOpen={showWithdrawModal}
+          onClose={() => setShowWithdrawModal(false)}
+          onConfirm={handleWithdraw}
+        />
       </div>
     </div>
   );

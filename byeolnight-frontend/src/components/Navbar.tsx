@@ -1,8 +1,37 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import StellaIcon from './StellaIcon';
+import { useEffect, useState } from 'react';
+import axios from '../lib/axios';
+
+interface EquippedIcon {
+  id: number;
+  name: string;
+  iconUrl: string;
+  animationClass?: string;
+  grade: string;
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const [equippedIcon, setEquippedIcon] = useState<EquippedIcon | null>(null);
+
+  useEffect(() => {
+    if (user?.equippedIconId) {
+      fetchEquippedIcon();
+    }
+  }, [user]);
+
+  const fetchEquippedIcon = async () => {
+    try {
+      const res = await axios.get('/shop/my-icons');
+      const icons = res.data.data || [];
+      const equipped = icons.find((icon: any) => icon.equipped);
+      setEquippedIcon(equipped || null);
+    } catch (err) {
+      console.error('장착 아이콘 조회 실패', err);
+    }
+  };
 
   return (
     <header className="bg-[#1f2336]/90 backdrop-blur-md shadow-md sticky top-0 z-50">
@@ -25,12 +54,28 @@ export default function Navbar() {
           )}
           {user ? (
             <>
-              <div className="flex items-center gap-2">
-                <span className="text-green-400 text-xs">•</span>
-                <span className="text-purple-300 font-medium">{user.nickname}</span>
-                {localStorage.getItem('rememberMe') === 'true' && (
-                  <span className="text-xs text-gray-400 bg-gray-700 px-1 rounded">자동로그인</span>
-                )}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-yellow-900/30 px-2 py-1 rounded-lg border border-yellow-600/30">
+                  <span className="text-yellow-400">⭐</span>
+                  <span className="text-yellow-300 font-medium text-sm">{user.points || 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400 text-xs">•</span>
+                  <div className="flex items-center gap-2">
+                    {equippedIcon && (
+                      <StellaIcon
+                        iconUrl={equippedIcon.iconUrl}
+                        animationClass={equippedIcon.animationClass}
+                        grade={equippedIcon.grade}
+                        size="sm"
+                      />
+                    )}
+                    <span className="text-purple-300 font-medium">{user.nickname}</span>
+                  </div>
+                  {localStorage.getItem('rememberMe') === 'true' && (
+                    <span className="text-xs text-gray-400 bg-gray-700 px-1 rounded">자동로그인</span>
+                  )}
+                </div>
               </div>
               <Link to="/me" className="hover:text-purple-300 transition">내 정보</Link>
               {user.role === 'ADMIN' && (

@@ -21,7 +21,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   NEWS: '뉴스',
   DISCUSSION: '토론',
   IMAGE: '사진',
-  EVENT: '행사',
+  EVENT: '우주전시회',
   REVIEW: '후기',
   FREE: '자유',
   NOTICE: '공지',
@@ -114,19 +114,19 @@ export default function PostList() {
           </div>
         )}
         
-        {/* 이벤트 카테고리 자동 업데이트 안내 */}
+        {/* 우주 전시회 카테고리 자동 업데이트 안내 */}
         {category === 'EVENT' && (
           <div className="mb-6 p-4 bg-orange-900/30 rounded-lg border border-orange-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🤖</span>
-              <h3 className="text-lg font-semibold text-orange-200">자동 이벤트 업데이트</h3>
+              <h3 className="text-lg font-semibold text-orange-200">자동 우주전시회 업데이트</h3>
             </div>
             <p className="text-orange-200 text-sm leading-relaxed">
-              <strong>천문대봇</strong>이 매일 <strong>오전 7시</strong>에 전국 12개 천문대 일정을 자동 수집합니다.
+              <strong>우주전시회봇</strong>이 매일 <strong>오전 7시</strong>에 전국 우주 관련 전시회 정보를 자동 수집합니다.
               <br />
-              <strong>대상 천문대:</strong> 국립과천과학관, 시립서울천문대, 인천학생과학관 등 수도권 천문대
+              <strong>대상 기관:</strong> 국립과천과학관, 국립중앙과학관, 서울시립과학관, 과학기술정보통신부 등
               <br />
-              동일 제목+일정이면 중복 등록 방지, 전체 삭제 후 재등록 가능
+              동일 제목+기간이면 중복 등록 방지, 전체 삭제 후 재등록 가능
             </p>
           </div>
         )}

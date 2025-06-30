@@ -2,6 +2,7 @@ package com.byeolnight.config;
 
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.infrastructure.security.EncryptionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,16 +17,19 @@ public class SystemUserInitializer {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EncryptionUtil encryptionUtil;
     
     @PostConstruct
     public void createSystemUsers() {
         // 뉴스봇 사용자 생성
         if (!userRepository.existsByEmail("newsbot@byeolnight.com")) {
+            String phone = "000-0000-0001";
             User newsBot = User.builder()
                     .email("newsbot@byeolnight.com")
                     .nickname("뉴스봇")
                     .password(passwordEncoder.encode("NEWSBOT_PASSWORD"))
-                    .phone("000-0000-0001")
+                    .phone(encryptionUtil.encrypt(phone))
+                    .phoneHash(encryptionUtil.hashPhone(phone))
                     .role(User.Role.ADMIN)
                     .emailVerified(true)
                     .phoneVerified(true)
@@ -35,29 +39,33 @@ public class SystemUserInitializer {
             log.info("뉴스봇 계정이 생성되었습니다: newsbot@byeolnight.com");
         }
         
-        // 천문대봇 사용자 생성
-        if (!userRepository.existsByEmail("observatorybot@byeolnight.com")) {
-            User observatoryBot = User.builder()
-                    .email("observatorybot@byeolnight.com")
-                    .nickname("천문대봇")
-                    .password(passwordEncoder.encode("OBSERVATORYBOT_PASSWORD"))
-                    .phone("000-0000-0002")
+        // 우주전시회봇 사용자 생성
+        if (!userRepository.existsByEmail("exhibitionbot@byeolnight.com")) {
+            String phone = "000-0000-0002";
+            User exhibitionBot = User.builder()
+                    .email("exhibitionbot@byeolnight.com")
+                    .nickname("우주전시회봇")
+                    .password(passwordEncoder.encode("EXHIBITIONBOT_PASSWORD"))
+                    .phone(encryptionUtil.encrypt(phone))
+                    .phoneHash(encryptionUtil.hashPhone(phone))
                     .role(User.Role.ADMIN)
                     .emailVerified(true)
                     .phoneVerified(true)
                     .build();
             
-            userRepository.save(observatoryBot);
-            log.info("천문대봇 계정이 생성되었습니다: observatorybot@byeolnight.com");
+            userRepository.save(exhibitionBot);
+            log.info("우주전시회봇 계정이 생성되었습니다: exhibitionbot@byeolnight.com");
         }
         
         // 기존 시스템 계정 유지 (하위 호환성)
         if (!userRepository.existsByEmail("system@byeolnight.com")) {
+            String phone = "000-0000-0000";
             User systemUser = User.builder()
                     .email("system@byeolnight.com")
                     .nickname("별밤시스템")
                     .password(passwordEncoder.encode("SYSTEM_ACCOUNT_PASSWORD"))
-                    .phone("000-0000-0000")
+                    .phone(encryptionUtil.encrypt(phone))
+                    .phoneHash(encryptionUtil.hashPhone(phone))
                     .role(User.Role.ADMIN)
                     .emailVerified(true)
                     .phoneVerified(true)
