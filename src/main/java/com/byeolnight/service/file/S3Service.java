@@ -38,9 +38,13 @@ public class S3Service {
     private String region;
 
     /**
-     * S3 Presigned URL 생성
+     * S3 Presigned URL 생성 (이미지 검증 포함)
      */
     public Map<String, String> generatePresignedUrl(String originalFilename) {
+        // 기본적인 파일 형식 검증
+        if (!isValidImageFile(originalFilename)) {
+            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, png, gif, webp만 허용)");
+        }
         try {
             // AWS 자격 증명 설정
             AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
@@ -147,5 +151,21 @@ public class S3Service {
             return "image/webp";
         }
         return "application/octet-stream";
+    }
+    
+    /**
+     * 이미지 파일 형식 검증
+     */
+    private boolean isValidImageFile(String filename) {
+        if (filename == null || filename.trim().isEmpty()) {
+            return false;
+        }
+        
+        String extension = filename.toLowerCase();
+        return extension.endsWith(".jpg") || 
+               extension.endsWith(".jpeg") || 
+               extension.endsWith(".png") || 
+               extension.endsWith(".gif") || 
+               extension.endsWith(".webp");
     }
 }

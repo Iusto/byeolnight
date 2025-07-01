@@ -223,38 +223,55 @@ export default function AdminUserPage() {
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-bold mb-8 drop-shadow-glow text-center">🔐 관리자 - 사용자 관리</h2>
         
-        {/* 탭 메뉴 */}
-        <div className="flex gap-4 mb-6 justify-center">
+        {/* 관리자 메뉴 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-6 py-2 rounded transition ${
+            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
               activeTab === 'users'
-                ? 'bg-purple-600 text-white' 
-                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                ? 'bg-purple-600/40 border-purple-400 text-white shadow-lg transform scale-105'
+                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-purple-500/50'
             }`}
           >
-            👥 사용자 관리
+            <div className="text-3xl mb-2">👥</div>
+            <div className="font-semibold">사용자 관리</div>
+            <div className="text-sm text-gray-400 mt-1">계정 상태 및 권한 관리</div>
           </button>
+          
           <button
             onClick={() => setActiveTab('posts')}
-            className={`px-6 py-2 rounded transition ${
+            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
               activeTab === 'posts'
-                ? 'bg-purple-600 text-white' 
-                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                ? 'bg-yellow-600/40 border-yellow-400 text-white shadow-lg transform scale-105'
+                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-yellow-500/50'
             }`}
           >
-            🙈 블라인드 게시글
+            <div className="text-3xl mb-2">🙈</div>
+            <div className="font-semibold">블라인드 게시글</div>
+            <div className="text-sm text-gray-400 mt-1">블라인드 처리된 게시글 관리</div>
           </button>
+          
           <button
             onClick={() => setActiveTab('ips')}
-            className={`px-6 py-2 rounded transition ${
+            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
               activeTab === 'ips'
-                ? 'bg-purple-600 text-white' 
-                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                ? 'bg-red-600/40 border-red-400 text-white shadow-lg transform scale-105'
+                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-red-500/50'
             }`}
           >
-            🚫 IP 차단 관리
+            <div className="text-3xl mb-2">🚫</div>
+            <div className="font-semibold">IP 차단 관리</div>
+            <div className="text-sm text-gray-400 mt-1">IP 주소 차단 및 해제</div>
           </button>
+          
+          <a
+            href="/admin/report-management"
+            className="p-6 rounded-xl border-2 bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-orange-500/50 transition-all duration-200 block text-center"
+          >
+            <div className="text-3xl mb-2">📋</div>
+            <div className="font-semibold">신고 관리</div>
+            <div className="text-sm text-gray-400 mt-1">신고 사유별 통계 및 신고자 관리</div>
+          </a>
         </div>
 
         {activeTab === 'users' ? (

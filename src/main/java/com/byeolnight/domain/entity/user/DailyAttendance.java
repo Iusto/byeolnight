@@ -1,17 +1,20 @@
 package com.byeolnight.domain.entity.user;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "daily_attendance", 
        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "attendance_date"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
 public class DailyAttendance {
 
     @Id
@@ -25,14 +28,20 @@ public class DailyAttendance {
     @Column(name = "attendance_date", nullable = false)
     private LocalDate attendanceDate;
 
-    @Column(nullable = false)
-    private int pointsEarned;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    public static DailyAttendance create(User user, LocalDate date, int points) {
+    @Builder
+    public DailyAttendance(User user, LocalDate attendanceDate) {
+        this.user = user;
+        this.attendanceDate = attendanceDate;
+    }
+
+    public static DailyAttendance of(User user, LocalDate date) {
         return DailyAttendance.builder()
                 .user(user)
                 .attendanceDate(date)
-                .pointsEarned(points)
                 .build();
     }
 }

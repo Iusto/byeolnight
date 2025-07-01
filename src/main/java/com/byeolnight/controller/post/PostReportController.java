@@ -44,7 +44,14 @@ public class PostReportController {
             @RequestBody PostReportRequestDto dto,
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        postReportService.reportPost(user.getId(), postId, dto.getReason(), dto.getDescription());
-        return ResponseEntity.ok(CommonResponse.success("신고가 접수되었습니다."));
+        try {
+            postReportService.reportPost(user.getId(), postId, dto.getReason(), dto.getDescription());
+            return ResponseEntity.ok(CommonResponse.success("신고가 접수되었습니다."));
+        } catch (IllegalStateException e) {
+            if (e.getMessage().contains("이미 신고한")) {
+                return ResponseEntity.status(409).body(CommonResponse.error("이미 신고한 게시글입니다."));
+            }
+            throw e;
+        }
     }
 }

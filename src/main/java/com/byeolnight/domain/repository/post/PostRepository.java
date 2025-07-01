@@ -125,4 +125,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     ORDER BY COUNT(pr) DESC, p.createdAt DESC
     """)
     List<Post> findReportedPosts();
+    
+    // 검색 기능
+    Page<Post> findByTitleContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(String title, Post.Category category, Pageable pageable);
+    Page<Post> findByContentContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(String content, Post.Category category, Pageable pageable);
+    
+    @Query("SELECT p FROM Post p WHERE (p.title LIKE %:keyword% OR p.content LIKE %:keyword%) AND p.category = :category AND p.isDeleted = false AND p.blinded = false")
+    Page<Post> findByTitleOrContentContainingAndCategory(@Param("keyword") String keyword, @Param("category") Post.Category category, Pageable pageable);
+    
+    @Query("SELECT p FROM Post p WHERE p.writer.nickname LIKE %:nickname% AND p.category = :category AND p.isDeleted = false AND p.blinded = false")
+    Page<Post> findByWriterNicknameContainingAndCategory(@Param("nickname") String nickname, @Param("category") Post.Category category, Pageable pageable);
 }

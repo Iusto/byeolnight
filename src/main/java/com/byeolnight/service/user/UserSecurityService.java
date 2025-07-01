@@ -24,7 +24,7 @@ public class UserSecurityService {
     @Value("${app.security.max-login-attempts:10}")
     private int maxLoginAttempts;
 
-    @Value("${app.security.ip-block-duration:24h}")
+    @Value("${app.security.ip-block-duration:1h}")
     private Duration ipBlockDuration;
 
     /**

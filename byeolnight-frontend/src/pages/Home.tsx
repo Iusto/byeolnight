@@ -12,6 +12,7 @@ interface Post {
   writer: string;
   likeCount: number;
   viewCount: number;
+  commentCount: number;
   updatedAt: string;
   blinded: boolean;
   thumbnailUrl?: string;
@@ -25,6 +26,8 @@ export default function Home() {
   const [newsPosts, setNewsPosts] = useState<Post[]>([]);
   const [reviewPosts, setReviewPosts] = useState<Post[]>([]);
   const [noticePosts, setNoticePosts] = useState<Post[]>([]);
+  const [discussionPosts, setDiscussionPosts] = useState<Post[]>([]);
+  const [freePosts, setFreePosts] = useState<Post[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -93,6 +96,28 @@ export default function Home() {
         console.error('공지사항 불러오기 실패', err);
         setNoticePosts([]);
       });
+
+    // 토론 게시판
+    axios.get('/public/posts', { params: { category: 'DISCUSSION', sort: 'recent', size: 5 } })
+      .then(res => {
+        const content = res.data?.content || [];
+        setDiscussionPosts(Array.isArray(content) ? content : []);
+      })
+      .catch(err => {
+        console.error('토론 게시판 불러오기 실패', err);
+        setDiscussionPosts([]);
+      });
+
+    // 자유 게시판
+    axios.get('/public/posts', { params: { category: 'FREE', sort: 'recent', size: 5 } })
+      .then(res => {
+        const content = res.data?.content || [];
+        setFreePosts(Array.isArray(content) ? content : []);
+      })
+      .catch(err => {
+        console.error('자유 게시판 불러오기 실패', err);
+        setFreePosts([]);
+      });
   }, []);
 
   const formatDate = (dateStr: string) => {
@@ -145,6 +170,7 @@ export default function Home() {
           🖊 {post.writer}
           <span>📅 {formatDate(post.updatedAt)}</span>
           <span>👁 {post.viewCount}</span>
+          <span>💬 {post.commentCount || 0}</span>
           {showLike && <span>❤️ {post.likeCount}</span>}
         </div>
       </Link>
@@ -154,8 +180,57 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-10 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* 👤 사용자 정보 영역 */}
-        <div className="text-right mb-4">
+        {/* 게시판 네비게이션 */}
+        <div className="mb-8 p-6 bg-[#1f2336]/80 backdrop-blur-md rounded-xl shadow-xl">
+          <h2 className="text-2xl font-bold mb-4 text-center">🌌 게시판 둘러보기</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <Link to="/posts?category=NEWS&sort=recent" className="group">
+              <div className="p-4 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg border border-blue-500/30 hover:border-blue-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">🚀</div>
+                <div className="text-sm font-medium">우주 뉴스</div>
+              </div>
+            </Link>
+            <Link to="/posts?category=DISCUSSION&sort=recent" className="group">
+              <div className="p-4 bg-green-600/20 hover:bg-green-600/40 rounded-lg border border-green-500/30 hover:border-green-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">💬</div>
+                <div className="text-sm font-medium">토론</div>
+              </div>
+            </Link>
+            <Link to="/posts?category=IMAGE&sort=recent" className="group">
+              <div className="p-4 bg-purple-600/20 hover:bg-purple-600/40 rounded-lg border border-purple-500/30 hover:border-purple-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">🌌</div>
+                <div className="text-sm font-medium">별 사진</div>
+              </div>
+            </Link>
+            <Link to="/posts?category=EVENT&sort=recent" className="group">
+              <div className="p-4 bg-orange-600/20 hover:bg-orange-600/40 rounded-lg border border-orange-500/30 hover:border-orange-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">🏦</div>
+                <div className="text-sm font-medium">전시회</div>
+              </div>
+            </Link>
+            <Link to="/posts?category=REVIEW&sort=recent" className="group">
+              <div className="p-4 bg-yellow-600/20 hover:bg-yellow-600/40 rounded-lg border border-yellow-500/30 hover:border-yellow-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">⭐</div>
+                <div className="text-sm font-medium">후기</div>
+              </div>
+            </Link>
+            <Link to="/posts?category=FREE&sort=recent" className="group">
+              <div className="p-4 bg-pink-600/20 hover:bg-pink-600/40 rounded-lg border border-pink-500/30 hover:border-pink-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">🎈</div>
+                <div className="text-sm font-medium">자유</div>
+              </div>
+            </Link>
+            <Link to="/posts?category=NOTICE&sort=recent" className="group">
+              <div className="p-4 bg-red-600/20 hover:bg-red-600/40 rounded-lg border border-red-500/30 hover:border-red-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">📢</div>
+                <div className="text-sm font-medium">공지</div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* 사용자 정보 */}
+        <div className="text-right mb-6">
           {user ? (
             <p className="text-purple-300 text-sm">{user.nickname}님, 환영합니다!</p>
           ) : (
@@ -207,6 +282,7 @@ export default function Home() {
                         🖊 {post.writer}
                         <span>📅 {formatDate(post.updatedAt)}</span>
                         <span>👁 {post.viewCount}</span>
+                        <span>💬 {post.commentCount || 0}</span>
                         <span>❤️ {post.likeCount}</span>
                       </div>
                     </Link>
@@ -293,6 +369,7 @@ export default function Home() {
                         <span className="font-semibold text-blue-100">{post.title}</span>
                         <div className="flex items-center gap-2 text-blue-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
@@ -319,10 +396,65 @@ export default function Home() {
                         <span className="font-semibold text-purple-100">{post.title}</span>
                         <div className="flex items-center gap-2 text-purple-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
                       <div className="text-purple-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            {/* 💬 토론 게시판 */}
+            <Section 
+              title="토론 게시판" 
+              icon="💬" 
+              link="/posts?category=DISCUSSION&sort=recent"
+              bgColor="bg-gradient-to-br from-green-900/30 to-teal-900/30"
+              borderColor="border-green-500/30"
+            >
+              <div className="space-y-3">
+                {discussionPosts.map((post) => (
+                  <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
+                    <Link to={`/posts/${post.id}`} className="block">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-green-100">{post.title}</span>
+                        <div className="flex items-center gap-2 text-green-300 text-sm">
+                          <span>❤️ {post.likeCount}</span>
+                          <span>💬 {post.commentCount || 0}</span>
+                          <span>👁 {post.viewCount}</span>
+                        </div>
+                      </div>
+                      <div className="text-green-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            {/* 🎈 자유 게시판 */}
+            <Section 
+              title="자유 게시판" 
+              icon="🎈" 
+              link="/posts?category=FREE&sort=recent"
+              bgColor="bg-gradient-to-br from-pink-900/30 to-rose-900/30"
+              borderColor="border-pink-500/30"
+            >
+              <div className="space-y-3">
+                {freePosts.map((post) => (
+                  <div key={post.id} className="bg-pink-900/20 rounded-lg p-4 hover:bg-pink-900/30 transition-colors">
+                    <Link to={`/posts/${post.id}`} className="block">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-pink-100">{post.title}</span>
+                        <div className="flex items-center gap-2 text-pink-300 text-sm">
+                          <span>❤️ {post.likeCount}</span>
+                          <span>💬 {post.commentCount || 0}</span>
+                          <span>👁 {post.viewCount}</span>
+                        </div>
+                      </div>
+                      <div className="text-pink-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}

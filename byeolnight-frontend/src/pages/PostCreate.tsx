@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import SimpleTextEditor from '../components/SimpleTextEditor';
 
 interface FileDto {
   originalName: string;
@@ -12,35 +13,23 @@ interface FileDto {
 export default function PostCreate() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('NEWS');
-  const [images, setImages] = useState<FileDto[]>([]);
+  const [category, setCategory] = useState('DISCUSSION');
   const [error, setError] = useState('');
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const filename = encodeURIComponent(file.name);
-      const res = await axios.get('/files/presign', { params: { filename } });
-      const { url, s3Key } = res.data.data;
-
-      await fetch(url, { method: 'PUT', body: file });
-
-      setImages((prev) => [
-        ...prev,
-        {
-          originalName: file.name,
-          s3Key,
-          url: url.split('?')[0],
-        },
-      ]);
-    } catch (err) {
-      setError('파일 업로드 실패');
+  // URL 파라미터에서 고정 카테고리 설정
+  const fixedCategory = searchParams.get('fixedCategory');
+  const isFixedCategory = fixedCategory && ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'].includes(fixedCategory);
+  
+  useEffect(() => {
+    if (isFixedCategory) {
+      setCategory(fixedCategory);
     }
-  };
+  }, [fixedCategory, isFixedCategory]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,9 +45,10 @@ export default function PostCreate() {
         title,
         content,
         category,
-        images,
+        images: [], // 에디터에서 이미지는 HTML로 처리
       });
-      navigate('/');
+      // 해당 카테고리 게시판으로 이동
+      navigate(`/posts?category=${category}&sort=recent`);
     } catch (err: any) {
       const msg = err?.response?.data?.message || '게시글 작성 실패';
       setError(msg);
@@ -95,38 +85,39 @@ export default function PostCreate() {
             required
             className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none"
           />
-          <textarea
-            placeholder="내용"
+          <SimpleTextEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={6}
-            required
-            className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none"
+            onChange={setContent}
+            placeholder="내용을 입력하세요..."
           />
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none"
-          >
-            <option value="NEWS">뉴스</option>
-            <option value="DISCUSSION">토론</option>
-            <option value="IMAGE">사진</option>
-            <option value="EVENT">행사</option>
-            <option value="REVIEW">후기</option>
-          </select>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full text-sm text-gray-300"
-          />
-          {images.length > 0 && (
-            <ul className="text-sm text-green-300">
-              {images.map((img, i) => (
-                <li key={i}>✔️ {img.originalName}</li>
-              ))}
-            </ul>
+          {isFixedCategory ? (
+            <div className="w-full px-4 py-2 rounded-md bg-[#2a2e45] text-gray-300">
+              카테고리: {{
+                DISCUSSION: '토론',
+                IMAGE: '사진', 
+                REVIEW: '후기',
+                FREE: '자유'
+              }[category]} (고정)
+            </div>
+          ) : (
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none"
+            >
+              <option value="DISCUSSION">토론</option>
+              <option value="IMAGE">사진</option>
+              <option value="REVIEW">후기</option>
+              <option value="FREE">자유</option>
+              {user?.role === 'ADMIN' && (
+                <>
+                  <option value="NEWS">뉴스</option>
+                  <option value="EVENT">우주전시회</option>
+                </>
+              )}
+            </select>
           )}
+
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button
             type="submit"

@@ -14,6 +14,9 @@ interface Post {
   likeCount: number;
   likedByMe: boolean;
   hot: boolean;
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
   dDay?: string;
 }
 
@@ -28,6 +31,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const RESTRICTED_CATEGORIES = ['NEWS', 'EVENT', 'NOTICE'];
+const USER_WRITABLE_CATEGORIES = ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'];
 
 export default function PostList() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -38,17 +42,31 @@ export default function PostList() {
   const category = searchParams.get('category') || 'NEWS';
   const sort = searchParams.get('sort') || 'recent';
   const page = Number(searchParams.get('page')) || 0;
+  const searchType = searchParams.get('searchType') || 'title';
+  const searchKeyword = searchParams.get('search') || '';
+  
+  const [searchInput, setSearchInput] = useState(searchKeyword);
+  const [searchTypeInput, setSearchTypeInput] = useState(searchType);
 
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('/public/posts', {
-          params: { category, sort, page, size: 30 },
-        });
+        const params: any = { category, sort, page, size: 30 };
+        if (searchKeyword && searchKeyword.trim()) {
+          params.searchType = searchType;
+          params.search = searchKeyword.trim();
+        }
+        
+        console.log('검색 요청 파라미터:', params);
+        console.log('URL:', '/public/posts?' + new URLSearchParams(params).toString());
+        const res = await axios.get('/public/posts', { params });
         // 응답 구조 안전하게 처리
+        console.log('전체 응답:', res.data);
         const responseData = res.data?.data || res.data;
         const content = responseData?.content || [];
+        console.log('최종 게시글 데이터:', content);
+        console.log('게시글 수:', content.length);
         setPosts(content);
       } catch (err) {
         console.error('게시글 목록 조회 실패', err);
@@ -59,42 +77,94 @@ export default function PostList() {
     };
 
     fetchPosts();
-  }, [category, sort, page]);
+  }, [category, sort, page, searchKeyword, searchType]);
 
   const handleCategoryChange = (cat: string) => {
-    setSearchParams({ category: cat, sort, page: '0' });
+    const params: any = { category: cat, sort, page: '0' };
+    // 카테고리 변경 시 검색 상태 유지
+    if (searchKeyword) {
+      params.searchType = searchType;
+      params.search = searchKeyword;
+    }
+    setSearchParams(params);
   };
 
   const handleSortChange = (s: string) => {
-    setSearchParams({ category, sort: s, page: '0' });
+    const params: any = { category, sort: s, page: '0' };
+    // 정렬 변경 시 검색 상태 유지
+    if (searchKeyword) {
+      params.searchType = searchType;
+      params.search = searchKeyword;
+    }
+    setSearchParams(params);
   };
 
   const handlePageChange = (nextPage: number) => {
-    setSearchParams({ category, sort, page: String(nextPage) });
+    const params: any = { category, sort, page: String(nextPage) };
+    if (searchKeyword) {
+      params.searchType = searchType;
+      params.search = searchKeyword;
+    }
+    setSearchParams(params);
+  };
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params: any = { category, sort, page: '0' };
+    if (searchInput.trim()) {
+      params.searchType = searchTypeInput;
+      params.search = searchInput.trim();
+    }
+    setSearchParams(params);
+  };
+  
+  const handleSearchReset = () => {
+    setSearchInput('');
+    setSearchParams({ category, sort, page: '0' });
   };
 
-  const canWrite = user && (!RESTRICTED_CATEGORIES.includes(category) || user.role === 'ADMIN');
+  const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
   const hotPosts = posts.filter((p) => p.hot).slice(0, 4);
   const normalPosts = sort === 'popular' ? posts.slice(0, 30) : posts.filter((p) => !p.hot).slice(0, 25);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6 font-sans">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-4xl font-bold mb-8 text-center text-white drop-shadow-glow">🪐 게시판</h2>
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-bold text-white drop-shadow-glow mb-2">🪐 {CATEGORY_LABELS[category]} 게시판</h2>
+          <p className="text-gray-400 text-sm">우주에 대한 다양한 이야기를 나눠보세요</p>
+        </div>
 
         {/* 카테고리 선택 */}
-        <div className="flex flex-wrap gap-2 justify-center mb-6">
-          {Object.keys(CATEGORY_LABELS).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => handleCategoryChange(cat)}
-              className={`px-4 py-2 rounded-full text-base font-medium transition ${
-                category === cat ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {CATEGORY_LABELS[cat]}
-            </button>
-          ))}
+        <div className="mb-8 p-6 bg-[#1f2336]/80 backdrop-blur-md rounded-xl shadow-xl">
+          <h3 className="text-lg font-semibold mb-4 text-center">📚 게시판 카테고리</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {Object.keys(CATEGORY_LABELS).map((cat) => {
+              const icons = {
+                NEWS: '🚀',
+                DISCUSSION: '💬',
+                IMAGE: '🌌',
+                EVENT: '🏦',
+                REVIEW: '⭐',
+                FREE: '🎈',
+                NOTICE: '📢'
+              };
+              return (
+                <button
+                  key={cat}
+                  onClick={() => handleCategoryChange(cat)}
+                  className={`p-4 rounded-lg text-center transition-all duration-200 ${
+                    category === cat 
+                      ? 'bg-purple-600/40 border-2 border-purple-400 text-white shadow-lg transform scale-105' 
+                      : 'bg-gray-700/50 border-2 border-gray-600/30 text-gray-300 hover:bg-gray-600/50 hover:border-gray-500/50'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{icons[cat as keyof typeof icons]}</div>
+                  <div className="text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* 뉴스 카테고리 자동 업데이트 안내 */}
@@ -131,6 +201,51 @@ export default function PostList() {
           </div>
         )}
 
+        {/* 검색 기능 */}
+        <div className="mb-6 p-4 bg-[#1f2336]/80 rounded-lg border border-gray-600">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={searchTypeInput}
+              onChange={(e) => setSearchTypeInput(e.target.value)}
+              className="bg-[#2a2e45] text-white rounded px-3 py-2 text-sm"
+            >
+              <option value="title">제목</option>
+              <option value="content">내용</option>
+              <option value="titleAndContent">제목+내용</option>
+              <option value="writer">글작성자</option>
+            </select>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="검색어를 입력하세요..."
+              className="flex-1 bg-[#2a2e45] text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition"
+              >
+                🔍 검색
+              </button>
+              {searchKeyword && (
+                <button
+                  type="button"
+                  onClick={handleSearchReset}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition"
+                >
+                  초기화
+                </button>
+              )}
+            </div>
+          </form>
+          {searchKeyword && (
+            <div className="mt-2 text-sm text-gray-300">
+              검색 결과: "{searchKeyword}" ({searchType === 'titleAndContent' ? '제목+내용' : searchType === 'title' ? '제목' : searchType === 'content' ? '내용' : '글작성자'})
+            </div>
+          )}
+        </div>
+
         {/* 정렬 및 글쓰기 */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
@@ -146,10 +261,10 @@ export default function PostList() {
           </div>
           {canWrite && (
             <Link
-              to={`/posts/write?category=${category}`}
+              to={`/posts/write?fixedCategory=${category}`}
               className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
-              ✍️ 글쓰기
+              ✍️ {CATEGORY_LABELS[category]} 글쓰기
             </Link>
           )}
         </div>
@@ -168,18 +283,26 @@ export default function PostList() {
                   {hotPosts.map((post) => (
                     <li
                       key={post.id}
-                      className="bg-[#1f2336]/80 border border-gray-700 rounded-xl p-5 shadow-xl hover:shadow-purple-700 transition-shadow"
+                      className="bg-gradient-to-br from-[#1f2336]/90 to-[#252842]/90 border border-orange-500/30 rounded-xl p-6 shadow-xl hover:shadow-orange-500/50 transition-all duration-300 transform hover:scale-[1.02]"
                     >
                       <Link to={`/posts/${post.id}`} className="block h-full">
-                        <h3 className="text-lg font-bold mb-1 text-white">
-                          {post.dDay && <span className="text-orange-300 text-sm mr-2">[{post.dDay}]</span>}
-                          🔥 {post.title}{' '}
-                          {post.blinded && <span className="text-red-400 text-sm">(블라인드)</span>}
-                        </h3>
-                        <p className="text-sm text-gray-300 mb-2 line-clamp-2">{post.content}</p>
-                        <div className="flex justify-between text-sm text-gray-400">
-                          <span>✍ {post.writer}</span>
-                          <span>❤️ {post.likeCount}</span>
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <span className="text-orange-400">🔥</span>
+                            {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs">[{post.dDay}]</span>}
+                            {post.title}
+                            {post.blinded && <span className="text-red-400 text-xs">(블라인드)</span>}
+                          </h3>
+                          <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>
+                        </div>
+                        <p className="text-sm text-gray-300 mb-4 line-clamp-2 leading-relaxed">{post.content}</p>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-400">✍ {post.writer}</span>
+                          <div className="flex gap-3 text-gray-400">
+                            <span className="flex items-center gap-1">💬 {post.commentCount || 0}</span>
+                            <span className="flex items-center gap-1">❤️ {post.likeCount}</span>
+                            <span className="flex items-center gap-1">📅 {new Date(post.createdAt).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </Link>
                     </li>
@@ -196,18 +319,24 @@ export default function PostList() {
               {normalPosts.map((post) => (
                 <li
                   key={post.id}
-                  className="bg-[#1f2336]/80 border border-gray-700 rounded-lg px-4 py-3 hover:shadow-lg transition"
+                  className="bg-[#1f2336]/80 border border-gray-600/50 rounded-lg p-4 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg transition-all duration-200"
                 >
                   <Link to={`/posts/${post.id}`} className="block">
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-base font-semibold text-white">
-                        {post.dDay && <span className="text-orange-300 text-sm mr-2">[{post.dDay}]</span>}
-                        {post.title}{' '}
-                        {post.blinded && <span className="text-red-400 text-sm">(블라인드)</span>}
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-base font-semibold text-white flex-1 mr-4">
+                        {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">[{post.dDay}]</span>}
+                        {post.title}
+                        {post.blinded && <span className="text-red-400 text-xs ml-2">(블라인드)</span>}
                       </h4>
-                      <span className="text-sm text-gray-400">❤️ {post.likeCount}</span>
+                      <div className="flex gap-3 text-sm text-gray-400 flex-shrink-0">
+                        <span className="flex items-center gap-1">💬 {post.commentCount || 0}</span>
+                        <span className="flex items-center gap-1">❤️ {post.likeCount}</span>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-400 mt-1">✍ {post.writer}</p>
+                    <div className="flex justify-between items-center text-sm text-gray-400">
+                      <span className="flex items-center gap-1">✍ {post.writer}</span>
+                      <span className="flex items-center gap-1">📅 {new Date(post.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </Link>
                 </li>
               ))}

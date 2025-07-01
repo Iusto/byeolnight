@@ -17,7 +17,10 @@ export default function AdminReportedPostsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<ReportedPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<ReportedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchType, setSearchType] = useState('title');
 
   useEffect(() => {
     if (!user || user.role !== 'ADMIN') {
@@ -30,12 +33,41 @@ export default function AdminReportedPostsPage() {
   const fetchReportedPosts = async () => {
     try {
       const res = await axios.get('/admin/posts/reported');
-      setPosts(res.data?.data || []);
+      const postsData = res.data?.data || [];
+      setPosts(postsData);
+      setFilteredPosts(postsData);
     } catch (err) {
       console.error('신고된 게시글 조회 실패:', err);
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleSearch = () => {
+    if (!searchKeyword.trim()) {
+      setFilteredPosts(posts);
+      return;
+    }
+    
+    const filtered = posts.filter(post => {
+      switch (searchType) {
+        case 'title':
+          return post.title.toLowerCase().includes(searchKeyword.toLowerCase());
+        case 'writer':
+          return post.writer.toLowerCase().includes(searchKeyword.toLowerCase());
+        case 'category':
+          return post.category.toLowerCase().includes(searchKeyword.toLowerCase());
+        default:
+          return true;
+      }
+    });
+    
+    setFilteredPosts(filtered);
+  };
+  
+  const handleSearchReset = () => {
+    setSearchKeyword('');
+    setFilteredPosts(posts);
   };
 
   const handleBlind = async (postId: number) => {
@@ -74,10 +106,52 @@ export default function AdminReportedPostsPage() {
           </button>
           <h1 className="text-3xl font-bold">🚨 신고된 게시글 관리</h1>
         </div>
+        
+        {/* 검색 기능 */}
+        <div className="mb-6 p-4 bg-[#1f2336]/80 rounded-lg border border-gray-600">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value)}
+              className="bg-[#2a2e45] text-white rounded px-3 py-2 text-sm"
+            >
+              <option value="title">제목</option>
+              <option value="writer">작성자</option>
+              <option value="category">카테고리</option>
+            </select>
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="검색어를 입력하세요..."
+              className="flex-1 bg-[#2a2e45] text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleSearch}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition"
+              >
+                🔍 검색
+              </button>
+              <button
+                onClick={handleSearchReset}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition"
+              >
+                초기화
+              </button>
+            </div>
+          </div>
+          {searchKeyword && (
+            <div className="mt-2 text-sm text-gray-300">
+              검색 결과: "{searchKeyword}" ({filteredPosts.length}건)
+            </div>
+          )}
+        </div>
 
-        {posts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <div className="text-center text-gray-400 py-12">
-            신고된 게시글이 없습니다.
+            {searchKeyword ? '검색 결과가 없습니다.' : '신고된 게시글이 없습니다.'}
           </div>
         ) : (
           <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl shadow-xl overflow-hidden">
@@ -95,7 +169,7 @@ export default function AdminReportedPostsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {posts.map((post) => (
+                  {filteredPosts.map((post) => (
                     <tr key={post.id} className="border-b border-gray-600 hover:bg-[#2a2e45]/50">
                       <td className="px-6 py-4">
                         <button

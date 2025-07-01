@@ -9,23 +9,25 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class PointHistoryDto {
-    private final Long id;
-    private final String type;
-    private final String typeDescription;
-    private final int amount;
-    private final String description;
-    private final String referenceId;
-    private final LocalDateTime createdAt;
-    
+    private Long id;
+    private Integer amount;
+    private String type;
+    private String typeDescription;
+    private String reason;
+    private String referenceId;
+    private LocalDateTime createdAt;
+    private boolean isEarned; // 획득인지 사용인지
+
     public static PointHistoryDto from(PointHistory history) {
         return PointHistoryDto.builder()
                 .id(history.getId())
+                .amount(history.getAmount())
                 .type(history.getType().name())
                 .typeDescription(history.getType().getDescription())
-                .amount(history.getAmount())
-                .description(history.getDescription())
+                .reason(history.getReason())
                 .referenceId(history.getReferenceId())
                 .createdAt(history.getCreatedAt())
+                .isEarned(history.getAmount() > 0)
                 .build();
     }
 }

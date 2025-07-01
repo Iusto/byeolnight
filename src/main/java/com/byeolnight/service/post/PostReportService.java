@@ -37,7 +37,7 @@ public class PostReportService {
         report.approve(admin);
         
         // 신고자에게 포인트 지급
-        pointService.awardReportSuccessPoints(report.getUser(), report.getPost().getId().toString());
+        pointService.awardValidReportPoints(report.getUser(), report.getPost().getId().toString());
     }
     
     /**
@@ -79,7 +79,7 @@ public class PostReportService {
             }
             
             // 신고 성공 포인트 지급 (신고자에게)
-            pointService.awardReportSuccessPoints(user, postId.toString());
+            pointService.awardValidReportPoints(user, postId.toString());
         }
     }
 }

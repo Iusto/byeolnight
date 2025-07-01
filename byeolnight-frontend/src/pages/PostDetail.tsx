@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import { parseMarkdown } from '../utils/markdown';
 import UserProfileModal from '../components/UserProfileModal';
 import AdminActionModal from '../components/AdminActionModal';
 import PostAdminModal from '../components/PostAdminModal';
@@ -17,6 +18,7 @@ interface Post {
   likedByMe: boolean;
   createdAt: string;
   viewCount: number;
+  commentCount: number;
 }
 
 interface Comment {
@@ -25,6 +27,8 @@ interface Comment {
   writer: string;
   blinded?: boolean;
   createdAt: string;
+  parentId?: number;
+  parentWriter?: string;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -72,6 +76,7 @@ export default function PostDetail() {
   const [showPostAdminModal, setShowPostAdminModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<number>();
+  const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null); // 답글 기능 활성화
 
   const fetchPost = async () => {
     try {
@@ -85,14 +90,63 @@ export default function PostDetail() {
     }
   };
 
+  // 댓글을 계층 구조로 정렬하는 함수
+  const organizeComments = (comments: Comment[]) => {
+    const parentComments = comments.filter(c => !c.parentId);
+    const childComments = comments.filter(c => c.parentId);
+    
+    const organized: Comment[] = [];
+    
+    parentComments.forEach(parent => {
+      organized.push(parent);
+      // 해당 부모 댓글의 답글들을 찾아서 바로 뒤에 추가
+      const replies = childComments.filter(child => child.parentId === parent.id);
+      organized.push(...replies);
+    });
+    
+    return organized;
+  };
+
   const fetchComments = async () => {
     try {
-      const res = await axios.get(`/comments/post/${id}`);
-      // 응답 구조 안전하게 처리
-      const commentsData = res.data?.data || res.data || [];
-      setComments(Array.isArray(commentsData) ? commentsData : []);
+      console.log('댓글 조회 요청:', `/public/comments/post/${id}`);
+      const res = await axios.get(`/public/comments/post/${id}`);
+      
+      console.log('전체 응답:', res);
+      console.log('응답 데이터:', res.data);
+      console.log('응답 데이터 타입:', typeof res.data);
+      
+      let commentsData = [];
+      
+      // CommonResponse 구조 처리: { success: true, data: [...] }
+      if (res.data && typeof res.data === 'object') {
+        if (res.data.success === true && res.data.data) {
+          commentsData = res.data.data;
+          console.log('CommonResponse success 구조로 파싱:', commentsData);
+        } else if (res.data.success === false) {
+          console.error('API 오류:', res.data.message);
+          commentsData = [];
+        } else if (Array.isArray(res.data)) {
+          // 직접 배열인 경우
+          commentsData = res.data;
+          console.log('직접 배열로 파싱:', commentsData);
+        } else {
+          console.warn('예상치 못한 응답 구조:', res.data);
+          commentsData = [];
+        }
+      }
+      
+      console.log('최종 댓글 데이터:', commentsData);
+      console.log('댓글 데이터 길이:', Array.isArray(commentsData) ? commentsData.length : 'Not Array');
+      
+      // 댓글을 계층 구조로 정렬
+      const organizedComments = organizeComments(Array.isArray(commentsData) ? commentsData : []);
+      console.log('정렬된 댓글:', organizedComments);
+      
+      setComments(organizedComments);
     } catch (err) {
-      console.error('댓글 조회 실패', err);
+      console.error('댓글 조회 실패:', err);
+      console.error('에러 상세:', err.response);
       setComments([]);
     }
   };
@@ -102,15 +156,45 @@ export default function PostDetail() {
     if (!newComment.trim()) return;
 
     try {
-      await axios.post('/comments', {
+      console.log('댓글 등록 요청:', {
+        postId: Number(id),
+        content: newComment
+      });
+      
+      // 인증 토큰 확인
+      const token = localStorage.getItem('accessToken');
+      console.log('저장된 토큰:', token ? '있음' : '없음');
+      console.log('로그인 상태:', user ? user.nickname : '비로그인');
+      
+      const requestData = {
         postId: Number(id),
         content: newComment,
-      });
+        parentId: replyTo?.id || null // 답글인 경우 부모 댓글 ID 포함
+      };
+      
+      const response = await axios.post('/member/comments', requestData);
+      
+      console.log('댓글 등록 성공:', response.data);
+      console.log('댓글 등록 응답 전체:', response);
+      
       setNewComment('');
-      fetchComments();
-      setError(''); // 성공 시 에러 메시지 지우기
+      setReplyTo(null); // 답글 상태 초기화
+      setError('');
+      
+      // 답글 등록 성공 메시지
+      if (replyTo) {
+        console.log(`${replyTo.writer}님에게 답글이 등록되었습니다.`);
+      }
+      
+      // 트랜잭션 커밋을 위해 더 긴 딩레이 후 댓글 새로고침
+      setTimeout(() => {
+        console.log('댓글 등록 후 새로고침 시작');
+        fetchComments();
+      }, 1000);
+      
     } catch (err: any) {
       console.error('댓글 등록 실패:', err);
+      console.error('에러 응답:', err.response);
       const errorMsg = err?.response?.data?.message || '댓글 등록에 실패했습니다.';
       setError(errorMsg);
       alert(errorMsg);
@@ -275,62 +359,42 @@ export default function PostDetail() {
           </button> · 🗂 {categoryName} · ❤️ {post.likeCount} · 👁 {post.viewCount} · 📅 {formattedDate}
           {post.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
         </div>
-        <div className="text-starlight whitespace-pre-wrap mb-6">
-          {/* 마크다운 이미지 렌더링 */}
-          {post.content.split('\n').map((line, index) => {
-            // 마크다운 이미지 패턴 검사: ![alt](url)
-            const imageMatch = line.match(/!\[([^\]]*)\]\(([^\)]+)\)/);
-            if (imageMatch) {
-              const [, alt, src] = imageMatch;
-              return (
-                <div key={index} className="my-4">
-                  <img 
-                    src={src} 
-                    alt={alt || '뉴스 이미지'} 
-                    className="max-w-full h-auto rounded-lg shadow-lg"
-                    onError={(e) => {
-                      // 이미지 로드 실패 시 대체 텍스트 표시
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                  <div className="hidden text-gray-400 text-sm mt-2 p-2 bg-gray-800 rounded">
-                    🖼️ 이미지를 불러올 수 없습니다: {alt}
-                  </div>
-                </div>
-              );
-            }
-            // 일반 텍스트 라인
-            return <div key={index}>{line}</div>;
-          })}
-        </div>
+        <div 
+          className="text-starlight mb-6"
+          dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
+        />
 
         <div className="flex flex-wrap gap-4 mb-8">
-          <button
-            onClick={handleLike}
-            disabled={!user || post.likedByMe}
-            className={`px-4 py-1 rounded transition ${
-              !user
-                ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-                : post.likedByMe
-                ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-purple-600 hover:bg-purple-700'
-            }`}
-          >
-            {!user ? '❤️ 로그인 필요' : post.likedByMe ? '✅ 이미 추천함' : '❤️ 추천'}
-          </button>
+          {/* 자기가 작성한 글이 아닌 경우에만 추천/신고 버튼 표시 */}
+          {user?.nickname !== post.writer && (
+            <>
+              <button
+                onClick={handleLike}
+                disabled={!user || post.likedByMe}
+                className={`px-4 py-1 rounded transition ${
+                  !user
+                    ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+                    : post.likedByMe
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700'
+                }`}
+              >
+                {!user ? '❤️ 로그인 필요' : post.likedByMe ? '✅ 이미 추천함' : '❤️ 추천'}
+              </button>
 
-          <button
-            onClick={handleReport}
-            disabled={!user}
-            className={`px-4 py-1 rounded transition ${
-              !user
-                ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-                : 'bg-red-600 hover:bg-red-700'
-            }`}
-          >
-            🚨 신고
-          </button>
+              <button
+                onClick={handleReport}
+                disabled={!user}
+                className={`px-4 py-1 rounded transition ${
+                  !user
+                    ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                🚨 신고
+              </button>
+            </>
+          )}
 
           {/* 작성자 또는 관리자 기능 */}
           {user && user.nickname === post.writer && (
@@ -362,57 +426,87 @@ export default function PostDetail() {
         </div>
 
         <hr className="border-gray-600 my-6" />
-        <h2 className="text-2xl font-semibold mb-4">💬 댓글</h2>
+        <h2 className="text-2xl font-semibold mb-4">💬 댓글 ({post.commentCount || comments.length})</h2>
 
-        <form onSubmit={handleCommentSubmit} className="mb-6">
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            rows={3}
-            placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
-            className="w-full p-3 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
-            disabled={!user}
-          />
-          {error && (
-            <div className="text-red-400 text-sm mb-2">
-              {error}
-            </div>
-          )}
-          <button
-            type="submit"
-            className={`px-4 py-2 rounded text-sm transition ${
-              !user
-                ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-                : 'bg-blue-500 hover:bg-blue-600'
-            }`}
-            disabled={!user}
-          >
-            {user ? '댓글 등록' : '로그인 필요'}
-          </button>
-        </form>
+        {/* 일반 댓글 입력창 (답글 모드가 아닐 때만 표시) */}
+        {!replyTo && (
+          <form onSubmit={handleCommentSubmit} className="mb-6">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              rows={3}
+              placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
+              className="w-full p-3 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
+              disabled={!user}
+            />
+            {error && (
+              <div className="text-red-400 text-sm mb-2">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              className={`px-4 py-2 rounded text-sm transition ${
+                !user
+                  ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+                  : 'bg-blue-500 hover:bg-blue-600'
+              }`}
+              disabled={!user}
+            >
+              {user ? '댓글 등록' : '로그인 필요'}
+            </button>
+          </form>
+        )}
 
         {comments.length === 0 ? (
           <p className="text-gray-400">댓글이 없습니다.</p>
         ) : (
           <ul className="space-y-4">
             {comments.map((c) => (
-              <li key={c.id} className="p-3 bg-[#2a2e45] rounded-md shadow-sm">
+              <li key={c.id} className={`p-3 rounded-md shadow-sm ${
+                c.parentId ? 'bg-[#252842] ml-8 border-l-2 border-purple-500' : 'bg-[#2a2e45]'
+              }`}>
+                {c.parentId && (
+                  <div className="text-xs text-purple-300 mb-1">
+                    💬 {c.parentWriter}님에게 답글
+                  </div>
+                )}
                 <div className={`text-sm ${c.blinded ? 'text-gray-500 italic' : 'text-starlight'}`}>
                   {c.content}
                   {c.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
                 </div>
                 <div className="text-xs text-gray-400 mt-1 flex justify-between items-center">
-                  <span>
-                    ✍ <button 
-                      onClick={() => handleUserClick(c.writer)}
-                      className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-1 py-0.5 rounded text-xs transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
-                    >
-                      {c.writer}
-                    </button> · {new Date(c.createdAt).toLocaleString()}
-                  </span>
-                  {user && user.role === 'ADMIN' && (
-                    <div className="flex gap-2">
-                      {c.blinded ? (
+                  <div className="flex items-center gap-2">
+                    <span>
+                      ✍ <button 
+                        onClick={() => handleUserClick(c.writer)}
+                        className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-1 py-0.5 rounded text-xs transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
+                      >
+                        {c.writer}
+                      </button> · {new Date(c.createdAt).toLocaleString()}
+                    </span>
+                    {user && (
+                      <button
+                        onClick={() => {
+                          if (replyTo?.id === c.id) {
+                            setReplyTo(null); // 이미 답글 모드인 경우 취소
+                          } else {
+                            setReplyTo({id: c.id, writer: c.writer});
+                          }
+                        }}
+                        className={`text-xs px-2 py-1 rounded border transition ${
+                          replyTo?.id === c.id 
+                            ? 'text-red-400 hover:text-red-300 bg-red-600/20 hover:bg-red-600/40 border-red-500/30'
+                            : 'text-blue-400 hover:text-blue-300 bg-blue-600/20 hover:bg-blue-600/40 border-blue-500/30'
+                        }`}
+                      >
+                        {replyTo?.id === c.id ? '취소' : '답글'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {user && user.role === 'ADMIN' && (
+                      c.blinded ? (
                         <button
                           onClick={() => handleCommentUnblind(c.id)}
                           className="text-green-400 hover:text-green-300 text-xs px-2 py-1 bg-green-600/20 hover:bg-green-600/40 rounded border border-green-500/30"
@@ -426,10 +520,52 @@ export default function PostDetail() {
                         >
                           블라인드
                         </button>
-                      )}
-                    </div>
-                  )}
+                      )
+                    )}
+                  </div>
                 </div>
+                
+                {/* 해당 댓글에 대한 답글 입력창 */}
+                {replyTo?.id === c.id && (
+                  <div className="mt-3 p-3 bg-[#1a1d2e] rounded border border-purple-500/30">
+                    <div className="mb-2 text-xs text-purple-300">
+                      💬 {c.writer}님에게 답글 작성
+                    </div>
+                    <form onSubmit={handleCommentSubmit}>
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        rows={2}
+                        placeholder={`${c.writer}님에게 답글을 입력하세요...`}
+                        className="w-full p-2 rounded bg-[#2a2e45] text-white focus:outline-none mb-2 text-sm"
+                        autoFocus
+                      />
+                      {error && (
+                        <div className="text-red-400 text-xs mb-2">
+                          {error}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          className="px-3 py-1 rounded text-xs bg-blue-500 hover:bg-blue-600 transition"
+                        >
+                          답글 등록
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyTo(null);
+                            setNewComment('');
+                          }}
+                          className="px-3 py-1 rounded text-xs bg-gray-500 hover:bg-gray-600 transition"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

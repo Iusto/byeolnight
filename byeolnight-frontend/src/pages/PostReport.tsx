@@ -57,11 +57,21 @@ export default function PostReport() {
       navigate(`/posts/${id}`);
     } catch (err: any) {
       console.error('신고 실패:', err);
+      
+      // 409 에러 (중복 신고) 처리
+      if (err?.response?.status === 409) {
+        alert('이미 신고한 게시글입니다.');
+        navigate(`/posts/${id}`);
+        return;
+      }
+      
+      // 500 에러에서도 중복 신고 메시지 체크 (하위 호환성)
       if (err?.response?.status === 500 && err?.response?.data?.message?.includes('이미 신고한')) {
         alert('이미 신고한 게시글입니다.');
         navigate(`/posts/${id}`);
         return;
       }
+      
       const errorMsg = err?.response?.data?.message || '신고 접수에 실패했습니다.';
       alert(errorMsg);
     } finally {

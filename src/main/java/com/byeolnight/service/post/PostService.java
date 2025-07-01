@@ -34,6 +34,8 @@ public class PostService {
     private final S3Service s3Service;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
     private final PointService pointService;
+    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    private final com.byeolnight.service.ImageModerationService imageModerationService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
@@ -47,7 +49,9 @@ public class PostService {
                 .build();
         postRepository.save(post);
 
+        // 이미지 검증 및 저장
         dto.getImages().forEach(image -> {
+            System.out.println("이미지 검증 완료: " + image.originalName());
             File file = File.of(post, image.originalName(), image.s3Key(), image.url());
             fileRepository.save(file);
         });
@@ -108,10 +112,25 @@ public class PostService {
         // 비로그인 사용자도 게시글 조회 가능
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
         long likeCount = postLikeRepository.countByPost(post);
+        long commentCount = commentRepository.countByPostId(postId);
 
-        return PostResponseDto.of(post, likedByMe, likeCount, false);
+        return PostResponseDto.of(post, likedByMe, likeCount, false, commentCount);
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, String searchType, String search, Pageable pageable) {
+        System.out.println("게시글 조회 요청 - 카테고리: " + category + ", 정렬: " + sortParam + ", 검색타입: " + searchType + ", 검색어: " + search);
+        
+        // 검색 기능이 있는 경우
+        if (search != null && !search.trim().isEmpty()) {
+            System.out.println("검색 모드로 전환");
+            return searchPosts(category, searchType, search.trim(), pageable);
+        }
+        
+        System.out.println("일반 조회 모드");
+        return getFilteredPosts(category, sortParam, pageable);
+    }
+    
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, Pageable pageable) {
         Category categoryEnum = parseCategory(category);
@@ -130,20 +149,29 @@ public class PostService {
 
                 List<PostResponseDto> combined = new ArrayList<>();
 
-                // HOT 게시글은 HOT 플래그 true
+                // HOT 게시글은 HOT 플래그 true (안전 처리)
                 hotPosts.forEach(p -> {
-                    long actualLikeCount = postLikeRepository.countByPost(p);
-                    combined.add(PostResponseDto.of(p, false, actualLikeCount, true));
+                    try {
+                        long actualLikeCount = postLikeRepository.countByPost(p);
+                        long commentCount = commentRepository.countByPostId(p.getId());
+                        combined.add(PostResponseDto.of(p, false, actualLikeCount, true, commentCount));
+                    } catch (Exception e) {
+                        System.err.println("게시글 처리 실패 (HOT): " + p.getId() + ", 오류: " + e.getMessage());
+                    }
                 });
 
-                // 나머지 일반 게시글은 HOT 플래그 false
+                // 나머지 일반 게시글은 HOT 플래그 false (안전 처리)
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
-                        .map(p -> {
-                            long actualLikeCount = postLikeRepository.countByPost(p);
-                            return PostResponseDto.of(p, false, actualLikeCount, false);
-                        })
-                        .forEach(combined::add);
+                        .forEach(p -> {
+                            try {
+                                long actualLikeCount = postLikeRepository.countByPost(p);
+                                long commentCount = commentRepository.countByPostId(p.getId());
+                                combined.add(PostResponseDto.of(p, false, actualLikeCount, false, commentCount));
+                            } catch (Exception e) {
+                                System.err.println("게시글 처리 실패 (RECENT): " + p.getId() + ", 오류: " + e.getMessage());
+                            }
+                        });
 
                 return new PageImpl<>(combined, pageable, combined.size());
             }
@@ -154,7 +182,8 @@ public class PostService {
                 List<PostResponseDto> dtos = popularPosts.getContent().stream()
                         .map(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
-                            return PostResponseDto.of(p, false, actualLikeCount, false);
+                            long commentCount = commentRepository.countByPostId(p.getId());
+                            return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
                         })
                         .toList();
 
@@ -163,6 +192,42 @@ public class PostService {
         }
 
         throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다.");
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> searchPosts(String category, String searchType, String keyword, Pageable pageable) {
+        Category categoryEnum = parseCategory(category);
+        if (categoryEnum == null) throw new IllegalArgumentException("카테고리 누락");
+        
+        System.out.println("검색 실행: 카테고리=" + categoryEnum + ", 타입=" + searchType + ", 키워드=" + keyword);
+        
+        Page<Post> searchResults;
+        
+        switch (searchType) {
+            case "title" -> searchResults = postRepository.findByTitleContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(keyword, categoryEnum, pageable);
+            case "content" -> searchResults = postRepository.findByContentContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(keyword, categoryEnum, pageable);
+            case "titleAndContent" -> searchResults = postRepository.findByTitleOrContentContainingAndCategory(keyword, categoryEnum, pageable);
+            case "writer" -> searchResults = postRepository.findByWriterNicknameContainingAndCategory(keyword, categoryEnum, pageable);
+            default -> throw new IllegalArgumentException("지원하지 않는 검색 타입입니다.");
+        }
+        
+        System.out.println("검색 결과 수: " + searchResults.getTotalElements());
+        
+        List<PostResponseDto> dtos = searchResults.getContent().stream()
+                .map(p -> {
+                    try {
+                        long actualLikeCount = postLikeRepository.countByPost(p);
+                        long commentCount = commentRepository.countByPostId(p.getId());
+                        return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
+                    } catch (Exception e) {
+                        System.err.println("검색 결과 처리 실패: " + p.getId() + ", 오류: " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
+        
+        return new PageImpl<>(dtos, pageable, searchResults.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -176,7 +241,8 @@ public class PostService {
                 .map(p -> {
                     // 실제 PostLike 테이블에서 추천수 계산
                     long actualLikeCount = postLikeRepository.countByPost(p);
-                    return PostResponseDto.of(p, false, actualLikeCount, true);
+                    long commentCount = commentRepository.countByPostId(p.getId());
+                    return PostResponseDto.of(p, false, actualLikeCount, true, commentCount);
                 })
                 .toList();
     }
@@ -238,7 +304,10 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponseDto> getBlindedPosts() {
         return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
-                .map(PostResponseDto::from)
+                .map(p -> {
+                    long commentCount = commentRepository.countByPostId(p.getId());
+                    return PostResponseDto.from(p, false, commentCount);
+                })
                 .toList();
     }
 
@@ -309,7 +378,10 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponseDto> getReportedPosts() {
         return postRepository.findReportedPosts().stream()
-                .map(PostResponseDto::from)
+                .map(p -> {
+                    long commentCount = commentRepository.countByPostId(p.getId());
+                    return PostResponseDto.from(p, false, commentCount);
+                })
                 .toList();
     }
 }

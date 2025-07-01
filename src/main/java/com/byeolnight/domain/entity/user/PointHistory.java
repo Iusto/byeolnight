@@ -1,16 +1,19 @@
 package com.byeolnight.domain.entity.user;
 
-import com.byeolnight.domain.entity.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "point_history")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class PointHistory extends BaseTimeEntity {
+public class PointHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,48 +23,61 @@ public class PointHistory extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private Integer amount; // 양수: 획득, 음수: 사용
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PointType type;
 
-    @Column(nullable = false)
-    private int amount; // 양수: 획득, 음수: 차감
+    @Column(nullable = false, length = 500)
+    private String reason;
 
-    @Column(length = 500)
-    private String description;
-
-    @Column
+    @Column(name = "reference_id")
     private String referenceId; // 관련 게시글/댓글 ID 등
 
-    public enum PointType {
-        DAILY_LOGIN("매일 출석", 10),
-        POST_WRITE("게시글 작성", 20),
-        COMMENT_WRITE("댓글 작성", 5),
-        RECEIVE_LIKE("추천 받음", 2),
-        GIVE_LIKE("추천하기", 1),
-        REPORT_SUCCESS("신고 성공", 10),
-        MISSION_COMPLETE("미션 완료", 50),
-        PENALTY("규정 위반", -10);
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-        private final String description;
-        private final int defaultAmount;
-
-        PointType(String description, int defaultAmount) {
-            this.description = description;
-            this.defaultAmount = defaultAmount;
-        }
-
-        public String getDescription() { return description; }
-        public int getDefaultAmount() { return defaultAmount; }
+    @Builder
+    public PointHistory(User user, Integer amount, PointType type, String reason, String referenceId) {
+        this.user = user;
+        this.amount = amount;
+        this.type = type;
+        this.reason = reason;
+        this.referenceId = referenceId;
     }
 
-    public static PointHistory create(User user, PointType type, int amount, String description, String referenceId) {
+    public static PointHistory of(User user, Integer amount, PointType type, String reason, String referenceId) {
         return PointHistory.builder()
                 .user(user)
-                .type(type)
                 .amount(amount)
-                .description(description)
+                .type(type)
+                .reason(reason)
                 .referenceId(referenceId)
                 .build();
+    }
+
+    public enum PointType {
+        DAILY_ATTENDANCE("매일 출석"),
+        POST_WRITE("게시글 작성"),
+        COMMENT_WRITE("댓글 작성"),
+        POST_LIKED("게시글 추천 받음"),
+        VALID_REPORT("유효한 신고"),
+        GIVE_LIKE("추천하기"),
+        MISSION_COMPLETE("미션 완료"),
+        ICON_PURCHASE("아이콘 구매"),
+        PENALTY("규정 위반 페널티");
+
+        private final String description;
+
+        PointType(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
     }
 }

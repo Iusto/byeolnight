@@ -18,6 +18,8 @@ import Certificates from './pages/Certificates';
 import PasswordChange from './pages/PasswordChange';
 import StellaShop from './pages/StellaShop';
 import PostReport from './pages/PostReport';
+import PointHistory from './pages/PointHistory';
+import AdminReportsPage from './pages/AdminReportsPage';
 
 function App() {
   return (
@@ -37,10 +39,12 @@ function App() {
         <Route path="/posts/:id/report" element={<PostReport />} />
         <Route path="/admin/users" element={<AdminUserPage />} />
         <Route path="/admin/reports" element={<AdminReportedPostsPage />} />
+        <Route path="/admin/report-management" element={<AdminReportsPage />} />
         <Route path="/chat" element={<ChatRoom />} />
         <Route path="/certificates" element={<Certificates />} />
         <Route path="/password-change" element={<PasswordChange />} />
         <Route path="/shop" element={<StellaShop />} />
+        <Route path="/points" element={<PointHistory />} />
       </Route>
     </Routes>
   )

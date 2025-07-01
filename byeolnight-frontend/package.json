@@ -16,8 +16,10 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "jwt-decode": "^4.0.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "quill": "^1.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-quill": "^2.0.0",
     "react-router-dom": "^7.6.2",
     "sockjs-client": "^1.6.1",
     "stompjs": "^2.3.3"

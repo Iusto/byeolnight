@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/comments")
+@RequestMapping("/api/member/comments")
 @RequiredArgsConstructor
 public class CommentController {
 
@@ -28,15 +28,19 @@ public class CommentController {
     @PostMapping
     public ResponseEntity<CommonResponse<Long>> create(@Valid @RequestBody CommentRequestDto dto,
                                                        @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        System.out.println("CommentController.create 호출");
+        System.out.println("요청 데이터: " + dto.getPostId() + ", " + dto.getContent());
+        System.out.println("인증된 사용자: " + (user != null ? user.getNickname() + "(ID: " + user.getId() + ")" : "null"));
+        
+        if (user == null) {
+            System.err.println("사용자 인증 실패!");
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
+        
         return ResponseEntity.ok(CommonResponse.success(commentService.create(dto, user)));
     }
 
-    @Operation(summary = "게시글 댓글 목록 조회", description = "특정 게시글에 달린 모든 댓글을 조회합니다.")
-    @ApiResponse(responseCode = "200", description = "댓글 목록 반환")
-    @GetMapping("/post/{postId}")
-    public ResponseEntity<CommonResponse<List<CommentResponseDto>>> getByPost(@PathVariable Long postId) {
-        return ResponseEntity.ok(CommonResponse.success(commentService.getByPostId(postId)));
-    }
+
 
     @Operation(summary = "댓글 수정", description = "본인이 작성한 댓글을 수정합니다.")
     @PutMapping("/{commentId}")

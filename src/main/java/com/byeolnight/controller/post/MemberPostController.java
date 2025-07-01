@@ -30,9 +30,9 @@ public class MemberPostController {
         - 카테고리는 enum 값 중 선택: NEWS, DISCUSSION, IMAGE, EVENT, REVIEW
         - 이미지 업로드 가능 (선택, presigned URL 업로드 후 메타정보 전달)
         """)
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     public ResponseEntity<CommonResponse<Long>> create(
-            @RequestPart("requestDto") @Valid PostRequestDto requestDto,
+            @RequestBody @Valid PostRequestDto requestDto,
             @AuthenticationPrincipal User user) {
         Long postId = postService.createPost(requestDto, user);
         return ResponseEntity.ok(CommonResponse.success(postId));
@@ -43,10 +43,10 @@ public class MemberPostController {
         - 본인이 작성한 게시글만 수정 가능
         - 이미지 수정 포함 시 새로 업로드된 이미지 메타정보로 덮어쓰기
         """)
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping("/{id}")
     public ResponseEntity<CommonResponse<Void>> update(
             @PathVariable Long id,
-            @RequestPart("requestDto") @Valid PostRequestDto requestDto,
+            @RequestBody @Valid PostRequestDto requestDto,
             @AuthenticationPrincipal User user) {
         postService.updatePost(id, requestDto, user);
         return ResponseEntity.ok(CommonResponse.success());

@@ -22,9 +22,14 @@ public class Comment {
     @JoinColumn(name = "post_id")
     private Post post;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "writer_id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "writer_id", nullable = false)
     private User writer;
+
+    // 답글 기능 활성화
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", nullable = true)
+    private Comment parent;
 
     @Lob
     @Column(nullable = false)

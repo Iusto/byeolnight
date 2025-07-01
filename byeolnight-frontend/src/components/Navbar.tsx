@@ -34,34 +34,68 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-[#1f2336]/90 backdrop-blur-md shadow-md sticky top-0 z-50">
-      <nav className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="text-xl font-bold text-starlight drop-shadow-glow hover:text-white">
-          ✨ 별 헤는 밤
-        </Link>
+    <header className="bg-gradient-to-r from-[#1f2336]/95 via-[#252842]/95 to-[#1f2336]/95 backdrop-blur-md shadow-xl border-b border-purple-500/20 sticky top-0 z-50">
+      <nav className="max-w-7xl mx-auto px-6 py-4">
+        <div className="flex justify-between items-center">
+          {/* 로고 */}
+          <Link 
+            to="/" 
+            className="flex items-center gap-3 text-2xl font-bold text-white hover:text-purple-300 transition-all duration-300 group"
+          >
+            <div className="relative">
+              <span className="text-3xl group-hover:animate-pulse">🌌</span>
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
+            </div>
+            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
+              별 헤는 밤
+            </span>
+          </Link>
 
-        <div className="flex items-center gap-4 text-sm">
-          <Link to="/posts" className="hover:text-purple-300 transition">게시판</Link>
-          {user && (
-            <>
-              <Link to="/certificates" className="hover:text-purple-300 transition flex items-center gap-1">
-                🏆 인증서
+          {/* 네비게이션 */}
+          <div className="flex items-center gap-6">
+            {/* 메인 메뉴 */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link 
+                to="/posts" 
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-200 border border-purple-500/30 hover:border-purple-400"
+              >
+                <span>📚</span>
+                <span className="font-medium">게시판</span>
               </Link>
-              <Link to="/shop" className="hover:text-purple-300 transition flex items-center gap-1">
-                🌟 상점
-              </Link>
-            </>
-          )}
-          {user ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 bg-yellow-900/30 px-2 py-1 rounded-lg border border-yellow-600/30">
-                  <span className="text-yellow-400">⭐</span>
-                  <span className="text-yellow-300 font-medium text-sm">{user.points || 0}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-green-400 text-xs">•</span>
+              
+              {user && (
+                <>
+                  <Link 
+                    to="/certificates" 
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-200"
+                  >
+                    <span>🏆</span>
+                    <span>인증서</span>
+                  </Link>
+                  <Link 
+                    to="/shop" 
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-600/20 text-blue-300 hover:text-blue-200 transition-all duration-200"
+                  >
+                    <span>🌟</span>
+                    <span>상점</span>
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* 사용자 영역 */}
+            {user ? (
+              <div className="flex items-center gap-4">
+                {/* 포인트 */}
+                <Link to="/points" className="flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-3 py-2 rounded-lg border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-200 transform hover:scale-105">
+                  <span className="text-yellow-400 text-lg animate-pulse">⭐</span>
+                  <span className="text-yellow-200 font-bold">{user.points?.toLocaleString() || 0}</span>
+                </Link>
+
+                {/* 사용자 정보 */}
+                <div className="flex items-center gap-3 bg-[#2a2e45]/60 px-4 py-2 rounded-lg border border-purple-500/30">
                   <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     {equippedIcon && (
                       <StellaIcon
                         iconUrl={equippedIcon.iconUrl}
@@ -70,28 +104,84 @@ export default function Navbar() {
                         size="sm"
                       />
                     )}
-                    <span className="text-purple-300 font-medium">{user.nickname}</span>
+                    <span className="text-purple-200 font-semibold">{user.nickname}</span>
+                    {localStorage.getItem('rememberMe') === 'true' && (
+                      <span className="text-xs text-green-300 bg-green-900/30 px-2 py-1 rounded border border-green-600/30">
+                        자동
+                      </span>
+                    )}
                   </div>
-                  {localStorage.getItem('rememberMe') === 'true' && (
-                    <span className="text-xs text-gray-400 bg-gray-700 px-1 rounded">자동로그인</span>
+                </div>
+
+                {/* 메뉴 버튼들 */}
+                <div className="flex items-center gap-2">
+                  <Link 
+                    to="/me" 
+                    className="p-2 rounded-lg hover:bg-purple-600/20 text-purple-300 hover:text-purple-200 transition-all duration-200"
+                    title="내 정보"
+                  >
+                    <span className="text-lg">👤</span>
+                  </Link>
+                  
+                  {user.role === 'ADMIN' && (
+                    <Link 
+                      to="/admin/users" 
+                      className="p-2 rounded-lg hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-all duration-200"
+                      title="관리자"
+                    >
+                      <span className="text-lg">⚙️</span>
+                    </Link>
                   )}
+                  
+                  <button 
+                    onClick={logout}
+                    className="p-2 rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-200"
+                    title="로그아웃"
+                  >
+                    <span className="text-lg">🚪</span>
+                  </button>
                 </div>
               </div>
-              <Link to="/me" className="hover:text-purple-300 transition">내 정보</Link>
-              {user.role === 'ADMIN' && (
-                <Link to="/admin/users" className="hover:text-yellow-300 font-semibold">관리자</Link>
-              )}
-              <button onClick={logout} className="text-red-400 hover:text-red-300 transition">
-                로그아웃
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="hover:text-purple-300 transition">로그인</Link>
-              <Link to="/signup" className="hover:text-purple-300 transition">회원가입</Link>
-            </>
-          )}
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link 
+                  to="/login" 
+                  className="px-4 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-200 border border-purple-500/30 hover:border-purple-400 font-medium"
+                >
+                  로그인
+                </Link>
+                <Link 
+                  to="/signup" 
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  회원가입
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* 모바일 메뉴 */}
+        {user && (
+          <div className="md:hidden mt-4 pt-4 border-t border-purple-500/20">
+            <div className="flex justify-center gap-4">
+              <Link 
+                to="/certificates" 
+                className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-yellow-600/20 text-yellow-300 transition-all duration-200"
+              >
+                <span className="text-xl">🏆</span>
+                <span className="text-xs">인증서</span>
+              </Link>
+              <Link 
+                to="/shop" 
+                className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-blue-600/20 text-blue-300 transition-all duration-200"
+              >
+                <span className="text-xl">🌟</span>
+                <span className="text-xs">상점</span>
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
     </header>
   );

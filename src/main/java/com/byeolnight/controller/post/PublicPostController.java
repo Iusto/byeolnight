@@ -48,10 +48,16 @@ public class PublicPostController {
     public ResponseEntity<CommonResponse<Page<PostResponseDto>>> getPosts(
             @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "recent") String sort,
+            @RequestParam(required = false) String searchType,
+            @RequestParam(required = false) String search,
             @Parameter(hidden = true) Pageable pageableRaw
     ) {
+        System.out.println("API 요청 파라미터 - category: " + category + ", sort: " + sort + ", searchType: " + searchType + ", search: " + search);
+        
         Pageable pageable = PageRequest.of(pageableRaw.getPageNumber(), pageableRaw.getPageSize());
-        Page<PostResponseDto> posts = postService.getFilteredPosts(category, sort, pageable);
+        Page<PostResponseDto> posts = postService.getFilteredPosts(category, sort, searchType, search, pageable);
+        
+        System.out.println("반환할 게시글 수: " + posts.getTotalElements());
         return ResponseEntity.ok(CommonResponse.success(posts));
     }
 

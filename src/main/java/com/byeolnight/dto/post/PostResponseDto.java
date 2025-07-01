@@ -28,42 +28,51 @@ public class PostResponseDto {
     private boolean likedByMe;
     private boolean hot;
     private long viewCount;
+    private long commentCount; // 댓글 수
     private String dDay; // D-Day 표시용
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
-    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot) {
+    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount) {
+        // writer null 체크
+        String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
+        
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .category(post.getCategory().name())
-                .writer(post.getWriter().getNickname())
+                .writer(writerName)
                 .blinded(post.isBlinded())
                 .likeCount(likeCount)
                 .likedByMe(likedByMe)
                 .hot(isHot)
                 .viewCount(post.getViewCount())
+                .commentCount(commentCount)
                 .dDay(calculateDDay(post))
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
                 .build();
     }
 
-    public static PostResponseDto from(Post post, boolean isHot) {
+    public static PostResponseDto from(Post post, boolean isHot, long commentCount) {
+        // writer null 체크
+        String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
+        
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .category(post.getCategory().name())
-                .writer(post.getWriter().getNickname())
+                .writer(writerName)
                 .blinded(post.isBlinded())
                 .likeCount(post.getLikeCount())
                 .likedByMe(false)
                 .hot(isHot)
                 .viewCount(post.getViewCount())
+                .commentCount(commentCount)
                 .dDay(calculateDDay(post))
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
@@ -71,7 +80,7 @@ public class PostResponseDto {
     }
 
     public static PostResponseDto from(Post post) {
-        return from(post, false);
+        return from(post, false, 0);
     }
 
     private static String calculateDDay(Post post) {
