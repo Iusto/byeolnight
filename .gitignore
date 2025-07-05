@@ -1,34 +1,229 @@
-﻿# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-.vscode/
-*.iml
-
-# Logs
-*.log
-
-# Build output
-/build/
-/dist/
-/out/
-.gradle/
-
-# Dependency directories
-/node_modules/
-
-# Environment files
+# ========================================
+# 🔒 보안 관련 파일 (절대 업로드 금지)
+# ========================================
 .env*
 **/.env*
-
-# Application config
-*.local
+*.env
 *.env.local
+*.env.production
+*.env.staging
+*.env.development
+application-*.yml
+application-*.properties
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.truststore
+aws-credentials
+.aws/
+secrets/
+config/secrets/
 
-# Others
-*.bak
-*.swp
-.amazonq
+# ========================================
+# 🏗️ 빌드 및 컴파일 결과물
+# ========================================
+# Java/Spring Boot
+build/
+target/
+out/
+*.jar
+*.war
+*.ear
+*.class
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# Node.js/React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# ========================================
+# 📝 로그 및 임시 파일
+# ========================================
+logs/
+*.log
+*.log.*
+log/
+temp/
+tmp/
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# ========================================
+# 💾 데이터베이스 관련
+# ========================================
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+data/
+database/
 *.sql
+!schema.sql
+!init.sql
+
+# ========================================
+# 🖥️ 운영체제 관련
+# ========================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================================
+# 🛠️ IDE 및 에디터
+# ========================================
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# ========================================
+# 📦 패키지 관리자
+# ========================================
+# npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ========================================
+# ☁️ 클라우드 및 배포
+# ========================================
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# AWS
+.aws/
+aws-exports.js
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# ========================================
+# 🧪 테스트 관련
+# ========================================
+coverage/
+.nyc_output/
+.coverage
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+junit.xml
+test-results/
+
+# ========================================
+# 🔧 기타 도구
+# ========================================
+# Git
+*.orig
+*.rej
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Cache
+.cache/
+*.cache
+
+# AI 도구
+.amazonq/
+.cursor/
+
+# 기타
+*.zip
+*.tar.gz
+*.rar
+*.7z
