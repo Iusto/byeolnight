@@ -7,6 +7,10 @@ import com.byeolnight.domain.repository.CommentRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
+import com.byeolnight.dto.comment.CommentDto;
+import com.byeolnight.domain.repository.user.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,8 @@ public class CommentService {
     private final PostRepository postRepository;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
     private final com.byeolnight.service.user.PointService pointService;
+    private final UserRepository userRepository;
+    private final com.byeolnight.service.notification.NotificationService notificationService;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -85,6 +91,37 @@ public class CommentService {
             System.out.println("포인트 지급 완료");
         } catch (Exception e) {
             System.err.println("포인트 지급 실패: " + e.getMessage());
+        }
+        
+        // 알림 생성
+        try {
+            if (parentComment != null) {
+                // 답글인 경우 - 부모 댓글 작성자에게 알림
+                if (!parentComment.getWriter().getId().equals(user.getId())) {
+                    notificationService.createNotification(
+                        parentComment.getWriter().getId(),
+                        com.byeolnight.domain.entity.Notification.NotificationType.REPLY_ON_COMMENT,
+                        "댓글에 답글이 달렸습니다",
+                        user.getNickname() + "님이 회원님의 댓글에 답글을 달았습니다.",
+                        "/posts/" + post.getId(),
+                        commentId
+                    );
+                }
+            } else {
+                // 일반 댓글인 경우 - 게시글 작성자에게 알림
+                if (!post.getWriter().getId().equals(user.getId())) {
+                    notificationService.createNotification(
+                        post.getWriter().getId(),
+                        com.byeolnight.domain.entity.Notification.NotificationType.COMMENT_ON_POST,
+                        "게시글에 댓글이 달렸습니다",
+                        user.getNickname() + "님이 회원님의 게시글에 댓글을 달았습니다.",
+                        "/posts/" + post.getId(),
+                        commentId
+                    );
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("알림 생성 실패: " + e.getMessage());
         }
         
         System.out.println("댓글 등록 완전 완료 - commentId: " + commentId);
@@ -193,5 +230,26 @@ public class CommentService {
         pointService.applyPenalty(comment.getWriter(), "댓글 삭제", commentId.toString());
         
         commentRepository.delete(comment);
+    }
+
+    /**
+     * 내가 작성한 댓글 조회
+     */
+    @Transactional(readOnly = true)
+    public List<CommentDto.Response> getMyComments(Long userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        
+        System.out.println("내 댓글 조회 - userId: " + userId + ", nickname: " + user.getNickname());
+        
+        Page<Comment> comments = commentRepository.findByWriterOrderByCreatedAtDesc(user, pageable);
+        System.out.println("조회된 댓글 수: " + comments.getContent().size());
+        
+        return comments.getContent().stream()
+                .map(comment -> {
+                    System.out.println("댓글 변환: " + comment.getContent().substring(0, Math.min(20, comment.getContent().length())) + "...");
+                    return CommentDto.Response.from(comment);
+                })
+                .toList();
     }
 }

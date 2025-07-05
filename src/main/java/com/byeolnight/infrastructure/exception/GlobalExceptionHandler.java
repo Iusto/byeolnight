@@ -97,6 +97,30 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 건의사항 찾을 수 없음 예외
+     */
+    @ExceptionHandler(SuggestionNotFoundException.class)
+    public ResponseEntity<CommonResponse<?>> handleSuggestionNotFound(SuggestionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(CommonResponse.fail(ex.getMessage()));
+    }
+
+    /**
+     * 건의사항 접근 권한 없음 예외
+     */
+    @ExceptionHandler(SuggestionAccessDeniedException.class)
+    public ResponseEntity<CommonResponse<?>> handleSuggestionAccessDenied(SuggestionAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(CommonResponse.fail(ex.getMessage()));
+    }
+
+    /**
+     * 건의사항 수정 불가 예외
+     */
+    @ExceptionHandler(SuggestionModificationException.class)
+    public ResponseEntity<CommonResponse<?>> handleSuggestionModification(SuggestionModificationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(CommonResponse.fail(ex.getMessage()));
+    }
+
+    /**
      * 그 외 알 수 없는 서버 에러
      */
     @ExceptionHandler(Exception.class)

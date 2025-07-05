@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/posts")
 @SecurityRequirement(name = "BearerAuth")
+@Tag(name = "👮 관리자 API - 게시글", description = "게시글 관리 및 블라인드 처리 API")
 public class AdminPostController {
 
     private final PostService postService;

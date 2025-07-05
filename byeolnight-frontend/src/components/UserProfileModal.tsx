@@ -1,199 +1,251 @@
-import { useEffect, useState } from 'react';
-import axios from '../lib/axios';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from '../lib/axios';
+import type { SendMessageRequest } from '../types/message';
 
 interface UserProfile {
   id: number;
-  email: string;
   nickname: string;
-  phone: string;
-  role: string;
-  status: string;
-  level: number;
-  points: number;
+  email: string;
+
   postCount: number;
   commentCount: number;
+  attendanceCount: number;
+  iconCount: number;
+  certificates: Certificate[];
+
+}
+
+interface Certificate {
+  id: number;
+  title: string;
+  description: string;
+  iconUrl: string;
+  earnedAt: string;
 }
 
 interface UserProfileModalProps {
-  username: string;
+  userId: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function UserProfileModal({ username, isOpen, onClose }: UserProfileModalProps) {
+export default function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalProps) {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
-  const { user: currentUser } = useAuth();
+  const [showMessageForm, setShowMessageForm] = useState(false);
+  const [messageForm, setMessageForm] = useState({
+    title: '',
+    content: ''
+  });
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
-    if (isOpen && username) {
+    if (isOpen && userId) {
       fetchUserProfile();
     }
-  }, [isOpen, username]);
+  }, [isOpen, userId]);
 
   const fetchUserProfile = async () => {
-    setLoading(true);
     try {
-      const res = await axios.get(`/public/users/profile/${username}`);
-      setProfile(res.data.data);
-    } catch (err) {
-      console.error('사용자 프로필 조회 실패', err);
+      setLoading(true);
+      const response = await axios.get(`/member/users/${userId}/profile`);
+      const data = response.data;
+      
+      if (data.success) {
+        setProfile({
+          id: data.data.id,
+          nickname: data.data.nickname,
+          email: data.data.email || '',
+          postCount: data.data.postCount || 0,
+          commentCount: data.data.commentCount || 0,
+          attendanceCount: data.data.attendanceCount || 0,
+          iconCount: data.data.totalIconCount || 0,
+          certificates: data.data.certificates || [],
+        });
+      } else {
+        throw new Error(data.message || '프로필 조회 실패');
+      }
+    } catch (error) {
+      console.error('사용자 프로필 조회 실패:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAdminAction = async (action: string) => {
-    if (!profile) return;
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    switch (action) {
-      case 'manage':
-        window.location.href = '/admin/users';
-        break;
-      case 'lock':
-        if (confirm(`사용자 "${username}"의 계정을 잠금하시겠습니까?`)) {
-          try {
-            await axios.patch(`/admin/users/${profile.id}/lock`);
-            alert('계정이 잠금되었습니다.');
-          } catch {
-            alert('계정 잠금에 실패했습니다.');
-          }
-        }
-        break;
-      case 'suspend':
-        const suspendReason = prompt(`사용자 "${username}"을 정지하는 사유를 입력하세요:`);
-        if (suspendReason) {
-          try {
-            await axios.patch(`/admin/users/${profile.id}/status`, { 
-              status: 'SUSPENDED', 
-              reason: suspendReason 
-            });
-            alert('계정이 정지되었습니다.');
-          } catch {
-            alert('계정 정지에 실패했습니다.');
-          }
-        }
-        break;
-      case 'ban':
-        const banReason = prompt(`사용자 "${username}"을 밴하는 사유를 입력하세요:`);
-        if (banReason) {
-          try {
-            await axios.patch(`/admin/users/${profile.id}/status`, { 
-              status: 'BANNED', 
-              reason: banReason 
-            });
-            alert('계정이 밴되었습니다.');
-          } catch {
-            alert('계정 밴에 실패했습니다.');
-          }
-        }
-        break;
-      case 'withdraw':
-        const withdrawReason = prompt(`사용자 "${username}"을 강제 탈퇴시키는 사유를 입력하세요:`);
-        if (withdrawReason && confirm('정말 강제 탈퇴시킬까요? 이 작업은 되돌릴 수 없습니다.')) {
-          try {
-            await axios.delete(`/admin/users/${profile.id}?reason=${encodeURIComponent(withdrawReason)}`);
-            alert('사용자가 강제 탈퇴 처리되었습니다.');
-          } catch {
-            alert('강제 탈퇴 처리에 실패했습니다.');
-          }
-        }
-        break;
+    if (!messageForm.title.trim() || !messageForm.content.trim()) {
+      alert('제목과 내용을 모두 입력해주세요.');
+      return;
     }
-    onClose();
+
+    try {
+      setSendingMessage(true);
+      const messageData: SendMessageRequest = {
+        receiverId: userId,
+        title: messageForm.title,
+        content: messageForm.content
+      };
+      
+      const response = await axios.post('/member/messages', messageData);
+      if (!response.data.success) {
+        throw new Error(response.data.message || '쪽지 전송 실패');
+      }
+      alert('쪽지가 성공적으로 전송되었습니다!');
+      setShowMessageForm(false);
+      setMessageForm({ title: '', content: '' });
+    } catch (error: any) {
+      console.error('쪽지 전송 실패:', error);
+      const errorMessage = error.response?.data?.message || '쪽지 전송에 실패했습니다.';
+      alert(errorMessage);
+    } finally {
+      setSendingMessage(false);
+    }
   };
+
+
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div 
-        className="bg-[#1f2336] text-white p-6 rounded-xl max-w-md w-full mx-4 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">👤 사용자 프로필</h3>
-          <button 
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#1f2336]/95 backdrop-blur-md rounded-xl border border-purple-500/20 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between p-6 border-b border-purple-500/20">
+          <h2 className="text-xl font-bold text-white">👤 사용자 프로필</h2>
+          <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
+            className="p-2 hover:bg-purple-600/20 rounded-lg transition-colors text-gray-400 hover:text-white"
           >
-            ×
+            ✕
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-            <p className="text-gray-400">로딩 중...</p>
+          <div className="p-8 text-center">
+            <div className="text-white text-lg">로딩 중...</div>
           </div>
         ) : profile ? (
-          <div className="space-y-4">
-            <div className="text-center">
-              <div className="text-4xl mb-2">🌟</div>
-              <h4 className="text-lg font-semibold text-purple-300">{profile.nickname}</h4>
-              <p className="text-sm text-gray-400">레벨 {profile.level} • 포인트 {profile.points}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-[#2a2e45] p-3 rounded-lg text-center">
-                <div className="text-blue-400 font-semibold">{profile.postCount || 0}</div>
-                <div className="text-gray-400">작성 게시글</div>
+          <div className="p-6 space-y-6">
+            {/* 기본 정보 */}
+            <div className="bg-[#2a2e45]/60 rounded-lg p-6">
+              <div className="mb-4">
+                <h3 className="text-2xl font-bold text-white mb-2">{profile.nickname}</h3>
               </div>
-              <div className="bg-[#2a2e45] p-3 rounded-lg text-center">
-                <div className="text-green-400 font-semibold">{profile.commentCount || 0}</div>
-                <div className="text-gray-400">작성 댓글</div>
-              </div>
-            </div>
 
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>ID: <span className="text-blue-400">{profile.id}</span></p>
-              <p>상태: <span className="text-green-400">{profile.status}</span></p>
-              <p>권한: <span className="text-yellow-400">{profile.role}</span></p>
-            </div>
-
-            {/* 관리자 전용 기능 */}
-            {currentUser?.role === 'ADMIN' && (
-              <div className="border-t border-gray-600 pt-4">
-                <p className="text-sm text-orange-400 mb-3">🔧 관리자 기능</p>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <button
-                    onClick={() => handleAdminAction('lock')}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded text-sm transition font-medium"
-                  >
-                    계정 잠금
-                  </button>
-                  <button
-                    onClick={() => handleAdminAction('suspend')}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm transition font-medium"
-                  >
-                    계정 정지
-                  </button>
-                  <button
-                    onClick={() => handleAdminAction('ban')}
-                    className="bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded text-sm transition font-medium"
-                  >
-                    계정 밴
-                  </button>
-                  <button
-                    onClick={() => handleAdminAction('withdraw')}
-                    className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded text-sm transition font-medium"
-                  >
-                    강제 탈퇴
-                  </button>
+              {/* 통계 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-purple-600/10 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-300">{profile.postCount}</div>
+                  <div className="text-sm text-gray-400">작성한 글</div>
                 </div>
+                <div className="text-center p-3 bg-blue-600/10 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-300">{profile.commentCount}</div>
+                  <div className="text-sm text-gray-400">작성한 댓글</div>
+                </div>
+                <div className="text-center p-3 bg-green-600/10 rounded-lg">
+                  <div className="text-2xl font-bold text-green-300">{profile.attendanceCount}</div>
+                  <div className="text-sm text-gray-400">출석 일수</div>
+                </div>
+                <div className="text-center p-3 bg-orange-600/10 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-300">{profile.iconCount}</div>
+                  <div className="text-sm text-gray-400">보유 아이콘</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 최근 획득한 자격증 */}
+            <div className="bg-[#2a2e45]/60 rounded-lg p-6">
+              <h4 className="text-lg font-bold text-white mb-4">🏆 최근 획득한 자격증</h4>
+              {profile.certificates.length === 0 ? (
+                <p className="text-gray-400 text-center py-4">아직 획득한 자격증이 없습니다.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {profile.certificates.slice(0, 4).map((cert) => (
+                    <div key={cert.id} className="flex items-center gap-3 p-3 bg-[#1f2336]/60 rounded-lg">
+                      <div className="text-2xl">{cert.iconUrl}</div>
+                      <div className="flex-1">
+                        <h5 className="font-semibold text-white">{cert.title}</h5>
+                        <p className="text-sm text-gray-400">{cert.description}</p>
+                        <p className="text-xs text-gray-500">{new Date(cert.earnedAt).toLocaleDateString('ko-KR')}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 액션 버튼 */}
+            {user && user.id !== profile.id && (
+              <div className="flex gap-3">
                 <button
-                  onClick={() => handleAdminAction('manage')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition font-medium"
+                  onClick={() => setShowMessageForm(!showMessageForm)}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                 >
-                  사용자 관리 페이지
+                  📩 쪽지 보내기
                 </button>
+              </div>
+            )}
+
+            {/* 쪽지 작성 폼 */}
+            {showMessageForm && (
+              <div className="bg-[#2a2e45]/60 rounded-lg p-6">
+                <h4 className="text-lg font-bold text-white mb-4">📝 쪽지 작성</h4>
+                <form onSubmit={handleSendMessage} className="space-y-4">
+                  <div>
+                    <label className="block text-white font-medium mb-2">제목</label>
+                    <input
+                      type="text"
+                      value={messageForm.title}
+                      onChange={(e) => setMessageForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="쪽지 제목을 입력하세요"
+                      className="w-full px-4 py-3 bg-[#1f2336]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                      maxLength={100}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-medium mb-2">내용</label>
+                    <textarea
+                      value={messageForm.content}
+                      onChange={(e) => setMessageForm(prev => ({ ...prev, content: e.target.value }))}
+                      placeholder="쪽지 내용을 입력하세요"
+                      className="w-full px-4 py-3 bg-[#1f2336]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all resize-none"
+                      rows={4}
+                      maxLength={1000}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowMessageForm(false)}
+                      className="flex-1 px-6 py-3 bg-gray-600/30 hover:bg-gray-600/50 text-gray-300 font-medium rounded-lg transition-all duration-200"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sendingMessage}
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+                    >
+                      {sendingMessage ? '전송 중...' : '쪽지 전송'}
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-400">사용자 정보를 불러올 수 없습니다.</p>
+          <div className="p-8 text-center">
+            <div className="text-6xl mb-4">😕</div>
+            <p className="text-gray-400 text-lg">사용자 정보를 불러올 수 없습니다.</p>
           </div>
         )}
       </div>

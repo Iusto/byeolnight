@@ -8,6 +8,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/member/comments")
 @RequiredArgsConstructor
+@Tag(name = "📝 게시글 API - 댓글", description = "댓글 작성, 수정, 삭제 API")
 public class CommentController {
 
     private final CommentService commentService;

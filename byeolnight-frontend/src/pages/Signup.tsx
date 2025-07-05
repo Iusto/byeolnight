@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import axios from '../lib/axios';
 import AgreementModal from '../components/AgreementModal';
 import TermsOfService from '../components/TermsOfService';
@@ -7,6 +8,8 @@ import PrivacyPolicy from '../components/PrivacyPolicy';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const [form, setForm] = useState({
     email: '',
     emailCode: '',
@@ -32,6 +35,14 @@ export default function Signup() {
     nicknameCheck: false,
     signup: false,
   });
+  
+  // 이미 로그인된 사용자 리다이렉트
+  useEffect(() => {
+    if (user) {
+      alert('이미 로그인되었습니다.');
+      navigate('/', { replace: true });
+    }
+  }, []); // 초기 마운트 시에만 실행
   const [emailTimer, setEmailTimer] = useState(0);
   const [phoneTimer, setPhoneTimer] = useState(0);
 

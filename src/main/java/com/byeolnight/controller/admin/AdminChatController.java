@@ -6,6 +6,7 @@ import com.byeolnight.service.chat.AdminChatService;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RequestMapping("/api/admin/chat")
 @SecurityRequirement(name = "BearerAuth")
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
+@Tag(name = "👮 관리자 API - 채팅", description = "채팅 관리 및 제재 관련 API")
 public class AdminChatController {
 
     private final AdminChatService adminChatService;

@@ -29,8 +29,8 @@ public class StellaIcon extends BaseTimeEntity {
     private int price; // 포인트 가격
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private IconGrade grade; // 아이콘 등급
+    @Column(nullable = false, length = 20)
+    private StellaIconGrade grade; // 아이콘 등급
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -43,23 +43,7 @@ public class StellaIcon extends BaseTimeEntity {
     @Column
     private String animationClass; // CSS 애니메이션 클래스
 
-    public enum IconGrade {
-        COMMON("일반", "#9CA3AF"),
-        RARE("희귀", "#3B82F6"), 
-        LEGENDARY("전설", "#F59E0B"),
-        EVENT("한정", "#EF4444");
 
-        private final String displayName;
-        private final String color;
-
-        IconGrade(String displayName, String color) {
-            this.displayName = displayName;
-            this.color = color;
-        }
-
-        public String getDisplayName() { return displayName; }
-        public String getColor() { return color; }
-    }
 
     public enum IconType {
         STATIC("정적"), // PNG/SVG 고정 이미지

@@ -6,6 +6,10 @@ import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserResponseDto;
 import com.byeolnight.dto.user.PointStatusDto;
 import com.byeolnight.dto.user.PointHistoryDto;
+import com.byeolnight.dto.user.UserProfileDto;
+import com.byeolnight.dto.user.MyActivityDto;
+import com.byeolnight.dto.user.UserIdDto;
+import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.user.MissionService;
@@ -16,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +29,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/member/users")
+@Tag(name = "👤 회원 API - 사용자", description = "사용자 프로필 및 계정 관리 API")
 public class UserController {
 
     private final UserService userService;
@@ -51,6 +57,9 @@ public class UserController {
         // 복호화된 전화번호를 가져와서 UserResponseDto 생성
         String decryptedPhone = userService.getDecryptedPhone(user.getId());
         
+        // 장착된 아이콘 정보 조회
+        com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
+        
         UserResponseDto userResponse = UserResponseDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -59,14 +68,25 @@ public class UserController {
                 .role(user.getRole().name())
                 .nicknameChanged(user.isNicknameChanged())
                 .nicknameUpdatedAt(user.getNicknameUpdatedAt())
+                .points(user.getPoints()) // 포인트 정보 추가
+                .equippedIconId(equippedIcon != null ? equippedIcon.getIconId() : null)
+                .equippedIconName(equippedIcon != null ? equippedIcon.getIconName() : null)
                 .build();
                 
         return ResponseEntity.ok(CommonResponse.success(userResponse));
     }
 
-    /**
-     * 특정 사용자의 장착 중인 아이콘 조회
-     */
+    @Operation(summary = "사용자 프로필 조회", description = "특정 사용자의 프로필 정보를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<CommonResponse<UserProfileDto>> getUserProfile(@PathVariable Long userId) {
+        UserProfileDto profile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(CommonResponse.success(profile));
+    }
+
     @GetMapping("/{userId}/equipped-icon")
     public ResponseEntity<CommonResponse<com.byeolnight.dto.shop.EquippedIconDto>> getUserEquippedIcon(@PathVariable Long userId) {
         com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(userId);
@@ -135,5 +155,46 @@ public class UserController {
         
         List<PointHistoryDto> history = pointService.getUserPointHistory(user);
         return ResponseEntity.ok(CommonResponse.success(history));
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "내 활동 내역 조회", description = "내가 작성한 게시글, 댓글, 쪽지 내역을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    @GetMapping("/my-activity")
+    public ResponseEntity<CommonResponse<MyActivityDto>> getMyActivity(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        MyActivityDto activity = userService.getMyActivity(user.getId(), page, size);
+        return ResponseEntity.ok(CommonResponse.success(activity));
+    }
+
+    @Operation(summary = "닉네임으로 사용자 ID 조회", description = "닉네임을 통해 사용자 ID를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/profile-by-nickname/{nickname}")
+    public ResponseEntity<CommonResponse<UserIdDto>> getUserIdByNickname(@PathVariable String nickname) {
+        User user = userService.findByNickname(nickname)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        UserIdDto userIdDto = UserIdDto.builder().id(user.getId()).build();
+        return ResponseEntity.ok(CommonResponse.success(userIdDto));
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "테스트 데이터 생성", description = "개발용 테스트 데이터를 생성합니다.")
+    @PostMapping("/test-data")
+    public ResponseEntity<CommonResponse<String>> createTestData(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        try {
+            userService.createTestData(user);
+            return ResponseEntity.ok(CommonResponse.success("테스트 데이터가 생성되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.ok(CommonResponse.error("테스트 데이터 생성 실패: " + e.getMessage()));
+        }
     }
 }

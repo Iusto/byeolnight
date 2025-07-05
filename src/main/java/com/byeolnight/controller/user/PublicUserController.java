@@ -4,6 +4,7 @@ import com.byeolnight.dto.user.UserProfileDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/public/users")
 @RequiredArgsConstructor
+@Tag(name = "🌍 공개 API - 사용자", description = "비회원도 접근 가능한 사용자 정보 조회 API")
 public class PublicUserController {
 
     private final UserService userService;

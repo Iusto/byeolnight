@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import SimpleTextEditor from '../components/SimpleTextEditor';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface FileDto {
   originalName: string;
@@ -12,7 +13,7 @@ interface FileDto {
 
 export default function PostCreate() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUserInfo } = useAuth();
   const [searchParams] = useSearchParams();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -21,7 +22,7 @@ export default function PostCreate() {
 
   // URL 파라미터에서 고정 카테고리 설정
   const fixedCategory = searchParams.get('fixedCategory');
-  const isFixedCategory = fixedCategory && ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'].includes(fixedCategory);
+  const isFixedCategory = fixedCategory && ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE', 'NOTICE', 'NEWS', 'EVENT'].includes(fixedCategory);
   
   useEffect(() => {
     if (isFixedCategory) {
@@ -41,12 +42,32 @@ export default function PostCreate() {
     }
 
     try {
-      await axios.post('/member/posts', {
+      const response = await axios.post('/member/posts', {
         title,
         content,
         category,
         images: [], // 에디터에서 이미지는 HTML로 처리
       });
+      
+      console.log('게시글 작성 완료:', response.data);
+      
+      // 공지글인 경우 알림 생성 확인
+      if (category === 'NOTICE') {
+        console.log('공지글 작성 완료 - 알림 생성 대기 중...');
+        // 3초 후 알림 확인
+        setTimeout(async () => {
+          try {
+            const notificationResponse = await axios.get('/member/notifications/unread/count');
+            console.log('공지글 작성 후 알림 개수:', notificationResponse.data);
+          } catch (err) {
+            console.error('알림 확인 실패:', err);
+          }
+        }, 3000);
+      }
+      
+      // 사용자 정보 새로고침 (포인트 업데이트)
+      await refreshUserInfo();
+      
       // 해당 카테고리 게시판으로 이동
       navigate(`/posts?category=${category}&sort=recent`);
     } catch (err: any) {
@@ -85,18 +106,44 @@ export default function PostCreate() {
             required
             className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none"
           />
-          <SimpleTextEditor
-            value={content}
-            onChange={setContent}
-            placeholder="내용을 입력하세요..."
-          />
+          <div className="bg-white rounded-md">
+            <ReactQuill
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              placeholder="내용을 입력하세요..."
+              modules={{
+                toolbar: [
+                  [{ 'header': [1, 2, 3, false] }],
+                  ['bold', 'italic', 'underline', 'strike'],
+                  [{ 'color': [] }, { 'background': [] }],
+                  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                  [{ 'align': [] }],
+                  ['link', 'image'],
+                  ['clean']
+                ]
+              }}
+              formats={[
+                'header', 'bold', 'italic', 'underline', 'strike',
+                'color', 'background', 'list', 'bullet', 'align',
+                'link', 'image'
+              ]}
+              style={{
+                height: '300px',
+                marginBottom: '50px'
+              }}
+            />
+          </div>
           {isFixedCategory ? (
             <div className="w-full px-4 py-2 rounded-md bg-[#2a2e45] text-gray-300">
               카테고리: {{
                 DISCUSSION: '토론',
                 IMAGE: '사진', 
                 REVIEW: '후기',
-                FREE: '자유'
+                FREE: '자유',
+                NOTICE: '공지',
+                NEWS: '뉴스',
+                EVENT: '우주전시회'
               }[category]} (고정)
             </div>
           ) : (

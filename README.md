@@ -216,10 +216,15 @@ sequenceDiagram
 - ✅ 쪽지 읽음/안읽음 상태 관리
 - ✅ 쪽지 목록 조회 및 관리
 
-### 🔔 알림 시스템
-- ✅ 실시간 알림 전달 (WebSocket)
-- ✅ 알림 읽음 상태 관리
-- ✅ 다양한 알림 타입 지원
+### 🔔 실시간 알림 시스템 (완전 구현)
+- ✅ **WebSocket 기반 실시간 알림**: STOMP 프로토콜 사용
+- ✅ **자동 알림 생성**: 댓글/답글 작성 시 자동 알림
+- ✅ **공지사항 전체 알림**: 새 공지사항 등록 시 모든 사용자 알림
+- ✅ **쪽지 실시간 알림**: 새 쪽지 수신 시 즉시 알림
+- ✅ **읽음/안읽음 상태 관리**: 시각적 구분 및 개수 표시
+- ✅ **개별 알림 삭제**: X 버튼으로 개별 삭제 가능
+- ✅ **일괄 읽음 처리**: 모든 알림 읽음 처리
+- ✅ **브라우저 네이티브 알림**: 권한 허용 시 브라우저 알림
 
 ### 🛍️ 스텔라 아이콘 상점
 - ✅ 가상 화폐(스텔라) 시스템
@@ -388,7 +393,23 @@ CLOUD_AWS_SECRET_KEY=your-secret-key
 ## 📡 API 문서
 
 ### 🔗 Swagger UI
-개발 서버 실행 후 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)에서 전체 API 명세를 확인할 수 있습니다.
+개발 서버 실행 후 다음 URL에서 API 문서를 확인할 수 있습니다:
+
+- **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **OpenAPI JSON**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+#### 🏷️ API 그룹 분류
+- 🌍 **공개 API**: 비회원 접근 가능
+- 🔑 **인증 API**: 로그인, 회원가입, 토큰 관리
+- 👤 **회원 API**: 사용자 프로필 및 계정 관리
+- 📝 **게시글 API**: 게시글 CRUD 및 댓글
+- 💬 **채팅 API**: 실시간 채팅 기능
+- 💌 **쪽지 API**: 사용자 간 개인 메시지
+- 🔔 **알림 API**: 실시간 알림 시스템
+- 🛍️ **상점 API**: 스텔라 아이콘 상점
+- 🏆 **인증서 API**: 사용자 성취 인증서
+- 📁 **파일 API**: S3 파일 업로드
+- 👮 **관리자 API**: 사용자 및 컨텐츠 관리
 
 ### 주요 API 엔드포인트
 
@@ -441,9 +462,12 @@ PATCH  /api/messages/{id}/read # 쪽지 읽음 처리
 
 #### 🔔 알림 (Notification)
 ```http
-GET    /api/notifications      # 알림 목록 조회
-PATCH  /api/notifications/{id}/read  # 알림 읽음 처리
-DELETE /api/notifications/{id} # 알림 삭제
+GET    /api/member/notifications           # 알림 목록 조회 (페이징)
+GET    /api/member/notifications/unread    # 읽지 않은 알림 조회
+GET    /api/member/notifications/unread/count # 읽지 않은 알림 개수
+PUT    /api/member/notifications/{id}/read # 알림 읽음 처리
+PUT    /api/member/notifications/read-all  # 모든 알림 읽음 처리
+DELETE /api/member/notifications/{id}     # 알림 삭제
 ```
 
 #### 🛍️ 스텔라 상점 (Stella Shop)
@@ -561,11 +585,17 @@ jobs:
 - ✅ 관리자 시스템
 
 ### Phase 2 (완료)
-- ✅ 알림 시스템 (WebSocket 기반)
+- ✅ **완전한 실시간 알림 시스템** (WebSocket + STOMP)
+  - 댓글/답글 알림 자동 생성
+  - 공지사항 전체 사용자 알림
+  - 쪽지 실시간 알림
+  - 읽음/안읽음 상태 관리
+  - 개별 알림 삭제 기능
 - ✅ 쪽지 시스템
 - ✅ 뉴스 자동 수집 및 분류 (AI 크롤링)
 - ✅ 스텔라 아이콘 상점 시스템
 - ✅ 인증서 시스템
+- ✅ 댓글 답글 시스템 (재귀적 답글 지원)
 
 ### Phase 3 (진행 중)
 - 🔄 검색 기능 (Elasticsearch 연동)
@@ -574,7 +604,6 @@ jobs:
 
 ### Phase 4 (계획)
 - 📋 모바일 앱 (React Native)
-- 📋 실시간 화상 채팅
 - 📋 게임화 요소 확장
 - 📋 AI 기반 콘텐츠 추천
 

@@ -189,4 +189,13 @@ public class CertificateService {
         LOGIN, SIGNUP_COMPLETE, COMMENT_WRITE, POST_WRITE, 
         IMAGE_VIEW, EVENT_VIEW, CHAT_PARTICIPATE
     }
+
+    /**
+     * 사용자의 공개 인증서 조회 (최신순 제한)
+     */
+    public List<com.byeolnight.dto.certificate.CertificateDto.Response> getUserPublicCertificates(Long userId, int limit) {
+        // TODO: 실제 인증서 데이터 조회 로직 구현
+        // 임시로 빈 리스트 반환
+        return java.util.Collections.emptyList();
+    }
 }

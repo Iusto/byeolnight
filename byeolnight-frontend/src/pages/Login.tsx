@@ -1,15 +1,28 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loginSuccess, setLoginSuccess] = useState(false)
+  
+  // 이미 로그인된 사용자 리다이렉트
+  useEffect(() => {
+    // 로그인 성공으로 인한 리다이렉트가 아닌 경우에만 alert 표시
+    if (user && !loginSuccess) {
+      alert('이미 로그인되었습니다.');
+      navigate('/', { replace: true });
+    } else if (user && loginSuccess) {
+      // 로그인 성공 후에는 alert 없이 리다이렉트
+      navigate('/', { replace: true });
+    }
+  }, [user, loginSuccess, navigate]);
 
   // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
@@ -53,6 +66,7 @@ export default function Login() {
 
     try {
       await login(email, password, rememberMe)
+      setLoginSuccess(true) // 로그인 성공 플래그 설정
     } catch (err: any) {
       // 서버에서 온 구체적인 에러 메시지를 사용자 친화적으로 변환
       const errorMessage = getErrorMessage(err.message || '로그인에 실패했습니다.')

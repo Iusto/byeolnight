@@ -3,6 +3,7 @@ package com.byeolnight.controller.comment;
 import com.byeolnight.service.comment.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/comments")
 @SecurityRequirement(name = "BearerAuth")
+@Tag(name = "👮 관리자 API - 댓글", description = "댓글 관리 및 블라인드 처리 API")
 public class AdminCommentController {
 
     private final CommentService commentService;

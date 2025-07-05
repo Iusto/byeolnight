@@ -1,37 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import StellaIcon from './StellaIcon';
-import { useEffect, useState } from 'react';
-import axios from '../lib/axios';
-
-interface EquippedIcon {
-  id: number;
-  name: string;
-  iconUrl: string;
-  animationClass?: string;
-  grade: string;
-}
+import UserIconDisplay from './UserIconDisplay';
+import NotificationDropdown from './notification/NotificationDropdown';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const [equippedIcon, setEquippedIcon] = useState<EquippedIcon | null>(null);
-
-  useEffect(() => {
-    if (user?.equippedIconId) {
-      fetchEquippedIcon();
-    }
-  }, [user]);
-
-  const fetchEquippedIcon = async () => {
-    try {
-      const res = await axios.get('/shop/my-icons');
-      const icons = res.data.data || [];
-      const equipped = icons.find((icon: any) => icon.equipped);
-      setEquippedIcon(equipped || null);
-    } catch (err) {
-      console.error('장착 아이콘 조회 실패', err);
-    }
-  };
 
   return (
     <header className="bg-gradient-to-r from-[#1f2336]/95 via-[#252842]/95 to-[#1f2336]/95 backdrop-blur-md shadow-xl border-b border-purple-500/20 sticky top-0 z-50">
@@ -63,6 +36,14 @@ export default function Navbar() {
                 <span className="font-medium">게시판</span>
               </Link>
               
+              <Link 
+                to="/suggestions" 
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-200"
+              >
+                <span>💡</span>
+                <span>건의게시판</span>
+              </Link>
+              
               {user && (
                 <>
                   <Link 
@@ -74,10 +55,27 @@ export default function Navbar() {
                   </Link>
                   <Link 
                     to="/shop" 
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-600/20 text-blue-300 hover:text-blue-200 transition-all duration-200"
+                    className="relative flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600/30 via-blue-600/30 to-purple-600/30 hover:from-purple-500/40 hover:via-blue-500/40 hover:to-purple-500/40 text-white font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 border border-purple-400/30 hover:border-purple-300/50 overflow-hidden group"
                   >
-                    <span>🌟</span>
-                    <span>상점</span>
+                    {/* 반짝이는 배경 효과 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+                    
+                    {/* 스텔라 아이콘 */}
+                    <div className="relative flex items-center justify-center">
+                      <span className="text-lg animate-pulse group-hover:animate-spin transition-all duration-300">✨</span>
+                      {/* 주변 반짝이 효과 */}
+                      <div className="absolute -top-1 -right-1 w-1 h-1 bg-yellow-300 rounded-full animate-ping"></div>
+                      <div className="absolute -bottom-1 -left-1 w-1 h-1 bg-blue-300 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                      <div className="absolute top-0 left-0 w-1 h-1 bg-purple-300 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+                    </div>
+                    
+                    <span className="relative z-10 bg-gradient-to-r from-yellow-200 via-white to-blue-200 bg-clip-text text-transparent font-bold group-hover:from-yellow-100 group-hover:via-white group-hover:to-blue-100 transition-all duration-300">
+                      스텔라 상점
+                    </span>
+                    
+                    {/* 우주 먼지 효과 */}
+                    <div className="absolute top-1 right-2 w-0.5 h-0.5 bg-white rounded-full animate-pulse opacity-60"></div>
+                    <div className="absolute bottom-2 left-3 w-0.5 h-0.5 bg-purple-200 rounded-full animate-pulse opacity-40" style={{animationDelay: '0.7s'}}></div>
                   </Link>
                 </>
               )}
@@ -88,7 +86,7 @@ export default function Navbar() {
               <div className="flex items-center gap-4">
                 {/* 포인트 */}
                 <Link to="/points" className="flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-3 py-2 rounded-lg border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-200 transform hover:scale-105">
-                  <span className="text-yellow-400 text-lg animate-pulse">⭐</span>
+                  <span className="text-yellow-400 text-lg animate-pulse">✨</span>
                   <span className="text-yellow-200 font-bold">{user.points?.toLocaleString() || 0}</span>
                 </Link>
 
@@ -96,12 +94,11 @@ export default function Navbar() {
                 <div className="flex items-center gap-3 bg-[#2a2e45]/60 px-4 py-2 rounded-lg border border-purple-500/30">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    {equippedIcon && (
-                      <StellaIcon
-                        iconUrl={equippedIcon.iconUrl}
-                        animationClass={equippedIcon.animationClass}
-                        grade={equippedIcon.grade}
-                        size="sm"
+                    {user.equippedIconName && (
+                      <UserIconDisplay
+                        iconName={user.equippedIconName}
+                        size="small"
+                        className="text-purple-300"
                       />
                     )}
                     <span className="text-purple-200 font-semibold">{user.nickname}</span>
@@ -115,9 +112,11 @@ export default function Navbar() {
 
                 {/* 메뉴 버튼들 */}
                 <div className="flex items-center gap-2">
+                  <NotificationDropdown />
+                  
                   <Link 
-                    to="/me" 
-                    className="p-2 rounded-lg hover:bg-purple-600/20 text-purple-300 hover:text-purple-200 transition-all duration-200"
+                    to="/profile" 
+                    className="p-2 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                     title="내 정보"
                   >
                     <span className="text-lg">👤</span>
@@ -174,10 +173,23 @@ export default function Navbar() {
               </Link>
               <Link 
                 to="/shop" 
-                className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-blue-600/20 text-blue-300 transition-all duration-200"
+                className="relative flex flex-col items-center gap-1 p-3 rounded-lg bg-gradient-to-b from-purple-600/20 to-blue-600/20 hover:from-purple-500/30 hover:to-blue-500/30 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border border-purple-400/20 group overflow-hidden"
               >
-                <span className="text-xl">🌟</span>
-                <span className="text-xs">상점</span>
+                {/* 모바일 반짝이는 배경 효과 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+                
+                <div className="relative">
+                  <span className="text-xl animate-pulse group-hover:animate-spin transition-all duration-300">✨</span>
+                  <div className="absolute -top-0.5 -right-0.5 w-0.5 h-0.5 bg-yellow-300 rounded-full animate-ping"></div>
+                </div>
+                <span className="text-xs font-medium bg-gradient-to-r from-yellow-200 to-blue-200 bg-clip-text text-transparent">스텔라</span>
+              </Link>
+              <Link 
+                to="/suggestions" 
+                className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-orange-600/20 text-orange-300 transition-all duration-200"
+              >
+                <span className="text-xl">💡</span>
+                <span className="text-xs">건의게시판</span>
               </Link>
             </div>
           </div>

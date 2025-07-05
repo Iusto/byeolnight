@@ -25,6 +25,7 @@ public class PointService {
     private final PointHistoryRepository pointHistoryRepository;
     private final DailyAttendanceRepository dailyAttendanceRepository;
     private final UserRepository userRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
     // 포인트 상수
     private static final int DAILY_ATTENDANCE_POINTS = 10;
@@ -39,27 +40,40 @@ public class PointService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public boolean checkDailyAttendance(User user) {
         LocalDate today = LocalDate.now();
+        log.info("=== 출석 체크 시작 - 사용자: {}, 날짜: {} ===", user.getNickname(), today);
         
         try {
+            // 엔티티 매니저 캠시 플러시 및 새로고침
+            entityManager.flush();
+            entityManager.clear();
+            
+            // 사용자 정보 새로고침
+            User refreshedUser = userRepository.findById(user.getId())
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            
             // 이미 출석했는지 다시 한번 확인 (동시성 문제 방지)
-            if (dailyAttendanceRepository.existsByUserAndAttendanceDate(user, today)) {
-                log.debug("사용자 {}는 이미 오늘 출석했습니다.", user.getNickname());
+            boolean alreadyAttended = dailyAttendanceRepository.existsByUserAndAttendanceDate(refreshedUser, today);
+            log.info("출석 여부 확인 결과: {}", alreadyAttended);
+            
+            if (alreadyAttended) {
+                log.info("사용자 {}는 이미 오늘({}) 출석했습니다.", refreshedUser.getNickname(), today);
                 return false; // 이미 출석함
             }
 
             // 출석 기록 생성 (유니크 제약조건으로 중복 방지)
-            DailyAttendance attendance = DailyAttendance.of(user, today);
-            dailyAttendanceRepository.save(attendance);
+            DailyAttendance attendance = DailyAttendance.of(refreshedUser, today);
+            DailyAttendance savedAttendance = dailyAttendanceRepository.save(attendance);
+            log.info("출석 기록 저장 완료 - ID: {}", savedAttendance.getId());
 
             // 포인트 지급
-            awardPoints(user, PointHistory.PointType.DAILY_ATTENDANCE, DAILY_ATTENDANCE_POINTS, "매일 출석 보상", null);
+            awardPoints(refreshedUser, PointHistory.PointType.DAILY_ATTENDANCE, DAILY_ATTENDANCE_POINTS, "매일 출석 보상", null);
             
-            log.info("사용자 {}에게 출석 포인트 {}점 지급", user.getNickname(), DAILY_ATTENDANCE_POINTS);
+            log.info("사용자 {}에게 출석 포인트 {}점 지급 완료", refreshedUser.getNickname(), DAILY_ATTENDANCE_POINTS);
             return true;
             
         } catch (Exception e) {
             // 중복 키 예외 등이 발생한 경우 (이미 출석한 경우)
-            log.warn("사용자 {}의 출석 처리 중 예외 발생: {}", user.getNickname(), e.getMessage());
+            log.error("사용자 {}의 출석 처리 중 예외 발생: {}", user.getNickname(), e.getMessage(), e);
             return false;
         }
     }
@@ -69,17 +83,22 @@ public class PointService {
      */
     @Transactional
     public void awardPostWritePoints(User user, Long postId, String content) {
+        log.info("=== 게시글 작성 포인트 지급 시작 - 사용자: {}, 게시글ID: {} ===", user.getNickname(), postId);
+        
         // 어뷔징 방지: 하루 최대 5개 게시글만 포인트 지급
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         long todayPostCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
             user, PointHistory.PointType.POST_WRITE, todayStart);
+        
+        log.info("오늘 게시글 작성 횟수: {}/5", todayPostCount);
             
         if (todayPostCount >= 5) {
+            log.warn("사용자 {}의 일일 게시글 작성 제한 초과 ({}회)", user.getNickname(), todayPostCount);
             return; // 일일 제한 초과
         }
         
         awardPoints(user, PointHistory.PointType.POST_WRITE, POST_WRITE_POINTS, "게시글 작성 보상", postId.toString());
-        log.info("사용자 {}에게 게시글 작성 포인트 {}점 지급", user.getNickname(), POST_WRITE_POINTS);
+        log.info("사용자 {}에게 게시글 작성 포인트 {}점 지급 완료", user.getNickname(), POST_WRITE_POINTS);
     }
 
     /**
@@ -87,17 +106,22 @@ public class PointService {
      */
     @Transactional
     public void awardCommentWritePoints(User user, Long commentId) {
+        log.info("=== 댓글 작성 포인트 지급 시작 - 사용자: {}, 댓글ID: {} ===", user.getNickname(), commentId);
+        
         // 어뷔징 방지: 하루 최대 20개 댓글만 포인트 지급
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         long todayCommentCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
             user, PointHistory.PointType.COMMENT_WRITE, todayStart);
+        
+        log.info("오늘 댓글 작성 횟수: {}/20", todayCommentCount);
             
         if (todayCommentCount >= 20) {
+            log.warn("사용자 {}의 일일 댓글 작성 제한 초과 ({}회)", user.getNickname(), todayCommentCount);
             return; // 일일 제한 초과
         }
         
         awardPoints(user, PointHistory.PointType.COMMENT_WRITE, COMMENT_WRITE_POINTS, "댓글 작성 보상", commentId.toString());
-        log.info("사용자 {}에게 댓글 작성 포인트 {}점 지급", user.getNickname(), COMMENT_WRITE_POINTS);
+        log.info("사용자 {}에게 댓글 작성 포인트 {}점 지급 완료", user.getNickname(), COMMENT_WRITE_POINTS);
     }
 
     /**
@@ -160,7 +184,22 @@ public class PointService {
     @Transactional(readOnly = true)
     public boolean isTodayAttended(User user) {
         LocalDate today = LocalDate.now();
-        return dailyAttendanceRepository.existsByUserAndAttendanceDate(user, today);
+        
+        // 엔티티 매니저 캠시 플러시 및 새로고침 (읽기 전용)
+        entityManager.clear();
+        
+        // 사용자 정보 새로고침
+        User refreshedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        // 디버깅용: 실제 출석 기록 조회
+        java.util.List<DailyAttendance> todayAttendances = dailyAttendanceRepository
+                .findByUserAndAttendanceDate(refreshedUser, today);
+        log.info("오늘 출석 기록 수: {}", todayAttendances.size());
+        
+        boolean attended = !todayAttendances.isEmpty();
+        log.info("출석 여부 조회 - 사용자: {}, 날짜: {}, 출석여부: {}", refreshedUser.getNickname(), today, attended);
+        return attended;
     }
 
     /**
@@ -168,8 +207,10 @@ public class PointService {
      */
     @Transactional(readOnly = true)
     public Page<PointHistoryDto> getPointHistory(User user, Pageable pageable) {
-        return pointHistoryRepository.findByUserOrderByCreatedAtDesc(user, pageable)
-                .map(PointHistoryDto::from);
+        log.info("=== 전체 포인트 히스토리 조회 - 사용자: {} ===", user.getNickname());
+        Page<PointHistory> histories = pointHistoryRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        log.info("전체 히스토리 개수: {}, 전체 요소 수: {}", histories.getContent().size(), histories.getTotalElements());
+        return histories.map(PointHistoryDto::from);
     }
     
     /**
@@ -177,8 +218,10 @@ public class PointService {
      */
     @Transactional(readOnly = true)
     public Page<PointHistoryDto> getEarnedPointHistory(User user, Pageable pageable) {
-        return pointHistoryRepository.findEarnedPointsByUser(user, pageable)
-                .map(PointHistoryDto::from);
+        log.info("=== 획득 포인트 히스토리 조회 - 사용자: {} ===", user.getNickname());
+        Page<PointHistory> histories = pointHistoryRepository.findEarnedPointsByUser(user, pageable);
+        log.info("획득 히스토리 개수: {}, 전체 요소 수: {}", histories.getContent().size(), histories.getTotalElements());
+        return histories.map(PointHistoryDto::from);
     }
     
     /**
@@ -186,8 +229,10 @@ public class PointService {
      */
     @Transactional(readOnly = true)
     public Page<PointHistoryDto> getSpentPointHistory(User user, Pageable pageable) {
-        return pointHistoryRepository.findSpentPointsByUser(user, pageable)
-                .map(PointHistoryDto::from);
+        log.info("=== 사용 포인트 히스토리 조회 - 사용자: {} ===", user.getNickname());
+        Page<PointHistory> histories = pointHistoryRepository.findSpentPointsByUser(user, pageable);
+        log.info("사용 히스토리 개수: {}, 전체 요소 수: {}", histories.getContent().size(), histories.getTotalElements());
+        return histories.map(PointHistoryDto::from);
     }
     
     /**
@@ -212,15 +257,47 @@ public class PointService {
     }
     
     /**
+     * 관리자 포인트 수여
+     */
+    @Transactional
+    public void awardPointsByAdmin(Long userId, int points, String reason, Long adminId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("관리자를 찾을 수 없습니다."));
+        
+        log.info("관리자 포인트 수여 - 관리자: {}, 대상자: {}, 포인트: {}, 사유: {}", 
+                admin.getNickname(), user.getNickname(), points, reason);
+        
+        String description = String.format("관리자 수여 (%s): %s", admin.getNickname(), reason);
+        awardPoints(user, PointHistory.PointType.ADMIN_AWARD, points, description, adminId.toString());
+        
+        log.info("관리자 포인트 수여 완료 - 대상자: {}, 포인트: {}", user.getNickname(), points);
+    }
+
+    /**
      * 포인트 지급 공통 메서드
      */
     private void awardPoints(User user, PointHistory.PointType type, int amount, String description, String referenceId) {
-        // 포인트 이력 저장
-        PointHistory history = PointHistory.of(user, amount, type, description, referenceId);
-        pointHistoryRepository.save(history);
+        log.info("포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
+                user.getNickname(), type, amount, description);
+        
+        try {
+            // 포인트 이력 저장
+            PointHistory history = PointHistory.of(user, amount, type, description, referenceId);
+            pointHistoryRepository.save(history);
+            log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
 
-        // 사용자 포인트 업데이트
-        user.increasePoints(amount);
-        userRepository.save(user);
+            // 사용자 포인트 업데이트
+            int beforePoints = user.getPoints();
+            user.increasePoints(amount);
+            userRepository.save(user);
+            log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, user.getPoints());
+            
+        } catch (Exception e) {
+            log.error("포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);
+            throw e;
+        }
     }
 }

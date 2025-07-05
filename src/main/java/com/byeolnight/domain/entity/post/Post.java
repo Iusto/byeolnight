@@ -17,7 +17,7 @@ import java.util.List;
 public class Post {
 
     public enum Category {
-        NEWS, DISCUSSION, IMAGE, EVENT, REVIEW, FREE, NOTICE
+        NEWS, DISCUSSION, IMAGE, EVENT, REVIEW, FREE, NOTICE, SUGGESTION
     }
 
     @Id

@@ -14,7 +14,7 @@ interface PointHistory {
 }
 
 export default function PointHistory() {
-  const { user } = useAuth();
+  const { user, refreshUserInfo } = useAuth();
   const [activeTab, setActiveTab] = useState<'all' | 'earned' | 'spent'>('all');
   const [histories, setHistories] = useState<PointHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +26,13 @@ export default function PointHistory() {
       checkTodayAttendance();
     }
   }, [user, activeTab]);
+  
+  // 사용자 정보가 변경될 때마다 출석 상태 재확인
+  useEffect(() => {
+    if (user) {
+      checkTodayAttendance();
+    }
+  }, [user?.points]); // 포인트가 변경되면 출석 상태도 재확인
 
   const fetchPointHistory = async () => {
     try {
@@ -34,8 +41,29 @@ export default function PointHistory() {
       if (activeTab === 'earned') endpoint += '/earned';
       if (activeTab === 'spent') endpoint += '/spent';
 
+      console.log(`포인트 히스토리 API 호출: ${endpoint}`);
       const res = await axios.get(endpoint, { params: { size: 50 } });
-      setHistories(res.data?.data?.content || []);
+      console.log('포인트 히스토리 API 응답:', res.data);
+      
+      // API 응답 구조 확인 및 데이터 추출
+      let historyData = [];
+      if (res.data?.data?.content) {
+        // CommonResponse 구조: {success: true, data: {content: [...], ...}}
+        historyData = res.data.data.content;
+      } else if (res.data?.content) {
+        // 직접 Page 구조: {content: [...], ...}
+        historyData = res.data.content;
+      } else if (Array.isArray(res.data?.data)) {
+        // List 구조: {success: true, data: [...]}
+        historyData = res.data.data;
+      } else if (Array.isArray(res.data)) {
+        // 직접 Array: [...]
+        historyData = res.data;
+      }
+      
+      console.log(`최종 히스토리 개수: ${historyData.length}`);
+      console.log('최종 히스토리 데이터:', historyData);
+      setHistories(historyData);
     } catch (err) {
       console.error('포인트 히스토리 조회 실패:', err);
     } finally {
@@ -46,21 +74,34 @@ export default function PointHistory() {
   const checkTodayAttendance = async () => {
     try {
       const res = await axios.get('/member/points/attendance/today');
-      setTodayAttended(res.data?.data || false);
+      const attended = res.data?.data === true;
+      console.log('출석 여부 확인 결과:', attended);
+      setTodayAttended(attended);
     } catch (err) {
       console.error('출석 확인 실패:', err);
+      setTodayAttended(false);
     }
   };
 
   const handleAttendance = async () => {
     try {
       const res = await axios.post('/member/points/attendance');
-      if (res.data?.data) {
+      
+      // axios 인터셉터가 CommonResponse를 자동 처리하므로 직접 boolean 값 확인
+      const isAttendanceSuccess = res.data === true;
+      console.log('출석 체크 결과:', isAttendanceSuccess);
+      
+      if (isAttendanceSuccess) {
         alert('출석 체크 완료! 10 스텔라를 획득했습니다.');
+        
+        // 상태 업데이트
         setTodayAttended(true);
-        fetchPointHistory();
-        // 사용자 정보 새로고침
-        window.location.reload();
+        
+        // 데이터 새로고침 (순차적으로 실행)
+        await refreshUserInfo(); // 사용자 정보 (포인트) 업데이트
+        await fetchPointHistory(); // 포인트 히스토리 업데이트
+        
+        console.log('출석 체크 완룉 및 데이터 새로고침 완료');
       } else {
         alert('이미 오늘 출석하셨습니다.');
       }
@@ -98,7 +139,7 @@ export default function PointHistory() {
       <div className="max-w-4xl mx-auto">
         {/* 헤더 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">⭐ 스텔라 포인트</h1>
+          <h1 className="text-3xl font-bold mb-2">✨ 스텔라 포인트</h1>
           <p className="text-gray-400">커뮤니티 활동으로 스텔라를 모아보세요!</p>
         </div>
 
@@ -109,7 +150,7 @@ export default function PointHistory() {
               <h2 className="text-xl font-semibold mb-2">보유 스텔라</h2>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-bold text-yellow-400">{user.points?.toLocaleString() || 0}</span>
-                <span className="text-yellow-400">⭐</span>
+                <span className="text-yellow-400">✨</span>
               </div>
             </div>
             <div className="text-center">
@@ -218,11 +259,18 @@ export default function PointHistory() {
                       <p className="text-sm text-gray-400 mb-1">{history.reason}</p>
                       <p className="text-xs text-gray-500">{formatDate(history.createdAt)}</p>
                     </div>
-                    {history.isEarned ? (
-                      <span className="bg-green-600/20 text-green-300 px-2 py-1 rounded text-xs">
-                        획득
-                      </span>
-                    ) : (
+                    {activeTab === 'all' && (
+                      history.amount > 0 ? (
+                        <span className="bg-green-600/20 text-green-300 px-2 py-1 rounded text-xs">
+                          획득
+                        </span>
+                      ) : (
+                        <span className="bg-red-600/20 text-red-300 px-2 py-1 rounded text-xs">
+                          사용
+                        </span>
+                      )
+                    )}
+                    {activeTab === 'spent' && (
                       <span className="bg-red-600/20 text-red-300 px-2 py-1 rounded text-xs">
                         사용
                       </span>

@@ -7,6 +7,7 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.service.post.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -20,6 +21,7 @@ import java.util.List;
 @RequestMapping("/api/member/posts")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "📝 게시글 API - 회원", description = "회원 전용 게시글 작성, 수정, 삭제 API")
 public class MemberPostController {
 
     private final PostService postService;

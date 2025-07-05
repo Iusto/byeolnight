@@ -232,6 +232,110 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* 긴 텍스트 처리 전역 스타일 */
+.break-words {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* 게시글 내용 영역 전용 스타일 */
+.post-content {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.post-content * {
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.post-content img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.post-content pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-x: auto;
+}
+
+.post-content code {
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+}
+
+/* React Quill 다크 테마 커스터마이징 */
+.ql-toolbar {
+  background-color: #2a2e45 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.ql-toolbar .ql-stroke {
+  fill: none;
+  stroke: #e2e8f0 !important;
+}
+
+.ql-toolbar .ql-fill {
+  fill: #e2e8f0 !important;
+  stroke: none;
+}
+
+.ql-toolbar .ql-picker-label {
+  color: #e2e8f0 !important;
+}
+
+.ql-toolbar .ql-picker-options {
+  background-color: #2a2e45 !important;
+  border: 1px solid #4a5568 !important;
+}
+
+.ql-toolbar .ql-picker-item:hover {
+  background-color: #4a5568 !important;
+  color: #ffffff !important;
+}
+
+.ql-container {
+  background-color: #1f2336 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 0 0 8px 8px !important;
+  color: #e2e8f0 !important;
+}
+
+.ql-editor {
+  color: #e2e8f0 !important;
+  min-height: 200px;
+}
+
+.ql-editor.ql-blank::before {
+  color: #a0aec0 !important;
+  font-style: italic;
+}
+
+.ql-editor h1, .ql-editor h2, .ql-editor h3 {
+  color: #ffffff !important;
+}
+
+.ql-editor strong {
+  color: #ffffff !important;
+}
+
+.ql-editor a {
+  color: #9f7aea !important;
+}
+
 /* 밝은 테마 대응 */
 @media (prefers-color-scheme: light) {
   :root {

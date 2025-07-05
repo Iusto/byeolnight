@@ -11,6 +11,7 @@ import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.domain.repository.post.PostLikeRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
+import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.file.S3Service;
 import com.byeolnight.service.user.PointService;
@@ -36,6 +37,7 @@ public class PostService {
     private final PointService pointService;
     private final com.byeolnight.domain.repository.CommentRepository commentRepository;
     private final com.byeolnight.service.ImageModerationService imageModerationService;
+    private final com.byeolnight.service.notification.NotificationService notificationService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
@@ -66,6 +68,21 @@ public class PostService {
 
         // 게시글 작성 포인트 지급
         pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
+        
+        // 공지사항인 경우 모든 사용자에게 알림 전송
+        if (dto.getCategory() == Post.Category.NOTICE) {
+            try {
+                notificationService.createNotificationForAllUsers(
+                    com.byeolnight.domain.entity.Notification.NotificationType.NEW_NOTICE,
+                    "새 공지사항이 등록되었습니다",
+                    dto.getTitle(),
+                    "/posts/" + post.getId(),
+                    post.getId()
+                );
+            } catch (Exception e) {
+                System.err.println("공지사항 알림 전송 실패: " + e.getMessage());
+            }
+        }
 
         return post.getId();
     }
@@ -381,6 +398,29 @@ public class PostService {
                 .map(p -> {
                     long commentCount = commentRepository.countByPostId(p.getId());
                     return PostResponseDto.from(p, false, commentCount);
+                })
+                .toList();
+    }
+
+    /**
+     * 내가 작성한 게시글 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PostDto.Response> getMyPosts(Long userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        
+        System.out.println("내 게시글 조회 - userId: " + userId + ", nickname: " + user.getNickname());
+        
+        Page<Post> posts = postRepository.findByWriterAndIsDeletedFalseOrderByCreatedAtDesc(user, pageable);
+        System.out.println("조회된 게시글 수: " + posts.getContent().size());
+        
+        return posts.getContent().stream()
+                .map(post -> {
+                    long likeCount = postLikeRepository.countByPost(post);
+                    long commentCount = commentRepository.countByPostId(post.getId());
+                    System.out.println("게시글 변환: " + post.getTitle() + ", 좋아요: " + likeCount + ", 댓글: " + commentCount);
+                    return PostDto.Response.from(post, likeCount, commentCount);
                 })
                 .toList();
     }

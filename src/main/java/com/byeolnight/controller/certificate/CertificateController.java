@@ -7,6 +7,7 @@ import com.byeolnight.dto.certificate.CertificateResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.certificate.CertificateService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/member/certificates")
 @RequiredArgsConstructor
+@Tag(name = "🏆 인증서 API", description = "사용자 인증서 관리 API")
 public class CertificateController {
 
     private final CertificateService certificateService;

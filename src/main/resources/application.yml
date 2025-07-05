@@ -72,3 +72,22 @@ crawler:
   event:
     api:
       key: ${CRAWLER_EVENT_API_KEY:byeolnight-crawler-exhibitions}
+
+# Swagger/OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+    doc-expansion: none
+    persist-authorization: true
+  show-actuator: false

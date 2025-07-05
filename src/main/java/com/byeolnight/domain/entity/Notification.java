@@ -4,7 +4,7 @@ import com.byeolnight.domain.entity.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -13,45 +13,54 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notifications")
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class Notification {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-    
+    private User user; // 알림을 받을 사용자
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private NotificationType type;
-    
+
     @Column(nullable = false)
-    private String title;
-    
+    private String title; // 알림 제목
+
     @Column(nullable = false)
-    private String content;
-    
-    @Column(name = "reference_id")
-    private Long referenceId; // 관련 게시글, 댓글, 쪽지 ID
-    
-    @Column(name = "is_read", nullable = false)
+    private String message; // 알림 내용
+
+    @Column
+    private String targetUrl; // 클릭 시 이동할 URL
+
+    @Column
+    private Long relatedId; // 관련 엔티티 ID (게시글, 댓글 등)
+
     @Builder.Default
-    private Boolean isRead = false;
-    
+    @Column(nullable = false)
+    private Boolean isRead = false; // 읽음 여부
+
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
+    // 읽음 처리
+    public void markAsRead() {
+        this.isRead = true;
+    }
+
     public enum NotificationType {
-        MESSAGE,    // 쪽지
-        COMMENT,    // 댓글
-        REPLY       // 답글
+        COMMENT_ON_POST,    // 내 게시글에 댓글
+        REPLY_ON_COMMENT,   // 내 댓글에 답글
+        NEW_MESSAGE,        // 새 쪽지
+        NEW_NOTICE          // 새 공지사항
     }
 }

@@ -10,6 +10,7 @@ interface User {
   role: string;
   points: number;
   equippedIconId?: number;
+  equippedIconName?: string;
   representativeCertificate?: {
     icon: string;
     name: string;
@@ -22,6 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<boolean>;
+  refreshUserInfo: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchMyInfo = async () => {
     try {
-      const res = await axios.get('/users/me');
+      const res = await axios.get('/member/users/me');
       const userData = res.data;
       
       // 대표 인증서 정보도 가져오기
@@ -165,8 +167,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user]);
 
+  const refreshUserInfo = async () => {
+    console.log('사용자 정보 새로고침 시작');
+    const success = await fetchMyInfo();
+    console.log('사용자 정보 새로고침 결과:', success);
+    if (success) {
+      console.log('새로고침된 사용자 포인트:', user?.points);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshToken }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshToken, refreshUserInfo }}>
       {children}
     </AuthContext.Provider>
   );

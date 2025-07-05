@@ -1,6 +1,7 @@
 package com.byeolnight.domain.repository.shop;
 
 import com.byeolnight.domain.entity.shop.StellaIcon;
+import com.byeolnight.domain.entity.shop.StellaIconGrade;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,5 +18,5 @@ public interface StellaIconRepository extends JpaRepository<StellaIcon, Long> {
     /**
      * 등급별 아이콘 조회
      */
-    List<StellaIcon> findByGradeAndAvailableTrue(StellaIcon.IconGrade grade);
+    List<StellaIcon> findByGradeAndAvailableTrue(StellaIconGrade grade);
 }

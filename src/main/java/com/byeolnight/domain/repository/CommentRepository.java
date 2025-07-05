@@ -32,4 +32,15 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // 사용자별 댓글 수 조회
     long countByWriter(com.byeolnight.domain.entity.user.User writer);
+    
+    // 작성자 ID로 댓글 수 조회 - 제거됨 (writer 필드 사용)
+    
+    // 사용자가 받은 댓글 좋아요 수 조회 (현재 좋아요 기능 미구현으로 0 반환)
+    @Query("SELECT 0")
+    long countLikesByUser(@Param("userId") Long userId);
+    
+    /**
+     * 사용자별 작성 댓글 조회
+     */
+    org.springframework.data.domain.Page<Comment> findByWriterOrderByCreatedAtDesc(com.byeolnight.domain.entity.user.User writer, org.springframework.data.domain.Pageable pageable);
 }

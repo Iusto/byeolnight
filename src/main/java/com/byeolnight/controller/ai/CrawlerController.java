@@ -6,6 +6,7 @@ import com.byeolnight.dto.ai.EventDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.crawler.CrawlerService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/crawler")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "👮 관리자 API - 크롤러", description = "AI 기반 뉴스 및 전시회 데이터 수신 API")
 public class CrawlerController {
 
     private final CrawlerService crawlerService;

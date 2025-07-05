@@ -23,6 +23,7 @@ public class PostResponseDto {
     private String content;
     private String category;
     private String writer;
+    private Long writerId;
     private boolean blinded;
     private long likeCount;
     private boolean likedByMe;
@@ -38,6 +39,7 @@ public class PostResponseDto {
     public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount) {
         // writer null 체크
         String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
+        Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
         
         return PostResponseDto.builder()
                 .id(post.getId())
@@ -45,6 +47,7 @@ public class PostResponseDto {
                 .content(post.getContent())
                 .category(post.getCategory().name())
                 .writer(writerName)
+                .writerId(writerId)
                 .blinded(post.isBlinded())
                 .likeCount(likeCount)
                 .likedByMe(likedByMe)
@@ -60,6 +63,7 @@ public class PostResponseDto {
     public static PostResponseDto from(Post post, boolean isHot, long commentCount) {
         // writer null 체크
         String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
+        Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
         
         return PostResponseDto.builder()
                 .id(post.getId())
@@ -67,6 +71,7 @@ public class PostResponseDto {
                 .content(post.getContent())
                 .category(post.getCategory().name())
                 .writer(writerName)
+                .writerId(writerId)
                 .blinded(post.isBlinded())
                 .likeCount(post.getLikeCount())
                 .likedByMe(false)

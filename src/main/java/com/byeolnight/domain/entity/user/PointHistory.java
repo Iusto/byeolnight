@@ -68,6 +68,7 @@ public class PointHistory {
         GIVE_LIKE("추천하기"),
         MISSION_COMPLETE("미션 완료"),
         ICON_PURCHASE("아이콘 구매"),
+        ADMIN_AWARD("관리자 수여"),
         PENALTY("규정 위반 페널티");
 
         private final String description;

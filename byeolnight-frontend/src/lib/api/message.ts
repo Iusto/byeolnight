@@ -1,92 +1,103 @@
-import { MessageDto, PageResponse } from '../../types/message';
+import axios from '../axios';
 
-const API_BASE = '/api/messages';
+export interface Message {
+  id: number;
+  senderId: number;
+  senderNickname: string;
+  receiverId: number;
+  receiverNickname: string;
+  title: string;
+  content: string;
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+}
 
-export const messageApi = {
-  // 쪽지 전송
-  sendMessage: async (data: MessageDto.Request): Promise<MessageDto.Response> => {
-    const response = await fetch(API_BASE, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(data)
-    });
-    
-    if (!response.ok) throw new Error('쪽지 전송 실패');
-    return response.json();
-  },
+export interface MessageListResponse {
+  messages: Message[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
 
-  // 받은 쪽지 목록
-  getReceivedMessages: async (page = 0, size = 10): Promise<PageResponse<MessageDto.Summary>> => {
-    const response = await fetch(`${API_BASE}/received?page=${page}&size=${size}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('받은 쪽지 목록 조회 실패');
-    return response.json();
-  },
-
-  // 보낸 쪽지 목록
-  getSentMessages: async (page = 0, size = 10): Promise<PageResponse<MessageDto.Summary>> => {
-    const response = await fetch(`${API_BASE}/sent?page=${page}&size=${size}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('보낸 쪽지 목록 조회 실패');
-    return response.json();
-  },
-
-  // 쪽지 상세 조회
-  getMessage: async (messageId: number): Promise<MessageDto.Response> => {
-    const response = await fetch(`${API_BASE}/${messageId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('쪽지 조회 실패');
-    return response.json();
-  },
-
-  // 쪽지 읽음 처리
-  markAsRead: async (messageId: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/${messageId}/read`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('쪽지 읽음 처리 실패');
-  },
-
-  // 쪽지 삭제
-  deleteMessage: async (messageId: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/${messageId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('쪽지 삭제 실패');
-  },
-
-  // 읽지 않은 쪽지 수
-  getUnreadCount: async (): Promise<number> => {
-    const response = await fetch(`${API_BASE}/unread-count`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('읽지 않은 쪽지 수 조회 실패');
-    return response.json();
+// 받은 쪽지 목록 조회
+export const getReceivedMessages = async (params: {
+  page?: number;
+  size?: number;
+}): Promise<MessageListResponse> => {
+  const response = await axios.get('/member/messages/received', { params });
+  console.log('getReceivedMessages response:', response.data);
+  
+  // axios 인터셉터가 이미 data를 추출했는지 확인
+  let result;
+  if (response.data && response.data.messages) {
+    // 인터셉터가 이미 data를 추출한 경우
+    result = response.data;
+  } else if (response.data && response.data.data) {
+    // 일반적인 CommonResponse 구조
+    result = response.data.data;
+  } else {
+    result = { messages: [], totalCount: 0, currentPage: 0, totalPages: 0, hasNext: false, hasPrevious: false };
   }
+  
+  console.log('getReceivedMessages final result:', result);
+  return result;
+};
+
+// 보낸 쪽지 목록 조회
+export const getSentMessages = async (params: {
+  page?: number;
+  size?: number;
+}): Promise<MessageListResponse> => {
+  const response = await axios.get('/member/messages/sent', { params });
+  console.log('getSentMessages response:', response.data);
+  
+  // axios 인터셉터가 이미 data를 추출했는지 확인
+  let result;
+  if (response.data && response.data.messages) {
+    // 인터셉터가 이미 data를 추출한 경우
+    result = response.data;
+  } else if (response.data && response.data.data) {
+    // 일반적인 CommonResponse 구조
+    result = response.data.data;
+  } else {
+    result = { messages: [], totalCount: 0, currentPage: 0, totalPages: 0, hasNext: false, hasPrevious: false };
+  }
+  
+  console.log('getSentMessages final result:', result);
+  return result;
+};
+
+// 쪽지 상세 조회
+export const getMessage = async (messageId: number): Promise<Message> => {
+  const response = await axios.get(`/member/messages/${messageId}`);
+  return response.data.data;
+};
+
+// 쪽지 읽음 처리
+export const markMessageAsRead = async (messageId: number): Promise<void> => {
+  await axios.patch(`/member/messages/${messageId}/read`);
+};
+
+// 쪽지 전송
+export const sendMessage = async (data: {
+  receiverId: number;
+  title: string;
+  content: string;
+}): Promise<Message> => {
+  const response = await axios.post('/member/messages', data);
+  return response.data.data;
+};
+
+// 쪽지 삭제
+export const deleteMessage = async (messageId: number): Promise<void> => {
+  await axios.delete(`/member/messages/${messageId}`);
+};
+
+// 읽지 않은 쪽지 개수
+export const getUnreadMessageCount = async (): Promise<number> => {
+  const response = await axios.get('/member/messages/unread/count');
+  return response.data.data?.count || 0;
 };

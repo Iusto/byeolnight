@@ -5,6 +5,7 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.MessageRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.message.MessageDto;
+import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,114 +17,128 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MessageService {
-    
+
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    
+
+    // 쪽지 전송
     @Transactional
-    public MessageDto.Response sendMessage(Long senderId, MessageDto.Request request) {
-        User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new RuntimeException("발신자를 찾을 수 없습니다"));
-        User receiver = userRepository.findById(request.getReceiverId())
-                .orElseThrow(() -> new RuntimeException("수신자를 찾을 수 없습니다"));
+    public MessageDto.Response sendMessage(Long senderId, MessageDto.SendRequest request) {
+        if (senderId == null) {
+            throw new IllegalArgumentException("발신자 ID가 필요합니다.");
+        }
+        if (request.getReceiverId() == null) {
+            throw new IllegalArgumentException("수신자 ID가 필요합니다.");
+        }
         
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new NotFoundException("발신자를 찾을 수 없습니다."));
+        
+        User receiver = userRepository.findById(request.getReceiverId())
+                .orElseThrow(() -> new NotFoundException("수신자를 찾을 수 없습니다."));
+
         Message message = Message.builder()
                 .sender(sender)
                 .receiver(receiver)
                 .title(request.getTitle())
                 .content(request.getContent())
                 .build();
-        
-        Message savedMessage = messageRepository.save(message);
-        
-        // 실시간 알림 전송
-        notificationService.sendMessageNotification(receiver, sender, savedMessage);
-        
-        return convertToResponse(savedMessage);
+
+        Message saved = messageRepository.save(message);
+
+        // 쪽지 알림 전송
+        notificationService.notifyNewMessage(receiver.getId(), sender.getNickname());
+
+        return MessageDto.Response.from(saved);
     }
-    
-    public Page<MessageDto.Summary> getReceivedMessages(Long userId, Pageable pageable) {
+
+    // 받은 쪽지함
+    public MessageDto.ListResponse getReceivedMessages(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        
-        return messageRepository.findByReceiverOrderByCreatedAtDesc(user, pageable)
-                .map(this::convertToSummary);
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        Page<Message> messages = messageRepository.findByReceiverAndReceiverDeletedFalseOrderByCreatedAtDesc(user, pageable);
+
+        return MessageDto.ListResponse.builder()
+                .messages(messages.getContent().stream()
+                        .map(MessageDto.Response::from)
+                        .toList())
+                .totalCount(messages.getTotalElements())
+                .currentPage(messages.getNumber())
+                .totalPages(messages.getTotalPages())
+                .hasNext(messages.hasNext())
+                .hasPrevious(messages.hasPrevious())
+                .build();
     }
-    
-    public Page<MessageDto.Summary> getSentMessages(Long userId, Pageable pageable) {
+
+    // 보낸 쪽지함
+    public MessageDto.ListResponse getSentMessages(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        
-        return messageRepository.findBySenderOrderByCreatedAtDesc(user, pageable)
-                .map(this::convertToSummary);
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        Page<Message> messages = messageRepository.findBySenderAndSenderDeletedFalseOrderByCreatedAtDesc(user, pageable);
+
+        return MessageDto.ListResponse.builder()
+                .messages(messages.getContent().stream()
+                        .map(MessageDto.Response::from)
+                        .toList())
+                .totalCount(messages.getTotalElements())
+                .currentPage(messages.getNumber())
+                .totalPages(messages.getTotalPages())
+                .hasNext(messages.hasNext())
+                .hasPrevious(messages.hasPrevious())
+                .build();
     }
-    
+
+    // 쪽지 상세 조회 및 읽음 처리
+    @Transactional
     public MessageDto.Response getMessage(Long messageId, Long userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("쪽지를 찾을 수 없습니다"));
-        
-        // 권한 확인
-        if (!message.getSender().getId().equals(userId) && 
-            !message.getReceiver().getId().equals(userId)) {
-            throw new RuntimeException("접근 권한이 없습니다");
+                .orElseThrow(() -> new NotFoundException("쪽지를 찾을 수 없습니다."));
+
+        // 권한 확인 (발신자 또는 수신자만 조회 가능)
+        if (!message.getSender().getId().equals(userId) && !message.getReceiver().getId().equals(userId)) {
+            throw new NotFoundException("쪽지를 찾을 수 없습니다.");
         }
-        
-        return convertToResponse(message);
-    }
-    
-    @Transactional
-    public void markAsRead(Long messageId, Long userId) {
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("쪽지를 찾을 수 없습니다"));
-        
+
+        // 수신자가 조회하는 경우 읽음 처리
         if (message.getReceiver().getId().equals(userId) && !message.getIsRead()) {
-            message.setIsRead(true);
-            messageRepository.save(message);
+            message.markAsRead();
         }
+
+        return MessageDto.Response.from(message);
     }
-    
+
+    // 읽지 않은 쪽지 개수
+    public long getUnreadCount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        return messageRepository.countByReceiverAndIsReadFalseAndReceiverDeletedFalse(user);
+    }
+
+    // 쪽지 삭제
     @Transactional
     public void deleteMessage(Long messageId, Long userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("쪽지를 찾을 수 없습니다"));
-        
-        if (!message.getSender().getId().equals(userId) && 
-            !message.getReceiver().getId().equals(userId)) {
-            throw new RuntimeException("삭제 권한이 없습니다");
+                .orElseThrow(() -> new NotFoundException("쪽지를 찾을 수 없습니다."));
+
+        // 발신자가 삭제하는 경우
+        if (message.getSender().getId().equals(userId)) {
+            message.deleteBySender();
         }
-        
-        messageRepository.delete(message);
-    }
-    
-    public long getUnreadCount(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        
-        return messageRepository.countByReceiverAndIsReadFalse(user);
-    }
-    
-    private MessageDto.Response convertToResponse(Message message) {
-        return MessageDto.Response.builder()
-                .id(message.getId())
-                .senderId(message.getSender().getId())
-                .senderNickname(message.getSender().getNickname())
-                .receiverId(message.getReceiver().getId())
-                .receiverNickname(message.getReceiver().getNickname())
-                .title(message.getTitle())
-                .content(message.getContent())
-                .isRead(message.getIsRead())
-                .createdAt(message.getCreatedAt())
-                .build();
-    }
-    
-    private MessageDto.Summary convertToSummary(Message message) {
-        return MessageDto.Summary.builder()
-                .id(message.getId())
-                .senderNickname(message.getSender().getNickname())
-                .title(message.getTitle())
-                .isRead(message.getIsRead())
-                .createdAt(message.getCreatedAt())
-                .build();
+        // 수신자가 삭제하는 경우
+        else if (message.getReceiver().getId().equals(userId)) {
+            message.deleteByReceiver();
+        }
+        else {
+            throw new NotFoundException("쪽지를 찾을 수 없습니다.");
+        }
+
+        // 양쪽 모두 삭제한 경우 실제 삭제
+        if (message.getSenderDeleted() && message.getReceiverDeleted()) {
+            messageRepository.delete(message);
+        }
     }
 }

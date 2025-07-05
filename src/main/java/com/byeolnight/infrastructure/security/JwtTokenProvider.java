@@ -4,6 +4,7 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.service.user.CustomUserDetailsService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.security.Key;
 import java.time.Duration;
@@ -121,5 +123,33 @@ public class JwtTokenProvider {
      */
     public long getRefreshTokenValidity() {
         return refreshTokenValidity.toMillis();
+    }
+
+    /**
+     * HTTP 요청에서 사용자 ID 추출
+     */
+    public Long getUserIdFromRequest(HttpServletRequest request) {
+        String token = resolveToken(request);
+        if (token != null && validate(token)) {
+            String email = getEmail(token);
+            if (email != null) {
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                if (userDetails instanceof User) {
+                    return ((User) userDetails).getId();
+                }
+            }
+        }
+        throw new RuntimeException("유효하지 않은 토큰입니다.");
+    }
+
+    /**
+     * HTTP 요청에서 JWT 토큰 추출
+     */
+    private String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }

@@ -1,6 +1,7 @@
 package com.byeolnight.service.shop;
 
 import com.byeolnight.domain.entity.shop.StellaIcon;
+import com.byeolnight.domain.entity.shop.StellaIconGrade;
 import com.byeolnight.domain.repository.shop.StellaIconRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ public class StellaIconInitService {
                 .description("가장 기본적인 별 아이콘입니다.")
                 .iconUrl("/icons/basic_star.svg")
                 .price(0)
-                .grade(StellaIcon.IconGrade.COMMON)
+                .grade(StellaIconGrade.COMMON)
                 .type(StellaIcon.IconType.STATIC)
                 .available(true)
                 .animationClass("")
@@ -44,7 +45,7 @@ public class StellaIconInitService {
                 .description("처음 포인트를 획득하면 구매할 수 있습니다.")
                 .iconUrl("/icons/shiny_meteor.svg")
                 .price(50)
-                .grade(StellaIcon.IconGrade.COMMON)
+                .grade(StellaIconGrade.COMMON)
                 .type(StellaIcon.IconType.ANIMATED)
                 .available(true)
                 .animationClass("animate-pulse")
@@ -55,7 +56,7 @@ public class StellaIconInitService {
                 .description("복고 감성의 도트 행성 아이콘")
                 .iconUrl("/icons/twilight_planet.svg")
                 .price(130)
-                .grade(StellaIcon.IconGrade.COMMON)
+                .grade(StellaIconGrade.COMMON)
                 .type(StellaIcon.IconType.ANIMATED)
                 .available(true)
                 .animationClass("animate-spin")
@@ -67,7 +68,7 @@ public class StellaIconInitService {
                 .description("글 10개 작성 달성 시 구매 가능.")
                 .iconUrl("/icons/twilight_planet.svg")
                 .price(100)
-                .grade(StellaIcon.IconGrade.RARE)
+                .grade(StellaIconGrade.RARE)
                 .type(StellaIcon.IconType.ANIMATED)
                 .available(true)
                 .animationClass("animate-pulse")
@@ -78,7 +79,7 @@ public class StellaIconInitService {
                 .description("7일 연속 활동 시 잠금 해제.")
                 .iconUrl("/icons/midnight_moon.svg")
                 .price(150)
-                .grade(StellaIcon.IconGrade.RARE)
+                .grade(StellaIconGrade.RARE)
                 .type(StellaIcon.IconType.ANIMATED)
                 .available(true)
                 .animationClass("animate-bounce")
@@ -89,7 +90,7 @@ public class StellaIconInitService {
                 .description("추천수 50 달성 시 구매 가능.")
                 .iconUrl("/icons/aurora_phoenix.svg")
                 .price(200)
-                .grade(StellaIcon.IconGrade.RARE)
+                .grade(StellaIconGrade.RARE)
                 .type(StellaIcon.IconType.ANIMATED)
                 .available(true)
                 .animationClass("animate-pulse")

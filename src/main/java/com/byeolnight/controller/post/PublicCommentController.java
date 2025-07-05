@@ -5,6 +5,7 @@ import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/public/comments")
 @RequiredArgsConstructor
+@Tag(name = "🌍 공개 API - 댓글", description = "비회원도 접근 가능한 댓글 조회 API")
 public class PublicCommentController {
 
     private final CommentService commentService;

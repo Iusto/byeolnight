@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/public/posts")
 @RequiredArgsConstructor
+@Tag(name = "🌍 공개 API - 게시글", description = "비회원도 접근 가능한 게시글 조회 API")
 public class PublicPostController {
 
     private final PostService postService;

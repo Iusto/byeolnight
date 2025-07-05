@@ -1,6 +1,8 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.service.user.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,14 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/admin/migration")
 @RequiredArgsConstructor
+@Tag(name = "👮 관리자 API - 데이터 마이그레이션", description = "데이터 마이그레이션 및 유지보수 API")
 public class DataMigrationController {
 
     private final UserService userService;
 
-    /**
-     * 전화번호 암호화 마이그레이션 실행
-     * 주의: 이 API는 한 번만 실행해야 합니다.
-     */
+    @Operation(summary = "전화번호 암호화 마이그레이션", description = "기존 전화번호를 암호화합니다. (주의: 한 번만 실행)")
     @PostMapping("/encrypt-phones")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> migratePhoneEncryption() {

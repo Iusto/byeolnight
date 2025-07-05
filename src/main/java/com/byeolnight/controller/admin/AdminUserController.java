@@ -2,6 +2,7 @@ package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.admin.IpBlockRequestDto;
 import com.byeolnight.dto.admin.UserStatusChangeRequestDto;
+import com.byeolnight.dto.admin.PointAwardRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.user.UserService;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
@@ -27,11 +29,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin")
 @SecurityRequirement(name = "BearerAuth")
+@Tag(name = "👮 관리자 API - 사용자", description = "사용자 관리 및 제재 관련 API")
 public class AdminUserController {
 
     private final UserService userService;
     private final StringRedisTemplate redisTemplate;
     private final PostService postService;
+    private final com.byeolnight.service.user.PointService pointService;
 
     @Operation(summary = "전체 사용자 요약 조회", description = "관리자 권한으로 전체 사용자 목록을 조회합니다.")
     @ApiResponses({
@@ -175,5 +179,29 @@ public class AdminUserController {
 
         redisTemplate.opsForValue().set("blocked-ip:" + ip, "true", duration, TimeUnit.MINUTES);
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("IP가 차단되었습니다."));
+    }
+
+    @Operation(summary = "사용자 포인트 수여", description = "관리자가 특정 사용자에게 포인트를 수여합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "포인트 수여 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "사용자 없음")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/{userId}/points")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> awardPoints(
+            @PathVariable Long userId,
+            @RequestBody @jakarta.validation.Valid PointAwardRequestDto request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
+    ) {
+        try {
+            pointService.awardPointsByAdmin(userId, request.getPoints(), request.getReason(), currentUser.getId());
+            return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
+                    String.format("%d 포인트가 성공적으로 수여되었습니다.", request.getPoints())));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(com.byeolnight.infrastructure.common.CommonResponse.fail(e.getMessage()));
+        }
     }
 }

@@ -1,33 +1,26 @@
 package com.byeolnight.dto.user;
 
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.dto.certificate.CertificateDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileDto {
     private Long id;
     private String nickname;
-    private String role;
-    private String status;
-    private int level;
-    private int points;
-    private long postCount;
-    private long commentCount;
-
-    public static UserProfileDto from(User user, long postCount, long commentCount) {
-        return UserProfileDto.builder()
-                .id(user.getId())
-                .nickname(user.getNickname())
-                .role(user.getRole().name())
-                .status(user.getStatus().name())
-                .level(user.getLevel())
-                .points(user.getPoints())
-                .postCount(postCount)
-                .commentCount(commentCount)
-                .build();
-    }
+    private String equippedIconUrl;
+    private List<CertificateDto.Response> certificates; // 최신 4개
+    private int totalIconCount; // 수집한 아이콘 개수
+    private int postCount; // 작성한 글 수
+    private int commentCount; // 작성한 댓글 수
+    private int attendanceCount; // 출석 수
+    private LocalDateTime joinedAt; // 가입일
 }

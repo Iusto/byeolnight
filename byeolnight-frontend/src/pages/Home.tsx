@@ -10,6 +10,7 @@ interface Post {
   content: string;
   category: string;
   writer: string;
+  writerId: number;
   likeCount: number;
   viewCount: number;
   commentCount: number;
@@ -183,7 +184,7 @@ export default function Home() {
         {/* 게시판 네비게이션 */}
         <div className="mb-8 p-6 bg-[#1f2336]/80 backdrop-blur-md rounded-xl shadow-xl">
           <h2 className="text-2xl font-bold mb-4 text-center">🌌 게시판 둘러보기</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
             <Link to="/posts?category=NEWS&sort=recent" className="group">
               <div className="p-4 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg border border-blue-500/30 hover:border-blue-400 transition-all duration-200 text-center">
                 <div className="text-2xl mb-2">🚀</div>
@@ -224,6 +225,12 @@ export default function Home() {
               <div className="p-4 bg-red-600/20 hover:bg-red-600/40 rounded-lg border border-red-500/30 hover:border-red-400 transition-all duration-200 text-center">
                 <div className="text-2xl mb-2">📢</div>
                 <div className="text-sm font-medium">공지</div>
+              </div>
+            </Link>
+            <Link to="/suggestions" className="group">
+              <div className="p-4 bg-orange-600/20 hover:bg-orange-600/40 rounded-lg border border-orange-500/30 hover:border-orange-400 transition-all duration-200 text-center">
+                <div className="text-2xl mb-2">💡</div>
+                <div className="text-sm font-medium">건의게시판</div>
               </div>
             </Link>
           </div>

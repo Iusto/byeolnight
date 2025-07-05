@@ -37,6 +37,10 @@ export default function AdminReportsPage() {
   const [expandedPost, setExpandedPost] = useState<number | null>(null);
 
   useEffect(() => {
+    if (user === null) {
+      // 아직 로딩 중이면 대기
+      return;
+    }
     if (!user || user.role !== 'ADMIN') {
       navigate('/');
       return;

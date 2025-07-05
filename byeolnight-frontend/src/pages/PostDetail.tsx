@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { parseMarkdown } from '../utils/markdown';
-import UserProfileModal from '../components/UserProfileModal';
-import AdminActionModal from '../components/AdminActionModal';
-import PostAdminModal from '../components/PostAdminModal';
+import ClickableNickname from '../components/ClickableNickname';
 
 interface Post {
   id: number;
@@ -13,22 +11,26 @@ interface Post {
   content: string;
   category: string;
   writer: string;
+  writerId: number;
   blinded: boolean;
   likeCount: number;
   likedByMe: boolean;
   createdAt: string;
   viewCount: number;
   commentCount: number;
+  writerIcon?: string;
 }
 
 interface Comment {
   id: number;
   content: string;
   writer: string;
+  writerId: number;
   blinded?: boolean;
   createdAt: string;
   parentId?: number;
   parentWriter?: string;
+  writerIcon?: string;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -71,11 +73,7 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [error, setError] = useState('');
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showAdminModal, setShowAdminModal] = useState(false);
-  const [showPostAdminModal, setShowPostAdminModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState<number>();
+
   const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null); // 답글 기능 활성화
 
   const fetchPost = async () => {
@@ -83,6 +81,7 @@ export default function PostDetail() {
       const res = await axios.get(`/public/posts/${id}`);
       // 응답 구조 안전하게 처리
       const postData = res.data?.data || res.data;
+      console.log('게시글 데이터:', postData);
       setPost(postData);
     } catch (err) {
       console.error('게시글 조회 실패:', err);
@@ -90,18 +89,26 @@ export default function PostDetail() {
     }
   };
 
-  // 댓글을 계층 구조로 정렬하는 함수
+  // 댓글을 계층 구조로 정렬하는 함수 (재귀적으로 모든 답글 처리)
   const organizeComments = (comments: Comment[]) => {
-    const parentComments = comments.filter(c => !c.parentId);
-    const childComments = comments.filter(c => c.parentId);
-    
     const organized: Comment[] = [];
     
+    // 재귀적으로 답글을 찾는 함수
+    const addReplies = (parentId: number, depth = 0) => {
+      const replies = comments.filter(c => c.parentId === parentId);
+      replies.forEach(reply => {
+        organized.push(reply);
+        // 이 답글의 답글들도 재귀적으로 추가
+        addReplies(reply.id, depth + 1);
+      });
+    };
+    
+    // 최상위 댓글들부터 시작
+    const parentComments = comments.filter(c => !c.parentId);
     parentComments.forEach(parent => {
       organized.push(parent);
-      // 해당 부모 댓글의 답글들을 찾아서 바로 뒤에 추가
-      const replies = childComments.filter(child => child.parentId === parent.id);
-      organized.push(...replies);
+      // 해당 부모 댓글의 모든 답글들을 재귀적으로 추가
+      addReplies(parent.id);
     });
     
     return organized;
@@ -186,11 +193,22 @@ export default function PostDetail() {
         console.log(`${replyTo.writer}님에게 답글이 등록되었습니다.`);
       }
       
+      // 댓글 작성 후 알림 생성 확인
+      console.log('댓글 작성 완룼 - 알림 생성 확인 예정');
+      
       // 트랜잭션 커밋을 위해 더 긴 딩레이 후 댓글 새로고침
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log('댓글 등록 후 새로고침 시작');
         fetchComments();
-      }, 1000);
+        
+        // 알림 생성 확인
+        try {
+          const notificationResponse = await axios.get('/member/notifications/unread/count');
+          console.log('댓글 작성 후 알림 개수:', notificationResponse.data);
+        } catch (err) {
+          console.error('알림 확인 실패:', err);
+        }
+      }, 2000);
       
     } catch (err: any) {
       console.error('댓글 등록 실패:', err);
@@ -245,36 +263,7 @@ export default function PostDetail() {
     }
   };
 
-  const handleUserClick = async (writerName: string, isPost: boolean = false) => {
-    setSelectedUser(writerName);
-    
-    if (!user) {
-      // 비로그인 사용자도 프로필 보기 가능
-      setShowProfileModal(true);
-      return;
-    }
-    
-    if (user.role === 'ADMIN') {
-      // 관리자는 사용자 ID를 가져와서 관리자 메뉴 모달 표시
-      try {
-        const res = await axios.get(`/public/users/profile/${writerName}`);
-        setSelectedUserId(res.data?.data?.id || res.data?.id);
-        
-        if (isPost) {
-          setShowPostAdminModal(true); // 게시글 작성자인 경우 게시글 관리 모달
-        } else {
-          setShowAdminModal(true); // 댓글 작성자인 경우 일반 관리자 모달
-        }
-      } catch (err) {
-        console.error('사용자 정보 조회 실패:', err);
-        // 사용자 ID를 찾을 수 없어도 프로필 모달은 표시
-        setShowProfileModal(true);
-      }
-    } else {
-      // 일반 사용자는 프로필 모달 표시
-      setShowProfileModal(true);
-    }
-  };
+
 
   const handlePostBlind = async () => {
     if (!confirm('이 게시글을 블라인드 처리하시겠습니까?')) return;
@@ -351,16 +340,18 @@ export default function PostDetail() {
       <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
         <h1 className="text-3xl font-bold mb-2 drop-shadow-glow">{post.title}</h1>
         <div className="text-sm text-gray-400 mb-4">
-          ✍ <button 
-            onClick={() => handleUserClick(post.writer, true)}
-            className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-2 py-1 rounded-md transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
-          >
-            {post.writer}
-          </button> · 🗂 {categoryName} · ❤️ {post.likeCount} · 👁 {post.viewCount} · 📅 {formattedDate}
+          <span className="flex items-center gap-1 inline-flex">
+            <span className="text-sm">{post.writerIcon || '🌟'}</span>
+            <ClickableNickname 
+              userId={post.writerId} 
+              nickname={post.writer}
+              className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-2 py-1 rounded-md transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
+            />
+          </span> · 🗂 {categoryName} · ❤️ {post.likeCount} · 👁 {post.viewCount} · 📅 {formattedDate}
           {post.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
         </div>
         <div 
-          className="text-starlight mb-6"
+          className="text-starlight mb-6 post-content break-words overflow-wrap-anywhere max-w-full overflow-hidden"
           dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
         />
 
@@ -471,19 +462,26 @@ export default function PostDetail() {
                     💬 {c.parentWriter}님에게 답글
                   </div>
                 )}
-                <div className={`text-sm ${c.blinded ? 'text-gray-500 italic' : 'text-starlight'}`}>
+                <div 
+                  className={`text-sm break-words overflow-wrap-anywhere max-w-full ${c.blinded ? 'text-gray-500 italic' : 'text-starlight'}`}
+                  style={{
+                    wordWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word'
+                  }}
+                >
                   {c.content}
                   {c.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
                 </div>
                 <div className="text-xs text-gray-400 mt-1 flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <span>
-                      ✍ <button 
-                        onClick={() => handleUserClick(c.writer)}
+                    <span className="flex items-center gap-1">
+                      <span className="text-sm">{c.writerIcon || '🌟'}</span>
+                      <ClickableNickname 
+                        userId={c.writerId} 
+                        nickname={c.writer}
                         className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-1 py-0.5 rounded text-xs transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
-                      >
-                        {c.writer}
-                      </button> · {new Date(c.createdAt).toLocaleString()}
+                      /> · {new Date(c.createdAt).toLocaleString()}
                     </span>
                     {user && (
                       <button
@@ -571,32 +569,7 @@ export default function PostDetail() {
           </ul>
         )}
       </div>
-      
-      {/* 사용자 프로필 모달 */}
-      <UserProfileModal 
-        username={selectedUser}
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
-      
-      {/* 관리자 액션 모달 */}
-      <AdminActionModal 
-        username={selectedUser}
-        userId={selectedUserId}
-        isOpen={showAdminModal}
-        onClose={() => setShowAdminModal(false)}
-      />
-      
-      {/* 게시글 관리자 모달 */}
-      <PostAdminModal 
-        username={selectedUser}
-        userId={selectedUserId}
-        postId={Number(id)}
-        isOpen={showPostAdminModal}
-        onClose={() => setShowPostAdminModal(false)}
-        onPostBlind={handlePostBlind}
-        onPostDelete={handlePostDelete}
-      />
+
     </div>
   );
 }

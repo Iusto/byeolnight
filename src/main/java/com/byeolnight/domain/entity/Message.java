@@ -4,7 +4,7 @@ import com.byeolnight.domain.entity.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -13,36 +13,63 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "messages")
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class Message {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
-    private User sender;
-    
+    private User sender; // 발신자
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id", nullable = false)
-    private User receiver;
-    
+    private User receiver; // 수신자
+
     @Column(nullable = false, length = 100)
-    private String title;
-    
+    private String title; // 제목
+
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
-    
-    @Column(name = "is_read", nullable = false)
+    private String content; // 내용
+
     @Builder.Default
-    private Boolean isRead = false;
-    
+    @Column(nullable = false)
+    private Boolean isRead = false; // 읽음 여부
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean senderDeleted = false; // 발신자 삭제 여부
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean receiverDeleted = false; // 수신자 삭제 여부
+
+    @Column
+    private LocalDateTime readAt; // 읽은 시간
+
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // 읽음 처리
+    public void markAsRead() {
+        this.isRead = true;
+        this.readAt = LocalDateTime.now();
+    }
+
+    // 발신자 삭제
+    public void deleteBySender() {
+        this.senderDeleted = true;
+    }
+
+    // 수신자 삭제
+    public void deleteByReceiver() {
+        this.receiverDeleted = true;
+    }
 }

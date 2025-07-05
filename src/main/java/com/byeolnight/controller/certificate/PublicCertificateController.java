@@ -5,6 +5,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/public/certificates")
 @RequiredArgsConstructor
+@Tag(name = "🌍 공개 API - 인증서", description = "비회원도 접근 가능한 인증서 조회 API")
 public class PublicCertificateController {
 
     private final CertificateService certificateService;

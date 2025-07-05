@@ -3,6 +3,7 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import IpBlockModal from '../components/IpBlockModal';
 import AdminReasonModal from '../components/AdminReasonModal';
+import PointAwardModal from '../components/PointAwardModal';
 
 interface UserSummary {
   id: number;
@@ -11,6 +12,7 @@ interface UserSummary {
   role: string;
   status: 'ACTIVE' | 'BANNED' | 'SUSPENDED' | 'WITHDRAWN';
   accountLocked: boolean;
+  points: number;
 }
 
 interface BlindedPost {
@@ -34,7 +36,9 @@ export default function AdminUserPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts'>('users');
   const [showIpModal, setShowIpModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
+  const [showPointModal, setShowPointModal] = useState(false);
   const [modalAction, setModalAction] = useState<{ type: string; userId: number; status?: string } | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'WITHDRAWN'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [postSearchTerm, setPostSearchTerm] = useState('');
@@ -136,6 +140,31 @@ export default function AdminUserPage() {
     
     setModalAction({ type: 'delete', userId: id });
     setShowReasonModal(true);
+  };
+
+  const handleAwardPoints = async (points: number, reason: string) => {
+    if (!selectedUserId) return;
+    
+    try {
+      const response = await axios.post(`/admin/users/${selectedUserId}/points`, {
+        points: points,
+        reason: reason
+      });
+      
+      if (response.data.success) {
+        alert(`${points}포인트가 성공적으로 수여되었습니다.`);
+        fetchUsers(); // 사용자 목록 새로고침
+      } else {
+        alert('포인트 수여에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('포인트 수여 실패:', error);
+      const errorMessage = error.response?.data?.message || '포인트 수여에 실패했습니다.';
+      alert(errorMessage);
+    } finally {
+      setShowPointModal(false);
+      setSelectedUserId(null);
+    }
   };
 
   useEffect(() => {
@@ -334,6 +363,7 @@ export default function AdminUserPage() {
                   <th className="p-3">전화번호</th>
                   <th className="p-3">권한</th>
                   <th className="p-3">상태</th>
+                  <th className="p-3">포인트</th>
                   <th className="p-3">조치</th>
                 </tr>
               </thead>
@@ -360,6 +390,21 @@ export default function AdminUserPage() {
                     <td className="p-3">{user.phone}</td>
                     <td className="p-3 text-center">{user.role}</td>
                     <td className="p-3 text-center">{user.status}</td>
+                    <td className="p-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-yellow-400">⭐</span>
+                        <span className="font-bold">{user.points?.toLocaleString() || 0}</span>
+                        <button
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            setShowPointModal(true);
+                          }}
+                          className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium ml-2"
+                        >
+                          수여
+                        </button>
+                      </div>
+                    </td>
                     <td className="p-3 text-center space-x-1">
                       {user.status === 'WITHDRAWN' ? (
                         <span className="text-gray-400 text-xs">탈퇴된 계정</span>
@@ -412,7 +457,7 @@ export default function AdminUserPage() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-gray-400">
+                    <td colSpan={8} className="p-8 text-center text-gray-400">
                       사용자 데이터가 없습니다.
                     </td>
                   </tr>
@@ -558,6 +603,16 @@ export default function AdminUserPage() {
               ? `상태 변경 사유를 입력하세요...`
               : '탈퇴 사유를 입력하세요...'
           }
+        />
+        
+        {/* 포인트 수여 모달 */}
+        <PointAwardModal 
+          isOpen={showPointModal}
+          onClose={() => {
+            setShowPointModal(false);
+            setSelectedUserId(null);
+          }}
+          onConfirm={handleAwardPoints}
         />
       </div>
     </div>

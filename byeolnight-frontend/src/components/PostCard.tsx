@@ -1,14 +1,16 @@
 import React from 'react';
+import ClickableNickname from './ClickableNickname';
 
 type PostProps = {
   id: number;
   title: string;
   category: string;
   writer: string;
+  writerId: number;
   hot: boolean;
 };
 
-export const PostItem = ({ id, title, category, writer, hot }: PostProps) => {
+export const PostItem = ({ id, title, category, writer, writerId, hot }: PostProps) => {
   return (
     <div className="flex items-center justify-between border-b py-2">
       <div className="flex items-center space-x-2">
@@ -17,7 +19,11 @@ export const PostItem = ({ id, title, category, writer, hot }: PostProps) => {
           {title}
         </a>
       </div>
-      <span className="text-sm text-gray-500">{writer}</span>
+      <ClickableNickname 
+        userId={writerId} 
+        nickname={writer} 
+        className="text-sm text-gray-500"
+      />
     </div>
   );
 };

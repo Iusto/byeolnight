@@ -7,6 +7,7 @@ import com.byeolnight.dto.shop.StellaIconDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.shop.StellaShopService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,14 +18,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/shop")
 @RequiredArgsConstructor
+@Tag(name = "🛍️ 스텔라 상점 API", description = "스텔라 아이콘 구매 및 장착 API")
 public class StellaShopController {
 
     private final StellaShopService stellaShopService;
 
     @Operation(summary = "스텔라 상점 아이콘 목록 조회")
-    @GetMapping("/icons")
+    @GetMapping("/api/shop/icons")
     public ResponseEntity<CommonResponse<List<StellaIconDto>>> getShopIcons(
             @AuthenticationPrincipal User user) {
         
@@ -43,7 +44,7 @@ public class StellaShopController {
     }
 
     @Operation(summary = "스텔라 아이콘 구매")
-    @PostMapping("/purchase/{iconId}")
+    @PostMapping("/api/shop/purchase/{iconId}")
     public ResponseEntity<CommonResponse<String>> purchaseIcon(
             @PathVariable Long iconId,
             @AuthenticationPrincipal User user) {
@@ -57,7 +58,7 @@ public class StellaShopController {
     }
 
     @Operation(summary = "내 보관함 조회")
-    @GetMapping("/my-icons")
+    @GetMapping("/api/shop/my-icons")
     public ResponseEntity<CommonResponse<List<UserIcon>>> getMyIcons(
             @AuthenticationPrincipal User user) {
         
@@ -65,8 +66,17 @@ public class StellaShopController {
         return ResponseEntity.ok(CommonResponse.success(userIcons));
     }
 
+    @Operation(summary = "내 보관함 조회 (멤버 전용)")
+    @GetMapping("/api/member/shop/my-icons")
+    public ResponseEntity<CommonResponse<List<UserIcon>>> getMyIconsForMember(
+            @AuthenticationPrincipal User user) {
+        
+        List<UserIcon> userIcons = stellaShopService.getUserIcons(user);
+        return ResponseEntity.ok(CommonResponse.success(userIcons));
+    }
+
     @Operation(summary = "아이콘 장착")
-    @PostMapping("/equip/{iconId}")
+    @PostMapping("/api/shop/equip/{iconId}")
     public ResponseEntity<CommonResponse<String>> equipIcon(
             @PathVariable Long iconId,
             @AuthenticationPrincipal User user) {
@@ -80,7 +90,7 @@ public class StellaShopController {
     }
 
     @Operation(summary = "아이콘 해제")
-    @PostMapping("/unequip")
+    @PostMapping("/api/shop/unequip")
     public ResponseEntity<CommonResponse<String>> unequipIcon(
             @AuthenticationPrincipal User user) {
         
@@ -89,7 +99,7 @@ public class StellaShopController {
     }
 
     @Operation(summary = "스텔라 아이콘 초기화 (개발용)")
-    @PostMapping("/init-icons")
+    @PostMapping("/api/shop/init-icons")
     public ResponseEntity<CommonResponse<String>> initIcons() {
         try {
             stellaShopService.initializeDefaultIcons();

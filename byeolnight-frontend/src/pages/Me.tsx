@@ -42,10 +42,10 @@ export default function Me() {
         <div className="mt-8 space-y-3">
           <div className="flex justify-between">
             <Link 
-              to="/profile/edit" 
+              to="/profile/edit"
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors font-medium"
             >
-              프로필 수정
+              내 정보 수정
             </Link>
             <Link 
               to="/password-change" 

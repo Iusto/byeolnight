@@ -135,4 +135,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     
     @Query("SELECT p FROM Post p WHERE p.writer.nickname LIKE %:nickname% AND p.category = :category AND p.isDeleted = false AND p.blinded = false")
     Page<Post> findByWriterNicknameContainingAndCategory(@Param("nickname") String nickname, @Param("category") Post.Category category, Pageable pageable);
+    
+    /**
+     * 사용자별 작성 게시글 조회 (삭제되지 않은 것만)
+     */
+    Page<Post> findByWriterAndIsDeletedFalseOrderByCreatedAtDesc(com.byeolnight.domain.entity.user.User writer, Pageable pageable);
 }

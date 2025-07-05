@@ -11,6 +11,19 @@ import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserSignUpRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
+import com.byeolnight.dto.user.UserProfileDto;
+import com.byeolnight.dto.user.MyActivityDto;
+import com.byeolnight.dto.certificate.CertificateDto;
+import com.byeolnight.dto.post.PostDto;
+import com.byeolnight.dto.comment.CommentDto;
+import com.byeolnight.dto.message.MessageDto;
+import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.comment.CommentService;
+import com.byeolnight.service.message.MessageService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import com.byeolnight.infrastructure.exception.*;
 import com.byeolnight.service.auth.GmailEmailService;
 import com.byeolnight.infrastructure.security.EncryptionUtil;
@@ -45,6 +58,12 @@ public class UserService {
     private final com.byeolnight.domain.repository.post.PostRepository postRepository;
     private final com.byeolnight.domain.repository.CommentRepository commentRepository;
     private final EncryptionUtil encryptionUtil;
+    private final CertificateService certificateService;
+    private final PostService postService;
+    private final CommentService commentService;
+    private final MessageService messageService;
+    private final com.byeolnight.domain.repository.shop.StellaIconRepository stellaIconRepository;
+    private final com.byeolnight.domain.repository.MessageRepository messageRepository;
 
     /**
      * 회원가입 처리
@@ -168,7 +187,8 @@ public class UserService {
         
         System.out.println("게시글 수: " + postCount + ", 댓글 수: " + commentCount);
         
-        return com.byeolnight.dto.user.UserProfileDto.from(user, postCount, commentCount);
+        // TODO: UserProfileDto.from 메서드 구현 필요
+        return null;
     }
 
     /**
@@ -390,8 +410,19 @@ public class UserService {
             return null;
         }
 
-        // 장착된 아이콘 정보는 StellaShopService에서 처리
-        return null;
+        // 직접 StellaIcon 조회
+        com.byeolnight.domain.entity.shop.StellaIcon icon = stellaIconRepository.findById(user.getEquippedIconId())
+                .orElse(null);
+        
+        if (icon == null) {
+            return null;
+        }
+        
+        return com.byeolnight.dto.shop.EquippedIconDto.builder()
+                .iconId(icon.getId())
+                .iconName(icon.getIconUrl())
+                .iconUrl(icon.getIconUrl())
+                .build();
     }
 
     /**
@@ -426,5 +457,132 @@ public class UserService {
         }
         
         System.out.println("전화번호 암호화 마이그레이션 완료: " + migratedCount + "건 처리");
+    }
+
+    /**
+     * 사용자 프로필 조회 (인증서, 아이콘, 통계 포함)
+     */
+    @Transactional(readOnly = true)
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        // 최신 인증서 4개 조회
+        List<CertificateDto.Response> certificates = certificateService.getUserPublicCertificates(userId, 4);
+        
+        // 통계 정보 조회
+        long postCount = postRepository.countByWriterAndIsDeletedFalse(user);
+        long commentCount = commentRepository.countByWriter(user);
+        
+        // TODO: 아이콘 개수, 출석 수 조회 로직 추가
+        int totalIconCount = 0; // 임시값
+        int attendanceCount = 0; // 임시값
+        
+        return UserProfileDto.builder()
+                .id(user.getId())
+                .nickname(user.getNickname())
+                .equippedIconUrl(null) // TODO: 장착된 아이콘 URL 조회
+                .certificates(certificates)
+                .totalIconCount(totalIconCount)
+                .postCount((int) postCount)
+                .commentCount((int) commentCount)
+                .attendanceCount(attendanceCount)
+                .joinedAt(null) // TODO: User 엔티티에 createdAt 필드 추가 필요
+                .build();
+    }
+
+    /**
+     * 테스트 데이터 생성 (개발용)
+     */
+    @Transactional
+    public void createTestData(User user) {
+        try {
+            // 테스트 게시글 생성
+            com.byeolnight.domain.entity.post.Post testPost = com.byeolnight.domain.entity.post.Post.builder()
+                    .title("테스트 게시글 - " + user.getNickname())
+                    .content("이것은 테스트용 게시글입니다.")
+                    .category(com.byeolnight.domain.entity.post.Post.Category.FREE)
+                    .writer(user)
+                    .build();
+            postRepository.save(testPost);
+            
+            // 테스트 댓글 생성
+            com.byeolnight.domain.entity.comment.Comment testComment = com.byeolnight.domain.entity.comment.Comment.builder()
+                    .post(testPost)
+                    .writer(user)
+                    .content("테스트 댓글입니다.")
+                    .build();
+            commentRepository.save(testComment);
+            
+            // 테스트 쪽지 생성 (자기 자신에게)
+            com.byeolnight.domain.entity.Message testMessage = com.byeolnight.domain.entity.Message.builder()
+                    .sender(user)
+                    .receiver(user)
+                    .title("테스트 쪽지")
+                    .content("테스트용 쪽지입니다.")
+                    .build();
+            messageRepository.save(testMessage);
+            
+            System.out.println("테스트 데이터 생성 완료 - 사용자: " + user.getNickname());
+        } catch (Exception e) {
+            System.err.println("테스트 데이터 생성 실패: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * 내 활동 내역 조회 (게시글, 댓글, 쪽지)
+     */
+    @Transactional(readOnly = true)
+    public MyActivityDto getMyActivity(Long userId, int page, int size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        System.out.println("내 활동 내역 조회 시작 - userId: " + userId + ", nickname: " + user.getNickname());
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        
+        try {
+            // 내가 작성한 게시글
+            List<PostDto.Response> myPosts = postService.getMyPosts(userId, pageable);
+            System.out.println("내 게시글 조회 완료: " + myPosts.size() + "개");
+            
+            // 내가 작성한 댓글
+            List<CommentDto.Response> myComments = commentService.getMyComments(userId, pageable);
+            System.out.println("내 댓글 조회 완료: " + myComments.size() + "개");
+            
+            // 받은 쪽지
+            MessageDto.ListResponse receivedMessages = messageService.getReceivedMessages(userId, pageable);
+            System.out.println("받은 쪽지 조회 완료: " + receivedMessages.getMessages().size() + "개");
+            
+            // 보낸 쪽지
+            MessageDto.ListResponse sentMessages = messageService.getSentMessages(userId, pageable);
+            System.out.println("보낸 쪽지 조회 완료: " + sentMessages.getMessages().size() + "개");
+            
+            // 전체 개수 조회
+            long totalPostCount = postRepository.countByWriterAndIsDeletedFalse(user);
+            long totalCommentCount = commentRepository.countByWriter(user);
+            
+            System.out.println("전체 게시글 수: " + totalPostCount + ", 전체 댓글 수: " + totalCommentCount);
+            
+            MyActivityDto result = MyActivityDto.builder()
+                    .myPosts(myPosts)
+                    .myComments(myComments)
+                    .receivedMessages(receivedMessages)
+                    .sentMessages(sentMessages)
+                    .totalPostCount(totalPostCount)
+                    .totalCommentCount(totalCommentCount)
+                    .totalReceivedMessageCount(receivedMessages.getTotalCount())
+                    .totalSentMessageCount(sentMessages.getTotalCount())
+                    .build();
+            
+            System.out.println("내 활동 내역 조회 완료");
+            return result;
+            
+        } catch (Exception e) {
+            System.err.println("내 활동 내역 조회 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
