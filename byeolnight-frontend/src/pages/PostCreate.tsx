@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import MDEditor from '@uiw/react-md-editor';
-import '@uiw/react-md-editor/markdown-editor.css';
+import { Editor } from '@tinymce/tinymce-react';
+import { useRef } from 'react';
 
 interface FileDto {
   originalName: string;
@@ -20,9 +20,67 @@ export default function PostCreate() {
   const [category, setCategory] = useState('DISCUSSION');
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
+  const editorRef = useRef<any>(null);
   
   // URL 파라미터에서 originTopic 추출
   const originTopicId = searchParams.get('originTopic');
+  
+  // 클립보드 이미지 업로드 함수
+  const uploadClipboardImage = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post('/files/presigned-url', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const imageData = response.data.data || response.data;
+      setUploadedImages(prev => [...prev, imageData]);
+      
+      return imageData.url;
+    } catch (error) {
+      console.error('클립보드 이미지 업로드 실패:', error);
+      throw error;
+    }
+  };
+  
+  // 클립보드 붙여넣기 이벤트 핸들러
+  const handlePaste = async (event: ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      // 이미지 파일인지 확인
+      if (item.type.indexOf('image') !== -1) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          try {
+            const imageUrl = await uploadClipboardImage(file);
+            // TinyMCE에 이미지 삽입
+            if (editorRef.current) {
+              const currentContent = editorRef.current.getContent();
+              editorRef.current.setContent(currentContent + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+            }
+          } catch (error) {
+            alert('이미지 업로드에 실패했습니다.');
+          }
+        }
+        break;
+      }
+    }
+  };
+  
+  // 컴포넌트 마운트 시 이벤트 리스너 등록
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, []);
   
   const handleImageUpload = () => {
     const input = document.createElement('input');
@@ -44,8 +102,11 @@ export default function PostCreate() {
           const imageData = response.data.data || response.data;
           setUploadedImages(prev => [...prev, imageData]);
           
-          // 마크다운 이미지 문법으로 추가
-          setContent(prev => prev + `\n![${imageData.originalName}](${imageData.url})\n`);
+          // TinyMCE에 이미지 삽입
+          if (editorRef.current) {
+            const currentContent = editorRef.current.getContent();
+            editorRef.current.setContent(currentContent + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
+          }
         } catch (error) {
           console.error('이미지 업로드 실패:', error);
           alert('이미지 업로드에 실패했습니다.');
@@ -79,12 +140,15 @@ export default function PostCreate() {
       return;
     }
 
+    // TinyMCE에서 콘텐츠 가져오기
+    const finalContent = editorRef.current ? editorRef.current.getContent() : content;
+    
     try {
       const response = await axios.post('/member/posts', {
         title,
-        content,
+        content: finalContent,
         category,
-        images: uploadedImages, // 업로드된 이미지 정보 전송
+        images: uploadedImages,
         originTopicId: originTopicId ? parseInt(originTopicId) : null
       });
       
@@ -182,18 +246,34 @@ export default function PostCreate() {
                   </button>
                 </div>
               </div>
-              <div data-color-mode="dark" className="rounded-xl overflow-hidden border border-slate-600/50">
-                <MDEditor
-                  value={content}
-                  onChange={(val) => setContent(val || '')}
-                  preview="edit"
-                  hideToolbar={false}
-                  height={400}
-                  data-color-mode="dark"
+              <div className="rounded-xl overflow-hidden border border-slate-600/50">
+                <Editor
+                  apiKey="3trr7og8q6of7ygamz6bumqbgy1q8hlwgns0i7o1hihbsltz"
+                  onInit={(evt, editor) => editorRef.current = editor}
+                  initialValue={content}
+                  init={{
+                    height: 400,
+                    menubar: false,
+                    language: 'ko_KR',
+                    skin: 'oxide-dark',
+                    content_css: 'dark',
+                    plugins: [
+                      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+                      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                      'insertdatetime', 'media', 'table', 'preview', 'help', 'wordcount'
+                    ],
+                    toolbar: 'undo redo | blocks | ' +
+                      'bold italic forecolor | alignleft aligncenter ' +
+                      'alignright alignjustify | bullist numlist outdent indent | ' +
+                      'removeformat | help',
+                    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }'
+                  }}
+                  onEditorChange={(content) => setContent(content)}
                 />
               </div>
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                📝 팁: 마크다운 문법을 사용할 수 있습니다. **굵게**, *기울임*, ![image](URL)
+                🎨 TinyMCE Editor: 전세계 1위 리치 텍스트 에디터, 한글 지원 완벽!<br/>
+                🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!
               </div>
             </div>
           

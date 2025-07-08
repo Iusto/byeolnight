@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@stomp/stompjs": "^7.1.1",
+    "@tinymce/tinymce-react": "^6.2.1",
     "@types/sockjs-client": "^1.5.4",
     "@uiw/react-md-editor": "^4.0.7",
     "axios": "^1.10.0",

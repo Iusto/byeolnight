@@ -1,0 +1,98 @@
+/* Toast UI Editor 커스텀 스타일 */
+
+/* 툴바는 어두운 배경, 버튼만 밝게 */
+.toastui-editor-toolbar {
+  background-color: #1f2937 !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+.toastui-editor-toolbar .toastui-editor-toolbar-group {
+  background-color: #1f2937 !important;
+}
+
+.toastui-editor-toolbar button {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border: 1px solid #d1d5db !important;
+  margin: 2px !important;
+  border-radius: 4px !important;
+}
+
+/* 버튼 아이콘 색상 강제 설정 */
+.toastui-editor-toolbar button svg,
+.toastui-editor-toolbar button::before,
+.toastui-editor-toolbar button i {
+  color: #374151 !important;
+  fill: #374151 !important;
+}
+
+.toastui-editor-toolbar button:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+  transform: scale(1.05) !important;
+}
+
+.toastui-editor-toolbar button:hover svg,
+.toastui-editor-toolbar button:hover::before,
+.toastui-editor-toolbar button:hover i {
+  color: #111827 !important;
+  fill: #111827 !important;
+}
+
+.toastui-editor-toolbar button.active {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.toastui-editor-toolbar button.active svg,
+.toastui-editor-toolbar button.active::before,
+.toastui-editor-toolbar button.active i {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+/* 툴바 구분선도 어두운 테마 */
+.toastui-editor-toolbar .toastui-editor-toolbar-divider {
+  background-color: #374151 !important;
+}
+
+/* 에디터 영역은 어두운 테마 */
+.toastui-editor-main {
+  background-color: #1f2937 !important;
+}
+
+.toastui-editor-md-container,
+.toastui-editor-ww-container {
+  background-color: #1f2937 !important;
+}
+
+.toastui-editor .ProseMirror {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.toastui-editor .CodeMirror {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.toastui-editor .CodeMirror-cursor {
+  border-left: 1px solid #f9fafb !important;
+}
+
+/* 미리보기 영역도 어두운 테마 */
+.toastui-editor-preview {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+/* 구분선 */
+.toastui-editor-splitter {
+  background-color: #374151 !important;
+}
+
+/* 스크롤바 스타일링 */
+.toastui-editor .CodeMirror-scrollbar-filler,
+.toastui-editor .CodeMirror-gutter-filler {
+  background-color: #1f2937 !important;
+}
