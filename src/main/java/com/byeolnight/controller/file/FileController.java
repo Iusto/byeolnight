@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/member/files")
+@RequestMapping("/api/files")
 @RequiredArgsConstructor
 @Tag(name = "📁 파일 API", description = "AWS S3 파일 업로드 및 관리 API")
 public class FileController {
@@ -20,8 +20,15 @@ public class FileController {
 
     @Operation(summary = "S3 Presigned URL 생성", description = "파일 업로드를 위한 S3 Presigned URL을 생성합니다.")
     @PostMapping("/presigned-url")
-    public ResponseEntity<CommonResponse<Map<String, String>>> getPresignedUrl(@RequestBody Map<String, String> request) {
-        String filename = request.get("filename");
+    public ResponseEntity<CommonResponse<Map<String, String>>> getPresignedUrl(
+            @RequestParam(value = "filename", required = false) String filename,
+            @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file) {
+        
+        // MultipartFile에서 파일명 추출
+        if (file != null && !file.isEmpty()) {
+            filename = file.getOriginalFilename();
+        }
+        
         if (filename == null || filename.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(CommonResponse.error("파일명이 필요합니다."));
         }
