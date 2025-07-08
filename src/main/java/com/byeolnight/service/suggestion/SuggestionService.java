@@ -24,6 +24,7 @@ public class SuggestionService {
 
     private final SuggestionRepository suggestionRepository;
     private final UserRepository userRepository;
+    private final com.byeolnight.service.certificate.CertificateService certificateService;
 
     // 건의사항 목록 조회
     public SuggestionDto.ListResponse getSuggestions(
@@ -77,6 +78,14 @@ public class SuggestionService {
                 .build();
 
         Suggestion savedSuggestion = suggestionRepository.save(suggestion);
+        
+        // 건의사항 인증서 체크
+        try {
+            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.SUGGESTION_WRITE);
+        } catch (Exception e) {
+            System.err.println("건의사항 인증서 발급 실패: " + e.getMessage());
+        }
+        
         return SuggestionDto.Response.from(savedSuggestion);
     }
 
@@ -128,11 +137,44 @@ public class SuggestionService {
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new NotFoundException("관리자를 찾을 수 없습니다."));
 
-        suggestion.addAdminResponse(request.getResponse(), admin);
-        if (request.getStatus() != null) {
-            suggestion.updateStatus(request.getStatus());
+        // 상태가 지정되지 않았으면 기본값으로 COMPLETED 사용
+        Suggestion.SuggestionStatus status = request.getStatus() != null ? request.getStatus() : Suggestion.SuggestionStatus.COMPLETED;
+        suggestion.addAdminResponse(request.getResponse(), admin, status);
+        
+        // 건의사항 작성자에게 알림 전송
+        try {
+            com.byeolnight.service.notification.NotificationService notificationService = 
+                com.byeolnight.infrastructure.config.ApplicationContextProvider
+                    .getBean(com.byeolnight.service.notification.NotificationService.class);
+            
+            String notificationMessage = String.format("건의사항 '%s'에 관리자 답변이 등록되었습니다.", 
+                suggestion.getTitle().length() > 20 ? suggestion.getTitle().substring(0, 20) + "..." : suggestion.getTitle());
+            
+            notificationService.createNotification(
+                suggestion.getAuthor().getId(),
+                com.byeolnight.domain.entity.Notification.NotificationType.SUGGESTION_RESPONSE,
+                "건의사항 답변 알림",
+                notificationMessage,
+                "/suggestions/" + suggestion.getId(),
+                suggestion.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("건의사항 답변 알림 전송 실패: " + e.getMessage());
         }
 
+        return SuggestionDto.Response.from(suggestion);
+    }
+
+    // 건의사항 상태만 변경
+    @Transactional
+    public SuggestionDto.Response updateStatus(Long id, Long adminId, SuggestionDto.StatusUpdateRequest request) {
+        Suggestion suggestion = suggestionRepository.findById(id)
+                .orElseThrow(() -> new SuggestionNotFoundException());
+
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new NotFoundException("관리자를 찾을 수 없습니다."));
+
+        suggestion.updateStatus(request.getStatus());
         return SuggestionDto.Response.from(suggestion);
     }
 

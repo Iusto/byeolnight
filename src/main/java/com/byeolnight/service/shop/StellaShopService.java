@@ -9,6 +9,10 @@ import com.byeolnight.domain.repository.shop.UserIconRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,18 +20,30 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StellaShopService {
 
     private final StellaIconRepository stellaIconRepository;
     private final UserIconRepository userIconRepository;
     private final UserRepository userRepository;
+    private final com.byeolnight.service.user.PointService pointService;
 
     /**
      * 상점 아이콘 목록 조회
      */
     @Transactional(readOnly = true)
     public List<StellaIcon> getShopIcons() {
-        return stellaIconRepository.findByAvailableTrue();
+        List<StellaIcon> icons = stellaIconRepository.findByAvailableTrue();
+        log.info("상점 아이콘 조회 결과: {} 개", icons.size());
+        return icons;
+    }
+    
+    /**
+     * 아이콘 총 개수 조회
+     */
+    @Transactional(readOnly = true)
+    public long getIconCount() {
+        return stellaIconRepository.count();
     }
 
     /**
@@ -49,9 +65,8 @@ public class StellaShopService {
             throw new IllegalArgumentException("이미 보유한 아이콘입니다.");
         }
 
-        // 포인트 확인 및 차감
-        user.decreasePoints(icon.getPrice());
-        userRepository.save(user);
+        // 포인트 확인 및 차감 (PointService에서 처리)
+        pointService.recordIconPurchase(user, icon.getId(), icon.getName(), icon.getPrice());
 
         // 보관함에 추가
         UserIcon userIcon = UserIcon.of(user, icon, icon.getPrice());
@@ -63,7 +78,7 @@ public class StellaShopService {
      */
     @Transactional(readOnly = true)
     public List<UserIcon> getUserIcons(User user) {
-        return userIconRepository.findByUserOrderByCreatedAtDesc(user);
+        return userIconRepository.findByUserWithStellaIconOrderByCreatedAtDesc(user);
     }
 
     /**
@@ -82,7 +97,7 @@ public class StellaShopService {
                 .orElseThrow(() -> new NotFoundException("보유하지 않은 아이콘입니다."));
         
         userIcon.equip();
-        user.equipIcon(iconId);
+        user.equipIcon(iconId, iconToEquip.getIconUrl()); // 아이콘 이름도 함께 저장
         userRepository.save(user);
     }
 
@@ -118,12 +133,37 @@ public class StellaShopService {
     }
 
     /**
-     * 기본 아이콘 초기화 (StellaIconDataLoader에서 처리)
+     * 기본 아이콘 초기화
      */
     @Transactional
     public void initializeDefaultIcons() {
-        // StellaIconDataLoader에서 이미 처리하므로 별도 로직 불필요
-        // 필요시 강제 재로드를 위해 기존 데이터 삭제 후 재시작 필요
-        throw new UnsupportedOperationException("아이콘 초기화는 애플리케이션 재시작을 통해 수행됩니다.");
+        log.info("스텔라 아이콘 강제 초기화 시작");
+        
+        // 기존 데이터 삭제
+        stellaIconRepository.deleteAll();
+        
+        // 기본 아이콘 생성
+        List<StellaIcon> defaultIcons = Arrays.asList(
+            createIcon("별", "밤하늘의 반짝이는 별", "Star", StellaIconGrade.COMMON, 50),
+            createIcon("지구", "우리의 푸른 행성", "Earth", StellaIconGrade.RARE, 150),
+            createIcon("달", "지구의 아름다운 위성", "Moon", StellaIconGrade.COMMON, 50),
+            createIcon("블랙홀", "시공간을 지배하는 절대적 존재", "BlackHole", StellaIconGrade.LEGENDARY, 500),
+            createIcon("빅뱅", "우주 탄생의 순간", "BigBang", StellaIconGrade.MYTHIC, 1000)
+        );
+        
+        stellaIconRepository.saveAll(defaultIcons);
+        log.info("스텔라 아이콘 초기화 완료: {} 개 아이콘 생성", defaultIcons.size());
+    }
+    
+    private StellaIcon createIcon(String name, String description, String iconUrl, StellaIconGrade grade, int price) {
+        return StellaIcon.builder()
+                .name(name)
+                .description(description)
+                .iconUrl(iconUrl)
+                .grade(grade)
+                .price(price)
+                .type(StellaIcon.IconType.STATIC)
+                .available(true)
+                .build();
     }
 }

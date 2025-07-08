@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getSuggestion, deleteSuggestion } from '../lib/api/suggestion';
+import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
+import UserIconDisplay from '../components/UserIconDisplay';
 import type { Suggestion } from '../types/suggestion';
 
 const CATEGORIES = {
@@ -42,6 +43,10 @@ export default function SuggestionDetail() {
   const { user } = useAuth();
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAdminResponse, setShowAdminResponse] = useState(false);
+  const [adminResponse, setAdminResponse] = useState('');
+  const [responseStatus, setResponseStatus] = useState<'IN_PROGRESS' | 'COMPLETED' | 'REJECTED'>('IN_PROGRESS');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -77,6 +82,45 @@ export default function SuggestionDetail() {
     } catch (error: any) {
       console.error('건의사항 삭제 실패:', error);
       const errorMessage = error.response?.data?.message || '건의사항 삭제에 실패했습니다.';
+      alert(errorMessage);
+    }
+  };
+
+  const handleAdminResponse = async () => {
+    if (!adminResponse.trim()) {
+      alert('답변 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await addAdminResponse(Number(id), {
+        response: adminResponse,
+        status: responseStatus
+      });
+      alert('관리자 답변이 등록되었습니다.');
+      setShowAdminResponse(false);
+      setAdminResponse('');
+      fetchSuggestion(); // 새로고침
+    } catch (error: any) {
+      console.error('관리자 답변 등록 실패:', error);
+      const errorMessage = error.response?.data?.message || '답변 등록에 실패했습니다.';
+      alert(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED') => {
+    if (newStatus === suggestion?.status) return;
+
+    try {
+      await updateSuggestionStatus(Number(id), newStatus);
+      alert('상태가 변경되었습니다.');
+      fetchSuggestion(); // 새로고침
+    } catch (error: any) {
+      console.error('상태 변경 실패:', error);
+      const errorMessage = error.response?.data?.message || '상태 변경에 실패했습니다.';
       alert(errorMessage);
     }
   };
@@ -140,7 +184,7 @@ export default function SuggestionDetail() {
 
             <div className="flex items-center gap-6 text-sm text-gray-400">
               <div className="flex items-center gap-2">
-                <span>👤</span>
+                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-lg" />
                 <span>{suggestion.authorNickname}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -187,6 +231,83 @@ export default function SuggestionDetail() {
             </div>
           )}
 
+          {/* 관리자 상태 변경 */}
+          {user && user.role === 'ADMIN' && suggestion.adminResponse && (
+            <div className="mx-8 mb-8">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-4">
+                  <label className="text-blue-300 font-medium">상태 변경:</label>
+                  <select
+                    value={suggestion.status}
+                    onChange={(e) => handleStatusChange(e.target.value as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
+                    className="px-3 py-2 bg-[#1f2336] border border-blue-500/30 rounded-lg text-white focus:outline-none focus:border-blue-400"
+                  >
+                    <option value="PENDING">검토 중</option>
+                    <option value="IN_PROGRESS">진행 중</option>
+                    <option value="COMPLETED">완료</option>
+                    <option value="REJECTED">거절</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 관리자 답변 작성 */}
+          {user && user.role === 'ADMIN' && !suggestion.adminResponse && (
+            <div className="mx-8 mb-8">
+              {!showAdminResponse ? (
+                <button
+                  onClick={() => setShowAdminResponse(true)}
+                  className="w-full py-3 bg-green-600/20 hover:bg-green-600/40 text-green-300 border border-green-500/30 rounded-lg transition-all font-medium"
+                >
+                  📝 관리자 답변 작성
+                </button>
+              ) : (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
+                  <div className="mb-4">
+                    <label className="block text-green-300 font-medium mb-2">답변 상태</label>
+                    <select
+                      value={responseStatus}
+                      onChange={(e) => setResponseStatus(e.target.value as 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
+                      className="w-full px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white focus:outline-none focus:border-green-400"
+                    >
+                      <option value="IN_PROGRESS">진행 중</option>
+                      <option value="COMPLETED">완료</option>
+                      <option value="REJECTED">거절</option>
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-green-300 font-medium mb-2">답변 내용</label>
+                    <textarea
+                      value={adminResponse}
+                      onChange={(e) => setAdminResponse(e.target.value)}
+                      placeholder="건의사항에 대한 답변을 작성해주세요..."
+                      className="w-full h-32 px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-400 resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleAdminResponse}
+                      disabled={submitting}
+                      className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white rounded-lg transition-all font-medium"
+                    >
+                      {submitting ? '등록 중...' : '답변 등록'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAdminResponse(false);
+                        setAdminResponse('');
+                      }}
+                      className="px-6 py-2 bg-gray-600/20 hover:bg-gray-600/40 text-gray-300 border border-gray-500/30 rounded-lg transition-all"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 액션 버튼 */}
           {user && user.id === suggestion.authorId && suggestion.status === 'PENDING' && (
             <div className="p-8 border-t border-purple-500/20">
@@ -208,13 +329,7 @@ export default function SuggestionDetail() {
           )}
         </div>
 
-        {/* 관련 건의사항 */}
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-white mb-4">관련 건의사항</h2>
-          <div className="text-center py-8 text-gray-400">
-            관련 건의사항이 없습니다.
-          </div>
-        </div>
+
       </div>
     </div>
   );

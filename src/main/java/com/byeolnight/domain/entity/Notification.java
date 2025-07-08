@@ -61,6 +61,7 @@ public class Notification {
         COMMENT_ON_POST,    // 내 게시글에 댓글
         REPLY_ON_COMMENT,   // 내 댓글에 답글
         NEW_MESSAGE,        // 새 쪽지
-        NEW_NOTICE          // 새 공지사항
+        NEW_NOTICE,         // 새 공지사항
+        SUGGESTION_RESPONSE // 건의사항 답변
     }
 }

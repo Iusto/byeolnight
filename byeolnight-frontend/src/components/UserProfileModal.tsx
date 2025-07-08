@@ -50,10 +50,15 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/member/users/${userId}/profile`);
+      console.log('프로필 조회 시작:', userId);
+      
+      const response = await axios.get(`/public/users/${userId}/profile`);
       const data = response.data;
       
-      if (data.success) {
+      console.log('프로필 API 응답:', data);
+      
+      if (data && data.success && data.data) {
+        console.log('API 응답 데이터:', data.data);
         setProfile({
           id: data.data.id,
           nickname: data.data.nickname,
@@ -61,14 +66,16 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
           postCount: data.data.postCount || 0,
           commentCount: data.data.commentCount || 0,
           attendanceCount: data.data.attendanceCount || 0,
-          iconCount: data.data.totalIconCount || 0,
+          iconCount: data.data.iconCount || 0,
           certificates: data.data.certificates || [],
         });
       } else {
-        throw new Error(data.message || '프로필 조회 실패');
+        console.error('프로필 데이터 없음:', data);
+        setProfile(null);
       }
     } catch (error) {
       console.error('사용자 프로필 조회 실패:', error);
+      console.error('에러 상세:', error.response?.data);
       setProfile(null);
     } finally {
       setLoading(false);
@@ -158,23 +165,43 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
               </div>
             </div>
 
-            {/* 최근 획득한 자격증 */}
+            {/* 최근 획득한 인증서 */}
             <div className="bg-[#2a2e45]/60 rounded-lg p-6">
-              <h4 className="text-lg font-bold text-white mb-4">🏆 최근 획득한 자격증</h4>
+              <h4 className="text-lg font-bold text-white mb-4">🏆 최근 획득한 인증서</h4>
               {profile.certificates.length === 0 ? (
-                <p className="text-gray-400 text-center py-4">아직 획득한 자격증이 없습니다.</p>
+                <p className="text-gray-400 text-center py-4">아직 획득한 인증서가 없습니다.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {profile.certificates.slice(0, 4).map((cert) => (
-                    <div key={cert.id} className="flex items-center gap-3 p-3 bg-[#1f2336]/60 rounded-lg">
-                      <div className="text-2xl">{cert.iconUrl}</div>
-                      <div className="flex-1">
-                        <h5 className="font-semibold text-white">{cert.title}</h5>
-                        <p className="text-sm text-gray-400">{cert.description}</p>
-                        <p className="text-xs text-gray-500">{new Date(cert.earnedAt).toLocaleDateString('ko-KR')}</p>
+                  {profile.certificates.slice(0, 4).map((cert) => {
+                    // 인증서 아이콘 매핑
+                    const certIcons = {
+                      '별빛 탐험가': '🌠',
+                      '우주인 등록증': '🌍',
+                      '은하 통신병': '📡',
+                      '별 관측 매니아': '🔭',
+                      '별빛 채팅사': '🗨️',
+                      '별 헤는 밤 시민증': '🏅',
+                      '별빛 수호자': '🛡️',
+                      '우주 실험자': '⚙️',
+                      '건의왕': '💡',
+                      '은하 관리자 훈장': '🏆'
+                    };
+                    const icon = certIcons[cert.title] || cert.iconUrl || '🏆';
+                    
+                    return (
+                      <div key={cert.id} className="relative group">
+                        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-500/20">
+                          <div className="text-3xl animate-pulse">{icon}</div>
+                          <div className="flex-1">
+                            <h5 className="font-bold text-yellow-300 text-lg">{cert.title}</h5>
+                            <p className="text-sm text-gray-300 mt-1">{cert.description}</p>
+                            <p className="text-xs text-yellow-400/70 mt-2 font-medium">{new Date(cert.earnedAt).toLocaleDateString('ko-KR')}</p>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CommentRequestDto {
 
-    @NotNull
-    private Long postId;
+    private Long postId;  // 수정 시에는 필수가 아님
 
     @NotBlank
     private String content;

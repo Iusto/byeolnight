@@ -12,7 +12,6 @@ public class AuthWhitelist {
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/ws/**",
-            "/api/comments/**",
-            "/suggestions"
+            "/api/suggestions"
     };
 }

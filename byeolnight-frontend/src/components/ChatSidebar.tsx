@@ -4,7 +4,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from '../lib/axios';
 import AdminChatControls from './AdminChatControls';
-import AdminDashboard from './AdminDashboard';
+import AdminChatModal from './AdminChatModal';
 
 interface ChatMessage {
   id?: string;
@@ -21,6 +21,9 @@ export default function ChatSidebar() {
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+  const [oldestMessageId, setOldestMessageId] = useState<string | null>(null);
   const [bannedUsers, setBannedUsers] = useState<Set<string>>(new Set());
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [banStatus, setBanStatus] = useState<{banned: boolean, reason?: string, duration?: number, bannedUntil?: string} | null>(null);
@@ -45,6 +48,26 @@ export default function ChatSidebar() {
         client.subscribe('/topic/public', (message) => {
           const payload = JSON.parse(message.body);
           setMessages((prev) => [...prev.slice(-10), payload]); // 최신 10개 유지
+        });
+        
+        // 관리자 액션 알림 구독 (블라인드 해제 등)
+        client.subscribe('/topic/admin/chat-update', (message) => {
+          const data = JSON.parse(message.body);
+          if (data.type === 'MESSAGE_UNBLINDED') {
+            // 블라인드 해제된 메시지 업데이트
+            setMessages(prev => 
+              prev.map(msg => 
+                msg.id === data.messageId ? { ...msg, isBlinded: false } : msg
+              )
+            );
+          } else if (data.type === 'MESSAGE_BLINDED') {
+            // 블라인드 처리된 메시지 업데이트
+            setMessages(prev => 
+              prev.map(msg => 
+                msg.id === data.messageId ? { ...msg, isBlinded: true } : msg
+              )
+            );
+          }
         });
         
         // 개인 채팅 금지 알림 구독
@@ -94,25 +117,73 @@ export default function ChatSidebar() {
   const loadInitialMessages = async () => {
     try {
       const res = await axios.get('/public/chat', {
-        params: { roomId: 'public' },
+        params: { roomId: 'public', limit: 20 },
       });
+      
       const history = res.data?.data || res.data || [];
+      
       if (Array.isArray(history) && history.length > 0) {
-        setMessages(history.slice(-20)); // 최근 20개 메시지 로드
+        const messagesWithBlindStatus = history.map(msg => ({
+          ...msg,
+          isBlinded: msg.isBlinded || false
+        }));
+        setMessages(messagesWithBlindStatus);
+        setOldestMessageId(messagesWithBlindStatus[0]?.id || null);
+        setHasMoreHistory(history.length === 20); // 20개 가득 불러왔으면 더 있을 가능성
+      } else {
+        setMessages([]);
+        setHasMoreHistory(false);
       }
     } catch (err) {
       console.error('이전 채팅 내역 불러오기 실패:', err);
-      // 이전 내역 로드 실패 시 빈 배열로 시작
       setMessages([]);
+      setHasMoreHistory(false);
+    }
+  };
+  
+  const loadMoreHistory = async () => {
+    if (loadingHistory || !hasMoreHistory || !oldestMessageId) return;
+    
+    setLoadingHistory(true);
+    try {
+      const res = await axios.get('/public/chat/history', {
+        params: { 
+          roomId: 'public', 
+          beforeId: oldestMessageId,
+          limit: 20 
+        },
+      });
+      
+      const history = res.data?.data || res.data || [];
+      
+      if (Array.isArray(history) && history.length > 0) {
+        const messagesWithBlindStatus = history.map(msg => ({
+          ...msg,
+          isBlinded: msg.isBlinded || false
+        }));
+        
+        setMessages(prev => [...messagesWithBlindStatus, ...prev]);
+        setOldestMessageId(messagesWithBlindStatus[0]?.id || null);
+        setHasMoreHistory(history.length === 20);
+      } else {
+        setHasMoreHistory(false);
+      }
+    } catch (err) {
+      console.error('이전 메시지 로드 실패:', err);
+      setHasMoreHistory(false);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
-  // ✅ messages가 변경될 때 채팅창 하단으로 스크롤
+  // ✅ 새 메시지가 추가될 때만 스크롤 (블라인드 처리 시에는 스크롤 안함)
+  const prevMessagesLength = useRef(messages.length);
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (container) {
+    if (container && messages.length > prevMessagesLength.current) {
       container.scrollTop = container.scrollHeight;
     }
+    prevMessagesLength.current = messages.length;
   }, [messages]);
 
   // 채팅 금지 타이머
@@ -220,13 +291,9 @@ export default function ChatSidebar() {
     );
   };
 
-  // 메시지 블라인드 해제
+  // 메시지 블라인드 해제 (실시간 업데이트는 WebSocket에서 처리)
   const handleMessageUnblind = (messageId: string) => {
-    setMessages(prev =>
-      prev.map(msg =>
-        msg.id === messageId ? { ...msg, isBlinded: false } : msg
-      )
-    );
+    // WebSocket을 통해 실시간으로 업데이트되므로 여기서는 아무것도 하지 않음
   };
 
   // 사용자 제재 처리
@@ -265,8 +332,11 @@ export default function ChatSidebar() {
 
   return (
     <div className="space-y-4">
-      {/* 관리자 대시보드 */}
-      {isAdmin && showAdminDashboard && <AdminDashboard />}
+      {/* 관리자 대시보드 모달 */}
+      <AdminChatModal 
+        isOpen={showAdminDashboard} 
+        onClose={() => setShowAdminDashboard(false)} 
+      />
 
       <div className="bg-[#1f2336]/70 backdrop-blur-md p-4 rounded-xl h-[600px] flex flex-col">
         <div className="flex items-center justify-between mb-2">
@@ -286,7 +356,19 @@ export default function ChatSidebar() {
         <div
           ref={scrollContainerRef}
           className="h-full overflow-y-auto pr-1 space-y-2 mb-3 scrollbar-thin scrollbar-thumb-purple-700 scrollbar-track-transparent"
+          onScroll={(e) => {
+            const { scrollTop } = e.currentTarget;
+            // 위로 스크롤할 때 이전 메시지 로드
+            if (scrollTop === 0 && hasMoreHistory && !loadingHistory) {
+              loadMoreHistory();
+            }
+          }}
         >
+          {loadingHistory && (
+            <div className="text-center py-2">
+              <div className="text-purple-400 text-sm">이전 메시지 로드 중...</div>
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               <div className="text-center">

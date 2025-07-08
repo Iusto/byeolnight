@@ -4,6 +4,7 @@ package com.byeolnight.domain.entity.shop;
  * 스텔라 아이콘 등급 열거형
  */
 public enum StellaIconGrade {
+    FREE("무료", "#6B7280"),
     COMMON("일반", "#9CA3AF"),
     RARE("희귀", "#3B82F6"),
     EPIC("영웅", "#8B5CF6"),

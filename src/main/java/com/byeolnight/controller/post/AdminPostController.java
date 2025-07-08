@@ -2,12 +2,14 @@ package com.byeolnight.controller.post;
 
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.admin.AdminReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ import java.util.List;
 public class AdminPostController {
 
     private final PostService postService;
+    private final AdminReportService adminReportService;
 
     @Operation(summary = "블라인드 게시글 전체 조회", description = "관리자가 블라인드 처리된 게시글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
@@ -40,8 +43,11 @@ public class AdminPostController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{postId}/blind")
-    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> blindPost(@PathVariable Long postId) {
-        postService.blindPost(postId);
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> blindPost(
+            @PathVariable Long postId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
+    ) {
+        postService.blindPostByAdmin(postId, admin.getId());
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("블라인드 처리가 완료되었습니다."));
     }
 
@@ -58,24 +64,35 @@ public class AdminPostController {
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("블라인드 해제가 완료되었습니다."));
     }
 
-    @Operation(summary = "게시글 완전 삭제", description = "관리자가 게시글을 완전히 삭제합니다. (되돌릴 수 없음)")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "삭제 성공"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "게시글 없음")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{postId}")
-    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> deletePostPermanently(@PathVariable Long postId) {
-        postService.deletePostPermanently(postId);
-        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("게시글이 완전히 삭제되었습니다."));
-    }
-
     @Operation(summary = "신고된 게시글 조회", description = "관리자가 신고된 게시글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/reported")
-    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<List<PostResponseDto>>> getReportedPosts() {
-        List<PostResponseDto> result = postService.getReportedPosts();
-        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result));
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<List<com.byeolnight.dto.admin.ReportedPostDetailDto>>> getReportedPosts(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "title") String searchType,
+            Pageable pageable
+    ) {
+        var result = adminReportService.getReportedPosts(search, searchType, pageable);
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result.getContent()));
+    }
+
+    @Operation(summary = "게시글 카테고리 이동", description = "관리자가 선택한 게시글들을 다른 카테고리로 이동합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/move-category")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> movePostsCategory(
+            @RequestBody MoveCategoryRequest request
+    ) {
+        postService.movePostsCategory(request.getPostIds(), request.getTargetCategory());
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("카테고리 이동이 완료되었습니다."));
+    }
+
+    public static class MoveCategoryRequest {
+        private java.util.List<Long> postIds;
+        private String targetCategory;
+        
+        public java.util.List<Long> getPostIds() { return postIds; }
+        public void setPostIds(java.util.List<Long> postIds) { this.postIds = postIds; }
+        public String getTargetCategory() { return targetCategory; }
+        public void setTargetCategory(String targetCategory) { this.targetCategory = targetCategory; }
     }
 }

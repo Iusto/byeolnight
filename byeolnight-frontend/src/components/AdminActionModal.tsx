@@ -9,7 +9,7 @@ interface AdminActionModalProps {
   isBlinded?: boolean;
   onMessageBlind: (messageId: string) => void;
   onMessageUnblind: (messageId: string) => void;
-  onUserBan: (username: string, duration: number) => void;
+  onUserBan: (username: string, duration: number, reason?: string) => void;
 }
 
 const AdminActionModal: React.FC<AdminActionModalProps> = ({
@@ -26,16 +26,24 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
 
   const handleBlindMessage = () => {
     if (isBlinded) {
-      onMessageUnblind(messageId);
+      if (confirm('이 메시지의 블라인드를 해제하시겠습니까?')) {
+        onMessageUnblind(messageId);
+        onClose();
+      }
     } else {
-      onMessageBlind(messageId);
+      const reason = prompt('메시지 블라인드 처리 사유를 입력하세요:', '부적절한 내용');
+      if (reason !== null && reason.trim()) {
+        onMessageBlind(messageId);
+        onClose();
+      }
     }
-    onClose();
   };
 
   const handleBanUser = (duration: number) => {
-    if (confirm(`${sender}님을 ${duration}분간 채팅 금지하시겠습니까?`)) {
-      onUserBan(sender, duration);
+    const reason = prompt(`${sender}님을 ${duration}분간 채팅 금지하는 사유를 입력하세요:`, '부적절한 채팅');
+    if (reason !== null && reason.trim()) {
+      onUserBan(sender, duration, reason.trim());
+      alert(`${sender}님이 ${duration}분간 채팅 금지 처리되었습니다.`);
       onClose();
     }
   };

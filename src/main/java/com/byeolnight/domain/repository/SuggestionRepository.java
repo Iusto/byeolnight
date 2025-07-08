@@ -41,4 +41,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
 
     // 통계용 - 카테고리별 개수
     long countByCategory(Suggestion.SuggestionCategory category);
+    
+    // 사용자별 건의사항 작성 수 조회
+    long countByAuthor(User author);
 }

@@ -204,4 +204,48 @@ public class AdminUserController {
                     .body(com.byeolnight.infrastructure.common.CommonResponse.fail(e.getMessage()));
         }
     }
+
+    @Operation(summary = "기본 소행성 아이콘 마이그레이션", description = "모든 기존 사용자에게 기본 소행성 아이콘을 부여하고 장착합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "마이그레이션 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/migrate-default-icon")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> migrateDefaultAsteroidIcon() {
+        try {
+            userService.migrateDefaultAsteroidIcon();
+            return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
+                    "모든 사용자에게 기본 소행성 아이콘이 성공적으로 부여되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(com.byeolnight.infrastructure.common.CommonResponse.fail(
+                            "마이그레이션 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "닉네임 디버깅", description = "특정 닉네임의 존재 여부를 확인합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/debug/nickname/{nickname}")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<java.util.Map<String, Object>>> debugNickname(
+            @PathVariable String nickname) {
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("inputNickname", nickname);
+        result.put("trimmedNickname", nickname.trim());
+        result.put("exists", userService.isNicknameDuplicated(nickname));
+        
+        // 데이터베이스에서 비슷한 닉네임들 찾기
+        java.util.List<String> allNicknames = userService.getAllUserSummaries().stream()
+                .map(UserSummaryDto::getNickname)
+                .filter(n -> n.toLowerCase().contains(nickname.toLowerCase()) || 
+                           nickname.toLowerCase().contains(n.toLowerCase()))
+                .collect(java.util.stream.Collectors.toList());
+        
+        result.put("similarNicknames", allNicknames);
+        
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result));
+    }
+
+
 }

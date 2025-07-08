@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { sendMessage } from '../lib/api/message';
 import UserProfileModal from './UserProfileModal';
+import axios from '../lib/axios';
 
 interface UserActionPopupProps {
   targetUserId: number;
@@ -21,7 +22,9 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
   const isSelf = user?.id === targetUserId;
 
   const handleViewProfile = () => {
+    console.log('프로필 보기 버튼 클릭:', { targetUserId, targetNickname });
     setShowProfileModal(true);
+    // onClose()를 호출하지 않음 - 모달이 열린 상태에서 팝업을 숨김
   };
 
   const handleSendMessage = async () => {
@@ -63,7 +66,6 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
 
   const handleAdminAction = async (action: string) => {
     const confirmMessage = {
-      ban: '이 사용자를 밴 처리하시겠습니까?',
       suspend: '이 사용자를 정지시키겠습니까?',
       activate: '이 사용자를 활성화하시겠습니까?',
       lock: '이 사용자 계정을 잠그시겠습니까?',
@@ -73,16 +75,15 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
     if (!confirm(confirmMessage)) return;
 
     try {
-      const reason = action === 'ban' || action === 'suspend' ? 
+      const reason = action === 'suspend' ? 
         prompt('사유를 입력하세요:') : undefined;
       
-      if ((action === 'ban' || action === 'suspend') && !reason?.trim()) {
+      if (action === 'suspend' && !reason?.trim()) {
         alert('사유를 입력해주세요.');
         return;
       }
 
       const endpoint = {
-        ban: `/admin/users/${targetUserId}/status`,
         suspend: `/admin/users/${targetUserId}/status`,
         activate: `/admin/users/${targetUserId}/status`,
         lock: `/admin/users/${targetUserId}/lock`,
@@ -90,7 +91,6 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
       }[action];
 
       const data = {
-        ban: { status: 'BANNED', reason },
         suspend: { status: 'SUSPENDED', reason },
         activate: { status: 'ACTIVE' },
         lock: { locked: true },
@@ -107,14 +107,16 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
-      <div 
-        className="fixed z-50 bg-[#1f2336]/95 backdrop-blur-md border border-purple-500/30 rounded-xl shadow-2xl p-5 min-w-64"
-        style={{ 
-          left: `${position.x}px`, 
-          top: `${position.y}px`
-        }}
-      >
+      {!showProfileModal && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
+          <div 
+            className="fixed z-50 bg-[#1f2336]/95 backdrop-blur-md border border-purple-500/30 rounded-xl shadow-2xl p-5 min-w-64"
+            style={{ 
+              left: `${position.x}px`, 
+              top: `${position.y}px`
+            }}
+          >
         <div className="text-white font-bold mb-4 border-b border-purple-500/30 pb-3 text-center">
           🌟 {targetNickname}
         </div>
@@ -170,32 +172,38 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
                 <div className="border-t border-red-500/20 pt-2 mt-2">
                   <div className="text-red-300 text-xs mb-2">관리자 기능</div>
                   <button
-                    onClick={() => handleAdminAction('ban')}
-                    className="w-full text-left px-3 py-2 hover:bg-red-600/20 rounded text-red-300 text-sm"
-                  >
-                    🚫 밴 처리
-                  </button>
-                  <button
-                    onClick={() => handleAdminAction('suspend')}
-                    className="w-full text-left px-3 py-2 hover:bg-orange-600/20 rounded text-orange-300 text-sm"
+                    onClick={async () => {
+                      await handleAdminAction('suspend');
+                      onClose();
+                    }}
+                    className="w-full text-left px-4 py-3 bg-[#2a2e45]/40 hover:bg-orange-600/20 rounded-lg text-orange-300 text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-purple-500/20 hover:border-orange-500/30 mb-2"
                   >
                     ⏸️ 정지
                   </button>
                   <button
-                    onClick={() => handleAdminAction('activate')}
-                    className="w-full text-left px-3 py-2 hover:bg-green-600/20 rounded text-green-300 text-sm"
+                    onClick={async () => {
+                      await handleAdminAction('activate');
+                      onClose();
+                    }}
+                    className="w-full text-left px-4 py-3 bg-[#2a2e45]/40 hover:bg-green-600/20 rounded-lg text-green-300 text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-purple-500/20 hover:border-green-500/30 mb-2"
                   >
                     ✅ 활성화
                   </button>
                   <button
-                    onClick={() => handleAdminAction('lock')}
-                    className="w-full text-left px-3 py-2 hover:bg-yellow-600/20 rounded text-yellow-300 text-sm"
+                    onClick={async () => {
+                      await handleAdminAction('lock');
+                      onClose();
+                    }}
+                    className="w-full text-left px-4 py-3 bg-[#2a2e45]/40 hover:bg-yellow-600/20 rounded-lg text-yellow-300 text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-purple-500/20 hover:border-yellow-500/30 mb-2"
                   >
                     🔒 계정 잠금
                   </button>
                   <button
-                    onClick={() => handleAdminAction('unlock')}
-                    className="w-full text-left px-3 py-2 hover:bg-cyan-600/20 rounded text-cyan-300 text-sm"
+                    onClick={async () => {
+                      await handleAdminAction('unlock');
+                      onClose();
+                    }}
+                    className="w-full text-left px-4 py-3 bg-[#2a2e45]/40 hover:bg-cyan-600/20 rounded-lg text-cyan-300 text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-purple-500/20 hover:border-cyan-500/30"
                   >
                     🔓 잠금 해제
                   </button>
@@ -204,13 +212,18 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
             )}
           </div>
         )}
-      </div>
+          </div>
+        </>
+      )}
       
       {showProfileModal && (
         <UserProfileModal 
           userId={targetUserId}
           isOpen={showProfileModal}
-          onClose={() => setShowProfileModal(false)}
+          onClose={() => {
+            setShowProfileModal(false);
+            onClose(); // 모달을 닫을 때 팝업도 닫기
+          }}
         />
       )}
     </>

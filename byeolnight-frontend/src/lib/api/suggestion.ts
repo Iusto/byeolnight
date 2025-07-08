@@ -60,3 +60,9 @@ export const addAdminResponse = async (id: number, data: {
   const response = await axios.post(`/suggestions/${id}/admin-response`, data);
   return response.data.data;
 };
+
+// 건의사항 상태 변경 (관리자 전용)
+export const updateSuggestionStatus = async (id: number, status: SuggestionStatus): Promise<Suggestion> => {
+  const response = await axios.patch(`/suggestions/${id}/status`, { status });
+  return response.data.data;
+};

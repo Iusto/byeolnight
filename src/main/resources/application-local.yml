@@ -1,0 +1,65 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/byeolnight
+    username: root
+    password: m1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com
+    password: your-app-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+send:
+  from: your-email@gmail.com
+
+coolsms:
+  api-key: your-coolsms-api-key
+  api-secret: your-coolsms-secret
+  sender-number: your-phone-number
+
+cloud:
+  aws:
+    s3:
+      bucket: your-s3-bucket
+    credentials:
+      access-key: your-access-key
+      secret-key: your-secret-key
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+
+app:
+  jwt:
+    secret: localDevelopmentSecretKeyForTestingOnly
+
+crawler:
+  news:
+    api:
+      key: byeolnight-crawler-news
+
+openai:
+  api:
+    key: your-openai-api-key
+
+google:
+  api:
+    key: your-google-api-key
+
+system:
+  password:
+    newsbot: newsbot123
+    system: system123

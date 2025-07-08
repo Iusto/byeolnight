@@ -32,11 +32,11 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final FileRepository fileRepository;
     private final UserRepository userRepository;
+    private final com.byeolnight.domain.repository.post.PostReportRepository postReportRepository;
     private final S3Service s3Service;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
     private final PointService pointService;
     private final com.byeolnight.domain.repository.CommentRepository commentRepository;
-    private final com.byeolnight.service.ImageModerationService imageModerationService;
     private final com.byeolnight.service.notification.NotificationService notificationService;
 
     @Transactional
@@ -49,27 +49,38 @@ public class PostService {
                 .category(dto.getCategory())
                 .writer(user)
                 .build();
+        
+        if (dto.getOriginTopicId() != null) {
+            Post originTopic = postRepository.findById(dto.getOriginTopicId())
+                    .orElseThrow(() -> new NotFoundException("원본 토론 주제를 찾을 수 없습니다."));
+            if (!originTopic.isDiscussionTopic()) {
+                throw new IllegalArgumentException("유효하지 않은 토론 주제입니다.");
+            }
+            post.setOriginTopicId(dto.getOriginTopicId());
+        }
+        
         postRepository.save(post);
 
-        // 이미지 검증 및 저장
         dto.getImages().forEach(image -> {
-            System.out.println("이미지 검증 완료: " + image.originalName());
             File file = File.of(post, image.originalName(), image.s3Key(), image.url());
             fileRepository.save(file);
         });
 
-        // 게시글 작성 인증서 발급 체크
         certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POST_WRITE);
         
-        // IMAGE 카테고리 게시글 작성 시 별 관측 매니아 인증서 체크
         if (dto.getCategory() == Post.Category.IMAGE) {
-            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_VIEW);
+            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_UPLOAD);
         }
 
-        // 게시글 작성 포인트 지급
         pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
         
-        // 공지사항인 경우 모든 사용자에게 알림 전송
+        // 포인트 달성 인증서 체크
+        try {
+            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+        } catch (Exception e) {
+            System.err.println("포인트 인증서 발급 실패: " + e.getMessage());
+        }
+        
         if (dto.getCategory() == Post.Category.NOTICE) {
             try {
                 notificationService.createNotificationForAllUsers(
@@ -96,15 +107,12 @@ public class PostService {
         }
 
         validateAdminCategoryWrite(dto.getCategory(), user);
-
         post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
 
-        // S3 이미지 삭제 + DB 삭제
         List<File> oldFiles = fileRepository.findAllByPost(post);
         oldFiles.forEach(file -> s3Service.deleteObject(file.getS3Key()));
         fileRepository.deleteAllByPost(post);
 
-        // 새 이미지 저장
         dto.getImages().forEach(image -> {
             File file = File.of(post, image.originalName(), image.s3Key(), image.url());
             fileRepository.save(file);
@@ -126,7 +134,6 @@ public class PostService {
 
         post.increaseViewCount();
 
-        // 비로그인 사용자도 게시글 조회 가능
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
         long likeCount = postLikeRepository.countByPost(post);
         long commentCount = commentRepository.countByPostId(postId);
@@ -136,15 +143,9 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, String searchType, String search, Pageable pageable) {
-        System.out.println("게시글 조회 요청 - 카테고리: " + category + ", 정렬: " + sortParam + ", 검색타입: " + searchType + ", 검색어: " + search);
-        
-        // 검색 기능이 있는 경우
         if (search != null && !search.trim().isEmpty()) {
-            System.out.println("검색 모드로 전환");
             return searchPosts(category, searchType, search.trim(), pageable);
         }
-        
-        System.out.println("일반 조회 모드");
         return getFilteredPosts(category, sortParam, pageable);
     }
     
@@ -158,26 +159,22 @@ public class PostService {
 
         switch (sort) {
             case RECENT -> {
-                // ✅ 한 달 이내 추천수 5 이상인 게시글 중 추천순으로 4개 조회 (HOT)
                 List<Post> hotPosts = postRepository.findTopHotPostsByCategory(categoryEnum, threshold, PageRequest.of(0, 4));
-                Page<Post> recentPosts = postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable);
+                Page<Post> recentPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable);
 
                 Set<Long> hotIds = hotPosts.stream().map(Post::getId).collect(Collectors.toSet());
-
                 List<PostResponseDto> combined = new ArrayList<>();
 
-                // HOT 게시글은 HOT 플래그 true (안전 처리)
                 hotPosts.forEach(p -> {
                     try {
                         long actualLikeCount = postLikeRepository.countByPost(p);
                         long commentCount = commentRepository.countByPostId(p.getId());
                         combined.add(PostResponseDto.of(p, false, actualLikeCount, true, commentCount));
                     } catch (Exception e) {
-                        System.err.println("게시글 처리 실패 (HOT): " + p.getId() + ", 오류: " + e.getMessage());
+                        System.err.println("게시글 처리 실패 (HOT): " + p.getId());
                     }
                 });
 
-                // 나머지 일반 게시글은 HOT 플래그 false (안전 처리)
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
                         .forEach(p -> {
@@ -186,7 +183,7 @@ public class PostService {
                                 long commentCount = commentRepository.countByPostId(p.getId());
                                 combined.add(PostResponseDto.of(p, false, actualLikeCount, false, commentCount));
                             } catch (Exception e) {
-                                System.err.println("게시글 처리 실패 (RECENT): " + p.getId() + ", 오류: " + e.getMessage());
+                                System.err.println("게시글 처리 실패 (RECENT): " + p.getId());
                             }
                         });
 
@@ -194,8 +191,7 @@ public class PostService {
             }
 
             case POPULAR -> {
-                // ✅ 추천순 정렬: 날짜 무관, HOT 여부 무관, 추천 수 높은 게시글 30개
-                Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
+                Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
                 List<PostResponseDto> dtos = popularPosts.getContent().stream()
                         .map(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
@@ -216,19 +212,15 @@ public class PostService {
         Category categoryEnum = parseCategory(category);
         if (categoryEnum == null) throw new IllegalArgumentException("카테고리 누락");
         
-        System.out.println("검색 실행: 카테고리=" + categoryEnum + ", 타입=" + searchType + ", 키워드=" + keyword);
-        
         Page<Post> searchResults;
         
         switch (searchType) {
-            case "title" -> searchResults = postRepository.findByTitleContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(keyword, categoryEnum, pageable);
-            case "content" -> searchResults = postRepository.findByContentContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(keyword, categoryEnum, pageable);
-            case "titleAndContent" -> searchResults = postRepository.findByTitleOrContentContainingAndCategory(keyword, categoryEnum, pageable);
-            case "writer" -> searchResults = postRepository.findByWriterNicknameContainingAndCategory(keyword, categoryEnum, pageable);
+            case "title" -> searchResults = postRepository.findByTitleContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
+            case "content" -> searchResults = postRepository.findByContentContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
+            case "titleAndContent" -> searchResults = postRepository.findByTitleOrContentContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
+            case "writer" -> searchResults = postRepository.findByWriterNicknameContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
             default -> throw new IllegalArgumentException("지원하지 않는 검색 타입입니다.");
         }
-        
-        System.out.println("검색 결과 수: " + searchResults.getTotalElements());
         
         List<PostResponseDto> dtos = searchResults.getContent().stream()
                 .map(p -> {
@@ -237,11 +229,10 @@ public class PostService {
                         long commentCount = commentRepository.countByPostId(p.getId());
                         return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
                     } catch (Exception e) {
-                        System.err.println("검색 결과 처리 실패: " + p.getId() + ", 오류: " + e.getMessage());
                         return null;
                     }
                 })
-                .filter(dto -> dto != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         
         return new PageImpl<>(dtos, pageable, searchResults.getTotalElements());
@@ -256,7 +247,6 @@ public class PostService {
 
         return hotPosts.stream()
                 .map(p -> {
-                    // 실제 PostLike 테이블에서 추천수 계산
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());
                     return PostResponseDto.of(p, false, actualLikeCount, true, commentCount);
@@ -274,7 +264,6 @@ public class PostService {
 
         validateAdminCategoryWrite(post.getCategory(), user);
 
-        // 이미지 S3 삭제 + DB 삭제
         List<File> files = fileRepository.findAllByPost(post);
         files.forEach(file -> s3Service.deleteObject(file.getS3Key()));
         fileRepository.deleteAllByPost(post);
@@ -295,13 +284,11 @@ public class PostService {
         PostLike like = PostLike.of(user, post);
         postLikeRepository.save(like);
         
-        // Post 엔티티의 likeCount 필드 업데이트
         post.increaseLikeCount();
         postRepository.save(post);
 
-        // 포인트 지급
-        pointService.awardGiveLikePoints(user, postId.toString()); // 추천하는 사용자에게
-        pointService.awardReceiveLikePoints(post.getWriter(), postId.toString()); // 글 작성자에게
+        pointService.awardGiveLikePoints(user, postId.toString());
+        pointService.awardReceiveLikePoints(post.getWriter(), postId.toString());
     }
 
     private Post getPostOrThrow(Long postId) {
@@ -314,7 +301,7 @@ public class PostService {
         try {
             return Category.valueOf(category.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 카테고리입니다. (NEWS, DISCUSSION, IMAGE, EVENT, REVIEW, FREE, NOTICE 중 선택)");
+            throw new IllegalArgumentException("잘못된 카테고리입니다.");
         }
     }
 
@@ -333,9 +320,17 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
         post.blind();
-        
-        // 규정 위반 페널티 적용
         pointService.applyPenalty(post.getWriter(), "게시글 블라인드 처리", postId.toString());
+    }
+
+    @Transactional
+    public void blindPostByAdmin(Long postId, Long adminId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        post.blindByAdmin(adminId);
+        postRepository.save(post);
+        System.out.println("관리자 블라인드 처리: postId=" + postId + ", blindType=" + post.getBlindType());
+        pointService.applyPenalty(post.getWriter(), "관리자 블라인드 처리", postId.toString());
     }
 
     @Transactional
@@ -350,22 +345,19 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
         
-        // 규정 위반 페널티 적용 (삭제 전에)
         pointService.applyPenalty(post.getWriter(), "게시글 삭제", postId.toString());
         
-        // 이미지 S3 삭제 + DB 삭제
         List<File> files = fileRepository.findAllByPost(post);
         files.forEach(file -> s3Service.deleteObject(file.getS3Key()));
         fileRepository.deleteAllByPost(post);
         
-        // 게시글 완전 삭제
         postRepository.delete(post);
     }
 
     private void validateAdminCategoryWrite(Post.Category category, User user) {
-        if ((category == Post.Category.NEWS || category == Post.Category.EVENT || category == Post.Category.NOTICE)
+        if ((category == Post.Category.NEWS || category == Post.Category.NOTICE)
                 && user.getRole() != User.Role.ADMIN) {
-            throw new IllegalArgumentException("해당 카테고리의 게시글은 관리자만 작성, 수정, 삭제할 수 있습니다.");
+            throw new IllegalArgumentException("해당 카테고리의 게시글은 관리자만 작성할 수 있습니다.");
         }
     }
 
@@ -377,51 +369,136 @@ public class PostService {
                 .category(category)
                 .writer(writer)
                 .build();
-        // createdAt, updatedAt은 @CreationTimestamp/@UpdateTimestamp로 자동 설정
-        postRepository.save(post);
-    }
-    
-    @Transactional
-    public void createEventPost(String title, String content, User writer) {
-        Post post = Post.builder()
-                .title(title)
-                .content(content)
-                .category(Post.Category.EVENT)
-                .writer(writer)
-                .build();
         postRepository.save(post);
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getReportedPosts() {
+    public List<com.byeolnight.dto.admin.ReportedPostDetailDto> getReportedPosts() {
         return postRepository.findReportedPosts().stream()
                 .map(p -> {
-                    long commentCount = commentRepository.countByPostId(p.getId());
-                    return PostResponseDto.from(p, false, commentCount);
+                    long reportCount = postReportRepository.countByPost(p);
+                    List<String> reportReasons = postReportRepository.findReasonsByPost(p);
+                    List<com.byeolnight.domain.entity.post.PostReport> reportDetails = postReportRepository.findDetailsByPost(p);
+                    return com.byeolnight.dto.admin.ReportedPostDetailDto.of(p, reportCount, reportReasons, reportDetails);
                 })
                 .toList();
     }
 
-    /**
-     * 내가 작성한 게시글 조회
-     */
     @Transactional(readOnly = true)
     public List<PostDto.Response> getMyPosts(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         
-        System.out.println("내 게시글 조회 - userId: " + userId + ", nickname: " + user.getNickname());
-        
         Page<Post> posts = postRepository.findByWriterAndIsDeletedFalseOrderByCreatedAtDesc(user, pageable);
-        System.out.println("조회된 게시글 수: " + posts.getContent().size());
         
         return posts.getContent().stream()
                 .map(post -> {
                     long likeCount = postLikeRepository.countByPost(post);
                     long commentCount = commentRepository.countByPostId(post.getId());
-                    System.out.println("게시글 변환: " + post.getTitle() + ", 좋아요: " + likeCount + ", 댓글: " + commentCount);
                     return PostDto.Response.from(post, likeCount, commentCount);
                 })
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.byeolnight.dto.comment.CommentAdminDto> getBlindedComments() {
+        return commentRepository.findByBlindedTrueOrderByCreatedAtDesc().stream()
+                .map(comment -> com.byeolnight.dto.comment.CommentAdminDto.builder()
+                        .id(comment.getId())
+                        .content(comment.getContent())
+                        .originalContent(comment.getOriginalContent())
+                        .writer(comment.getWriter().getNickname())
+                        .postTitle(comment.getPost().getTitle())
+                        .postId(comment.getPost().getId())
+                        .blinded(comment.isBlinded())
+                        .deleted(comment.isDeleted())
+                        .createdAt(comment.getCreatedAt())
+                        .blindedAt(comment.getBlindedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.byeolnight.dto.post.PostAdminDto> getDeletedPosts() {
+        return postRepository.findByIsDeletedTrueOrderByCreatedAtDesc().stream()
+                .map(post -> com.byeolnight.dto.post.PostAdminDto.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .writer(post.getWriter().getNickname())
+                        .category(post.getCategory().name())
+                        .blinded(post.isBlinded())
+                        .deleted(post.isDeleted())
+                        .viewCount(post.getViewCount())
+                        .likeCount(post.getLikeCount())
+                        .commentCount((int) commentRepository.countByPostId(post.getId()))
+                        .createdAt(post.getCreatedAt())
+                        .deletedAt(post.getDeletedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.byeolnight.dto.comment.CommentAdminDto> getDeletedComments() {
+        return commentRepository.findByDeletedTrueOrderByCreatedAtDesc().stream()
+                .map(comment -> com.byeolnight.dto.comment.CommentAdminDto.builder()
+                        .id(comment.getId())
+                        .content(comment.getContent())
+                        .originalContent(comment.getOriginalContent())
+                        .writer(comment.getWriter().getNickname())
+                        .postTitle(comment.getPost().getTitle())
+                        .postId(comment.getPost().getId())
+                        .blinded(comment.isBlinded())
+                        .deleted(comment.isDeleted())
+                        .createdAt(comment.getCreatedAt())
+                        .deletedAt(comment.getDeletedAt())
+                        .blindedAt(comment.getBlindedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public void blindComment(Long commentId) {
+        com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
+        comment.blind();
+        pointService.applyPenalty(comment.getWriter(), "댓글 블라인드 처리", commentId.toString());
+    }
+
+    @Transactional
+    public void unblindComment(Long commentId) {
+        com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
+        comment.unblind();
+    }
+
+    @Transactional
+    public void restorePost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다."));
+        post.restore();
+    }
+
+    @Transactional
+    public void restoreComment(Long commentId) {
+        com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
+        comment.restore();
+    }
+
+    @Transactional
+    public void movePostsCategory(java.util.List<Long> postIds, String targetCategory) {
+        Post.Category category;
+        try {
+            category = Post.Category.valueOf(targetCategory.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("잘못된 카테고리입니다.");
+        }
+        
+        for (Long postId : postIds) {
+            Post post = postRepository.findById(postId)
+                    .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다: " + postId));
+            post.update(post.getTitle(), post.getContent(), category);
+        }
     }
 }

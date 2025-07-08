@@ -7,6 +7,7 @@ export interface Suggestion {
   status: SuggestionStatus;
   authorId: number;
   authorNickname: string;
+  authorIcon?: string;
   createdAt: string;
   updatedAt: string;
   adminResponse?: string;

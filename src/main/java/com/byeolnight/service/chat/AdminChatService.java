@@ -62,7 +62,7 @@ public class AdminChatService {
 
     // 사용자 채팅 금지
     @Transactional
-    public void banUser(String username, int durationMinutes, Long adminId) {
+    public void banUser(String username, int durationMinutes, Long adminId, String reason) {
         // 기존 활성 금지가 있다면 해제
         chatBanRepository.findByUsernameAndIsActiveTrueAndBannedUntilAfter(username, LocalDateTime.now())
                 .ifPresent(ChatBan::unban);
@@ -72,7 +72,7 @@ public class AdminChatService {
                 .username(username)
                 .bannedBy(adminId)
                 .bannedUntil(LocalDateTime.now().plusMinutes(durationMinutes))
-                .reason(durationMinutes + "분간 채팅 금지")
+                .reason(reason != null ? reason : durationMinutes + "분간 채팅 금지")
                 .build();
         
         chatBanRepository.save(chatBan);
@@ -85,26 +85,26 @@ public class AdminChatService {
         messagingTemplate.convertAndSend("/queue/user." + username + ".ban", 
             Map.of("banned", true, "duration", durationMinutes, "reason", chatBan.getReason()));
         
-        log.info("사용자 {} {}분간 채팅 금지됨 by 관리자 {}", username, durationMinutes, adminId);
+        log.info("사용자 {} {}분간 채팅 금지됨 by 관리자 {} - 사유: {}", username, durationMinutes, adminId, reason);
     }
 
     // 채팅 금지 해제
     @Transactional
-    public void unbanUser(String username) {
-        chatBanRepository.findByUsernameAndIsActiveTrueAndBannedUntilAfter(username, LocalDateTime.now())
+    public void unbanUser(String userId) {
+        chatBanRepository.findByUsernameAndIsActiveTrueAndBannedUntilAfter(userId, LocalDateTime.now())
                 .ifPresent(ban -> {
                     ban.unban();
                     chatBanRepository.save(ban);
                     
                     // 관리자들에게 실시간 알림
                     messagingTemplate.convertAndSend("/topic/admin/chat-update", 
-                        Map.of("type", "USER_UNBANNED", "username", username));
+                        Map.of("type", "USER_UNBANNED", "username", userId));
                     
                     // 해당 사용자에게 해제 알림
-                    messagingTemplate.convertAndSend("/queue/user." + username + ".ban", 
+                    messagingTemplate.convertAndSend("/queue/user." + userId + ".ban", 
                         Map.of("banned", false));
                     
-                    log.info("사용자 {} 채팅 금지 해제됨", username);
+                    log.info("사용자 {} 채팅 금지 해제됨", userId);
                 });
     }
 
@@ -120,12 +120,14 @@ public class AdminChatService {
         return new ChatStatsDto(totalMessages, blindedMessages, bannedUsers, activeUsers);
     }
 
-    // 제재된 사용자 목록 조회
-    public List<Map<String, Object>> getBannedUsers() {
+    // 제재된 사용자 목록 조회 (페이징 지원)
+    public List<Map<String, Object>> getBannedUsers(int limit, int offset) {
         List<ChatBan> activeBans = chatBanRepository.findByIsActiveTrueOrderByBannedAtDesc();
         
         return activeBans.stream()
                 .filter(ban -> !ban.isExpired())
+                .skip(offset)
+                .limit(limit)
                 .map(ban -> {
                     Map<String, Object> userInfo = new HashMap<>();
                     userInfo.put("userId", ban.getUsername());
@@ -138,10 +140,10 @@ public class AdminChatService {
                 .collect(Collectors.toList());
     }
 
-    // 블라인드된 메시지 목록 조회
-    public List<Map<String, Object>> getBlindedMessages() {
+    // 블라인드된 메시지 목록 조회 (페이징 지원)
+    public List<Map<String, Object>> getBlindedMessages(int limit, int offset) {
         List<ChatMessage> blindedMessages = chatMessageRepository
-                .findByIsBlindedTrueOrderByBlindedAtDesc(PageRequest.of(0, 50));
+                .findByIsBlindedTrueOrderByBlindedAtDesc(PageRequest.of(offset / limit, limit));
         
         return blindedMessages.stream()
                 .map(message -> {

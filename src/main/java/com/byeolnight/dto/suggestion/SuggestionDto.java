@@ -79,6 +79,14 @@ public class SuggestionDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class StatusUpdateRequest {
+        private Suggestion.SuggestionStatus status;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ListResponse {
         private java.util.List<Response> suggestions;
         private long totalCount;

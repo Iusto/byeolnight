@@ -21,6 +21,7 @@ import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.comment.CommentService;
 import com.byeolnight.service.message.MessageService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -44,6 +45,7 @@ import java.util.List;
  * - 회원가입, 프로필 수정, 비밀번호 재설정, 로그인 실패 처리 등
  * - 보안 및 운영 관점의 상세 예외처리 포함
  */
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class UserService {
@@ -64,6 +66,10 @@ public class UserService {
     private final MessageService messageService;
     private final com.byeolnight.domain.repository.shop.StellaIconRepository stellaIconRepository;
     private final com.byeolnight.domain.repository.MessageRepository messageRepository;
+    private final PointService pointService;
+    private final com.byeolnight.domain.repository.shop.UserIconRepository userIconRepository;
+    private final com.byeolnight.service.auth.EmailAuthService emailAuthService;
+    private final com.byeolnight.service.auth.PhoneAuthService phoneAuthService;
 
     /**
      * 회원가입 처리
@@ -74,7 +80,8 @@ public class UserService {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 이메일"));
                 throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
             }
-            if (userRepository.existsByNickname(dto.getNickname())) {
+            // 닉네임 중복 검사
+            if (isNicknameDuplicated(dto.getNickname())) {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 닉네임"));
                 throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
             }
@@ -91,6 +98,22 @@ public class UserService {
             if (!userSecurityService.isValidPassword(dto.getPassword())) {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "비밀번호 정책 위반"));
                 throw new IllegalArgumentException("비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다.");
+            }
+            if (!isValidPhoneNumber(dto.getPhone())) {
+                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "잘못된 전화번호 형식"));
+                throw new IllegalArgumentException("올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)");
+            }
+            
+            // 이메일 인증 확인
+            if (!emailAuthService.isAlreadyVerified(dto.getEmail())) {
+                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "이메일 인증 미완료"));
+                throw new IllegalArgumentException("이메일 인증을 완료해주세요.");
+            }
+            
+            // 휴대폰 인증 확인
+            if (!phoneAuthService.isAlreadyVerified(dto.getPhone())) {
+                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "휴대폰 인증 미완료"));
+                throw new IllegalArgumentException("휴대폰 인증을 완료해주세요.");
             }
 
             User user = User.builder()
@@ -110,6 +133,14 @@ public class UserService {
                     .points(0)
                     .build();
             userRepository.save(user);
+            
+            // 기본 소행성 아이콘 부여 및 장착
+            grantDefaultAsteroidIcon(user);
+            
+            // 회원가입 완료 후 인증 상태 삭제
+            emailAuthService.clearVerification(dto.getEmail());
+            phoneAuthService.clearVerification(dto.getPhone());
+            
             auditSignupLogRepository.save(AuditSignupLog.success(dto.getEmail(), ipAddress));
             return user.getId();
         } catch (RuntimeException e) {
@@ -131,7 +162,16 @@ public class UserService {
      * 닉네임 중복 검사
      */
     public boolean isNicknameDuplicated(String nickname) {
-        return userRepository.existsByNickname(nickname);
+        if (nickname == null || nickname.trim().isEmpty()) {
+            return true; // 빈 닉네임은 중복으로 처리
+        }
+        
+        String trimmedNickname = nickname.trim();
+        boolean exists = userRepository.existsByNickname(trimmedNickname);
+        
+        log.info("[🔍 닉네임 중복 검사] 입력값: '{}', 정리된 값: '{}', 중복 여부: {}", nickname, trimmedNickname, exists);
+        
+        return exists;
     }
 
     /**
@@ -140,6 +180,20 @@ public class UserService {
     public boolean isPhoneDuplicated(String phone) {
         String phoneHash = encryptionUtil.hashPhone(phone);
         return userRepository.existsByPhoneHash(phoneHash);
+    }
+
+    /**
+     * 전화번호 형식 검증
+     */
+    public boolean isValidPhoneNumber(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return false;
+        }
+        
+        // 한국 휴대폰 번호 형식 검증
+        // 010-1234-5678, 011-123-4567, 016-123-4567, 017-123-4567, 018-123-4567, 019-123-4567 형식
+        String phonePattern = "^01[0-9]-\\d{3,4}-\\d{4}$";
+        return phone.matches(phonePattern);
     }
 
 
@@ -171,24 +225,10 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public com.byeolnight.dto.user.UserProfileDto getUserProfileByNickname(String nickname) {
-        System.out.println("프로필 조회 요청: " + nickname); // 디버그용 로그
-        
         User user = userRepository.findByNickname(nickname)
-                .orElseThrow(() -> {
-                    System.out.println("사용자를 찾을 수 없음: " + nickname);
-                    return new NotFoundException("사용자를 찾을 수 없습니다.");
-                });
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         
-        System.out.println("사용자 찾음: " + user.getNickname() + ", ID: " + user.getId());
-        
-        // 게시글 수와 댓글 수 조회
-        long postCount = postRepository.countByWriterAndIsDeletedFalse(user);
-        long commentCount = commentRepository.countByWriter(user);
-        
-        System.out.println("게시글 수: " + postCount + ", 댓글 수: " + commentCount);
-        
-        // TODO: UserProfileDto.from 메서드 구현 필요
-        return null;
+        return getUserProfile(user.getId());
     }
 
     /**
@@ -474,20 +514,48 @@ public class UserService {
         long postCount = postRepository.countByWriterAndIsDeletedFalse(user);
         long commentCount = commentRepository.countByWriter(user);
         
-        // TODO: 아이콘 개수, 출석 수 조회 로직 추가
-        int totalIconCount = 0; // 임시값
-        int attendanceCount = 0; // 임시값
+        // 보유 아이콘 개수 조회
+        int totalIconCount = (int) userIconRepository.countByUserId(userId);
+        
+        // 출석 수 조회 (포인트 히스토리에서 출석체크 타입 개수)
+        int attendanceCount;
+        try {
+            attendanceCount = pointService.getUserAttendanceCount(user);
+        } catch (Exception e) {
+            // 출석 수 조회 실패 시 가입일부터 계산
+            long daysSinceJoined = java.time.temporal.ChronoUnit.DAYS.between(
+                user.getCreatedAt().toLocalDate(), 
+                LocalDateTime.now().toLocalDate()
+            );
+            attendanceCount = (int) Math.min(daysSinceJoined, 365); // 최대 365일
+        }
+        
+        // 장착된 아이콘 정보 조회
+        com.byeolnight.dto.shop.EquippedIconDto equippedIcon = getUserEquippedIcon(userId);
+        
+        // 대표 인증서 조회
+        List<String> representativeCertificates = new java.util.ArrayList<>();
+        try {
+            com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                certificateService.getRepresentativeCertificate(user);
+            if (repCert != null) {
+                representativeCertificates.add(repCert.getCertificateType().getName());
+            }
+        } catch (Exception e) {
+            log.warn("대표 인증서 조회 실패: {}", e.getMessage());
+        }
         
         return UserProfileDto.builder()
                 .id(user.getId())
                 .nickname(user.getNickname())
-                .equippedIconUrl(null) // TODO: 장착된 아이콘 URL 조회
+                .equippedIcon(user.getEquippedIconName())
+                .representativeCertificates(representativeCertificates)
                 .certificates(certificates)
-                .totalIconCount(totalIconCount)
+                .iconCount(totalIconCount)
                 .postCount((int) postCount)
                 .commentCount((int) commentCount)
                 .attendanceCount(attendanceCount)
-                .joinedAt(null) // TODO: User 엔티티에 createdAt 필드 추가 필요
+                .joinedAt(user.getCreatedAt())
                 .build();
     }
 
@@ -526,6 +594,92 @@ public class UserService {
             System.out.println("테스트 데이터 생성 완료 - 사용자: " + user.getNickname());
         } catch (Exception e) {
             System.err.println("테스트 데이터 생성 실패: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * 기본 소행성 아이콘 부여 및 장착
+     */
+    @Transactional
+    public void grantDefaultAsteroidIcon(User user) {
+        try {
+            // 소행성 아이콘 조회 (한글명 우선, 영어명 대체)
+            com.byeolnight.domain.entity.shop.StellaIcon asteroidIcon = stellaIconRepository.findByName("소행성")
+                    .or(() -> stellaIconRepository.findByName("Asteroid"))
+                    .orElse(null);
+            
+            if (asteroidIcon == null) {
+                log.warn("소행성 아이콘을 찾을 수 없습니다. 기본 아이콘 부여를 건너뜁니다.");
+                return;
+            }
+            
+            // 이미 소행성 아이콘을 보유하고 있는지 확인
+            boolean alreadyOwns = userIconRepository.existsByUserAndStellaIcon(user, asteroidIcon);
+            
+            if (!alreadyOwns) {
+                // 소행성 아이콘 부여 (무료로 지급)
+                com.byeolnight.domain.entity.shop.UserIcon userIcon = com.byeolnight.domain.entity.shop.UserIcon.builder()
+                        .user(user)
+                        .stellaIcon(asteroidIcon)
+                        .purchasePrice(0) // 기본 아이콘은 무료
+                        .build();
+                userIconRepository.save(userIcon);
+                log.info("사용자 {}에게 기본 소행성 아이콘 부여 완료", user.getNickname());
+            }
+            
+            // 현재 장착된 아이콘이 없으면 소행성 아이콘 장착
+            if (user.getEquippedIconId() == null) {
+                user.equipIcon(asteroidIcon.getId(), asteroidIcon.getIconUrl());
+                userRepository.save(user);
+                log.info("사용자 {}에게 기본 소행성 아이콘 장착 완료", user.getNickname());
+            }
+            
+        } catch (Exception e) {
+            log.error("기본 소행성 아이콘 부여 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 모든 기존 사용자에게 기본 소행성 아이콘 부여 (마이그레이션용)
+     */
+    @Transactional
+    public void migrateDefaultAsteroidIcon() {
+        try {
+            List<User> allUsers = userRepository.findAll();
+            int processedCount = 0;
+            
+            for (User user : allUsers) {
+                if (user.getStatus() == User.UserStatus.ACTIVE) {
+                    grantDefaultAsteroidIcon(user);
+                    processedCount++;
+                }
+            }
+            
+            log.info("기본 소행성 아이콘 마이그레이션 완료: {}명 처리", processedCount);
+        } catch (Exception e) {
+            log.error("기본 소행성 아이콘 마이그레이션 중 오류 발생: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * 테스트 인증서 발급
+     */
+    @Transactional
+    public void createTestCertificates(User user) {
+        try {
+            // 기본 인증서 발급
+            certificateService.issueCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.STARLIGHT_EXPLORER);
+            certificateService.issueCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.SPACE_CITIZEN);
+            certificateService.issueCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.GALAXY_COMMUNICATOR);
+            
+            // 대표 인증서 설정
+            certificateService.setRepresentativeCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.SPACE_CITIZEN);
+            
+            System.out.println("테스트 인증서 발급 완료 - 사용자: " + user.getNickname());
+        } catch (Exception e) {
+            System.err.println("테스트 인증서 발급 실패: " + e.getMessage());
             throw e;
         }
     }

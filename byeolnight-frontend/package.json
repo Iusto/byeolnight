@@ -12,6 +12,7 @@
   "dependencies": {
     "@stomp/stompjs": "^7.1.1",
     "@types/sockjs-client": "^1.5.4",
+    "@uiw/react-md-editor": "^4.0.7",
     "axios": "^1.10.0",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",

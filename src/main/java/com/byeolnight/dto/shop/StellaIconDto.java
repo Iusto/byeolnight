@@ -29,7 +29,7 @@ public class StellaIconDto {
                 .description(icon.getDescription())
                 .iconUrl(icon.getIconUrl())
                 .price(icon.getPrice())
-                .grade(icon.getGrade().getDisplayName())
+                .grade(icon.getGrade().name()) // 영어 이름 사용 (COMMON, RARE 등)
                 .gradeColor(icon.getGrade().getColor())
                 .type(icon.getType().getDisplayName())
                 .animationClass(icon.getAnimationClass())

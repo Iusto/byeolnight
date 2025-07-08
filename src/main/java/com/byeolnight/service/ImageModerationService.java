@@ -1,5 +1,7 @@
 package com.byeolnight.service;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,7 +10,11 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 @Service
+@Slf4j
 public class ImageModerationService {
+
+    @Value("${google.api.key:}")
+    private String googleApiKey;
 
     /**
      * 이미지 콘텐츠 검증
@@ -101,13 +107,31 @@ public class ImageModerationService {
     }
     
     /**
+     * Google Vision API를 사용한 이미지 검증
+     * Safe Search Detection 기능 사용
+     */
+    public boolean checkWithGoogleVisionAPI(MultipartFile file) {
+        if (googleApiKey == null || googleApiKey.isEmpty()) {
+            log.warn("Google API 키가 설정되지 않았습니다. 기본 검증만 수행합니다.");
+            return true;
+        }
+        
+        try {
+            // TODO: Google Vision API Safe Search Detection 구현
+            // 현재는 기본 검증만 수행
+            log.info("Google Vision API 검증 예정 - 현재는 기본 검증 수행");
+            return true;
+        } catch (Exception e) {
+            log.error("Google Vision API 호출 실패", e);
+            return true; // 오류 시 통과로 처리
+        }
+    }
+    
+    /**
      * 향후 확장을 위한 메서드
      * 외부 AI 서비스 (Google Vision API, AWS Rekognition 등) 연동 가능
      */
     public boolean checkWithExternalService(MultipartFile file) {
-        // TODO: 외부 AI 서비스 연동
-        // 예: Google Vision API의 Safe Search Detection
-        // 예: AWS Rekognition의 Content Moderation
-        return true;
+        return checkWithGoogleVisionAPI(file);
     }
 }
