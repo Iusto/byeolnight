@@ -4,16 +4,16 @@ package com.byeolnight.domain.entity.certificate;
 public class Certificate {
 
     public enum CertificateType {
-        STARLIGHT_EXPLORER("🌠", "별빛 탐험가", "첫 로그인 시 자동 발급"),
-        SPACE_CITIZEN("🪐", "우주인 등록", "회원가입과 인증 완료 시 발급"),
-        GALAXY_COMMUNICATOR("🚀", "은하 통신병", "댓글을 5회 이상 작성 시 발급"),
-        STAR_OBSERVER("🌌", "별 관측 매니아", "IMAGE 게시판에 사진을 3장 이상 업로드 시 발급"),
-        TOUR_MASTER("🔭", "견학 마스터", "천문대 견학 일정을 3회 이상 조회 시 발급"),
-        CHAT_MASTER("💬", "별빛 채팅사", "채팅방에서 5회 이상 대화 참여 시 발급"),
-        NIGHT_CITIZEN("🌟", "별 헤는 밤 시민증", "포인트 200점 이상 누적 시 발급"),
-        GUARDIAN("🛰️", "별빛 수호자", "게시글 신고로 커뮤니티 정화에 기여 시 발급"),
-        EXPERIMENTER("🧪", "우주 실험자", "게시글을 3건 이상 작성 시 발급"),
-        ADMIN_MEDAL("👑", "은하 관리자 훈장", "관리자가 특별 기여를 인정하여 수동 발급");
+        STARLIGHT_EXPLORER("🌠", "별빛 탐험가", "우주 커뮤니틴에 첫발을 내디딘 탐험자"),
+        SPACE_CITIZEN("🌍", "우주인 등록증", "인증을 마치고 기록을 시작한 공식 우주인"),
+        GALAXY_COMMUNICATOR("📡", "은하 통신병", "커뮤니티 내 활발히 의견을 나누는 소통자"),
+        STAR_OBSERVER("🔭", "별 관측 매니아", "밤하늘의 아름다움을 기록한 사진가"),
+        CHAT_MASTER("🗨️", "별빛 채팅사", "실시간 우주 대화에 익숙한 우주인"),
+        NIGHT_CITIZEN("🏅", "별 헤는 밤 시민증", "활동으로 신뢰를 얻은 커뮤니티 시민"),
+        GUARDIAN("🛡️", "별빛 수호자", "질서를 지키는 정의로운 감시자"),
+        EXPERIMENTER("⚙️", "우주 실험자", "다양한 분야에 기록을 남긴 콘텐츠 기여자"),
+        SUGGESTION_KING("💡", "건의왕", "커뮤니티 발전에 직접 기여한 행동가"),
+        ADMIN_MEDAL("🏆", "은하 관리자 훈장", "특별한 기여를 인정받은 명예 인증");
 
         private final String icon;
         private final String name;

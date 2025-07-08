@@ -12,10 +12,14 @@ public class CommentResponseDto {
     private Long id;
     private String content;
     private String writer;
+    private Long writerId;
     private Boolean blinded;
+    private Boolean deleted;
     private LocalDateTime createdAt;
-    private Long parentId; // 부모 댓글 ID
-    private String parentWriter; // 부모 댓글 작성자
+    private Long parentId;
+    private String parentWriter;
+    private String writerIcon;
+    private java.util.List<String> writerCertificates;
 
     public static CommentResponseDto from(Comment comment) {
         System.out.println("CommentResponseDto.from 호출 - 댓글 ID: " + comment.getId());
@@ -39,14 +43,41 @@ public class CommentResponseDto {
                 comment.getParent().getWriter().getNickname() : "알 수 없는 사용자";
         }
         
+        // 사용자 아이콘 정보 가져오기
+        String writerIcon = null;
+        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
+        
+        if (comment.getWriter() != null) {
+            // 장착된 아이콘 정보 가져오기
+            writerIcon = comment.getWriter().getEquippedIconName();
+            
+            // 대표 인증서 조회
+            try {
+                com.byeolnight.service.certificate.CertificateService certificateService = 
+                    com.byeolnight.infrastructure.config.ApplicationContextProvider
+                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                    certificateService.getRepresentativeCertificate(comment.getWriter());
+                if (repCert != null) {
+                    writerCertificates.add(repCert.getCertificateType().getName());
+                }
+            } catch (Exception e) {
+                // 인증서 조회 실패 시 무시
+            }
+        }
+        
         return CommentResponseDto.builder()
                 .id(comment.getId())
                 .content(comment.getBlinded() ? "[블라인드 처리된 댓글입니다]" : comment.getContent())
                 .writer(writerName)
+                .writerId(comment.getWriter() != null ? comment.getWriter().getId() : null)
                 .blinded(comment.getBlinded())
+                .deleted(comment.getDeleted())
                 .createdAt(comment.getCreatedAt())
                 .parentId(parentId)
                 .parentWriter(parentWriter)
+                .writerIcon(writerIcon)
+                .writerCertificates(writerCertificates)
                 .build();
     }
 }

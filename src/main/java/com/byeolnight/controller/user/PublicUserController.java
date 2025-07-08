@@ -17,10 +17,17 @@ public class PublicUserController {
 
     private final UserService userService;
 
-    @Operation(summary = "사용자 프로필 조회", description = "닉네임으로 사용자 공개 프로필을 조회합니다.")
+    @Operation(summary = "사용자 프로필 조회 (닉네임)", description = "닉네임으로 사용자 공개 프로필을 조회합니다.")
     @GetMapping("/profile/{nickname}")
     public ResponseEntity<CommonResponse<UserProfileDto>> getUserProfile(@PathVariable String nickname) {
         UserProfileDto profile = userService.getUserProfileByNickname(nickname);
+        return ResponseEntity.ok(CommonResponse.success(profile));
+    }
+
+    @Operation(summary = "사용자 프로필 조회 (ID)", description = "사용자 ID로 공개 프로필을 조회합니다.")
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<CommonResponse<UserProfileDto>> getUserProfileById(@PathVariable Long userId) {
+        UserProfileDto profile = userService.getUserProfile(userId);
         return ResponseEntity.ok(CommonResponse.success(profile));
     }
 }

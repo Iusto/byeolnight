@@ -93,7 +93,7 @@ export default function ProfileEdit() {
     }
 
     try {
-      await axios.put('/users/profile', {
+      await axios.put('/member/users/profile', {
         nickname: form.nickname,
         currentPassword: form.currentPassword,
       });

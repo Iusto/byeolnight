@@ -26,6 +26,7 @@ public class PointService {
     private final DailyAttendanceRepository dailyAttendanceRepository;
     private final UserRepository userRepository;
     private final jakarta.persistence.EntityManager entityManager;
+    private final com.byeolnight.domain.repository.shop.UserIconRepository userIconRepository;
 
     // 포인트 상수
     private static final int DAILY_ATTENDANCE_POINTS = 10;
@@ -208,7 +209,11 @@ public class PointService {
     @Transactional(readOnly = true)
     public Page<PointHistoryDto> getPointHistory(User user, Pageable pageable) {
         log.info("=== 전체 포인트 히스토리 조회 - 사용자: {} ===", user.getNickname());
-        Page<PointHistory> histories = pointHistoryRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        // 사용자 엔티티 새로고침
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        Page<PointHistory> histories = pointHistoryRepository.findByUserOrderByCreatedAtDesc(managedUser, pageable);
         log.info("전체 히스토리 개수: {}, 전체 요소 수: {}", histories.getContent().size(), histories.getTotalElements());
         return histories.map(PointHistoryDto::from);
     }
@@ -219,7 +224,11 @@ public class PointService {
     @Transactional(readOnly = true)
     public Page<PointHistoryDto> getEarnedPointHistory(User user, Pageable pageable) {
         log.info("=== 획득 포인트 히스토리 조회 - 사용자: {} ===", user.getNickname());
-        Page<PointHistory> histories = pointHistoryRepository.findEarnedPointsByUser(user, pageable);
+        // 사용자 엔티티 새로고침
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        Page<PointHistory> histories = pointHistoryRepository.findEarnedPointsByUser(managedUser, pageable);
         log.info("획득 히스토리 개수: {}, 전체 요소 수: {}", histories.getContent().size(), histories.getTotalElements());
         return histories.map(PointHistoryDto::from);
     }
@@ -230,7 +239,11 @@ public class PointService {
     @Transactional(readOnly = true)
     public Page<PointHistoryDto> getSpentPointHistory(User user, Pageable pageable) {
         log.info("=== 사용 포인트 히스토리 조회 - 사용자: {} ===", user.getNickname());
-        Page<PointHistory> histories = pointHistoryRepository.findSpentPointsByUser(user, pageable);
+        // 사용자 엔티티 새로고침
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        Page<PointHistory> histories = pointHistoryRepository.findSpentPointsByUser(managedUser, pageable);
         log.info("사용 히스토리 개수: {}, 전체 요소 수: {}", histories.getContent().size(), histories.getTotalElements());
         return histories.map(PointHistoryDto::from);
     }
@@ -240,11 +253,26 @@ public class PointService {
      */
     @Transactional(readOnly = true)
     public List<PointHistoryDto> getUserPointHistory(User user) {
+        // 사용자 엔티티 새로고침
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
         Pageable pageable = PageRequest.of(0, 50);
-        return pointHistoryRepository.findByUserOrderByCreatedAtDesc(user, pageable)
+        return pointHistoryRepository.findByUserOrderByCreatedAtDesc(managedUser, pageable)
                 .stream()
                 .map(PointHistoryDto::from)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * 사용자 출석 일수 조회
+     */
+    @Transactional(readOnly = true)
+    public int getUserAttendanceCount(User user) {
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        return (int) dailyAttendanceRepository.countByUser(managedUser);
     }
     
     /**
@@ -275,25 +303,51 @@ public class PointService {
         
         log.info("관리자 포인트 수여 완료 - 대상자: {}, 포인트: {}", user.getNickname(), points);
     }
+    
+    /**
+     * 아이콘 구매 기록
+     */
+    @Transactional
+    public void recordIconPurchase(User user, Long iconId, String iconName, int price) {
+        String description = String.format("스텔라 아이콘 구매: %s", iconName);
+        awardPoints(user, PointHistory.PointType.ICON_PURCHASE, -price, description, iconId.toString());
+        log.info("사용자 {}의 아이콘 구매 기록 완료 - 아이콘: {}, 가격: {}", user.getNickname(), iconName, price);
+    }
 
     /**
      * 포인트 지급 공통 메서드
      */
+    @Transactional
     private void awardPoints(User user, PointHistory.PointType type, int amount, String description, String referenceId) {
         log.info("포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
                 user.getNickname(), type, amount, description);
         
         try {
+            // 사용자 엔티티 새로고침 (영속성 컨텍스트에서 관리되도록)
+            User managedUser = userRepository.findById(user.getId())
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            
             // 포인트 이력 저장
-            PointHistory history = PointHistory.of(user, amount, type, description, referenceId);
+            PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
             pointHistoryRepository.save(history);
             log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
 
             // 사용자 포인트 업데이트
-            int beforePoints = user.getPoints();
-            user.increasePoints(amount);
-            userRepository.save(user);
-            log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, user.getPoints());
+            int beforePoints = managedUser.getPoints();
+            managedUser.increasePoints(amount);
+            userRepository.save(managedUser);
+            log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
+            
+            // 포인트 달성 인증서 체크
+            try {
+                com.byeolnight.service.certificate.CertificateService certificateService = 
+                    com.byeolnight.infrastructure.config.ApplicationContextProvider
+                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                certificateService.checkAndIssueCertificates(managedUser, 
+                    com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+            } catch (Exception certError) {
+                log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
+            }
             
         } catch (Exception e) {
             log.error("포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);

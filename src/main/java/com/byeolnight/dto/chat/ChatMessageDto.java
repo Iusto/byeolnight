@@ -18,4 +18,6 @@ public class ChatMessageDto {
     private String message;
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
+    @Builder.Default
+    private Boolean isBlinded = false; // 블라인드 상태 추가
 }

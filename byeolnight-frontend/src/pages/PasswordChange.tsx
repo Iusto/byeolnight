@@ -35,7 +35,7 @@ export default function PasswordChange() {
     setLoading(true);
 
     try {
-      await axios.put('/users/password', {
+      await axios.put('member/users/password', {
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       });

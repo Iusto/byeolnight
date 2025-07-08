@@ -4,6 +4,7 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { parseMarkdown } from '../utils/markdown';
 import ClickableNickname from '../components/ClickableNickname';
+import UserIconDisplay from '../components/UserIconDisplay';
 
 interface Post {
   id: number;
@@ -19,6 +20,12 @@ interface Post {
   viewCount: number;
   commentCount: number;
   writerIcon?: string;
+  writerCertificates?: string[];
+  images?: Array<{
+    id: number;
+    originalName: string;
+    url: string;
+  }>;
 }
 
 interface Comment {
@@ -27,10 +34,12 @@ interface Comment {
   writer: string;
   writerId: number;
   blinded?: boolean;
+  deleted?: boolean;
   createdAt: string;
   parentId?: number;
   parentWriter?: string;
   writerIcon?: string;
+  writerCertificates?: string[];
 }
 
 const categoryLabels: Record<string, string> = {
@@ -74,7 +83,9 @@ export default function PostDetail() {
   const [newComment, setNewComment] = useState('');
   const [error, setError] = useState('');
 
-  const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null); // 답글 기능 활성화
+  const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null);
+  const [editingComment, setEditingComment] = useState<{id: number, content: string} | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   const fetchPost = async () => {
     try {
@@ -82,6 +93,22 @@ export default function PostDetail() {
       // 응답 구조 안전하게 처리
       const postData = res.data?.data || res.data;
       console.log('게시글 데이터:', postData);
+      
+      // 작성자 정보 보완 (선택적)
+      if (postData && postData.writerId) {
+        try {
+          const writerRes = await axios.get(`/public/users/${postData.writerId}/profile`);
+          if (writerRes.data?.success) {
+            const writerData = writerRes.data.data;
+            postData.writerIcon = writerData.equippedIcon;
+            postData.writerCertificates = writerData.representativeCertificates || [];
+          }
+        } catch (writerErr) {
+          // 작성자 정보 조회 실패 시 기본값 유지
+          console.warn('작성자 정보 조회 실패, 기본 아이콘 사용');
+        }
+      }
+      
       setPost(postData);
     } catch (err) {
       console.error('게시글 조회 실패:', err);
@@ -146,8 +173,16 @@ export default function PostDetail() {
       console.log('최종 댓글 데이터:', commentsData);
       console.log('댓글 데이터 길이:', Array.isArray(commentsData) ? commentsData.length : 'Not Array');
       
+      // 댓글 작성자 정보 보완 (선택적)
+      const enhancedComments = (Array.isArray(commentsData) ? commentsData : []).map(comment => {
+        // 기본 아이콘과 빈 인증서 리스트로 초기화
+        if (!comment.writerIcon) comment.writerIcon = null;
+        if (!comment.writerCertificates) comment.writerCertificates = [];
+        return comment;
+      });
+      
       // 댓글을 계층 구조로 정렬
-      const organizedComments = organizeComments(Array.isArray(commentsData) ? commentsData : []);
+      const organizedComments = organizeComments(enhancedComments);
       console.log('정렬된 댓글:', organizedComments);
       
       setComments(organizedComments);
@@ -270,20 +305,33 @@ export default function PostDetail() {
     try {
       await axios.patch(`/admin/posts/${id}/blind`);
       alert('게시글이 블라인드 처리되었습니다.');
-      fetchPost(); // 게시글 새로고침
-    } catch {
-      alert('블라인드 처리에 실패했습니다.');
+      navigate(`/posts?category=${post?.category || 'FREE'}`);
+    } catch (error: any) {
+      console.error('게시글 블라인드 실패:', error);
+      const errorMessage = error.response?.data?.message || '블라인드 처리에 실패했습니다.';
+      alert(errorMessage);
     }
   };
 
-  const handlePostDelete = async () => {
-    if (!confirm('이 게시글을 완전히 삭제하시겠습니까? (되돌릴 수 없습니다)')) return;
+  const handleCommentEdit = async (commentId: number) => {
+    if (!editContent.trim()) return;
     try {
-      await axios.delete(`/admin/posts/${id}`);
-      alert('게시글이 삭제되었습니다.');
-      navigate('/posts');
+      await axios.put(`/member/comments/${commentId}`, { content: editContent });
+      setEditingComment(null);
+      setEditContent('');
+      fetchComments();
     } catch {
-      alert('삭제에 실패했습니다.');
+      alert('댓글 수정에 실패했습니다.');
+    }
+  };
+
+  const handleCommentDelete = async (commentId: number) => {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return;
+    try {
+      await axios.delete(`/member/comments/${commentId}`);
+      fetchComments();
+    } catch {
+      alert('댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -292,9 +340,11 @@ export default function PostDetail() {
     try {
       await axios.patch(`/admin/comments/${commentId}/blind`);
       alert('댓글이 블라인드 처리되었습니다.');
-      fetchComments(); // 댓글 새로고침
-    } catch {
-      alert('블라인드 처리에 실패했습니다.');
+      fetchComments();
+    } catch (error: any) {
+      console.error('댓글 블라인드 실패:', error);
+      const errorMessage = error.response?.data?.message || '블라인드 처리에 실패했습니다.';
+      alert(errorMessage);
     }
   };
 
@@ -303,9 +353,11 @@ export default function PostDetail() {
     try {
       await axios.patch(`/admin/comments/${commentId}/unblind`);
       alert('댓글 블라인드가 해제되었습니다.');
-      fetchComments(); // 댓글 새로고침
-    } catch {
-      alert('블라인드 해제에 실패했습니다.');
+      fetchComments();
+    } catch (error: any) {
+      console.error('댓글 블라인드 해제 실패:', error);
+      const errorMessage = error.response?.data?.message || '블라인드 해제에 실패했습니다.';
+      alert(errorMessage);
     }
   };
 
@@ -336,88 +388,224 @@ export default function PostDetail() {
   const categoryName = categoryLabels[post.category] || post.category;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
-      <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
-        <h1 className="text-3xl font-bold mb-2 drop-shadow-glow">{post.title}</h1>
-        <div className="text-sm text-gray-400 mb-4">
-          <span className="flex items-center gap-1 inline-flex">
-            <span className="text-sm">{post.writerIcon || '🌟'}</span>
-            <ClickableNickname 
-              userId={post.writerId} 
-              nickname={post.writer}
-              className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-2 py-1 rounded-md transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
-            />
-          </span> · 🗂 {categoryName} · ❤️ {post.likeCount} · 👁 {post.viewCount} · 📅 {formattedDate}
-          {post.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
-        </div>
-        <div 
-          className="text-starlight mb-6 post-content break-words overflow-wrap-anywhere max-w-full overflow-hidden"
-          dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
-        />
-
-        <div className="flex flex-wrap gap-4 mb-8">
-          {/* 자기가 작성한 글이 아닌 경우에만 추천/신고 버튼 표시 */}
-          {user?.nickname !== post.writer && (
-            <>
-              <button
-                onClick={handleLike}
-                disabled={!user || post.likedByMe}
-                className={`px-4 py-1 rounded transition ${
-                  !user
-                    ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-                    : post.likedByMe
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700'
-                }`}
-              >
-                {!user ? '❤️ 로그인 필요' : post.likedByMe ? '✅ 이미 추천함' : '❤️ 추천'}
-              </button>
-
-              <button
-                onClick={handleReport}
-                disabled={!user}
-                className={`px-4 py-1 rounded transition ${
-                  !user
-                    ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                🚨 신고
-              </button>
-            </>
-          )}
-
-          {/* 작성자 또는 관리자 기능 */}
-          {user && user.nickname === post.writer && (
-            <>
-              <button
-                onClick={handleEdit}
-                className="px-4 py-1 rounded bg-blue-600 hover:bg-blue-700 transition"
-              >
-                ✏️ 수정
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-1 rounded bg-gray-600 hover:bg-gray-700 transition"
-              >
-                🗑 삭제
-              </button>
-            </>
-          )}
-          
-          {/* 관리자 전용 기능 */}
-          {user && user.role === 'ADMIN' && (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      {/* 헤더 섹션 */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
+        <div className="relative max-w-4xl mx-auto px-6 py-12">
+          <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={handleBlind}
-              className="px-4 py-1 rounded bg-orange-600 hover:bg-orange-700 transition"
+              onClick={() => navigate(`/posts?category=${post.category}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-medium transition-all duration-200 backdrop-blur-sm border border-white/20"
             >
-              👁️‍🗨️ 블라인드
+              ← {categoryName} 게시판
             </button>
-          )}
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
+              {{
+                NEWS: '🚀',
+                DISCUSSION: '💬',
+                IMAGE: '🌌',
+                REVIEW: '⭐',
+                FREE: '🎈',
+                NOTICE: '📢',
+                STARLIGHT_CINEMA: '🎬'
+              }[post.category] || '📝'}
+            </div>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-6 leading-tight">
+            {post.title}
+          </h1>
+          {/* 작성자 정보 */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <UserIconDisplay iconName={post.writerIcon} size="large" className="text-2xl" />
+              <div>
+                <ClickableNickname 
+                  userId={post.writerId} 
+                  nickname={post.writer}
+                  className="text-lg font-semibold text-white hover:text-purple-300 transition-colors"
+                />
+                <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
+                  <span className="flex items-center gap-1">
+                    ❤️ {post.likeCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    👁 {post.viewCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    📅 {formattedDate}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {post.writerCertificates && post.writerCertificates.length > 0 && (
+              <div className="flex gap-2 ml-auto">
+                {post.writerCertificates.slice(0, 3).map((cert, idx) => {
+                  const certIcons = {
+                    '별빛 탐험가': '🌠',
+                    '우주인 등록증': '🌍',
+                    '은하 통신병': '📡',
+                    '별 관측 매니아': '🔭',
+                    '별빛 채팅사': '🗨️',
+                    '별 헤는 밤 시민증': '🏅',
+                    '별빛 수호자': '🛡️',
+                    '우주 실험자': '⚙️',
+                    '건의왕': '💡',
+                    '은하 관리자 훈장': '🏆'
+                  };
+                  const icon = certIcons[cert] || '🏆';
+                  
+                  return (
+                    <div key={idx} className="relative group">
+                      <div className="px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-sm font-bold rounded-full border border-yellow-500/40 shadow-lg backdrop-blur-sm">
+                        {icon} {cert}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        <hr className="border-gray-600 my-6" />
-        <h2 className="text-2xl font-semibold mb-4">💬 댓글 ({post.commentCount || comments.length})</h2>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
+          {/* 게시글 내용 */}
+          <div className="mb-8">
+            <div 
+              className="prose prose-invert prose-lg max-w-none text-gray-100 leading-relaxed"
+              dangerouslySetInnerHTML={{ 
+                __html: parseMarkdown(
+                  post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')
+                ) 
+              }}
+            />
+          </div>
+        
+        {/* S3 이미지 표시 */}
+        {post.images && post.images.length > 0 && (
+          <div className="mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {post.images.map((image) => (
+                <div key={image.id} className="relative group">
+                  <img
+                    src={image.url}
+                    alt={image.originalName}
+                    className="w-full h-auto rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                    onClick={() => window.open(image.url, '_blank')}
+                    onError={(e) => {
+                      console.error('이미지 로드 실패:', image.url);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    {image.originalName}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 크롤링 이미지 표시 (외부 URL) */}
+        {(() => {
+          const imageUrlMatch = post.content.match(/🖼️ 관련 이미지: (https?:\/\/[^\s]+)/g);
+          if (imageUrlMatch) {
+            const imageUrls = imageUrlMatch.map(match => match.replace('🖼️ 관련 이미지: ', ''));
+            return (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-purple-300">🖼️ 관련 이미지</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {imageUrls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`관련 이미지 ${index + 1}`}
+                        className="w-full h-auto rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                        onClick={() => window.open(url, '_blank')}
+                        onError={(e) => {
+                          console.error('외부 이미지 로드 실패:', url);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+          {/* 액션 버튼 */}
+          <div className="flex flex-wrap gap-3 mb-8 p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
+            {/* 자기가 작성한 글이 아닌 경우에만 추천/신고 버튼 표시 */}
+            {user?.nickname !== post.writer && (
+              <>
+                <button
+                  onClick={handleLike}
+                  disabled={!user || post.likedByMe}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                    !user
+                      ? 'bg-gray-600/50 cursor-not-allowed text-gray-400'
+                      : post.likedByMe
+                      ? 'bg-gray-600/50 cursor-not-allowed text-gray-300'
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-purple-500/25 transform hover:scale-105'
+                  }`}
+                >
+                  {!user ? '❤️ 로그인 필요' : post.likedByMe ? '✅ 이미 추천함' : `❤️ 추천 (${post.likeCount})`}
+                </button>
+
+                <button
+                  onClick={handleReport}
+                  disabled={!user}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                    !user
+                      ? 'bg-gray-600/50 cursor-not-allowed text-gray-400'
+                      : 'bg-red-600/80 hover:bg-red-600 text-white shadow-lg hover:shadow-red-500/25 transform hover:scale-105'
+                  }`}
+                >
+                  🚨 신고
+                </button>
+              </>
+            )}
+
+            {/* 작성자 또는 관리자 기능 */}
+            {user && user.nickname === post.writer && (
+              <>
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600/80 hover:bg-blue-600 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105"
+                >
+                  ✏️ 수정
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-600/80 hover:bg-gray-600 text-white font-medium transition-all duration-200 shadow-lg transform hover:scale-105"
+                >
+                  🗑 삭제
+                </button>
+              </>
+            )}
+
+            {/* 관리자 전용 기능 */}
+            {user && user.role === 'ADMIN' && (
+              <button
+                onClick={handlePostBlind}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600/80 hover:bg-orange-600 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-orange-500/25 transform hover:scale-105"
+              >
+                👁️‍🗨️ 블라인드
+              </button>
+            )}
+          </div>
+          {/* 댓글 섹션 */}
+          <div className="border-t border-purple-500/20 pt-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                💬 댓글 ({post.commentCount || comments.length})
+              </h2>
+            </div>
 
         {/* 일반 댓글 입력창 (답글 모드가 아닐 때만 표시) */}
         {!replyTo && (
@@ -450,105 +638,194 @@ export default function PostDetail() {
         )}
 
         {comments.length === 0 ? (
-          <p className="text-gray-400">댓글이 없습니다.</p>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">💬</div>
+            <p className="text-gray-400 text-lg">첫 댓글을 남겨보세요!</p>
+          </div>
         ) : (
-          <ul className="space-y-4">
+          <div className="space-y-6">
             {comments.map((c) => (
-              <li key={c.id} className={`p-3 rounded-md shadow-sm ${
-                c.parentId ? 'bg-[#252842] ml-8 border-l-2 border-purple-500' : 'bg-[#2a2e45]'
+              <div key={c.id} className={`relative ${
+                c.parentId ? 'ml-12 pl-4 border-l-2 border-purple-500/30' : ''
               }`}>
+                {/* 답글 표시 */}
                 {c.parentId && (
-                  <div className="text-xs text-purple-300 mb-1">
-                    💬 {c.parentWriter}님에게 답글
+                  <div className="flex items-center gap-2 mb-3 text-xs text-purple-300">
+                    <span className="text-purple-400">↳</span>
+                    <span>{c.parentWriter}님에게 답글</span>
                   </div>
                 )}
-                <div 
-                  className={`text-sm break-words overflow-wrap-anywhere max-w-full ${c.blinded ? 'text-gray-500 italic' : 'text-starlight'}`}
-                  style={{
-                    wordWrap: 'break-word',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}
-                >
-                  {c.content}
-                  {c.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
-                </div>
-                <div className="text-xs text-gray-400 mt-1 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1">
-                      <span className="text-sm">{c.writerIcon || '🌟'}</span>
+                
+                <div className="bg-[#2a2e45]/60 backdrop-blur-sm rounded-xl p-4 border border-purple-500/10 hover:border-purple-500/20 transition-all duration-200">
+                  {/* 사용자 정보 */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <UserIconDisplay iconName={c.writerIcon} size="medium" className="text-lg" />
+                    <div className="flex items-center gap-2 flex-1">
                       <ClickableNickname 
                         userId={c.writerId} 
                         nickname={c.writer}
-                        className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white px-1 py-0.5 rounded text-xs transition-all duration-200 font-medium border border-purple-500/30 hover:border-purple-400"
-                      /> · {new Date(c.createdAt).toLocaleString()}
-                    </span>
-                    {user && (
-                      <button
-                        onClick={() => {
-                          if (replyTo?.id === c.id) {
-                            setReplyTo(null); // 이미 답글 모드인 경우 취소
-                          } else {
-                            setReplyTo({id: c.id, writer: c.writer});
-                          }
-                        }}
-                        className={`text-xs px-2 py-1 rounded border transition ${
-                          replyTo?.id === c.id 
-                            ? 'text-red-400 hover:text-red-300 bg-red-600/20 hover:bg-red-600/40 border-red-500/30'
-                            : 'text-blue-400 hover:text-blue-300 bg-blue-600/20 hover:bg-blue-600/40 border-blue-500/30'
-                        }`}
-                      >
-                        {replyTo?.id === c.id ? '취소' : '답글'}
-                      </button>
-                    )}
+                        className="font-semibold text-white hover:text-purple-300 transition-colors"
+                      />
+                      {c.writerCertificates && c.writerCertificates.length > 0 && (
+                        <div className="flex gap-1">
+                          {c.writerCertificates.slice(0, 2).map((cert, idx) => {
+                            const certIcons = {
+                              '별빛 탐험가': '🌠',
+                              '우주인 등록증': '🌍',
+                              '은하 통신병': '📡',
+                              '별 관측 매니아': '🔭',
+                              '별빛 채팅사': '🗨️',
+                              '별 헤는 밤 시민증': '🏅',
+                              '별빛 수호자': '🛡️',
+                              '우주 실험자': '⚙️',
+                              '건의왕': '💡',
+                              '은하 관리자 훈장': '🏆'
+                            };
+                            const icon = certIcons[cert] || '🏆';
+                            
+                            return (
+                              <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30 animate-pulse" title={cert}>
+                                {icon} {cert}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleString()}</span>
                   </div>
-                  <div className="flex gap-2">
-                    {user && user.role === 'ADMIN' && (
-                      c.blinded ? (
+                  
+                  {/* 댓글 내용 */}
+                  {editingComment?.id === c.id ? (
+                    <div className="mb-3">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-3 rounded-lg bg-[#1a1d2e] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 border border-purple-500/20"
+                        rows={3}
+                      />
+                      <div className="flex gap-2 mt-2">
                         <button
-                          onClick={() => handleCommentUnblind(c.id)}
-                          className="text-green-400 hover:text-green-300 text-xs px-2 py-1 bg-green-600/20 hover:bg-green-600/40 rounded border border-green-500/30"
+                          onClick={() => handleCommentEdit(c.id)}
+                          className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded-lg transition"
                         >
-                          해제
+                          저장
                         </button>
-                      ) : (
                         <button
-                          onClick={() => handleCommentBlind(c.id)}
-                          className="text-orange-400 hover:text-orange-300 text-xs px-2 py-1 bg-orange-600/20 hover:bg-orange-600/40 rounded border border-orange-500/30"
+                          onClick={() => {
+                            setEditingComment(null);
+                            setEditContent('');
+                          }}
+                          className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 rounded-lg transition"
                         >
-                          블라인드
+                          취소
                         </button>
-                      )
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`mb-3 leading-relaxed ${
+                      c.deleted ? 'text-gray-500 italic' : c.blinded ? 'text-gray-500 italic' : 'text-gray-100'
+                    }`}>
+                      {c.deleted ? '이 댓글은 삭제되었습니다.' : c.content}
+                      {c.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
+                    </div>
+                  )}
+                  
+                  {/* 액션 버튼 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {user && !c.deleted && (
+                        <>
+                          <button
+                            onClick={() => {
+                              if (replyTo?.id === c.id) {
+                                setReplyTo(null);
+                              } else {
+                                setReplyTo({id: c.id, writer: c.writer});
+                              }
+                            }}
+                            className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition ${
+                              replyTo?.id === c.id 
+                                ? 'text-red-300 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30'
+                                : 'text-blue-300 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30'
+                            }`}
+                          >
+                            {replyTo?.id === c.id ? '❌ 취소' : '💬 답글'}
+                          </button>
+                          
+                          {user.nickname === c.writer && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingComment({id: c.id, content: c.content});
+                                  setEditContent(c.content);
+                                }}
+                                className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium text-green-300 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 transition"
+                              >
+                                ✏️ 수정
+                              </button>
+                              <button
+                                onClick={() => handleCommentDelete(c.id)}
+                                className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium text-red-300 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 transition"
+                              >
+                                🗑️ 삭제
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* 관리자 기능 */}
+                    {user && user.role === 'ADMIN' && !c.deleted && (
+                      <div className="flex gap-2">
+                        {c.blinded ? (
+                          <button
+                            onClick={() => handleCommentUnblind(c.id)}
+                            className="px-3 py-1 rounded-full text-xs font-medium text-green-300 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 transition"
+                          >
+                            ✅ 해제
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleCommentBlind(c.id)}
+                            className="px-3 py-1 rounded-full text-xs font-medium text-orange-300 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 transition"
+                          >
+                            🚫 블라인드
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
                 
-                {/* 해당 댓글에 대한 답글 입력창 */}
+                {/* 답글 입력창 */}
                 {replyTo?.id === c.id && (
-                  <div className="mt-3 p-3 bg-[#1a1d2e] rounded border border-purple-500/30">
-                    <div className="mb-2 text-xs text-purple-300">
-                      💬 {c.writer}님에게 답글 작성
+                  <div className="mt-4 p-4 bg-[#1a1d2e]/60 backdrop-blur-sm rounded-xl border border-purple-500/20">
+                    <div className="flex items-center gap-2 mb-3 text-sm text-purple-300">
+                      <span className="text-purple-400">↳</span>
+                      <span>{c.writer}님에게 답글 작성</span>
                     </div>
                     <form onSubmit={handleCommentSubmit}>
                       <textarea
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
-                        rows={2}
+                        rows={3}
                         placeholder={`${c.writer}님에게 답글을 입력하세요...`}
-                        className="w-full p-2 rounded bg-[#2a2e45] text-white focus:outline-none mb-2 text-sm"
+                        className="w-full p-3 rounded-lg bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 border border-purple-500/20 resize-none"
                         autoFocus
                       />
                       {error && (
-                        <div className="text-red-400 text-xs mb-2">
+                        <div className="text-red-400 text-sm mt-2 p-2 bg-red-500/10 rounded border border-red-500/20">
                           {error}
                         </div>
                       )}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mt-3">
                         <button
                           type="submit"
-                          className="px-3 py-1 rounded text-xs bg-blue-500 hover:bg-blue-600 transition"
+                          className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 transition"
                         >
-                          답글 등록
+                          💬 답글 등록
                         </button>
                         <button
                           type="button"
@@ -556,7 +833,7 @@ export default function PostDetail() {
                             setReplyTo(null);
                             setNewComment('');
                           }}
-                          className="px-3 py-1 rounded text-xs bg-gray-500 hover:bg-gray-600 transition"
+                          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-600 hover:bg-gray-700 transition"
                         >
                           취소
                         </button>
@@ -564,12 +841,13 @@ export default function PostDetail() {
                     </form>
                   </div>
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
+          </div>
+        </div>
       </div>
-
     </div>
   );
 }

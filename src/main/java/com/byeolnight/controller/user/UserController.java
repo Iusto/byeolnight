@@ -197,4 +197,17 @@ public class UserController {
             return ResponseEntity.ok(CommonResponse.error("테스트 데이터 생성 실패: " + e.getMessage()));
         }
     }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "테스트 인증서 발급", description = "개발용 테스트 인증서를 발급합니다.")
+    @PostMapping("/test-certificates")
+    public ResponseEntity<CommonResponse<String>> createTestCertificates(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        try {
+            userService.createTestCertificates(user);
+            return ResponseEntity.ok(CommonResponse.success("테스트 인증서가 발급되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.ok(CommonResponse.error("테스트 인증서 발급 실패: " + e.getMessage()));
+        }
+    }
 }

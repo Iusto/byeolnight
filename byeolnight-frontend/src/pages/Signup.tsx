@@ -49,12 +49,12 @@ export default function Signup() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // 휴대폰번호는 숫자만 입력 허용
+    // 휴대폰번호는 자동 하이픈 추가
     if (name === 'phone') {
-      const numbersOnly = value.replace(/[^0-9]/g, '');
+      const formatted = formatPhoneNumber(value);
       setForm((prev) => ({
         ...prev,
-        [name]: numbersOnly,
+        [name]: formatted,
       }));
     } else if (name === 'nickname') {
       // 닉네임은 한글, 영어만 허용 (8자 제한)
@@ -93,10 +93,18 @@ export default function Signup() {
     return passwordRegex.test(password);
   };
 
-  // 휴대폰 번호 형식 검증 (숫자만 11자)
+  // 휴대폰 번호 형식 검증 (010-1234-5678 형식)
   const validatePhone = (phone: string) => {
-    const phoneRegex = /^01[0-9][0-9]{8}$/;
-    return phoneRegex.test(phone) && phone.length === 11;
+    const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
+    return phoneRegex.test(phone);
+  };
+
+  // 전화번호 자동 하이픈 추가
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^0-9]/g, '');
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
   // 닉네임 형식 검증 (한글, 영어만 허용, 2-8자)
@@ -141,7 +149,7 @@ export default function Signup() {
         email: form.email,
         code: form.emailCode,
       });
-      if (res.data === true) {
+      if (res.data.data === true) {
         setEmailVerified(true);
         setEmailTimer(0); // 인증 완료 시 타이머 중지
         alert('이메일 인증 성공');
@@ -150,7 +158,7 @@ export default function Signup() {
         setError('이메일 인증 코드가 유효하지 않습니다.');
       }
     } catch (err: any) {
-      setError('이메일 인증 실패');
+      setError(err?.response?.data?.message || '이메일 인증 실패');
     } finally {
       setLoading(prev => ({ ...prev, emailVerify: false }));
     }
@@ -163,7 +171,7 @@ export default function Signup() {
     }
     
     if (!validatePhone(form.phone)) {
-      setError('올바른 휴대폰 번호 형식을 입력해주세요. (11자 숫자: 01012345678)');
+      setError('올바른 휴대폰 번호 형식을 입력해주세요. (예: 010-1234-5678)');
       return;
     }
 
@@ -192,7 +200,7 @@ export default function Signup() {
         phone: form.phone,
         code: form.phoneCode,
       });
-      if (res.data === true) {
+      if (res.data.data === true) {
         setPhoneVerified(true);
         setPhoneTimer(0); // 인증 완료 시 타이머 중지
         alert('전화번호 인증 성공');
@@ -201,7 +209,7 @@ export default function Signup() {
         setError('전화번호 인증 코드가 유효하지 않습니다.');
       }
     } catch (err: any) {
-      setError('전화번호 인증 실패');
+      setError(err?.response?.data?.message || '전화번호 인증 실패');
     } finally {
       setLoading(prev => ({ ...prev, phoneVerify: false }));
     }
@@ -223,7 +231,7 @@ export default function Signup() {
       const res = await axios.get('/auth/check-nickname', {
         params: { value: form.nickname },
       });
-      if (res.data === true) {
+      if (res.data.data === true) {
         setNicknameChecked(true);
         alert('사용 가능한 닉네임입니다.');
         setError('');
@@ -231,7 +239,7 @@ export default function Signup() {
         setError('이미 사용 중인 닉네임입니다.');
       }
     } catch (err: any) {
-      setError('닉네임 중복 확인 실패');
+      setError(err?.response?.data?.message || '닉네임 중복 확인 실패');
     } finally {
       setLoading(prev => ({ ...prev, nicknameCheck: false }));
     }
@@ -289,7 +297,7 @@ export default function Signup() {
     }
     
     if (!validatePhone(form.phone)) {
-      setError('올바른 휴대폰 번호 형식을 입력해주세요. (11자 숫자: 01012345678)');
+      setError('올바른 휴대폰 번호 형식을 입력해주세요. (예: 010-1234-5678)');
       return;
     }
     
@@ -359,10 +367,10 @@ export default function Signup() {
               <button 
                 type="button" 
                 onClick={sendEmailCode} 
-                disabled={loading.emailSend || !form.email}
+                disabled={loading.emailSend || !form.email || emailVerified}
                 className="w-20 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors text-xs"
               >
-                {loading.emailSend ? '전송중' : '전송'}
+                {emailVerified ? '완료' : loading.emailSend ? '전송중' : '전송'}
               </button>
               <div className="flex-1 relative">
                 <input 
@@ -419,22 +427,22 @@ export default function Signup() {
             <input 
               type="tel" 
               name="phone" 
-              placeholder="휴대폰 번호 (숫자만 입력: 01012345678)" 
+              placeholder="휴대폰 번호 (예: 010-1234-5678)" 
               value={form.phone} 
               onChange={handleChange} 
               className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
               required 
             />
-            <p className="text-xs text-gray-400">* 휴대폰번호는 숫자만 입력해주세요 (하이픈 제외)</p>
+            <p className="text-xs text-gray-400">* 휴대폰번호는 자동으로 하이픈이 추가됩니다</p>
             <p className="text-xs text-green-400">🔒 입력하신 휴대폰번호는 암호화되어 안전하게 저장됩니다</p>
             <div className="flex gap-2">
               <button 
                 type="button" 
                 onClick={sendPhoneCode} 
-                disabled={loading.phoneSend || !form.phone}
+                disabled={loading.phoneSend || !form.phone || phoneVerified}
                 className="w-20 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors text-xs"
               >
-                {loading.phoneSend ? '전송중' : '전송'}
+                {phoneVerified ? '완료' : loading.phoneSend ? '전송중' : '전송'}
               </button>
               <div className="flex-1 relative">
                 <input 

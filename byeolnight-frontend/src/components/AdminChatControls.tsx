@@ -26,6 +26,7 @@ const AdminChatControls: React.FC<AdminChatControlsProps> = ({
     try {
       await axios.post(`/admin/chat/blind/${messageId}`);
       onMessageBlind(messageId);
+      alert('메시지가 블라인드 처리되었습니다.');
       console.log(`메시지 ${messageId} 블라인드 처리됨`);
     } catch (error) {
       console.error('메시지 블라인드 처리 실패:', error);
@@ -38,6 +39,7 @@ const AdminChatControls: React.FC<AdminChatControlsProps> = ({
     try {
       await axios.delete(`/admin/chat/blind/${messageId}`);
       onMessageUnblind(messageId);
+      alert('메시지 블라인드가 해제되었습니다.');
       console.log(`메시지 ${messageId} 블라인드 해제됨`);
     } catch (error) {
       console.error('메시지 블라인드 해제 실패:', error);
@@ -46,16 +48,16 @@ const AdminChatControls: React.FC<AdminChatControlsProps> = ({
   };
 
   // 사용자 채팅 금지
-  const handleBanUser = async (username: string, duration: number) => {
+  const handleBanUser = async (username: string, duration: number, reason?: string) => {
     try {
       await axios.post('/admin/chat/ban', {
         username: username,
         duration: duration,
-        reason: `${duration}분간 채팅 금지`
+        reason: reason || `${duration}분간 채팅 금지`
       });
       
       onUserBan(username);
-      console.log(`사용자 ${username} ${duration}분간 채팅 금지됨`);
+      console.log(`사용자 ${username} ${duration}분간 채팅 금지됨 - 사유: ${reason}`);
     } catch (error) {
       console.error('사용자 제재 실패:', error);
       alert('사용자 제재에 실패했습니다.');

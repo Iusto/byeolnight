@@ -25,21 +25,60 @@ public class PostResponseDto {
     private String writer;
     private Long writerId;
     private boolean blinded;
+    private String blindType; // ADMIN_BLIND 또는 REPORT_BLIND
     private long likeCount;
     private boolean likedByMe;
     private boolean hot;
     private long viewCount;
-    private long commentCount; // 댓글 수
-    private String dDay; // D-Day 표시용
+    private long commentCount;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
+    private java.util.List<FileDto> images;
+    private String writerIcon;
+    private java.util.List<String> writerCertificates;
+    
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    @lombok.NoArgsConstructor
+    public static class FileDto {
+        private Long id;
+        private String originalName;
+        private String url;
+    }
 
-    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount) {
+    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount, java.util.List<com.byeolnight.domain.entity.file.File> files) {
         // writer null 체크
         String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
         Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
+        
+        // 이미지 목록 변환
+        java.util.List<FileDto> imageDtos = files != null ? files.stream()
+                .map(file -> new FileDto(file.getId(), file.getOriginalName(), file.getUrl()))
+                .collect(java.util.stream.Collectors.toList()) : java.util.Collections.emptyList();
+        
+        // 사용자 아이콘 및 인증서 정보
+        String writerIcon = null;
+        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
+        
+        if (post.getWriter() != null) {
+            writerIcon = post.getWriter().getEquippedIconName();
+            
+            // 대표 인증서 조회
+            try {
+                com.byeolnight.service.certificate.CertificateService certificateService = 
+                    com.byeolnight.infrastructure.config.ApplicationContextProvider
+                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                    certificateService.getRepresentativeCertificate(post.getWriter());
+                if (repCert != null) {
+                    writerCertificates.add(repCert.getCertificateType().getName());
+                }
+            } catch (Exception e) {
+                // 인증서 조회 실패 시 무시
+            }
+        }
         
         return PostResponseDto.builder()
                 .id(post.getId())
@@ -49,15 +88,22 @@ public class PostResponseDto {
                 .writer(writerName)
                 .writerId(writerId)
                 .blinded(post.isBlinded())
+                .blindType(post.getBlindType() != null ? post.getBlindType().name() : null)
                 .likeCount(likeCount)
                 .likedByMe(likedByMe)
                 .hot(isHot)
                 .viewCount(post.getViewCount())
                 .commentCount(commentCount)
-                .dDay(calculateDDay(post))
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
+                .images(imageDtos)
+                .writerIcon(writerIcon)
+                .writerCertificates(writerCertificates)
                 .build();
+    }
+    
+    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount) {
+        return of(post, likedByMe, likeCount, isHot, commentCount, null);
     }
 
     public static PostResponseDto from(Post post, boolean isHot, long commentCount) {
@@ -65,6 +111,28 @@ public class PostResponseDto {
         String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
         Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
         
+        // 사용자 아이콘 및 인증서 정보
+        String writerIcon = null;
+        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
+        
+        if (post.getWriter() != null) {
+            writerIcon = post.getWriter().getEquippedIconName();
+            
+            // 대표 인증서 조회
+            try {
+                com.byeolnight.service.certificate.CertificateService certificateService = 
+                    com.byeolnight.infrastructure.config.ApplicationContextProvider
+                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                    certificateService.getRepresentativeCertificate(post.getWriter());
+                if (repCert != null) {
+                    writerCertificates.add(repCert.getCertificateType().getName());
+                }
+            } catch (Exception e) {
+                // 인증서 조회 실패 시 무시
+            }
+        }
+        
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -73,52 +141,20 @@ public class PostResponseDto {
                 .writer(writerName)
                 .writerId(writerId)
                 .blinded(post.isBlinded())
+                .blindType(post.getBlindType() != null ? post.getBlindType().name() : null)
                 .likeCount(post.getLikeCount())
                 .likedByMe(false)
                 .hot(isHot)
                 .viewCount(post.getViewCount())
                 .commentCount(commentCount)
-                .dDay(calculateDDay(post))
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
+                .writerIcon(writerIcon)
+                .writerCertificates(writerCertificates)
                 .build();
     }
 
     public static PostResponseDto from(Post post) {
         return from(post, false, 0);
-    }
-
-    private static String calculateDDay(Post post) {
-        // EVENT 카테고리이고 제목에 날짜 정보가 있는 경우만 D-Day 계산
-        if (post.getCategory() != Post.Category.EVENT) {
-            return null;
-        }
-        
-        try {
-            // 콘텐츠에서 날짜 추출 (예: "2024-12-21" 형식)
-            String content = post.getContent();
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\*\\*\ub2e4\uc74c \uacac\ud559\uc77c\\*\\*: (\\d{4}-\\d{2}-\\d{2})");
-            java.util.regex.Matcher matcher = pattern.matcher(content);
-            
-            if (matcher.find()) {
-                String dateStr = matcher.group(1);
-                java.time.LocalDate eventDate = java.time.LocalDate.parse(dateStr);
-                java.time.LocalDate today = java.time.LocalDate.now();
-                
-                long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate);
-                
-                if (daysBetween > 0) {
-                    return "D-" + daysBetween;
-                } else if (daysBetween == 0) {
-                    return "D-Day";
-                } else {
-                    return "종료";
-                }
-            }
-        } catch (Exception e) {
-            // 날짜 파싱 실패 시 null 반환
-        }
-        
-        return null;
     }
 }

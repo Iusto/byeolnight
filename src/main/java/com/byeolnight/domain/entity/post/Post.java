@@ -17,7 +17,12 @@ import java.util.List;
 public class Post {
 
     public enum Category {
-        NEWS, DISCUSSION, IMAGE, EVENT, REVIEW, FREE, NOTICE, SUGGESTION
+        NEWS, DISCUSSION, IMAGE, REVIEW, FREE, NOTICE, SUGGESTION, STARLIGHT_CINEMA
+    }
+
+    public enum BlindType {
+        ADMIN_BLIND,    // 관리자 직접 블라인드
+        REPORT_BLIND    // 신고로 인한 자동 블라인드
     }
 
     @Id
@@ -46,10 +51,29 @@ public class Post {
     private int likeCount = 0;
 
     @Column(nullable = false)
+    private int reportCount = 0;
+
+    @Column(nullable = false)
     private boolean isDeleted = false;
 
     @Column(nullable = false)
     private boolean blinded = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "blind_type")
+    private BlindType blindType;
+
+    @Column(name = "blinded_by_admin_id")
+    private Long blindedByAdminId;
+
+    @Column(nullable = false)
+    private boolean pinned = false; // 상단 고정 여부
+
+    @Column(nullable = false)
+    private boolean discussionTopic = false; // AI 토론 주제 여부
+
+    @Column
+    private Long originTopicId; // 원본 토론 주제 ID (의견글인 경우)
 
     @CreationTimestamp  // 생성 시 자동으로 현재 시간 설정
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -58,6 +82,12 @@ public class Post {
     @UpdateTimestamp    // 수정 시 자동으로 현재 시간 설정
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "blinded_at")
+    private LocalDateTime blindedAt;
 
     @Builder
     public Post(String title, String content, Category category, User writer) {
@@ -81,14 +111,32 @@ public class Post {
 
     public void softDelete() {
         this.isDeleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void restore() {
+        this.isDeleted = false;
+        this.deletedAt = null;
     }
 
     public void blind() {
         this.blinded = true;
+        this.blindedAt = LocalDateTime.now();
+        this.blindType = BlindType.REPORT_BLIND; // 기본값
+    }
+
+    public void blindByAdmin(Long adminId) {
+        this.blinded = true;
+        this.blindedAt = LocalDateTime.now();
+        this.blindType = BlindType.ADMIN_BLIND;
+        this.blindedByAdminId = adminId;
     }
 
     public void unblind() {
         this.blinded = false;
+        this.blindedAt = null;
+        this.blindType = null;
+        this.blindedByAdminId = null;
     }
 
     public boolean isDeleted() {
@@ -105,6 +153,33 @@ public class Post {
 
     public void increaseLikeCount() {
         this.likeCount++;
+    }
+
+    public void increaseReportCount() {
+        this.reportCount++;
+    }
+
+    public void decreaseReportCount() {
+        if (this.reportCount > 0) {
+            this.reportCount--;
+        }
+    }
+
+    public void pin() {
+        this.pinned = true;
+    }
+
+    public void unpin() {
+        this.pinned = false;
+    }
+
+    public void setAsDiscussionTopic() {
+        this.discussionTopic = true;
+        this.pinned = true;
+    }
+    
+    public void setOriginTopicId(Long originTopicId) {
+        this.originTopicId = originTopicId;
     }
 
     public enum SortType {

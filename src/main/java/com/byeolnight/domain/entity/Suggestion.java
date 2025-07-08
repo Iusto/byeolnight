@@ -63,11 +63,11 @@ public class Suggestion {
     private LocalDateTime updatedAt;
 
     // 관리자 답변 추가 메서드
-    public void addAdminResponse(String response, User admin) {
+    public void addAdminResponse(String response, User admin, SuggestionStatus status) {
         this.adminResponse = response;
         this.admin = admin;
         this.adminResponseAt = LocalDateTime.now();
-        this.status = SuggestionStatus.COMPLETED;
+        this.status = status;
     }
 
     // 상태 변경 메서드

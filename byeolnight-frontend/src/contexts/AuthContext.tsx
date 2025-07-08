@@ -36,7 +36,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchMyInfo = async () => {
     try {
       const res = await axios.get('/member/users/me');
-      const userData = res.data;
+      console.log('내 정보 응답:', res.data);
+      const userData = res.data?.success ? res.data.data : null;
+      
+      if (!userData) {
+        throw new Error('사용자 데이터를 받지 못했습니다.');
+      }
       
       // 대표 인증서 정보도 가져오기
       try {
@@ -64,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshToken = async (): Promise<boolean> => {
     try {
       const res = await axios.post('/auth/token/refresh');
-      const newToken = res.data?.accessToken;
+      const newToken = res.data?.success ? res.data.data?.accessToken : null;
       
       if (newToken) {
         localStorage.setItem('accessToken', newToken);
@@ -80,12 +85,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
+      console.log('로그인 요청 시작:', { email, rememberMe });
       const res = await axios.post('/auth/login', {
         email,
         password,
       });
+      
+      console.log('로그인 응답:', res.data);
 
-      const token = res.data?.accessToken;
+      const token = res.data?.success ? res.data.data?.accessToken : null;
       if (token) {
         localStorage.setItem('accessToken', token);
         
@@ -102,6 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('토큰을 받지 못했습니다.');
       }
     } catch (err: any) {
+      console.error('로그인 에러:', err);
       // 서버에서 온 구체적인 에러 메시지 전달
       const errorMessage = err?.response?.data?.message || '로그인에 실패했습니다.';
       throw new Error(errorMessage);

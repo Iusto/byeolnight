@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/migration")
 @RequiredArgsConstructor
 @Tag(name = "👮 관리자 API - 데이터 마이그레이션", description = "데이터 마이그레이션 및 유지보수 API")
-public class DataMigrationController {
+public class AdminDataMigrationController {
 
     private final UserService userService;
 

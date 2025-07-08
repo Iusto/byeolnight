@@ -111,4 +111,16 @@ public class SuggestionController {
         SuggestionDto.Response response = suggestionService.addAdminResponse(id, adminId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "건의사항 상태 변경", description = "관리자가 건의사항 상태를 변경합니다.")
+    public ResponseEntity<ApiResponse<SuggestionDto.Response>> updateStatus(
+            @PathVariable Long id,
+            @RequestBody SuggestionDto.StatusUpdateRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        SuggestionDto.Response response = suggestionService.updateStatus(id, adminId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

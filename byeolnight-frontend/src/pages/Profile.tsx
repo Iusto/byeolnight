@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MyActivity from '../components/MyActivity';
+import UserIconDisplay from '../components/UserIconDisplay';
 import { getReceivedMessages, getSentMessages, markMessageAsRead, type Message, type MessageListResponse } from '../lib/api/message';
 import { getNotifications, markAsRead, markAllAsRead } from '../lib/api/notification';
 import type { Notification, NotificationListResponse } from '../types/notification';
@@ -81,7 +82,7 @@ interface UserIcon {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUserInfo } = useAuth();
   const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +96,7 @@ export default function Profile() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationListResponse>({ notifications: [], totalCount: 0, currentPage: 0, totalPages: 0, hasNext: false, hasPrevious: false });
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [iconLoading, setIconLoading] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -115,26 +117,31 @@ export default function Profile() {
       setLoading(true);
       const response = await axios.get('/member/users/me');
       console.log('프로필 응답:', response.data);
-      if (response.data) {
-        setProfile(response.data);
-        console.log('프로필 설정 완료:', response.data);
+      if (response.data?.success && response.data.data) {
+        setProfile(response.data.data);
+        console.log('프로필 설정 완료:', response.data.data);
       } else {
         console.log('프로필 데이터 없음');
       }
       
       // 보유 아이콘 정보 가져오기
       const iconsResponse = await axios.get('/member/shop/my-icons');
-      if (iconsResponse.data) {
-        setIcons(iconsResponse.data || []);
+      console.log('아이콘 응답:', iconsResponse.data);
+      if (iconsResponse.data?.success) {
+        const iconData = iconsResponse.data.data || [];
+        console.log('아이콘 데이터:', iconData);
+        setIcons(Array.isArray(iconData) ? iconData : []);
+      } else {
+        setIcons([]);
       }
       
       // 활동 내역 가져오기
       try {
         const activityResponse = await axios.get('/member/users/my-activity?page=0&size=10');
         console.log('활동 내역 응답:', activityResponse.data);
-        if (activityResponse.data) {
-          setActivity(activityResponse.data);
-          console.log('활동 내역 설정 완료:', activityResponse.data);
+        if (activityResponse.data?.success && activityResponse.data.data) {
+          setActivity(activityResponse.data.data);
+          console.log('활동 내역 설정 완료:', activityResponse.data.data);
         } else {
           console.log('활동 내역 데이터 없음');
           setActivity({
@@ -264,6 +271,41 @@ export default function Profile() {
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
+  const handleIconEquip = async (userIconId: number) => {
+    try {
+      setIconLoading(userIconId);
+      const currentIcon = icons.find(icon => icon.id === userIconId);
+      
+      if (!currentIcon) {
+        alert('아이콘을 찾을 수 없습니다.');
+        return;
+      }
+      
+      // StellaIcon ID를 사용
+      const stellaIconId = currentIcon.iconId;
+      
+      if (currentIcon.equipped) {
+        await axios.post(`/member/shop/icons/${stellaIconId}/unequip`);
+      } else {
+        await axios.post(`/member/shop/icons/${stellaIconId}/equip`);
+      }
+      
+      // 아이콘 목록 새로고침
+      const iconsResponse = await axios.get('/member/shop/my-icons');
+      if (iconsResponse.data?.success) {
+        setIcons(iconsResponse.data.data || []);
+      }
+      
+      // 사용자 정보 새로고침 (navbar 아이콘 업데이트용)
+      await refreshUserInfo();
+    } catch (error) {
+      console.error('아이콘 장착/해제 실패:', error);
+      alert('아이콘 장착/해제에 실패했습니다.');
+    } finally {
+      setIconLoading(null);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
@@ -297,8 +339,11 @@ export default function Profile() {
         <div className="bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl mb-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2 drop-shadow-glow">
-                <span className="bg-[#0f1419] px-2 py-1 rounded-lg">👤</span> 내 정보
+              <h1 className="text-3xl font-bold mb-2 drop-shadow-glow flex items-center gap-3">
+                <span className="bg-[#0f1419] px-2 py-1 rounded-lg">
+                  <UserIconDisplay iconName={user?.equippedIconName} size="medium" className="text-2xl" />
+                </span> 
+                내 정보
               </h1>
               <p className="text-gray-400">프로필 정보와 활동 내역을 확인하세요</p>
             </div>
@@ -433,7 +478,7 @@ export default function Profile() {
                             </div>
                           </div>
                           <div className="text-xl font-bold text-yellow-400">
-                            {profile.points.toLocaleString()}
+                            {(profile.points || 0).toLocaleString()}
                           </div>
                         </div>
                         
@@ -731,20 +776,35 @@ export default function Profile() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {icons.map((icon) => (
                     <div
                       key={icon.id}
-                      className={`relative p-4 rounded-lg text-center transition-all ${
+                      className={`relative p-4 rounded-lg text-center transition-all min-h-[180px] flex flex-col justify-between ${
                         icon.equipped
                           ? 'bg-purple-600/30 border-2 border-purple-400'
                           : 'bg-[#2a2e45]/60 hover:bg-[#2a2e45]/80'
                       }`}
                     >
-                      <div className="text-3xl mb-2">{icon.iconUrl}</div>
-                      <div className="text-sm text-gray-300 mb-1">{icon.name}</div>
-                      <div className="text-xs text-gray-500">{icon.price.toLocaleString()} 스텔라</div>
-                      <div className="text-xs text-gray-500">{formatDate(icon.purchasedAt)}</div>
+                      <div className="flex-1">
+                        <div className="text-3xl mb-3">{icon.iconUrl}</div>
+                        <div className="text-sm text-gray-300 mb-2 break-words leading-tight">{icon.name}</div>
+                        <div className="text-xs text-gray-500 mb-1">{(icon.price || 0).toLocaleString()} 스텔라</div>
+                        <div className="text-xs text-gray-500 mb-3">{formatDate(icon.purchasedAt)}</div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleIconEquip(icon.id)}
+                        disabled={iconLoading === icon.id}
+                        className={`w-full py-2 px-2 text-xs rounded transition-colors font-medium ${
+                          icon.equipped
+                            ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                            : 'bg-purple-600/20 text-purple-400 hover:bg-purple-600/30'
+                        } ${iconLoading === icon.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {iconLoading === icon.id ? '...' : (icon.equipped ? '해제' : '장착')}
+                      </button>
+                      
                       {icon.equipped && (
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                           <span className="text-xs text-white">✓</span>

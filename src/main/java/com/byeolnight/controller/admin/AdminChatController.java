@@ -53,15 +53,15 @@ public class AdminChatController {
             @RequestBody ChatBanRequestDto request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
     ) {
-        adminChatService.banUser(request.getUsername(), request.getDuration(), admin.getId());
+        adminChatService.banUser(request.getUsername(), request.getDuration(), admin.getId(), request.getReason());
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "채팅 금지 해제", description = "관리자가 사용자의 채팅 금지를 해제합니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/ban/{username}")
-    public ResponseEntity<Void> unbanUser(@PathVariable String username) {
-        adminChatService.unbanUser(username);
+    @DeleteMapping("/ban/{userId}")
+    public ResponseEntity<Void> unbanUser(@PathVariable String userId) {
+        adminChatService.unbanUser(userId);
         return ResponseEntity.ok().build();
     }
 
@@ -76,16 +76,22 @@ public class AdminChatController {
     @Operation(summary = "제재된 사용자 목록", description = "현재 채팅 금지된 사용자 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/banned-users")
-    public ResponseEntity<List<Map<String, Object>>> getBannedUsers() {
-        List<Map<String, Object>> bannedUsers = adminChatService.getBannedUsers();
+    public ResponseEntity<List<Map<String, Object>>> getBannedUsers(
+            @RequestParam(defaultValue = "5") int limit,
+            @RequestParam(defaultValue = "0") int offset
+    ) {
+        List<Map<String, Object>> bannedUsers = adminChatService.getBannedUsers(limit, offset);
         return ResponseEntity.ok(bannedUsers);
     }
 
     @Operation(summary = "블라인드된 메시지 목록", description = "블라인드 처리된 메시지 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/blinded-messages")
-    public ResponseEntity<List<Map<String, Object>>> getBlindedMessages() {
-        List<Map<String, Object>> blindedMessages = adminChatService.getBlindedMessages();
+    public ResponseEntity<List<Map<String, Object>>> getBlindedMessages(
+            @RequestParam(defaultValue = "5") int limit,
+            @RequestParam(defaultValue = "0") int offset
+    ) {
+        List<Map<String, Object>> blindedMessages = adminChatService.getBlindedMessages(limit, offset);
         return ResponseEntity.ok(blindedMessages);
     }
 

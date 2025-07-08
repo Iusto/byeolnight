@@ -15,6 +15,7 @@ import ProfileEdit from './pages/ProfileEdit';
 import AdminUserPage from './pages/AdminUserPage';
 import AdminReportedPostsPage from './pages/AdminReportedPostsPage';
 
+
 import Certificates from './pages/Certificates';
 import PasswordChange from './pages/PasswordChange';
 import StellaShop from './pages/StellaShop';
@@ -25,7 +26,6 @@ import SuggestionList from './pages/SuggestionList';
 import SuggestionCreate from './pages/SuggestionCreate';
 import SuggestionDetail from './pages/SuggestionDetail';
 import MessagesPage from './pages/MessagesPage';
-import NotificationTest from './pages/NotificationTest';
 
 function App() {
   return (
@@ -41,12 +41,13 @@ function App() {
         <Route path="/posts" element={<PostList />} />
         <Route path="/posts/new" element={<PostCreate />} />
         <Route path="/posts/write" element={<PostCreate />} />
-        <Route path="/posts/edit/:id" element={<PostEdit />} />
-        <Route path="/posts/:id" element={<PostDetail />} />
+        <Route path="/posts/:id/edit" element={<PostEdit />} />
         <Route path="/posts/:id/report" element={<PostReport />} />
+        <Route path="/posts/:id" element={<PostDetail />} />
         <Route path="/admin/users" element={<AdminUserPage />} />
         <Route path="/admin/reports" element={<AdminReportedPostsPage />} />
         <Route path="/admin/report-management" element={<AdminReportsPage />} />
+
 
         <Route path="/certificates" element={<Certificates />} />
         <Route path="/password-change" element={<PasswordChange />} />
@@ -56,7 +57,6 @@ function App() {
         <Route path="/suggestions/new" element={<SuggestionCreate />} />
         <Route path="/suggestions/:id" element={<SuggestionDetail />} />
         <Route path="/messages" element={<MessagesPage />} />
-        <Route path="/notification-test" element={<NotificationTest />} />
       </Route>
     </Routes>
   )

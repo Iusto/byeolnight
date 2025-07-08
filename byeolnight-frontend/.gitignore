@@ -10,7 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+# *.local - 로컬 개발용 파일은 Git에 포함
 
 # Editor directories and files
 .vscode/*

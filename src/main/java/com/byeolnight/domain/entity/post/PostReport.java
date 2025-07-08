@@ -72,6 +72,20 @@ public class PostReport {
     }
     
     /**
+     * 신고 승인 여부 확인
+     */
+    public boolean isAccepted() {
+        return this.accepted;
+    }
+    
+    /**
+     * 신고 검토 여부 확인
+     */
+    public boolean isReviewed() {
+        return this.reviewed;
+    }
+    
+    /**
      * 신고 승인 처리
      */
     public void approve(User admin) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,46 +6,49 @@ import { useAuth } from '../contexts/AuthContext';
 export const useWebSocket = (onNotification?: (notification: any) => void) => {
   const clientRef = useRef<Client | null>(null);
   const { user } = useAuth();
+  const onNotificationRef = useRef(onNotification);
+
+  // onNotification 콜백을 ref로 저장하여 의존성 배열에서 제외
+  useEffect(() => {
+    onNotificationRef.current = onNotification;
+  }, [onNotification]);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token || !user) {
-      console.log('WebSocket 연결 실패: 토큰 또는 사용자 정보 없음');
       return;
     }
 
-    console.log('WebSocket 연결 시도 - userId:', user.id);
+    // 이미 연결된 클라이언트가 있으면 재사용
+    if (clientRef.current && clientRef.current.connected) {
+      return;
+    }
 
-    // WebSocket 클라이언트 생성
     const client = new Client({
       webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
       connectHeaders: {
         Authorization: `Bearer ${token}`
       },
-      debug: (str) => {
-        console.log('STOMP Debug:', str);
-      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
       onConnect: () => {
         console.log('WebSocket 연결 성공');
         
-        // 개인 알림 구독
-        if (onNotification) {
+        if (onNotificationRef.current) {
           client.subscribe(`/user/queue/notifications`, (message) => {
             try {
               const notification = JSON.parse(message.body);
-              console.log('실시간 알림 수신:', notification);
-              onNotification(notification);
+              onNotificationRef.current?.(notification);
             } catch (error) {
               console.error('알림 메시지 파싱 오류:', error);
             }
           });
           
-          // 브로드캐스트 알림도 구독 (디버깅용)
           client.subscribe(`/topic/notifications/${user.id}`, (message) => {
             try {
               const notification = JSON.parse(message.body);
-              console.log('브로드캐스트 알림 수신:', notification);
-              onNotification(notification);
+              onNotificationRef.current?.(notification);
             } catch (error) {
               console.error('브로드캐스트 알림 파싱 오류:', error);
             }
@@ -53,13 +56,10 @@ export const useWebSocket = (onNotification?: (notification: any) => void) => {
         }
       },
       onStompError: (frame) => {
-        console.error('STOMP 오류:', frame);
+        console.error('STOMP 오류:', frame.headers?.message);
       },
       onWebSocketError: (error) => {
         console.error('WebSocket 오류:', error);
-      },
-      onDisconnect: () => {
-        console.log('WebSocket 연결 해제됨');
       }
     });
 
@@ -67,12 +67,11 @@ export const useWebSocket = (onNotification?: (notification: any) => void) => {
     client.activate();
 
     return () => {
-      console.log('WebSocket 정리 중...');
-      if (clientRef.current) {
+      if (clientRef.current && clientRef.current.connected) {
         clientRef.current.deactivate();
       }
     };
-  }, [user, onNotification]);
+  }, [user?.id]); // user.id만 의존성으로 사용
 
   return clientRef.current;
 };

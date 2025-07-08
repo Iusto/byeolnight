@@ -69,17 +69,20 @@ public class PostReportService {
 
         PostReport report = PostReport.of(user, post, reason, description);
         postReportRepository.save(report);
+        
+        // Post 엔티티의 신고수 증가
+        post.increaseReportCount();
+        postRepository.save(post);
 
-        // 신고 수 3개 이상이면 자동 블라인드
-        long reportCount = postReportRepository.countByPost(post);
-        if (reportCount >= 3 && !post.isBlinded()) {
+        // 신고 수 5개 이상이면 자동 블라인드 (포인트 지급은 관리자 승인 후)
+        if (post.getReportCount() >= 5 && !post.isBlinded()) {
             post.blind();
+            System.out.println("신고 자동 블라인드 처리: postId=" + postId + ", blindType=" + post.getBlindType());
             if (!postBlindLogRepository.existsByPostId(post.getId())) {
                 postBlindLogRepository.save(PostBlindLog.of(post, PostBlindLog.Reason.REPORT));
             }
-            
-            // 신고 성공 포인트 지급 (신고자에게)
-            pointService.awardValidReportPoints(user, postId.toString());
         }
+        
+        postRepository.save(post);
     }
 }

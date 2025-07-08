@@ -34,12 +34,22 @@ public class Comment {
     @Lob
     @Column(nullable = false)
     private String content;
+    
+    @Lob
+    @Column(name = "original_content")
+    private String originalContent;
 
     @Builder.Default
     @Column(nullable = false)
     private Boolean blinded = false;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean deleted = false;
+
     private LocalDateTime createdAt;
+    private LocalDateTime deletedAt;
+    private LocalDateTime blindedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -57,11 +67,55 @@ public class Comment {
     // ✅ 댓글 블라인드 처리
     public void blind() {
         this.blinded = true;
+        this.blindedAt = LocalDateTime.now();
     }
 
     // ✅ 댓글 블라인드 해제
     public void unblind() {
         this.blinded = false;
+        this.blindedAt = null;
+    }
+
+    public boolean isBlinded() {
+        return this.blinded;
+    }
+
+    public boolean isDeleted() {
+        return this.deleted;
+    }
+
+    // ✅ 댓글 소프트 삭제 (사용자용 - 원본 내용 보존)
+    public void softDelete() {
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        // 원본 내용 백업
+        if (this.originalContent == null) {
+            this.originalContent = this.content;
+        }
+        this.content = "이 댓글은 삭제되었습니다.";
+    }
+
+    // ✅ 댓글 관리자 삭제 (내용 보존)
+    public void adminDelete() {
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        // 내용은 보존 (관리자가 확인할 수 있도록)
+    }
+
+    // ✅ 댓글 복구
+    public void restore() {
+        this.deleted = false;
+        this.deletedAt = null;
+        // 원본 내용 복원
+        if (this.originalContent != null) {
+            this.content = this.originalContent;
+            this.originalContent = null;
+        }
+    }
+    
+    // 원본 내용 조회 (관리자용)
+    public String getOriginalContent() {
+        return this.originalContent != null ? this.originalContent : this.content;
     }
 }
 

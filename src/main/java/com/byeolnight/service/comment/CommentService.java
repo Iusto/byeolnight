@@ -75,15 +75,12 @@ public class CommentService {
             System.out.println("다시 조회한 댓글 writer: " + (reloadedComment.getWriter() != null ? reloadedComment.getWriter().getNickname() : "null"));
         }
         
-        // 댓글 작성 인증서 발급 체크 (완전 비활성화)
-        // TODO: 인증서 시스템 구현 완료 후 활성화
-        /*
+        // 댓글 작성 인증서 발급 체크
         try {
             certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.COMMENT_WRITE);
         } catch (Exception e) {
             System.err.println("인증서 발급 실패: " + e.getMessage());
         }
-        */
         
         // 댓글 작성 포인트 지급
         try {
@@ -198,7 +195,7 @@ public class CommentService {
         if (!comment.getWriter().equals(user)) {
             throw new IllegalArgumentException("삭제 권한이 없습니다.");
         }
-        commentRepository.delete(comment);
+        comment.softDelete(); // soft delete로 변경
     }
 
     // 관리자 기능: 댓글 블라인드 처리
@@ -220,18 +217,6 @@ public class CommentService {
         comment.unblind();
     }
 
-    // 관리자 기능: 댓글 완전 삭제
-    @Transactional
-    public void deleteCommentPermanently(Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-        
-        // 규정 위반 페널티 적용 (삭제 전에)
-        pointService.applyPenalty(comment.getWriter(), "댓글 삭제", commentId.toString());
-        
-        commentRepository.delete(comment);
-    }
-
     /**
      * 내가 작성한 댓글 조회
      */
@@ -250,6 +235,20 @@ public class CommentService {
                     System.out.println("댓글 변환: " + comment.getContent().substring(0, Math.min(20, comment.getContent().length())) + "...");
                     return CommentDto.Response.from(comment);
                 })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentResponseDto> getBlindedComments() {
+        return commentRepository.findByBlindedTrueOrderByCreatedAtDesc().stream()
+                .map(CommentResponseDto::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentResponseDto> getDeletedComments() {
+        return commentRepository.findByDeletedTrueOrderByCreatedAtDesc().stream()
+                .map(CommentResponseDto::from)
                 .toList();
     }
 }

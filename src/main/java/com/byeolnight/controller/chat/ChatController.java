@@ -5,6 +5,8 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.chat.ChatMessageDto;
 import com.byeolnight.service.chat.ChatService;
 import com.byeolnight.service.chat.AdminChatService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @Controller
+@Tag(name = "💬 채팅 API", description = "WebSocket 기반 실시간 채팅 API")
 public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -67,9 +70,22 @@ public class ChatController {
         messagingTemplate.convertAndSendToUser(sender, "/queue/init", history);
     }
 
+    @Operation(summary = "채팅 메시지 조회", description = "최근 채팅 메시지를 조회합니다.")
     @GetMapping("/api/public/chat")
-    public ResponseEntity<List<ChatMessageDto>> getMessages(@RequestParam String roomId) {
-        List<ChatMessageDto> messages = chatService.getRecentMessages(roomId);
+    public ResponseEntity<List<ChatMessageDto>> getMessages(
+            @RequestParam String roomId,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<ChatMessageDto> messages = chatService.getRecentMessages(roomId, limit);
+        return ResponseEntity.ok(messages);
+    }
+    
+    @Operation(summary = "채팅 이력 조회", description = "특정 시점 이전의 채팅 이력을 조회합니다.")
+    @GetMapping("/api/public/chat/history")
+    public ResponseEntity<List<ChatMessageDto>> getChatHistory(
+            @RequestParam String roomId,
+            @RequestParam String beforeId,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<ChatMessageDto> messages = chatService.getMessagesBefore(roomId, beforeId, limit);
         return ResponseEntity.ok(messages);
     }
 }

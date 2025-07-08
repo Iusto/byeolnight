@@ -24,4 +24,6 @@ public class PostRequestDto {
     private Category category;
 
     private List<FileDto> images;
+    
+    private Long originTopicId; // 토론 주제 연결 ID
 }

@@ -61,7 +61,7 @@ public class AuthService {
 
     private void validateIpNotBlocked(String ip) {
         if (userSecurityService.isIpBlocked(ip)) {
-            log.warn("🚫 차단된 IP 로그인 시도: {}", ip);
+            // log.warn("🚫 차단된 IP 로그인 시도: {}", ip);
             throw new SecurityException("🚫 해당 IP는 비정상적인 로그인 시도(15회 이상)로 인해 1시간 차단되었습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
@@ -70,7 +70,7 @@ public class AuthService {
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> {
                     auditSignupLogRepository.save(AuditSignupLog.failure(email, ip, "존재하지 않는 이메일"));
-                    log.info("로그인 시도 실패: 존재하지 않는 이메일 - {}", email);
+                    // log.info("로그인 시도 실패: 존재하지 않는 이메일 - {}", email);
                     return new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
                 });
 
@@ -92,7 +92,7 @@ public class AuthService {
     private void validatePassword(String password, User user, String ip, String userAgent) {
         if (!userService.checkPassword(password, user)) {
             userService.increaseLoginFailCount(user, ip, userAgent);
-            log.info("로그인 시도 실패: 비밀번호 불일치 - {} (IP: {})", user.getEmail(), ip);
+            // log.info("로그인 시도 실패: 비밀번호 불일치 - {} (IP: {})", user.getEmail(), ip);
 
             int failCount = user.getLoginFailCount();
             

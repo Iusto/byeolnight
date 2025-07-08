@@ -18,6 +18,9 @@ public class ChatService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatMessageRepository chatMessageRepository;
+    private final com.byeolnight.domain.repository.chat.ChatParticipationRepository chatParticipationRepository;
+    private final com.byeolnight.domain.repository.user.UserRepository userRepository;
+    private final com.byeolnight.service.certificate.CertificateService certificateService;
 
     public void sendMessage(ChatMessageDto dto) {
         ChatMessage entity = ChatMessage.builder()
@@ -33,17 +36,53 @@ public class ChatService {
 
 
     public List<ChatMessageDto> getRecentMessages(String roomId) {
+        return getRecentMessages(roomId, 100);
+    }
+    
+    public List<ChatMessageDto> getRecentMessages(String roomId, int limit) {
         return chatMessageRepository.findTop100ByRoomIdOrderByTimestampAsc(roomId,
-                org.springframework.data.domain.PageRequest.of(0, 100))
+                org.springframework.data.domain.PageRequest.of(0, limit))
                 .stream()
                 .map(entity -> ChatMessageDto.builder()
                         .id(entity.getId().toString())
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
-                        .message(entity.getIsBlinded() ? "🙈 블라인드 처리된 메시지" : entity.getMessage())
+                        .message(entity.getMessage()) // 원본 메시지 유지
                         .timestamp(entity.getTimestamp())
+                        .isBlinded(entity.getIsBlinded()) // 블라인드 상태 포함
                         .build())
                 .toList();
+    }
+    
+    public List<ChatMessageDto> getBlindedMessages(int limit) {
+        return chatMessageRepository.findByIsBlindedTrueOrderByBlindedAtDesc(
+                org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
+                .map(entity -> ChatMessageDto.builder()
+                        .id(entity.getId().toString())
+                        .roomId(entity.getRoomId())
+                        .sender(entity.getSender())
+                        .message(entity.getMessage())
+                        .timestamp(entity.getTimestamp())
+                        .isBlinded(entity.getIsBlinded())
+                        .build())
+                .toList();
+    }
+    
+    public List<ChatMessageDto> getMessagesBefore(String roomId, String beforeId, int limit) {
+        Long beforeIdLong = Long.parseLong(beforeId);
+        return chatMessageRepository.findByRoomIdAndIdLessThanOrderByTimestampDesc(roomId, beforeIdLong,
+                org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
+                .map(entity -> ChatMessageDto.builder()
+                        .id(entity.getId().toString())
+                        .roomId(entity.getRoomId())
+                        .sender(entity.getSender())
+                        .message(entity.getMessage())
+                        .timestamp(entity.getTimestamp())
+                        .isBlinded(entity.getIsBlinded())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public void handleChatMessage(ChatMessageDto dto, Principal principal, boolean isPrivate) {
@@ -94,7 +133,43 @@ public class ChatService {
                 .build();
         
         ChatMessage saved = chatMessageRepository.save(entity);
-        // DTO에 ID 설정 (프론트엔드에서 사용)
+        // DTO에 ID와 블라인드 상태 설정
         dto.setId(saved.getId().toString());
+        dto.setIsBlinded(saved.getIsBlinded());
+        
+        // 채팅 참여 추적
+        trackChatParticipation(dto.getSender());
+    }
+    
+    private void trackChatParticipation(String nickname) {
+        if (nickname == null || nickname.equals("익명")) {
+            return;
+        }
+        
+        try {
+            com.byeolnight.domain.entity.user.User user = userRepository.findByNickname(nickname).orElse(null);
+            if (user == null) {
+                return;
+            }
+            
+            java.time.LocalDate today = java.time.LocalDate.now();
+            com.byeolnight.domain.entity.chat.ChatParticipation participation = 
+                chatParticipationRepository.findByUserAndParticipationDate(user, today)
+                    .orElse(com.byeolnight.domain.entity.chat.ChatParticipation.of(user, today));
+            
+            if (participation.getId() == null) {
+                chatParticipationRepository.save(participation);
+            } else {
+                participation.incrementMessageCount();
+                chatParticipationRepository.save(participation);
+            }
+            
+            // 채팅 인증서 체크
+            certificateService.checkAndIssueCertificates(user, 
+                com.byeolnight.service.certificate.CertificateService.CertificateCheckType.CHAT_PARTICIPATE);
+                
+        } catch (Exception e) {
+            log.error("채팅 참여 추적 실패: {}", e.getMessage());
+        }
     }
 }

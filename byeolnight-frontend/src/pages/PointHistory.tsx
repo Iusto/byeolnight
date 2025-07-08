@@ -75,6 +75,7 @@ export default function PointHistory() {
     try {
       const res = await axios.get('/member/points/attendance/today');
       const attended = res.data?.data === true;
+      console.log('출석 여부 API 응답:', res.data);
       console.log('출석 여부 확인 결과:', attended);
       setTodayAttended(attended);
     } catch (err) {
@@ -87,8 +88,9 @@ export default function PointHistory() {
     try {
       const res = await axios.post('/member/points/attendance');
       
-      // axios 인터셉터가 CommonResponse를 자동 처리하므로 직접 boolean 값 확인
-      const isAttendanceSuccess = res.data === true;
+      // CommonResponse 구조에서 data 필드 확인
+      const isAttendanceSuccess = res.data?.data === true;
+      console.log('출석 체크 API 응답:', res.data);
       console.log('출석 체크 결과:', isAttendanceSuccess);
       
       if (isAttendanceSuccess) {
@@ -101,7 +103,7 @@ export default function PointHistory() {
         await refreshUserInfo(); // 사용자 정보 (포인트) 업데이트
         await fetchPointHistory(); // 포인트 히스토리 업데이트
         
-        console.log('출석 체크 완룉 및 데이터 새로고침 완료');
+        console.log('출석 체크 완료 및 데이터 새로고침 완료');
       } else {
         alert('이미 오늘 출석하셨습니다.');
       }

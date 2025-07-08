@@ -1,15 +1,14 @@
 # ========================================
 # 🔒 보안 관련 파일 (절대 업로드 금지)
 # ========================================
-.env*
-**/.env*
-*.env
-*.env.local
-*.env.production
-*.env.staging
-*.env.development
-application-*.yml
-application-*.properties
+.env
+.env.local
+.env.production
+.env.staging
+# .env.example은 Git에 포함 (예시 파일)
+!.env.example
+application-production.yml
+application-staging.yml
 *.key
 *.pem
 *.p12
@@ -50,7 +49,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 dist/
-build/
 .next/
 .nuxt/
 .vuepress/dist/
@@ -163,7 +161,6 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
 yarn.lock
 .pnpm-debug.log*
 .yarn/cache

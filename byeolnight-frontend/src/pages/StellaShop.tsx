@@ -81,7 +81,7 @@ export default function StellaShop() {
 
   const handleEquip = async (iconId: number) => {
     try {
-      const response = await axios.post(`/shop/equip/${iconId}`);
+      const response = await axios.post(`/member/shop/icons/${iconId}/equip`);
       if (response.data.success) {
         alert('아이콘을 장착했습니다!');
         await refreshUserInfo();
@@ -96,6 +96,8 @@ export default function StellaShop() {
   const filteredIcons = selectedGrade === 'ALL' 
     ? icons 
     : icons.filter(icon => icon.grade === selectedGrade);
+    
+
 
   if (!user) {
     return (
@@ -157,6 +159,10 @@ export default function StellaShop() {
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
             <p className="mt-4 text-gray-400">아이콘을 불러오는 중...</p>
+          </div>
+        ) : icons.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-red-400 text-lg">아이콘 데이터가 없습니다.</p>
           </div>
         ) : (
           <>

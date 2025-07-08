@@ -12,7 +12,15 @@ export interface StellaIcon {
 export interface UserIcon {
   id: number;
   iconId: number;
-  icon: StellaIcon;
+  name: string;
+  description: string;
+  iconUrl: string;
+  grade: string;
+  gradeColor: string;
+  type: string;
+  animationClass: string;
+  purchasePrice: number;
+  equipped: boolean;
   purchasedAt: string;
 }
 

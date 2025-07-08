@@ -257,7 +257,7 @@ public class AuthController {
             
             // 회원가입 완료 인증서 발급
             User newUser = userService.findById(userId);
-            certificateService.checkAndIssueCertificates(newUser, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.SIGNUP_COMPLETE);
+            // 첫 로그인 시 별빛 탐험가 인증서는 로그인 시점에 발급됨
             
             return ResponseEntity.ok(CommonResponse.success("회원가입이 완료되었습니다."));
         } catch (Exception e) {
@@ -328,8 +328,14 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<CommonResponse<Boolean>> checkNickname(@RequestParam("value") String nickname) {
+        log.info("[🔍 닉네임 중복 체크 API] 요청 닉네임: '{}'", nickname);
+        
         boolean exists = userService.isNicknameDuplicated(nickname);
-        return ResponseEntity.ok(CommonResponse.success(!exists)); // 사용 가능하면 true
+        boolean available = !exists; // 사용 가능하면 true
+        
+        log.info("[🔍 닉네임 중복 체크 결과] 닉네임: '{}', 사용가능: {}", nickname, available);
+        
+        return ResponseEntity.ok(CommonResponse.success(available));
     }
 
     @PostMapping("/attendance")

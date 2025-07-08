@@ -22,9 +22,21 @@ public interface UserIconRepository extends JpaRepository<UserIcon, Long> {
     List<UserIcon> findByUserOrderByCreatedAtDesc(User user);
     
     /**
+     * 사용자의 모든 아이콘 조회 (StellaIcon fetch join)
+     */
+    @Query("SELECT ui FROM UserIcon ui JOIN FETCH ui.stellaIcon WHERE ui.user = :user ORDER BY ui.createdAt DESC")
+    List<UserIcon> findByUserWithStellaIconOrderByCreatedAtDesc(@Param("user") User user);
+    
+    /**
      * 사용자의 모든 아이콘 조회
      */
     List<UserIcon> findByUser(User user);
+    
+    /**
+     * 사용자의 모든 아이콘 조회 (StellaIcon fetch join)
+     */
+    @Query("SELECT ui FROM UserIcon ui JOIN FETCH ui.stellaIcon WHERE ui.user = :user")
+    List<UserIcon> findByUserWithStellaIcon(@Param("user") User user);
     
     /**
      * 사용자가 특정 아이콘을 보유하고 있는지 확인

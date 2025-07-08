@@ -4,11 +4,13 @@
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://www.typescriptlang.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-blue.svg)](https://www.mysql.com/)
-[![Redis](https://img.shields.io/badge/Redis-7.0-red.svg)](https://redis.io/)
+[![Redis](https://img.shields.io/badge/Redis-latest-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://www.docker.com/)
+[![Vite](https://img.shields.io/badge/Vite-6.3.5-646CFF.svg)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.1-38B2AC.svg)](https://tailwindcss.com/)
 
 ---
 
@@ -19,15 +21,19 @@
 ### 🎯 핵심 특징
 
 - 🔐 **강화된 보안 시스템**: JWT + Redis 기반 토큰 관리, 단계별 로그인 실패 대응
-- 📱 **다중 인증 지원**: 이메일/SMS 인증을 통한 안전한 회원가입
-- 💬 **실시간 채팅**: WebSocket 기반 실시간 커뮤니케이션
+- 📱 **다중 인증 지원**: 이메일/SMS 인증을 통한 안전한 회원가입 (Gmail SMTP + CoolSMS)
+- 💬 **실시간 채팅**: WebSocket(STOMP) 기반 실시간 커뮤니케이션
 - 📁 **효율적 파일 관리**: AWS S3 Presigned URL을 활용한 직접 업로드
 - 👮 **관리자 시스템**: 사용자 관리, 콘텐츠 모더레이션, 로그 추적
-- 📰 **뉴스 크롤링 시스템**: AI 기반 자동 뉴스 수집 및 분류
+- 📰 **뉴스 크롤링 시스템**: AI 기반 자동 뉴스 수집
 - 💌 **쪽지 시스템**: 사용자 간 개인 메시지 기능
-- 🔔 **실시간 알림**: WebSocket 기반 즉시 알림 전달
+- 🔔 **실시간 알림**: WebSocket 기반 즉시 알림 전달 (브라우저 네이티브 알림 지원)
 - 🏆 **인증서 시스템**: 사용자 활동 기반 성취 인증
-- 🛍️ **스텔라 아이콘 상점**: 가상 화폐 기반 아이콘 구매 시스템
+- 🛍️ **스텔라 아이콘 상점**: 가상 화폐 기반 아이콘 구매 시스템 (48개 우주 테마 아이콘)
+- 💡 **건의사항 시스템**: 사용자 피드백 수집 및 관리
+- 🎯 **포인트 시스템**: 출석체크, 활동 기반 포인트 적립
+- 🎬 **영화 추천 시스템**: AI 기반 개인화된 영화 추천
+- 💬 **토론 시스템**: 일일 토론 주제 자동 생성 및 참여
 - 🚀 **확장 가능한 아키텍처**: 클린 아키텍처 기반 도메인 중심 설계
 
 ---
@@ -59,41 +65,52 @@
 src/
 ├── main/java/com/byeolnight/
 │   ├── controller/          # API 엔드포인트
-│   │   ├── admin/          # 관리자 API (사용자, 채팅, 크롤러)
+│   │   ├── admin/          # 관리자 API (사용자, 채팅, 크롤러, 영화, 토론)
 │   │   ├── ai/             # AI 뉴스 수신 API
 │   │   ├── auth/           # 인증 관련 API
 │   │   ├── certificate/    # 인증서 시스템 API
 │   │   ├── chat/           # 실시간 채팅 API
 │   │   ├── comment/        # 댓글 관리 API
+│   │   ├── discussion/     # 토론 시스템 API
 │   │   ├── file/           # 파일 업로드 API
 │   │   ├── message/        # 쪽지 시스템 API
 │   │   ├── notification/   # 알림 시스템 API
 │   │   ├── post/           # 게시글 관련 API
 │   │   ├── shop/           # 스텔라 아이콘 상점 API
+│   │   ├── suggestion/     # 건의사항 API
 │   │   └── user/           # 사용자 관리 API
 │   ├── service/            # 비즈니스 로직
+│   │   ├── admin/          # 관리자 서비스
+│   │   ├── ai/             # AI 서비스 (Claude, OpenAI)
 │   │   ├── auth/           # 인증 서비스 (이메일, SMS, JWT)
 │   │   ├── certificate/    # 인증서 서비스
 │   │   ├── chat/           # 채팅 서비스
+│   │   ├── cinema/         # 영화 추천 서비스
 │   │   ├── comment/        # 댓글 서비스
 │   │   ├── crawler/        # 뉴스 크롤링 서비스
+│   │   ├── discussion/     # 토론 서비스
 │   │   ├── file/           # S3 파일 서비스
 │   │   ├── message/        # 쪽지 서비스
 │   │   ├── notification/   # 알림 서비스
 │   │   ├── post/           # 게시글 서비스
 │   │   ├── shop/           # 스텔라 상점 서비스
+│   │   ├── suggestion/     # 건의사항 서비스
 │   │   └── user/           # 사용자 서비스
 │   ├── domain/             # 도메인 모델
 │   │   ├── entity/         # JPA 엔티티
 │   │   │   ├── certificate/ # 인증서 엔티티
 │   │   │   ├── chat/       # 채팅 엔티티
 │   │   │   ├── comment/    # 댓글 엔티티
+│   │   │   ├── common/     # 공통 엔티티
 │   │   │   ├── file/       # 파일 엔티티
 │   │   │   ├── log/        # 로그 엔티티
 │   │   │   ├── post/       # 게시글 엔티티
 │   │   │   ├── shop/       # 상점 엔티티
 │   │   │   ├── token/      # 토큰 엔티티
-│   │   │   └── user/       # 사용자 엔티티
+│   │   │   ├── user/       # 사용자 엔티티
+│   │   │   ├── Message.java     # 쪽지 엔티티
+│   │   │   ├── Notification.java # 알림 엔티티
+│   │   │   └── Suggestion.java   # 건의사항 엔티티
 │   │   └── repository/     # 데이터 접근 계층
 │   ├── dto/                # 데이터 전송 객체
 │   ├── infrastructure/     # 인프라 계층
@@ -133,7 +150,7 @@ src/
 - **Test**: JUnit 5, Mockito
 
 ### Frontend
-- **Framework**: React 19.1.0
+- **Framework**: React 18.3.1
 - **Build Tool**: Vite 6.3.5
 - **Language**: TypeScript 5.8.3
 - **Styling**: TailwindCSS 3.4.1
@@ -141,6 +158,8 @@ src/
 - **Real-time**: SockJS + STOMP 7.1.1
 - **Routing**: React Router DOM 7.6.2
 - **Date Handling**: Day.js 1.11.13
+- **Rich Text Editor**: React Quill 2.0.0
+- **JWT Handling**: jwt-decode 4.0.0
 
 ### DevOps
 - **Containerization**: Docker & Docker Compose
@@ -175,15 +194,12 @@ sequenceDiagram
 
 ### 🛡️ 보안 기능
 
-| 기능 | 설명 | 구현 방식 |
-|------|------|-----------|
-| **다단계 로그인 실패 대응** | 5회 경고 → 10회 계정잠금 → 15회 IP차단 | Redis 기반 카운터 + TTL |
-| **토큰 관리** | Access/Refresh Token 분리 + 자동 갱신 | JWT + Redis 저장소 |
-| **토큰 무효화** | 로그아웃 시 블랙리스트 등록 | Redis 블랙리스트 |
-| **이메일 인증** | Gmail SMTP 기반 인증코드 발송 | 6자리 랜덤 코드 + 5분 TTL |
-| **SMS 인증** | CoolSMS API 연동 | 6자리 랜덤 코드 + 3분 TTL |
-| **비밀번호 정책** | 8자 이상, 영문/숫자/특수문자 포함 | 정규식 검증 |
-| **관리자 권한** | Role 기반 접근 제어 | Spring Security |
+- **다단계 인증**: 이메일/SMS 인증을 통한 안전한 회원가입
+- **토큰 기반 인증**: JWT를 활용한 무상태 인증 시스템
+- **로그인 보안**: 실패 횟수 제한 및 계정 보호
+- **비밀번호 정책**: 강력한 비밀번호 요구사항
+- **권한 관리**: Role 기반 접근 제어
+- **세션 관리**: 안전한 토큰 관리 및 무효화
 
 ---
 
@@ -198,12 +214,14 @@ sequenceDiagram
 - ✅ 사용자 인증서 시스템
 
 ### 📝 게시글 시스템
-- ✅ 게시글 CRUD
+- ✅ 게시글 CRUD (Rich Text Editor 지원)
 - ✅ 좋아요/신고 기능
-- ✅ 댓글 시스템 (블라인드 처리 지원)
+- ✅ 댓글 시스템 (재귀적 답글 지원, 블라인드 처리)
 - ✅ 이미지 업로드 (S3 Presigned URL)
-- ✅ 인기글 자동 선정
-- ✅ 게시글 신고 및 관리
+- ✅ 인기글 자동 선정 및 관리
+- ✅ 게시글 신고 및 관리자 처리
+- ✅ 게시글 미리보기 기능
+- ✅ 페이징 및 정렬 기능
 
 ### 💬 실시간 채팅
 - ✅ WebSocket 기반 실시간 채팅
@@ -214,7 +232,9 @@ sequenceDiagram
 ### 💌 쪽지 시스템
 - ✅ 사용자 간 개인 메시지 전송
 - ✅ 쪽지 읽음/안읽음 상태 관리
-- ✅ 쪽지 목록 조회 및 관리
+- ✅ 쪽지 목록 조회 및 관리 (페이징 지원)
+- ✅ 실시간 쪽지 알림 연동
+- ✅ 쪽지 상세 조회 및 답장 기능
 
 ### 🔔 실시간 알림 시스템 (완전 구현)
 - ✅ **WebSocket 기반 실시간 알림**: STOMP 프로토콜 사용
@@ -225,15 +245,19 @@ sequenceDiagram
 - ✅ **개별 알림 삭제**: X 버튼으로 개별 삭제 가능
 - ✅ **일괄 읽음 처리**: 모든 알림 읽음 처리
 - ✅ **브라우저 네이티브 알림**: 권한 허용 시 브라우저 알림
+- ✅ **페이징 지원**: 대용량 알림 데이터 효율적 처리
 
 ### 🛍️ 스텔라 아이콘 상점
 - ✅ 가상 화폐(스텔라) 시스템
-- ✅ 아이콘 구매 및 장착
+- ✅ 45개 우주 테마 아이콘 (행성, 별, 은하, 블랙홀 등)
+- ✅ 아이콘 구매 및 장착 시스템
+- ✅ 등급별 아이콘 분류 (COMMON, RARE, EPIC, LEGENDARY)
 - ✅ 사용자별 보유 아이콘 관리
+- ✅ 실시간 아이콘 미리보기
 
 ### 📰 뉴스 크롤링 시스템
 - ✅ AI 기반 자동 뉴스 수집
-- ✅ 뉴스 분류 및 저장
+- ✅ 뉴스 저장 및 게시
 - ✅ 관리자 크롤링 제어
 
 ### 🏆 인증서 시스템
@@ -241,16 +265,43 @@ sequenceDiagram
 - ✅ 인증서 조회 및 관리
 - ✅ 공개/비공개 인증서 설정
 
+### 💡 건의사항 시스템
+- ✅ 사용자 피드백 수집 및 관리
+- ✅ 건의사항 CRUD (작성자만 수정/삭제 가능)
+- ✅ 공개/비공개 건의사항 설정
+- ✅ 건의사항 목록 조회 (페이징 지원)
+- ✅ 관리자 건의사항 모니터링
+
+### 🎬 영화 추천 시스템
+- ✅ AI 기반 개인화된 영화 추천
+- ✅ 사용자 선호도 분석
+- ✅ 영화 정보 및 평점 제공
+- ✅ 관리자 영화 데이터 관리
+
+### 💬 토론 시스템
+- ✅ 일일 토론 주제 자동 생성
+- ✅ 사용자 토론 참여 및 의견 공유
+- ✅ 토론 주제 스케줄링
+- ✅ 관리자 토론 주제 관리
+
+### 🎯 포인트 시스템
+- ✅ **출석체크**: 일일 출석 시 포인트 적립
+- ✅ **활동 보상**: 게시글 작성, 댓글 작성 시 포인트 지급
+- ✅ **포인트 히스토리**: 적립/사용 내역 상세 조회
+- ✅ **관리자 포인트 관리**: 포인트 지급/차감 기능
+- ✅ **스텔라 상점 연동**: 포인트로 아이콘 구매
+
 ### 👮 관리자 기능
-- ✅ 사용자 목록 조회 및 관리
-- ✅ 계정 상태 변경 (활성/정지/밴)
-- ✅ 계정 잠금/해제
-- ✅ 강제 탈퇴 처리
-- ✅ 게시글 블라인드 처리
-- ✅ 댓글 블라인드 처리
-- ✅ 채팅 금지 및 IP 차단
-- ✅ 로그인/가입 로그 추적
-- ✅ 뉴스 크롤링 관리
+- ✅ **사용자 관리**: 목록 조회, 계정 상태 변경 (활성/정지/밴), 계정 잠금/해제
+- ✅ **강제 탈퇴 처리**: 사용자 계정 완전 삭제
+- ✅ **콘텐츠 관리**: 게시글/댓글 블라인드 처리, 신고 게시글 관리
+- ✅ **채팅 관리**: 채팅 금지, IP 차단, 채팅 통계 조회
+- ✅ **포인트 관리**: 사용자 포인트 지급/차감
+- ✅ **로그 추적**: 로그인/가입 로그, 토큰 갱신 로그, 닉네임 변경 이력
+- ✅ **뉴스 크롤링 관리**: 크롤링 상태 조회
+- ✅ **영화 관리**: 영화 데이터 및 추천 시스템 관리
+- ✅ **토론 관리**: 토론 주제 생성 및 관리
+- ✅ **데이터 마이그레이션**: 시스템 데이터 관리 도구
 
 ---
 
@@ -345,48 +396,38 @@ cd byeolnight
 
 # 2. 환경변수 설정
 cp .env.example .env
-# .env 파일을 열어서 필요한 값들을 설정
+# .env 파일을 열어서 실제 값들로 수정
 
-# 3. Docker Compose로 실행 (백엔드만)
-docker-compose up --build
+# 3. 로컬 개발 환경 (백엔드 + DB만)
+./run-local.bat  # Windows
+# 또는
+docker-compose -f docker-compose.local.yml up -d
+gradlew bootRun --args='--spring.profiles.active=local'
 
-# 4. 프론트엔드 별도 실행
-cd byeolnight-frontend
-npm install
-npm run dev
+# 4. 전체 서비스 Docker 로 실행 (배포용)
+docker-compose up --build -d
 
 # 5. 애플리케이션 접속
-# Backend: http://localhost:8080
-# Frontend: http://localhost:5173
+# 로컬 개발: http://localhost:5173 (프론트), http://localhost:8080 (백엔드)
+# Docker 배포: http://localhost (전체 서비스)
 # Swagger: http://localhost:8080/swagger-ui.html
 ```
 
-### 3. 환경변수 설정 (.env)
+### 3. 환경변수 설정
 
-```env
-# 데이터베이스
-DB_URL=jdbc:mysql://localhost:3306/byeolnight
-DB_USERNAME=root
-DB_PASSWORD=your_password
+```bash
+# 1. 환경변수 파일 생성
+cp .env.example .env
 
-# JWT 시크릿
-JWT_SECRET=your-super-secret-key-for-jwt-tokens
-
-# 이메일 설정 (Gmail)
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
-MAIL_FROM=your-email@gmail.com
-
-# SMS 설정 (CoolSMS)
-COOLSMS_API_KEY=your-coolsms-api-key
-COOLSMS_API_SECRET=your-coolsms-secret
-COOLSMS_SENDER=your-phone-number
-
-# AWS S3 설정
-CLOUD_AWS_S3_BUCKET=your-s3-bucket
-CLOUD_AWS_ACCESS_KEY=your-access-key
-CLOUD_AWS_SECRET_KEY=your-secret-key
+# 2. .env 파일을 열어서 실제 값으로 수정
+# - DB_PASSWORD: 강력한 비밀번호 설정
+# - JWT_SECRET: 복잡한 시크릿 키 설정
+# - 이메일/SMS/AWS 정보를 실제 값으로 변경
 ```
+
+**⚠️ 보안 주의사항**
+- 환경변수 파일은 보안상 중요하므로 안전하게 관리하세요
+- 모든 비밀번호와 API 키는 강력하게 설정하세요
 
 ---
 
@@ -409,6 +450,9 @@ CLOUD_AWS_SECRET_KEY=your-secret-key
 - 🛍️ **상점 API**: 스텔라 아이콘 상점
 - 🏆 **인증서 API**: 사용자 성취 인증서
 - 📁 **파일 API**: S3 파일 업로드
+- 💡 **건의사항 API**: 사용자 피드백 시스템
+- 🎬 **영화 API**: AI 기반 영화 추천
+- 💬 **토론 API**: 일일 토론 시스템
 - 👮 **관리자 API**: 사용자 및 컨텐츠 관리
 
 ### 주요 API 엔드포인트
@@ -515,6 +559,48 @@ GET    /api/admin/chat/stats     # 채팅 통계 조회
 POST   /api/admin/crawler/start  # 크롤링 시작
 POST   /api/admin/crawler/stop   # 크롤링 중지
 GET    /api/admin/crawler/status # 크롤링 상태 조회
+
+# 영화 관리
+GET    /api/admin/cinema/movies     # 영화 목록 관리
+POST   /api/admin/cinema/movies     # 영화 추가
+PUT    /api/admin/cinema/movies/{id} # 영화 정보 수정
+DELETE /api/admin/cinema/movies/{id} # 영화 삭제
+
+# 토론 관리
+GET    /api/admin/discussions       # 토론 주제 목록
+POST   /api/admin/discussions       # 토론 주제 생성
+PUT    /api/admin/discussions/{id}  # 토론 주제 수정
+DELETE /api/admin/discussions/{id}  # 토론 주제 삭제
+```
+
+#### 💡 건의사항 (Suggestion)
+```http
+GET    /api/suggestions       # 건의사항 목록 조회 (페이징)
+POST   /api/suggestions       # 건의사항 작성
+GET    /api/suggestions/{id}  # 건의사항 상세 조회
+PUT    /api/suggestions/{id}  # 건의사항 수정 (작성자만)
+DELETE /api/suggestions/{id}  # 건의사항 삭제 (작성자만)
+```
+
+#### 🎬 영화 추천 (Cinema)
+```http
+GET    /api/cinema/recommendations  # 개인화된 영화 추천
+GET    /api/cinema/movies          # 영화 목록 조회
+GET    /api/cinema/movies/{id}     # 영화 상세 정보
+```
+
+#### 💬 토론 (Discussion)
+```http
+GET    /api/discussions            # 토론 목록 조회
+GET    /api/discussions/today      # 오늘의 토론 주제
+POST   /api/discussions/{id}/participate  # 토론 참여
+```
+
+#### 🎯 포인트 (Point)
+```http
+GET    /api/points/status     # 포인트 현황 조회
+GET    /api/points/history    # 포인트 히스토리 조회
+POST   /api/points/attendance # 출석체크
 ```
 
 ---
@@ -530,45 +616,56 @@ GET    /api/admin/crawler/status # 크롤링 상태 조회
 - **토큰 갱신 로그**: Refresh Token 사용 이력
 - **닉네임 변경 로그**: 변경 전후 값, 변경 시점
 
+### 로그 파일 위치
+
+```
+logs/
+├── application.log    # 전체 애플리케이션 로그
+└── crawler.log        # 크롤러 전용 로그
+```
+
 ### 보안 모니터링
 
-- 로그인 실패 패턴 분석
-- IP 기반 비정상 접근 탐지
-- 토큰 남용 패턴 모니터링
+- 로그인 실패 패턴 분석 및 자동 차단
+- 비정상 접근 탐지 및 차단
+- 토큰 남용 방지 시스템
+- 실시간 보안 이벤트 처리
 
 ---
 
 ## 🚀 배포 및 운영
 
-### GitHub Actions CI/CD
+### 배포 가이드
 
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to EC2
-on:
-  push:
-    branches: [ main ]
+**로컬 개발 환경**
+```bash
+# 데이터베이스만 실행
+docker-compose -f docker-compose.local.yml up -d
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-      - name: Build with Gradle
-        run: ./gradlew build
-      - name: Build Docker image
-        run: docker build -t byeolnight .
-      - name: Deploy to EC2
-        # EC2 배포 스크립트
+# Spring Boot 애플리케이션 실행
+gradlew bootRun --args='--spring.profiles.active=local'
+
+# 프론트엔드 실행
+cd byeolnight-frontend
+npm run dev
 ```
+
+**Docker 배포 환경**
+```bash
+# 전체 서비스 빌드 및 실행
+docker-compose up --build -d
+
+# 또는 배포 스크립트 사용
+./deploy/deploy.sh
+```
+
+**AWS 배포**
+- 상세한 AWS 배포 가이드는 `deploy/aws-setup.md` 참조
+- 추천 인스턴스: t3.medium 이상 (4GB RAM)
 
 ### 운영 환경 고려사항
 
-- **무중단 배포**: Blue-Green 배포 전략
+- **다운타임 최소화 배포**: Blue-Green 전략 기반의 Docker 컨테이너 전환 구조
 - **로드 밸런싱**: AWS ALB 활용
 - **데이터베이스**: RDS Multi-AZ 구성
 - **캐시**: ElastiCache Redis 클러스터
@@ -591,23 +688,58 @@ jobs:
   - 쪽지 실시간 알림
   - 읽음/안읽음 상태 관리
   - 개별 알림 삭제 기능
+- ✅ **신고 시스템 완성**
+  - 실시간 승인/거부 처리
+  - 상세 신고 내역 표시
+  - 처리 상태 실시간 업데이트
 - ✅ 쪽지 시스템
 - ✅ 뉴스 자동 수집 및 분류 (AI 크롤링)
 - ✅ 스텔라 아이콘 상점 시스템
 - ✅ 인증서 시스템
 - ✅ 댓글 답글 시스템 (재귀적 답글 지원)
 
-### Phase 3 (진행 중)
-- 🔄 검색 기능 (Elasticsearch 연동)
-- 🔄 캐싱 최적화 (Redis 활용)
-- 🔄 추천 알고리즘
+### Phase 3 (완료)
+- ✅ **신고 시스템 개선**: 실시간 승인/거부 처리, 상세 내역 표시
+- ✅ **관리자 시스템 완성**: 사용자/콘텐츠/채팅 관리 완전 구현
+- ✅ **시스템 안정성 강화**: 예외 처리 및 로깅 개선
 
-### Phase 4 (계획)
+### Phase 4 (완료)
+- ✅ **영화 추천 시스템**: AI 기반 개인화된 영화 추천 서비스
+- ✅ **토론 시스템**: 일일 토론 주제 자동 생성 및 참여 기능
+- ✅ **시스템 최적화**: 성능 개선 및 안정성 강화
+
+### Phase 5 (계획)
+- 📋 검색 기능 강화 (Elasticsearch 연동)
+- 📋 캐싱 최적화 (Redis 활용)
 - 📋 모바일 앱 (React Native)
-- 📋 게임화 요소 확장
-- 📋 AI 기반 콘텐츠 추천
+- 📋 AI 기반 콘텐츠 추천 고도화
 
 ---
+
+## 📝 배포 체크리스트
+
+### 배포 전 확인사항
+
+- [ ] 환경변수 설정 및 보안 정보 업데이트
+- [ ] 데이터베이스 연결 정보 확인
+- [ ] 외부 API 서비스 연동 설정
+- [ ] 도메인 및 URL 설정
+- [ ] 서버 네트워크 및 보안 설정
+- [ ] SSL/TLS 인증서 설정
+
+### 배포 명령어
+
+```bash
+# 1. 프로젝트 준비
+git clone https://github.com/your-username/byeolnight.git
+cd byeolnight
+
+# 2. 환경 설정
+# 환경변수 파일 설정 및 보안 설정
+
+# 3. 배포 실행
+# 배포 스크립트 실행
+```
 
 ## 🤝 기여하기
 

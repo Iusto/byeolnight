@@ -1,12 +1,14 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // 쿠키 포함 (Refresh Token용)
 });
+
+console.log('Axios baseURL:', 'http://localhost:8080/api');
 
 // 요청 인터셉터
 instance.interceptors.request.use(
@@ -48,13 +50,7 @@ const processQueue = (error: any, token: string | null = null) => {
 // 응답 인터셉터 (토큰 갱신 로직 포함)
 instance.interceptors.response.use(
   (response) => {
-    // CommonResponse 구조에서 data 추출
-    if (response.data && response.data.success !== undefined) {
-      return {
-        ...response,
-        data: response.data.success ? response.data.data : response.data
-      };
-    }
+    // CommonResponse 구조 그대로 반환
     return response;
   },
   async (error) => {

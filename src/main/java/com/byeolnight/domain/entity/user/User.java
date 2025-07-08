@@ -125,9 +125,18 @@ public class User implements UserDetails {
     @Column
     private Long equippedIconId;
 
+    /** 현재 장착 중인 스텔라 아이콘 이름 */
+    @Column
+    private String equippedIconName;
+
     /** 탈퇴 사유 */
     @Column(length = 255)
     private String withdrawalReason;
+
+    /** 계정 생성 시각 */
+    @Column(nullable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     // ========================== 도메인 메서드 ==========================
 
@@ -213,13 +222,15 @@ public class User implements UserDetails {
     }
 
     /** 스텔라 아이콘 장착 */
-    public void equipIcon(Long iconId) {
+    public void equipIcon(Long iconId, String iconName) {
         this.equippedIconId = iconId;
+        this.equippedIconName = iconName;
     }
 
     /** 스텔라 아이콘 해제 */
     public void unequipIcon() {
         this.equippedIconId = null;
+        this.equippedIconName = null;
     }
 
     /** 비밀번호 변경 */
