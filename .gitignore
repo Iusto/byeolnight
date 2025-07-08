@@ -175,6 +175,7 @@ yarn.lock
 # Docker
 .dockerignore
 docker-compose.override.yml
+docker-compose.local.yml
 
 # AWS
 .aws/
