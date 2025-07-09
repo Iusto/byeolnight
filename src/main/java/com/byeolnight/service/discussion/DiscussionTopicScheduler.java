@@ -4,7 +4,7 @@ import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
-import com.byeolnight.service.ai.OpenAIService;
+import com.byeolnight.service.ai.NewsBasedDiscussionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class DiscussionTopicScheduler {
 
-    private final OpenAIService openAIService;
+    private final NewsBasedDiscussionService newsBasedDiscussionService;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
@@ -41,7 +41,7 @@ public class DiscussionTopicScheduler {
             // 시스템 사용자 조회 (토론봇)
             User systemUser = getSystemUser();
 
-            // 새 토론 주제 생성
+            // 새 토론 주제 생성 (뉴스 기반)
             String topicContent = generateUniqueTopicWithRetry();
             
             // 제목과 내용 파싱
@@ -94,7 +94,7 @@ public class DiscussionTopicScheduler {
         int maxRetries = 3;
         
         for (int i = 0; i < maxRetries; i++) {
-            String topicContent = openAIService.generateDiscussionTopic();
+            String topicContent = newsBasedDiscussionService.generateNewsBasedDiscussion();
             
             if (isUniqueContent(topicContent)) {
                 return topicContent;
@@ -104,7 +104,7 @@ public class DiscussionTopicScheduler {
         }
         
         log.warn("최대 재시도 횟수 초과, fallback 주제 사용");
-        return openAIService.generateDiscussionTopic();
+        return newsBasedDiscussionService.generateNewsBasedDiscussion();
     }
 
     private boolean isUniqueContent(String topicContent) {

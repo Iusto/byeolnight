@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Editor } from '@tinymce/tinymce-react';
-import { useRef } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface FileDto {
   originalName: string;
@@ -247,28 +247,23 @@ export default function PostCreate() {
                 </div>
               </div>
               <div className="rounded-xl overflow-hidden border border-slate-600/50">
-                <Editor
-                  apiKey="3trr7og8q6of7ygamz6bumqbgy1q8hlwgns0i7o1hihbsltz"
-                  onInit={(evt, editor) => editorRef.current = editor}
-                  initialValue={content}
-                  init={{
-                    height: 400,
-                    menubar: false,
-                    language: 'ko_KR',
-                    skin: 'oxide-dark',
-                    content_css: 'dark',
-                    plugins: [
-                      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-                      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                      'insertdatetime', 'media', 'table', 'preview', 'help', 'wordcount'
-                    ],
-                    toolbar: 'undo redo | blocks | ' +
-                      'bold italic forecolor | alignleft aligncenter ' +
-                      'alignright alignjustify | bullist numlist outdent indent | ' +
-                      'removeformat | help',
-                    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }'
+                <ReactQuill
+                  ref={editorRef}
+                  value={content}
+                  onChange={setContent}
+                  theme="snow"
+                  style={{ height: '400px', marginBottom: '50px' }}
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike'],
+                      [{ 'color': [] }, { 'background': [] }],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      [{ 'align': [] }],
+                      ['link', 'image'],
+                      ['clean']
+                    ]
                   }}
-                  onEditorChange={(content) => setContent(content)}
                 />
               </div>
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">

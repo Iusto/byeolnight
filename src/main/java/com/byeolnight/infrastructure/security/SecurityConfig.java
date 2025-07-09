@@ -59,7 +59,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173", 
+                "http://localhost:5174", 
+                "http://localhost",
+                "http://34.229.8.91",
+                "https://34.229.8.91",
+                "http://byeolnight.com",
+                "https://byeolnight.com",
+                "http://www.byeolnight.com",
+                "https://www.byeolnight.com"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));

@@ -1,4 +1,6 @@
-FROM eclipse-temurin:21-jdk-alpine
+# 실행 스테이지 (이미 빌드된 JAR 파일 사용)
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY build/libs/byeolnight-0.0.1-SNAPSHOT.jar app.jar
+COPY build/libs/*.jar app.jar
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
