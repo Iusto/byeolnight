@@ -19,7 +19,8 @@ export default function SuggestionCreate() {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    category: 'FEATURE' as SuggestionCategory
+    category: 'FEATURE' as SuggestionCategory,
+    isPublic: true
   });
 
   // 로그인하지 않은 사용자는 리다이렉트
@@ -123,6 +124,20 @@ export default function SuggestionCreate() {
               <div className="text-right text-sm text-gray-400 mt-1">
                 {formData.content.length}/2000
               </div>
+            </div>
+
+            {/* 공개/비공개 설정 */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="isPublic"
+                checked={formData.isPublic}
+                onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
+                className="w-4 h-4 text-purple-600 bg-[#2a2e45]/60 border border-purple-500/30 rounded focus:ring-purple-400 focus:ring-2"
+              />
+              <label htmlFor="isPublic" className="text-white text-sm">
+                공개 건의사항 (체크 해제 시 관리자만 볼 수 있습니다)
+              </label>
             </div>
 
             {/* 안내 메시지 */}

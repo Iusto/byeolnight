@@ -44,6 +44,10 @@ public class Suggestion {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isPublic = true; // 기본값: 공개
+
     @Column(columnDefinition = "TEXT")
     private String adminResponse;
 
@@ -77,9 +81,30 @@ public class Suggestion {
 
     // 건의사항 수정 메서드
     public void update(String title, String content, SuggestionCategory category) {
-        this.title = title;
-        this.content = content;
+        update(title, content, category, this.isPublic);
+    }
+    
+    // 건의사항 수정 메서드 (공개/비공개 포함)
+    public void update(String title, String content, SuggestionCategory category, Boolean isPublic) {
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("제목은 필수입니다.");
+        }
+        if (title.length() > 100) {
+            throw new IllegalArgumentException("제목은 100자를 초과할 수 없습니다.");
+        }
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("내용은 필수입니다.");
+        }
+        if (category == null) {
+            throw new IllegalArgumentException("카테고리는 필수입니다.");
+        }
+        
+        this.title = title.trim();
+        this.content = content.trim();
         this.category = category;
+        if (isPublic != null) {
+            this.isPublic = isPublic;
+        }
     }
 
     public enum SuggestionCategory {

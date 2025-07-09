@@ -8,6 +8,7 @@ export interface Suggestion {
   authorId: number;
   authorNickname: string;
   authorIcon?: string;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
   adminResponse?: string;
@@ -32,6 +33,7 @@ export interface CreateSuggestionRequest {
   title: string;
   content: string;
   category: SuggestionCategory;
+  isPublic?: boolean;
 }
 
 export interface SuggestionListResponse {

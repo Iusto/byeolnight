@@ -11,6 +11,8 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://www.docker.com/)
 [![Vite](https://img.shields.io/badge/Vite-6.3.5-646CFF.svg)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.1-38B2AC.svg)](https://tailwindcss.com/)
+[![NewsData.io](https://img.shields.io/badge/NewsData.io-API-orange.svg)](https://newsdata.io/)
+[![Google API](https://img.shields.io/badge/Google-Vision%20API-4285F4.svg)](https://cloud.google.com/vision)
 
 ---
 
@@ -25,7 +27,8 @@
 - 💬 **실시간 채팅**: WebSocket(STOMP) 기반 실시간 커뮤니케이션
 - 📁 **효율적 파일 관리**: AWS S3 Presigned URL을 활용한 직접 업로드
 - 👮 **관리자 시스템**: 사용자 관리, 콘텐츠 모더레이션, 로그 추적
-- 📰 **뉴스 크롤링 시스템**: AI 기반 자동 뉴스 수집
+- 📰 **뉴스 수집 시스템**: NewsData.io API를 통한 우주 관련 뉴스 자동 수집
+- 🖼️ **이미지 검열 시스템**: Google Vision API 기반 이미지 콘텐츠 검증
 - 💌 **쪽지 시스템**: 사용자 간 개인 메시지 기능
 - 🔔 **실시간 알림**: WebSocket 기반 즉시 알림 전달 (브라우저 네이티브 알림 지원)
 - 🏆 **인증서 시스템**: 사용자 활동 기반 성취 인증
@@ -34,6 +37,7 @@
 - 🎯 **포인트 시스템**: 출석체크, 활동 기반 포인트 적립
 - 🎬 **영화 추천 시스템**: AI 기반 개인화된 영화 추천
 - 💬 **토론 시스템**: 일일 토론 주제 자동 생성 및 참여
+- 🎥 **우주 영상 서비스**: Google API를 통한 우주 관련 영상 콘텐츠 제공
 - 🚀 **확장 가능한 아키텍처**: 클린 아키텍처 기반 도메인 중심 설계
 
 ---
@@ -55,7 +59,8 @@
                               ▼
                        ┌─────────────────┐
                        │   External APIs │
-                       │ (SendGrid/SMS)  │
+                       │(SendGrid/SMS/   │
+                       │NewsData/Google) │
                        └─────────────────┘
 ```
 
@@ -87,7 +92,7 @@ src/
 │   │   ├── chat/           # 채팅 서비스
 │   │   ├── cinema/         # 영화 추천 서비스
 │   │   ├── comment/        # 댓글 서비스
-│   │   ├── crawler/        # 뉴스 크롤링 서비스
+│   │   ├── crawler/        # 뉴스 수집 서비스 (NewsData.io API)
 │   │   ├── discussion/     # 토론 서비스
 │   │   ├── file/           # S3 파일 서비스
 │   │   ├── message/        # 쪽지 서비스
@@ -145,6 +150,8 @@ src/
 - **File Storage**: AWS S3 (SDK v2.25.17)
 - **Email Service**: SendGrid 4.9.3 + Gmail SMTP
 - **SMS Service**: CoolSMS (Nurigo SDK 4.3.0)
+- **News API**: NewsData.io API
+- **Image Moderation**: Google Vision API
 - **Real-time**: WebSocket (STOMP)
 - **API Documentation**: Swagger (OpenAPI 3)
 - **Test**: JUnit 5, Mockito

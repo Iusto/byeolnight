@@ -24,13 +24,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             String token = accessor.getFirstNativeHeader("Authorization");
             if (token != null && token.startsWith("Bearer ")) {
                 token = token.substring(7);
-                if (jwtTokenProvider.validate(token)) {
-                    Authentication auth = jwtTokenProvider.getAuthentication(token);
-                    accessor.setUser(auth);
-                } else {
-                    throw new IllegalArgumentException("유효하지 않은 WebSocket 토큰입니다.");
+                try {
+                    if (jwtTokenProvider.validate(token)) {
+                        Authentication auth = jwtTokenProvider.getAuthentication(token);
+                        accessor.setUser(auth);
+                    }
+                } catch (Exception e) {
+                    // 토큰 검증 실패 시 로그만 출력하고 연결은 허용
+                    System.out.println("WebSocket 토큰 검증 실패: " + e.getMessage());
                 }
             }
+            // 토큰이 없거나 유효하지 않아도 비로그인 사용자로 연결 허용
         }
 
         return message;

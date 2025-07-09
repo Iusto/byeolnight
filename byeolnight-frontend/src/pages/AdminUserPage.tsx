@@ -78,9 +78,8 @@ export default function AdminUserPage() {
       const userData = res.data?.data || res.data || [];
       const userList = Array.isArray(userData) ? userData : [];
       
-      // 관리자 계정 필터링 (일반 사용자만 표시)
-      const filteredUsers = userList.filter(user => user.role !== 'ADMIN');
-      setUsers(filteredUsers);
+      // 모든 사용자 표시 (관리자 포함)
+      setUsers(userList);
     } catch (err) {
       console.error('사용자 목록 조회 실패', err);
       setUsers([]); // 오류 시 빈 배열로 설정
@@ -869,7 +868,14 @@ export default function AdminUserPage() {
                       <div className="flex-1">
                         <p className="text-gray-300 mb-2">{comment.content}</p>
                         <p className="text-gray-400 text-sm">
-                          작성자: {comment.writer} | 게시글: {comment.postTitle}
+                          작성자: {comment.writer} | 게시글: 
+                          <button
+                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
+                            className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
+                            title="게시글로 이동"
+                          >
+                            {comment.postTitle}
+                          </button>
                         </p>
                       </div>
                       <button
@@ -928,9 +934,18 @@ export default function AdminUserPage() {
                   <div key={comment.id} className="bg-[#2a2e45] p-4 rounded-lg">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
-                        <p className="text-gray-300 mb-2">{comment.content}</p>
+                        <p className="text-gray-300 mb-2">
+                          {comment.originalContent || comment.content}
+                        </p>
                         <p className="text-gray-400 text-sm">
-                          작성자: {comment.writer} | 게시글: {comment.postTitle}
+                          작성자: {comment.writer} | 게시글: 
+                          <button
+                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
+                            className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
+                            title="게시글로 이동"
+                          >
+                            {comment.postTitle}
+                          </button>
                         </p>
                       </div>
                       <button

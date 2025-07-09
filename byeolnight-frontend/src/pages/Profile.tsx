@@ -649,7 +649,7 @@ export default function Profile() {
                   <p>아직 작성한 게시글이 없습니다.</p>
                   <Link
                     to="/posts/new"
-                    className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors"
+                    className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors text-white"
                   >
                     첫 게시글 작성하기
                   </Link>
@@ -714,7 +714,7 @@ export default function Profile() {
                   <p>아직 작성한 댓글이 없습니다.</p>
                   <Link
                     to="/posts"
-                    className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors"
+                    className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors text-white"
                   >
                     게시글 보러가기
                   </Link>

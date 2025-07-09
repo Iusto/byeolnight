@@ -75,6 +75,7 @@ public class SuggestionService {
                 .content(request.getContent())
                 .category(request.getCategory())
                 .author(user)
+                .isPublic(request.getIsPublic() != null ? request.getIsPublic() : true) // 기본값: 공개
                 .build();
 
         Suggestion savedSuggestion = suggestionRepository.save(suggestion);
@@ -92,6 +93,20 @@ public class SuggestionService {
     // 건의사항 수정
     @Transactional
     public SuggestionDto.Response updateSuggestion(Long id, Long userId, SuggestionDto.UpdateRequest request) {
+        // 요청 데이터 유효성 검사
+        if (request == null) {
+            throw new IllegalArgumentException("수정 요청 데이터가 없습니다.");
+        }
+        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("제목은 필수입니다.");
+        }
+        if (request.getContent() == null || request.getContent().trim().isEmpty()) {
+            throw new IllegalArgumentException("내용은 필수입니다.");
+        }
+        if (request.getCategory() == null) {
+            throw new IllegalArgumentException("카테고리는 필수입니다.");
+        }
+        
         Suggestion suggestion = suggestionRepository.findById(id)
                 .orElseThrow(() -> new SuggestionNotFoundException());
 
@@ -100,13 +115,17 @@ public class SuggestionService {
             throw new SuggestionAccessDeniedException();
         }
 
-        // 검토 중인 상태에서만 수정 가능
-        if (suggestion.getStatus() != Suggestion.SuggestionStatus.PENDING) {
-            throw new SuggestionModificationException("검토 중인 건의사항만 수정할 수 있습니다.");
+        // 관리자 답변이 없는 경우에만 수정 가능
+        if (suggestion.getAdminResponse() != null) {
+            throw new SuggestionModificationException("관리자 답변이 등록된 건의사항은 수정할 수 없습니다.");
         }
 
-        suggestion.update(request.getTitle(), request.getContent(), request.getCategory());
-        return SuggestionDto.Response.from(suggestion);
+        try {
+            suggestion.update(request.getTitle(), request.getContent(), request.getCategory(), request.getIsPublic());
+            return SuggestionDto.Response.from(suggestion);
+        } catch (Exception e) {
+            throw new SuggestionModificationException("건의사항 수정 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 
     // 건의사항 삭제
@@ -120,9 +139,9 @@ public class SuggestionService {
             throw new SuggestionAccessDeniedException();
         }
 
-        // 검토 중인 상태에서만 삭제 가능
-        if (suggestion.getStatus() != Suggestion.SuggestionStatus.PENDING) {
-            throw new SuggestionModificationException("검토 중인 건의사항만 삭제할 수 있습니다.");
+        // 관리자 답변이 없는 경우에만 삭제 가능
+        if (suggestion.getAdminResponse() != null) {
+            throw new SuggestionModificationException("관리자 답변이 등록된 건의사항은 삭제할 수 없습니다.");
         }
 
         suggestionRepository.delete(suggestion);

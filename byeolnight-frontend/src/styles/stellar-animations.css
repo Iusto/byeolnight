@@ -222,6 +222,11 @@
   animation: quantum-flicker 2s ease-in-out infinite;
 }
 
+/* 인증서 깜빡임 효과 */
+.certificate-glow {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
 /* 호버 효과 */
 .stellar-hover:hover {
   transform: scale(1.05);

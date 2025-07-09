@@ -187,6 +187,21 @@ aws-exports.js
 .terraform/
 .terraform.lock.hcl
 
+# 배포 관련 민감 정보
+deploy/.env
+deploy/production.env
+deploy/staging.env
+deploy/secrets/
+ssl/
+certs/
+*.crt
+*.csr
+
+# 배포 로그
+deploy/logs/
+deploy.log
+deployment.log
+
 # ========================================
 # 🧪 테스트 관련
 # ========================================

@@ -8,6 +8,7 @@ import com.byeolnight.service.suggestion.SuggestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,7 +56,7 @@ public class SuggestionController {
     @PostMapping
     @Operation(summary = "건의사항 작성", description = "새로운 건의사항을 작성합니다.")
     public ResponseEntity<ApiResponse<SuggestionDto.Response>> createSuggestion(
-            @RequestBody SuggestionDto.CreateRequest request,
+            @Valid @RequestBody SuggestionDto.CreateRequest request,
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
@@ -67,7 +68,7 @@ public class SuggestionController {
     @Operation(summary = "건의사항 수정", description = "기존 건의사항을 수정합니다.")
     public ResponseEntity<ApiResponse<SuggestionDto.Response>> updateSuggestion(
             @PathVariable Long id,
-            @RequestBody SuggestionDto.UpdateRequest request,
+            @Valid @RequestBody SuggestionDto.UpdateRequest request,
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);

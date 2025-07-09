@@ -25,6 +25,7 @@ import AdminReportsPage from './pages/AdminReportsPage';
 import SuggestionList from './pages/SuggestionList';
 import SuggestionCreate from './pages/SuggestionCreate';
 import SuggestionDetail from './pages/SuggestionDetail';
+import SuggestionEdit from './pages/SuggestionEdit';
 import MessagesPage from './pages/MessagesPage';
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
         <Route path="/points" element={<PointHistory />} />
         <Route path="/suggestions" element={<SuggestionList />} />
         <Route path="/suggestions/new" element={<SuggestionCreate />} />
+        <Route path="/suggestions/:id/edit" element={<SuggestionEdit />} />
         <Route path="/suggestions/:id" element={<SuggestionDetail />} />
         <Route path="/messages" element={<MessagesPage />} />
       </Route>
