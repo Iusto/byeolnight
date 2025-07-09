@@ -102,9 +102,12 @@ export default function ReportDetailModal({ isOpen, onClose, postTitle, reports,
                   {!report.reviewed && onApprove && onReject && (
                     <div className="flex gap-2 mt-2">
                       <button
-                        onClick={() => {
-                          onApprove(report.reportId);
-                          if (onRefresh) onRefresh();
+                        onClick={async () => {
+                          if (onApprove) {
+                            await onApprove(report.reportId);
+                            if (onRefresh) await onRefresh();
+                            handleClose();
+                          }
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition"
                       >
@@ -178,10 +181,11 @@ export default function ReportDetailModal({ isOpen, onClose, postTitle, reports,
                   취소
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (selectedReportId && onReject) {
-                      onReject(selectedReportId, rejectReason);
-                      if (onRefresh) onRefresh();
+                      await onReject(selectedReportId, rejectReason);
+                      if (onRefresh) await onRefresh();
+                      handleClose();
                     }
                     setShowRejectModal(false);
                     setSelectedReportId(null);

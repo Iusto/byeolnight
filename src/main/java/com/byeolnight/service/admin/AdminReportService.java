@@ -164,18 +164,27 @@ public class AdminReportService {
         com.byeolnight.domain.entity.user.User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
         
+        Post post = report.getPost();
+        
         // 해당 게시글의 모든 신고 조회
-        List<PostReport> allReportsForPost = postReportRepository.findByPost(report.getPost());
+        List<PostReport> allReportsForPost = postReportRepository.findByPost(post);
         
         // 모든 신고를 검토 완료로 처리하고 거부
+        int rejectedCount = 0;
         for (PostReport postReport : allReportsForPost) {
             if (!postReport.isReviewed()) {
                 postReport.reject(admin, reason);
                 postReportRepository.save(postReport);
+                rejectedCount++;
                 
                 // 허위 신고 페널티 적용
                 pointService.applyPenalty(postReport.getUser(), "허위 신고", postReport.getId().toString());
             }
+        }
+        
+        // 거부된 신고 수만큼 게시글의 신고수 감소
+        for (int i = 0; i < rejectedCount; i++) {
+            post.decreaseReportCount();
         }
     }
 }

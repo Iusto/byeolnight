@@ -228,9 +228,6 @@ export default function PostDetail() {
         console.log(`${replyTo.writer}님에게 답글이 등록되었습니다.`);
       }
       
-      // 댓글 작성 후 알림 생성 확인
-      console.log('댓글 작성 완룼 - 알림 생성 확인 예정');
-      
       // 트랜잭션 커밋을 위해 더 긴 딩레이 후 댓글 새로고침
       setTimeout(async () => {
         console.log('댓글 등록 후 새로고침 시작');
@@ -457,7 +454,7 @@ export default function PostDetail() {
                   
                   return (
                     <div key={idx} className="relative group">
-                      <div className="px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-sm font-bold rounded-full border border-yellow-500/40 shadow-lg backdrop-blur-sm">
+                      <div className="px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-sm font-bold rounded-full border border-yellow-500/40 shadow-lg backdrop-blur-sm certificate-glow">
                         {icon} {cert}
                       </div>
                     </div>

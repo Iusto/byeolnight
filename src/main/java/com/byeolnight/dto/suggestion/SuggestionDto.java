@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +25,7 @@ public class SuggestionDto {
         private Suggestion.SuggestionStatus status;
         private Long authorId;
         private String authorNickname;
+        private Boolean isPublic;
         private String adminResponse;
         private LocalDateTime adminResponseAt;
         private String adminNickname;
@@ -37,6 +41,7 @@ public class SuggestionDto {
                     .status(suggestion.getStatus())
                     .authorId(suggestion.getAuthor().getId())
                     .authorNickname(suggestion.getAuthor().getNickname())
+                    .isPublic(suggestion.getIsPublic())
                     .adminResponse(suggestion.getAdminResponse())
                     .adminResponseAt(suggestion.getAdminResponseAt())
                     .adminNickname(suggestion.getAdmin() != null ? suggestion.getAdmin().getNickname() : null)
@@ -51,9 +56,17 @@ public class SuggestionDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateRequest {
+        @NotBlank(message = "제목은 필수입니다.")
+        @Size(max = 100, message = "제목은 100자를 초과할 수 없습니다.")
         private String title;
+        
+        @NotBlank(message = "내용은 필수입니다.")
         private String content;
+        
+        @NotNull(message = "카테고리는 필수입니다.")
         private Suggestion.SuggestionCategory category;
+        
+        private Boolean isPublic; // 기본값: true
     }
 
     @Getter
@@ -61,9 +74,17 @@ public class SuggestionDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateRequest {
+        @NotBlank(message = "제목은 필수입니다.")
+        @Size(max = 100, message = "제목은 100자를 초과할 수 없습니다.")
         private String title;
+        
+        @NotBlank(message = "내용은 필수입니다.")
         private String content;
+        
+        @NotNull(message = "카테고리는 필수입니다.")
         private Suggestion.SuggestionCategory category;
+        
+        private Boolean isPublic;
     }
 
     @Getter

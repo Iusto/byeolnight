@@ -28,7 +28,16 @@ public class PhoneAuthService {
         redisTemplate.opsForValue().set("phone:" + phone, code, 5, TimeUnit.MINUTES);
         // log.info("[📱 휴대폰 인증 코드 전송] phone={}, code={}", phone, code);
 
-        String text = "[별 헤는 밤] 인증번호는 " + code + "입니다.";
+        String text = """
+        [별 헤는 밤] 이메일 인증번호 안내
+        
+        안녕하세요. '별 헤는 밤'입니다.
+        아래 인증번호를 입력해 회원가입을 완료해주세요.
+        
+        🔐 인증번호: %s
+        
+        감사합니다.
+        """.formatted(code);
         coolSmsService.send(phone, text);
     }
 

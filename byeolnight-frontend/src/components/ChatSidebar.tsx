@@ -33,75 +33,118 @@ export default function ChatSidebar() {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null); // ✅ 채팅창 컨테이너 ref
 
   const connect = () => {
-    const socket = new SockJS(import.meta.env.VITE_WS_URL || '/ws');
-    const client = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
-      },
-      onConnect: () => {
-        setConnecting(false);
-        setConnected(true);
-        setError('');
-        retryCount.current = 0;
+    try {
+      // 개발 환경에서는 전체 URL, 배포 환경에서는 상대 경로 사용
+      const wsUrl = import.meta.env.DEV 
+        ? 'http://localhost:8080/ws' 
+        : '/ws';
+      console.log('WebSocket 연결 시도:', wsUrl);
+      console.log('개발 모드:', import.meta.env.DEV);
+      
+      const socket = new SockJS(wsUrl);
+      const token = localStorage.getItem('accessToken');
+      const connectHeaders: Record<string, string> = {};
+      
+      // 토큰이 있을 때만 Authorization 헤더 추가
+      if (token) {
+        connectHeaders.Authorization = `Bearer ${token}`;
+      }
+      
+      const client = new Client({
+        webSocketFactory: () => socket,
+        connectHeaders,
+        debug: (str) => console.log('STOMP Debug:', str),
+        onConnect: (frame) => {
+          console.log('WebSocket 연결 성공:', frame);
+          setConnecting(false);
+          setConnected(true);
+          setError('');
+          retryCount.current = 0;
 
-        client.subscribe('/topic/public', (message) => {
-          const payload = JSON.parse(message.body);
-          setMessages((prev) => [...prev.slice(-10), payload]); // 최신 10개 유지
-        });
-        
-        // 관리자 액션 알림 구독 (블라인드 해제 등)
-        client.subscribe('/topic/admin/chat-update', (message) => {
-          const data = JSON.parse(message.body);
-          if (data.type === 'MESSAGE_UNBLINDED') {
-            // 블라인드 해제된 메시지 업데이트
-            setMessages(prev => 
-              prev.map(msg => 
-                msg.id === data.messageId ? { ...msg, isBlinded: false } : msg
-              )
-            );
-          } else if (data.type === 'MESSAGE_BLINDED') {
-            // 블라인드 처리된 메시지 업데이트
-            setMessages(prev => 
-              prev.map(msg => 
-                msg.id === data.messageId ? { ...msg, isBlinded: true } : msg
-              )
-            );
-          }
-        });
-        
-        // 개인 채팅 금지 알림 구독
-        if (user) {
-          client.subscribe(`/queue/user.${user.nickname}.ban`, (message) => {
-            const banData = JSON.parse(message.body);
-            setBanStatus(banData);
-            
-            if (banData.banned) {
-              // 금지 종료 시간 계산
-              const endTime = new Date().getTime() + (banData.duration * 60 * 1000);
-              banData.bannedUntil = new Date(endTime).toISOString();
-              setBanStatus(banData);
-              setError(`채팅이 제한되었습니다.`);
-            } else {
-              setError('');
-              setBanStatus(null);
-              setRemainingTime(0);
+          client.subscribe('/topic/public', (message) => {
+            const payload = JSON.parse(message.body);
+            setMessages((prev) => [...prev.slice(-10), payload]); // 최신 10개 유지
+          });
+          
+          // 관리자 액션 알림 구독 (블라인드 해제 등)
+          client.subscribe('/topic/admin/chat-update', (message) => {
+            const data = JSON.parse(message.body);
+            if (data.type === 'MESSAGE_UNBLINDED') {
+              // 블라인드 해제된 메시지 업데이트
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === data.messageId ? { ...msg, isBlinded: false } : msg
+                )
+              );
+            } else if (data.type === 'MESSAGE_BLINDED') {
+              // 블라인드 처리된 메시지 업데이트
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === data.messageId ? { ...msg, isBlinded: true } : msg
+                )
+              );
             }
           });
+          
+          // 개인 채팅 금지 알림 구독
+          if (user) {
+            client.subscribe(`/queue/user.${user.nickname}.ban`, (message) => {
+              const banData = JSON.parse(message.body);
+              setBanStatus(banData);
+              
+              if (banData.banned) {
+                // 금지 종료 시간 계산
+                const endTime = new Date().getTime() + (banData.duration * 60 * 1000);
+                banData.bannedUntil = new Date(endTime).toISOString();
+                setBanStatus(banData);
+                setError(`채팅이 제한되었습니다.`);
+              } else {
+                setError('');
+                setBanStatus(null);
+                setRemainingTime(0);
+              }
+            });
+          }
+        },
+        onStompError: (frame) => {
+          console.error('STOMP 오류:', frame);
+          handleConnectionError();
+        },
+        onWebSocketError: (event) => {
+          console.error('WebSocket 오류:', event);
+          handleConnectionError();
+        },
+        onDisconnect: () => {
+          console.log('WebSocket 연결 해제');
+          setConnected(false);
         }
-      },
-      onStompError: () => handleConnectionError(),
-      onWebSocketError: () => handleConnectionError(),
-    });
+      });
 
-    client.activate();
-    stompClientRef.current = client;
+      client.activate();
+      stompClientRef.current = client;
+    } catch (error) {
+      console.error('WebSocket 연결 초기화 실패:', error);
+      handleConnectionError();
+    }
   };
 
   const handleConnectionError = () => {
+    console.log('WebSocket 연결 오류 처리');
     setConnecting(false);
     setConnected(false);
-    setError('채팅 연결 실패');
+    setError('채팅 서버 연결 실패');
+    
+    // 자동 재연결 시도 (최대 3회)
+    if (retryCount.current < 3) {
+      retryCount.current++;
+      console.log(`재연결 시도 ${retryCount.current}/3`);
+      setTimeout(() => {
+        if (user) {
+          setConnecting(true);
+          connect();
+        }
+      }, 3000 * retryCount.current); // 3초, 6초, 9초 간격
+    }
   };
 
   // 수동 재연결 함수
@@ -263,16 +306,14 @@ export default function ChatSidebar() {
     // 채팅 내역은 모두 로드
     loadInitialMessages();
 
-    // 로그인한 사용자만 WebSocket 연결 시도
+    // 모든 사용자에게 WebSocket 연결 시도 (비로그인 사용자도 채팅 읽기 가능)
+    setConnecting(true);
+    connect();
+    
+    // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
-      setConnecting(true);
-      connect();
-      checkBanStatus(); // 로그인 시 채팅 금지 상태 확인
+      checkBanStatus();
     } else {
-      // 비로그인 사용자는 연결 상태 초기화
-      setConnecting(false);
-      setConnected(false);
-      setError('');
       setBanStatus(null);
     }
 
@@ -438,39 +479,37 @@ export default function ChatSidebar() {
       </div>
 
       {/* 연결 상태 표시 */}
-      {user && (
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-sm">
-            {connecting && (
-              <>
-                <div className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></div>
-                <span className="text-yellow-300">채팅 연결 중...</span>
-              </>
-            )}
-            {connected && !connecting && !error && (
-              <>
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-green-400">채팅 연결 완료</span>
-              </>
-            )}
-            {error && !connecting && (
-              <>
-                <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                <span className="text-red-400">{error}</span>
-              </>
-            )}
-          </div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 text-sm">
+          {connecting && (
+            <>
+              <div className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></div>
+              <span className="text-yellow-300">채팅 연결 중...</span>
+            </>
+          )}
+          {connected && !connecting && !error && (
+            <>
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-green-400">채팅 연결 완료</span>
+            </>
+          )}
           {error && !connecting && (
-            <button
-              onClick={handleRetryConnection}
-              className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition-colors"
-              title="연결 재시도"
-            >
-              🔄
-            </button>
+            <>
+              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+              <span className="text-red-400">{error}</span>
+            </>
           )}
         </div>
-      )}
+        {error && !connecting && (
+          <button
+            onClick={handleRetryConnection}
+            className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition-colors"
+            title="연결 재시도"
+          >
+            🔄
+          </button>
+        )}
+      </div>
 
       {/* 채팅 금지 상태 표시 */}
       {banStatus?.banned && (

@@ -59,11 +59,8 @@ export default function PostEdit() {
         if (file) {
           try {
             const imageUrl = await uploadClipboardImage(file);
-            // TinyMCE에 이미지 삽입
-            if (editorRef.current) {
-              const currentContent = editorRef.current.getContent();
-              editorRef.current.setContent(currentContent + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
-            }
+            // ReactQuill에 이미지 삽입
+            setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
           } catch (error) {
             alert('이미지 업로드에 실패했습니다.');
           }
@@ -93,11 +90,8 @@ export default function PostEdit() {
           const imageData = response.data.data || response.data;
           setImages(prev => [...prev, imageData]);
           
-          // TinyMCE에 이미지 삽입
-          if (editorRef.current) {
-            const currentContent = editorRef.current.getContent();
-            editorRef.current.setContent(currentContent + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
-          }
+          // ReactQuill에 이미지 삽입
+          setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
         } catch (error) {
           console.error('이미지 업로드 실패:', error);
           alert('이미지 업로드에 실패했습니다.');
@@ -146,10 +140,7 @@ export default function PostEdit() {
         setCategory(post.category);
         setImages(post.images || []);
         
-        // TinyMCE에 콘텐츠 설정
-        if (editorRef.current && post.content) {
-          editorRef.current.setContent(post.content);
-        }
+        // ReactQuill에 콘텐츠 설정은 state로 처리됨
       } catch (err) {
         console.error('게시글 로드 실패:', err);
         console.error('에러 상세:', err.response?.data);
@@ -173,8 +164,8 @@ export default function PostEdit() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    // Toast UI Editor에서 콘텐츠 가져오기
-    const finalContent = editorRef.current ? editorRef.current.getInstance().getHTML() : content;
+    // ReactQuill에서 콘텐츠 가져오기
+    const finalContent = content;
     
     try {
       await axios.put(`/member/posts/${id}`, {
@@ -280,7 +271,7 @@ export default function PostEdit() {
                 />
               </div>
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                🎨 TinyMCE Editor: 전세계 1위 리치 텍스트 에디터, 한글 지원 완벽!<br/>
+                🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
                 🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!
               </div>
             </div>
