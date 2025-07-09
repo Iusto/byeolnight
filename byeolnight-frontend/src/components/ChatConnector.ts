@@ -1,5 +1,5 @@
 import SockJS from 'sockjs-client';
-import { Client, over } from 'stompjs';
+import { Client } from '@stomp/stompjs';
 
 export let stompClient: Client | null = null;
 let isConnected = false; // ✅ 중복 연결 방지용 flag
@@ -10,14 +10,17 @@ export const connectChat = (onMessage: (msg: any) => void) => {
     return;
   }
 
-  const socket = new SockJS('http://localhost:8080/ws');
-  stompClient = over(socket);
+  stompClient = new Client({
+    webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+    reconnectDelay: 5000,
+    heartbeatIncoming: 4000,
+    heartbeatOutgoing: 4000,
+  });
 
-  stompClient.connect({}, () => {
+  stompClient.onConnect = () => {
     isConnected = true;
     console.log('🟢 WebSocket 연결 완료');
 
-    // ✅ 구독 전에 기존 구독 제거할 수 없음 => 중복 호출 자체를 막아야 함
     stompClient?.subscribe('/topic/public', (message) => {
       const body = JSON.parse(message.body);
       onMessage(body);
@@ -30,13 +33,15 @@ export const connectChat = (onMessage: (msg: any) => void) => {
       }
     });
 
-    stompClient.send('/app/chat.init', {}, '');
-  });
+    stompClient?.publish({ destination: '/app/chat.init', body: '' });
+  };
+
+  stompClient.activate();
 };
 
 export const sendMessage = (message: any) => {
   if (stompClient?.connected) {
-    stompClient.send('/app/chat.send', {}, JSON.stringify(message));
+    stompClient.publish({ destination: '/app/chat.send', body: JSON.stringify(message) });
   } else {
     console.warn('❌ WebSocket 연결되지 않음');
   }
@@ -44,9 +49,10 @@ export const sendMessage = (message: any) => {
 
 export const disconnectChat = () => {
   if (stompClient?.connected) {
-    stompClient.disconnect(() => {
+    stompClient.onDisconnect = () => {
       console.log('🔌 WebSocket 연결 해제');
       isConnected = false;
-    });
+    };
+    stompClient.deactivate();
   }
 };
