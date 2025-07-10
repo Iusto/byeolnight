@@ -311,8 +311,8 @@ export default function PostList() {
               <strong>뉴스봇</strong>이 매일 <strong>오전 8시</strong>에 우주 뉴스를 자동 수집합니다.
               <br />
               <strong>[대상 출처]</strong><br />
-              <strong>실제 뉴스:</strong> 네이버, 네이트, 뉴시스, 동아일보, 어린이동아 등<br />
-               <strong>RSS 소스:</strong> 사이언스타임즈, 연합뉴스, IT조선
+              <strong>NewsData.io API:</strong> 전 세계 한국어 우주 관련 뉴스<br />
+              <strong>키워드:</strong> 우주, 천문학, NASA, 스페이스X, 화성, 달, 위성, 항공우주
               <br />
               매번 새 게시글로 등록되며, 중복 가능성은 낮습니다.
             </p>
@@ -453,6 +453,37 @@ export default function PostList() {
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 🎬 시네마 포스트 생성
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* 관리자 뉴스 생성 */}
+        {category === 'NEWS' && user?.role === 'ADMIN' && (
+          <div className="mb-6 p-4 bg-green-900/30 rounded-lg border border-green-600/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-green-200 mb-2">🤖 관리자 뉴스 관리</h3>
+                <p className="text-green-200 text-sm">
+                  매일 오전 8시 자동 수집 | 스케줄 실패 시 수동 수집 가능
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm('NewsData.io API를 통해 최신 우주 뉴스를 수집하시겠습니까?')) return;
+                  
+                  try {
+                    const response = await axios.post('/admin/news-test/collect');
+                    alert('뉴스 수집이 성공적으로 완료되었습니다!');
+                    window.location.reload(); // 페이지 새로고침
+                  } catch (error) {
+                    console.error('뉴스 수집 실패:', error);
+                    alert('뉴스 수집에 실패했습니다.');
+                  }
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                🚀 뉴스 수집
               </button>
             </div>
           </div>
