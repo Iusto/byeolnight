@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { parseMarkdown } from '../utils/markdown';
+import { sanitizeHtml } from '../utils/htmlSanitizer';
 import ClickableNickname from '../components/ClickableNickname';
 import UserIconDisplay from '../components/UserIconDisplay';
 
@@ -86,6 +87,7 @@ export default function PostDetail() {
   const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null);
   const [editingComment, setEditingComment] = useState<{id: number, content: string} | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
 
   const fetchPost = async () => {
     try {
@@ -375,7 +377,78 @@ export default function PostDetail() {
     fetchPost();
     fetchComments();
     setLoading(false);
+    
+    // iframe 지원 여부 체크
+    checkIframeSupport();
   }, [id]);
+  
+  const checkIframeSupport = () => {
+    try {
+      // iframe 생성 테스트
+      const testIframe = document.createElement('iframe');
+      testIframe.style.display = 'none';
+      testIframe.src = 'about:blank';
+      
+      // CSP 정책 체크
+      const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+      const cspHeader = cspMeta?.getAttribute('content') || '';
+      
+      // iframe이 차단되는지 확인
+      const isBlocked = cspHeader.includes('frame-src \'none\'') || 
+                       cspHeader.includes('child-src \'none\'') ||
+                       window.self !== window.top; // 이미 iframe 안에 있는 경우
+      
+      document.body.appendChild(testIframe);
+      
+      setTimeout(() => {
+        try {
+          // iframe 접근 테스트
+          const canAccess = testIframe.contentWindow !== null;
+          setIframeSupported(!isBlocked && canAccess);
+          document.body.removeChild(testIframe);
+        } catch (e) {
+          setIframeSupported(false);
+          document.body.removeChild(testIframe);
+        }
+      }, 100);
+      
+    } catch (e) {
+      console.log('iframe 지원 체크 실패:', e);
+      setIframeSupported(false);
+    }
+  };
+  
+  // iframe을 YouTube 링크로 변환하는 함수
+  const processIframeContent = (content: string) => {
+    if (iframeSupported === false) {
+      // iframe을 YouTube 링크로 변환
+      return content.replace(
+        /<iframe[^>]*src="https:\/\/www\.youtube\.com\/embed\/([^"]+)"[^>]*>.*?<\/iframe>/gi,
+        (match, videoId) => {
+          return `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; border: 2px solid #8b5cf6;">
+              <div style="color: #fbbf24; font-size: 18px; margin-bottom: 10px;">🎬 YouTube 영상</div>
+              <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" 
+                   style="width: 100%; max-width: 560px; height: auto; border-radius: 8px; margin-bottom: 15px; cursor: pointer;"
+                   onclick="window.open('https://www.youtube.com/watch?v=${videoId}', '_blank')"
+                   alt="YouTube 영상 썸네일" />
+              <div>
+                <a href="https://www.youtube.com/watch?v=${videoId}" 
+                   target="_blank" 
+                   style="display: inline-block; background: #ef4444; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: all 0.3s;">
+                  🎥 YouTube에서 시청하기
+                </a>
+              </div>
+              <div style="color: #d1d5db; font-size: 12px; margin-top: 10px;">
+                ⚠️ 브라우저 보안 정책으로 인해 iframe이 차단되었습니다
+              </div>
+            </div>
+          `;
+        }
+      );
+    }
+    return content;
+  };
 
   if (loading) return <div className="text-white p-8">로딩 중...</div>;
   if (!post) return <div className="text-red-400 p-8">{error}</div>;
@@ -475,11 +548,26 @@ export default function PostDetail() {
             <div 
               className="prose prose-invert prose-lg max-w-none text-gray-100 leading-relaxed"
               dangerouslySetInnerHTML={{ 
-                __html: parseMarkdown(
-                  post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')
-                ) 
+                __html: sanitizeHtml(
+                  processIframeContent(
+                    parseMarkdown(
+                      post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')
+                    )
+                  )
+                )
               }}
             />
+            
+            {/* iframe 지원 상태 표시 (개발용) */}
+            {process.env.NODE_ENV === 'development' && iframeSupported !== null && (
+              <div className={`mt-4 p-3 rounded-lg text-sm ${
+                iframeSupported 
+                  ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                  : 'bg-red-900/30 text-red-300 border border-red-500/30'
+              }`}>
+                🔧 개발 정보: iframe 지원 {iframeSupported ? '✅ 활성화' : '❌ 차단됨'}
+              </div>
+            )}
           </div>
         
         {/* S3 이미지 표시 */}

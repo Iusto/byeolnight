@@ -180,4 +180,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("SELECT p FROM Post p WHERE p.isDeleted = true AND p.deletedAt < :threshold")
     List<Post> findExpiredDeletedPosts(@Param("threshold") LocalDateTime threshold);
+    
+    /**
+     * 제목으로 게시글 존재 여부 확인 (뉴스 중복 체크용)
+     */
+    boolean existsByTitle(String title);
 }

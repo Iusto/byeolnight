@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-@Tag(name = "뉴스 테스트", description = "NewsData.io API 테스트")
+@Tag(name = "👮 관리자 - 뉴스 관리", description = "뉴스 수집 및 관리 (NewsData.io API)")
 @RestController
 @RequestMapping("/api/admin/news-test")
 @RequiredArgsConstructor

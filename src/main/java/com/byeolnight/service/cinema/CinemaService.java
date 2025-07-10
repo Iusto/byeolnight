@@ -33,16 +33,16 @@ public class CinemaService {
     private String openaiApiKey;
 
     private final List<String> SPACE_KEYWORDS = Arrays.asList(
-        "space documentary",
-        "astronomy",
-        "universe",
-        "black hole",
-        "galaxy",
-        "nasa",
-        "space exploration",
-        "cosmos",
-        "astrophysics",
-        "solar system"
+        "NASA space documentary",
+        "astronomy science",
+        "universe documentary",
+        "black hole science",
+        "galaxy formation",
+        "mars exploration",
+        "space station ISS",
+        "solar system planets",
+        "SpaceX launch",
+        "Hubble telescope"
     );
 
     @Scheduled(cron = "0 0 20 * * ?") // 매일 오후 8시
@@ -52,10 +52,10 @@ public class CinemaService {
             log.info("별빛 시네마 자동 포스팅 시작");
             
             User systemUser = getSystemUser();
-            String videoData = fetchRandomSpaceVideo();
+            Map<String, String> videoData = fetchRandomSpaceVideo();
             
             if (videoData != null) {
-                createCinemaPost(systemUser, videoData);
+                createCinemaPost(systemUser, videoData.get("title"), videoData.get("content"));
                 log.info("별빛 시네마 포스팅 완료");
             }
         } catch (Exception e) {
@@ -65,9 +65,9 @@ public class CinemaService {
 
     public void createCinemaPostManually(User admin) {
         try {
-            String videoData = fetchRandomSpaceVideo();
+            Map<String, String> videoData = fetchRandomSpaceVideo();
             if (videoData != null) {
-                createCinemaPost(admin, videoData);
+                createCinemaPost(admin, videoData.get("title"), videoData.get("content"));
             }
         } catch (Exception e) {
             log.error("수동 별빛 시네마 포스팅 실패", e);
@@ -75,7 +75,19 @@ public class CinemaService {
         }
     }
 
-    private String fetchRandomSpaceVideo() {
+    private void createCinemaPost(User user, String title, String content) {
+        Post post = Post.builder()
+            .title(title)
+            .content(content)
+            .category(Post.Category.STARLIGHT_CINEMA)
+            .writer(user)
+            .build();
+
+        postRepository.save(post);
+        log.info("별빛 시네마 게시글 생성 완료: {}", title);
+    }
+
+    private Map<String, String> fetchRandomSpaceVideo() {
         if (googleApiKey == null || googleApiKey.isEmpty()) {
             return createMockVideoData();
         }
@@ -83,8 +95,8 @@ public class CinemaService {
         try {
             String keyword = SPACE_KEYWORDS.get(new Random().nextInt(SPACE_KEYWORDS.size()));
             String url = String.format(
-                "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=10&key=%s",
-                keyword, googleApiKey
+                "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=10&order=date&publishedAfter=%s&key=%s",
+                keyword, getOneYearAgo(), googleApiKey
             );
 
             @SuppressWarnings("unchecked")
@@ -115,7 +127,7 @@ public class CinemaService {
         return createMockVideoData();
     }
 
-    private String createMockVideoData() {
+    private Map<String, String> createMockVideoData() {
         String[] mockTitles = {
             "우주의 신비: 블랙홀의 비밀",
             "은하수 너머의 세계",
@@ -143,38 +155,160 @@ public class CinemaService {
         );
     }
 
-    private String formatVideoPost(String title, String description, String videoId, String channelTitle) {
+    private Map<String, String> formatVideoPost(String title, String description, String videoId, String channelTitle) {
         String aiSummary = generateAISummary(title, description);
+        String enhancedTitle = enhanceTitle(title);
+        String cleanDescription = cleanDescription(description);
         
-        return String.format("""
-            # 🎬 %s
+        String content = String.format("""
+            # %s
             
-            **채널:** %s
-            
-            ## 🤖 AI 요약
+            ## 🤖 요약
             %s
             
-            ---
+            ## 📺 영상 보기
             
-            ## 📝 영상 설명
+            <iframe width="100%%" height="500" 
+              src="https://www.youtube.com/embed/%s" 
+              title="%s"
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              allowfullscreen
+              style="border-radius: 12px; box-shadow: 0 8px 32px rgba(139, 92, 246, 0.3);">
+            </iframe>
+            
+            **[🎆 YouTube에서 시청하기 →](https://www.youtube.com/watch?v=%s)**
+            
+            ## 🎬 영상 정보
+            - **제목**: %s
+            - **채널**: %s
+            
+            ## 📄 영상 설명
             %s
             
-            ---
-            
-            ### 📺 영상 시청하기
-            
-            [![%s](https://img.youtube.com/vi/%s/maxresdefault.jpg)](https://www.youtube.com/watch?v=%s)
-            
-            **[YouTube에서 시청하기 →](https://www.youtube.com/watch?v=%s)**
-            
-            ---
-            
-            💫 **별빛 시네마**에서는 매일 우주와 천문학 관련 흥미로운 영상을 소개합니다!
-            
-            🌟 이 영상이 마음에 드셨다면 좋아요와 댓글로 여러분의 생각을 나눠주세요.
+            🛰️ **매일 밤, 별빛 시네마에서는 최신 우주 탐사 소식을 전합니다.**  
+            💬 **여러분의 생각은 어떤가요? 댓글로 자유롭게 나눠주세요!**
             """, 
-            title, channelTitle, aiSummary, description, title, videoId, videoId, videoId);
+            enhancedTitle, aiSummary, videoId, title, videoId, title, channelTitle, cleanDescription);
+            
+        Map<String, String> result = new HashMap<>();
+        result.put("title", enhancedTitle);
+        result.put("content", content);
+        return result;
     }
+    
+    private String getOneYearAgo() {
+        return java.time.LocalDateTime.now().minusYears(1).format(
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        );
+    }
+    
+    private String cleanDescription(String description) {
+        if (description == null || description.trim().isEmpty()) {
+            return "이 영상은 우주와 천문학의 흥미진진한 세계를 탐험합니다. 최신 과학 연구와 놀라운 발견들을 통해 우주의 신비를 함께 풀어나가보세요.";
+        }
+        
+        // URL 제거 및 정리
+        String cleaned = description.replaceAll("https?://[^\\s]+", "")
+                                   .replaceAll("\\n+", " ")
+                                   .trim();
+        
+        // 200자 제한
+        if (cleaned.length() > 200) {
+            cleaned = cleaned.substring(0, 200) + "...";
+        }
+        
+        return cleaned.isEmpty() ? "이 영상은 우주와 천문학의 흥미진진한 세계를 탐험합니다." : cleaned;
+    }
+    
+    private String enhanceTitle(String originalTitle) {
+        // 영어 제목을 한국어로 번역
+        String translatedTitle = translateTitle(originalTitle);
+        
+        // 제목을 더 매력적으로 만들기
+        if (translatedTitle.toLowerCase().contains("nasa") || originalTitle.toLowerCase().contains("nasa")) {
+            return "🚨 " + translatedTitle;
+        } else if (translatedTitle.contains("화성") || originalTitle.toLowerCase().contains("mars")) {
+            return "🔴 " + translatedTitle;
+        } else if (translatedTitle.contains("우주") || originalTitle.toLowerCase().contains("space")) {
+            return "🌌 " + translatedTitle;
+        } else if (translatedTitle.contains("블랙홀") || originalTitle.toLowerCase().contains("black hole")) {
+            return "⚫ " + translatedTitle;
+        } else {
+            return "✨ " + translatedTitle;
+        }
+    }
+    
+    private String translateTitle(String englishTitle) {
+        if (openaiApiKey == null || openaiApiKey.isEmpty()) {
+            return translateTitleBasic(englishTitle);
+        }
+        
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(openaiApiKey);
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "gpt-4o-mini");
+            requestBody.put("max_tokens", 100);
+            requestBody.put("temperature", 0.3);
+            
+            List<Map<String, String>> messages = Arrays.asList(
+                Map.of("role", "system", "content", 
+                    "당신은 전문 번역가입니다. YouTube 영상 제목을 자연스럽고 매력적인 한국어로 번역해주세요. 과학적 용어는 정확하게 번역하고, 제목만 반환해주세요."),
+                Map.of("role", "user", "content", 
+                    "다음 영어 제목을 한국어로 번역해주세요: " + englishTitle)
+            );
+            
+            requestBody.put("messages", messages);
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.postForObject(
+                "https://api.openai.com/v1/chat/completions", entity, Map.class);
+            
+            if (response != null && response.containsKey("choices")) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
+                if (!choices.isEmpty()) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                    String translated = (String) message.get("content");
+                    return translated.trim().replaceAll("^\"?", "").replaceAll("\"?$", "");
+                }
+            }
+        } catch (Exception e) {
+            log.error("OpenAI 번역 API 호출 실패", e);
+        }
+        
+        return translateTitleBasic(englishTitle);
+    }
+    
+    private String translateTitleBasic(String englishTitle) {
+        // 기본적인 단어 치환
+        String translated = englishTitle
+            .replaceAll("(?i)NASA", "NASA")
+            .replaceAll("(?i)Mars", "화성")
+            .replaceAll("(?i)Space", "우주")
+            .replaceAll("(?i)Black Hole", "블랙홀")
+            .replaceAll("(?i)Galaxy", "은하")
+            .replaceAll("(?i)Planet", "행성")
+            .replaceAll("(?i)Star", "별")
+            .replaceAll("(?i)Universe", "우주")
+            .replaceAll("(?i)Solar System", "태양계")
+            .replaceAll("(?i)Astronomy", "천문학")
+            .replaceAll("(?i)Documentary", "다큐멘터리")
+            .replaceAll("(?i)Telescope", "망원경")
+            .replaceAll("(?i)Satellite", "위성")
+            .replaceAll("(?i)Rocket", "로켓")
+            .replaceAll("(?i)SpaceX", "스페이스X");
+            
+        return translated.length() > 50 ? translated.substring(0, 50) + "..." : translated;
+    }
+    
+
     
     private String generateAISummary(String title, String description) {
         if (openaiApiKey == null || openaiApiKey.isEmpty()) {
@@ -226,10 +360,10 @@ public class CinemaService {
     
     private String generateMockSummary(String title) {
         String[] summaryTemplates = {
-            "🌌 이 영상은 %s에 대한 흥미진진한 탐험을 다룹니다. 최신 과학 연구와 놀라운 발견들을 통해 우주의 신비를 풀어나가는 여정을 함께해보세요. 🚀",
-            "⭐ %s의 세계로 떠나는 특별한 여행! 복잡한 우주 과학을 쉽고 재미있게 설명하여 누구나 이해할 수 있도록 구성되었습니다. 🔭",
-            "🪐 %s에 관한 최신 정보와 흥미로운 사실들을 담은 영상입니다. 우주의 광대함과 아름다움을 느낄 수 있는 시간이 될 것입니다. ✨",
-            "🌟 %s를 주제로 한 교육적이면서도 재미있는 콘텐츠입니다. 과학적 호기심을 자극하는 내용으로 가득 차 있어요! 🛸"
+            "%s에 대한 놀라운 사실들이 공개됩니다.\n최신 과학 연구 결과와 전문가들의 분석을 통해 우주의 신비를 파헤쳐봅니다.\n이 영상 하나로 당신의 우주관이 완전히 바뀔 것입니다.",
+            "%s의 세계로 떠나는 특별한 여행이 시작됩니다.\n복잡한 과학 이론을 쉽고 명확하게 설명하여 누구나 이해할 수 있습니다.\n우주 탐사 역사상 가장 흥미진진한 순간들을 만나보세요.",
+            "%s에 관한 최신 발견과 미래 전망을 다룹니다.\n NASA와 세계 각국의 우주기관이 밝혀낸 놀라운 진실들.\n과학적 호기심을 자극하는 고품질 콘텐츠입니다.",
+            "%s를 둘러싼 미스터리가 마침내 해결됩니다.\n전문가들도 놀란 새로운 관점과 통찰력을 제공합니다.\n우주의 광대함 앞에서 느끼는 경이로움을 함께 나누세요."
         };
         
         String template = summaryTemplates[new Random().nextInt(summaryTemplates.length)];

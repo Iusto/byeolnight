@@ -4,6 +4,7 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { sanitizeHtml } from '../utils/htmlSanitizer';
 
 interface FileDto {
   originalName: string;
@@ -164,8 +165,8 @@ export default function PostEdit() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    // ReactQuill에서 콘텐츠 가져오기
-    const finalContent = content;
+    // ReactQuill에서 콘텐츠 가져오기 및 보안 검증
+    const finalContent = sanitizeHtml(content);
     
     try {
       await axios.put(`/member/posts/${id}`, {
@@ -264,15 +265,21 @@ export default function PostEdit() {
                       [{ 'color': [] }, { 'background': [] }],
                       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                       [{ 'align': [] }],
-                      ['link', 'image'],
+                      ['link', 'image', 'video'],
                       ['clean']
                     ]
                   }}
+                  formats={[
+                    'header', 'bold', 'italic', 'underline', 'strike',
+                    'color', 'background', 'list', 'bullet', 'align',
+                    'link', 'image', 'video', 'iframe'
+                  ]}
                 />
               </div>
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
                 🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
-                🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!
+                🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
+                🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
               </div>
             </div>
             <div>
