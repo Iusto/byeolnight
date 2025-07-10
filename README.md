@@ -2,6 +2,21 @@
 
 > "기능만 되는 백엔드가 아닌, 운영 환경에서 살아남는 구조를 설계합니다."
 
+## 🎯 개발 철학: 겉모습보다 구조
+
+본 프로젝트는 화려한 UI보다는 **운영 환경에서 살아남는 백엔드 구조**를 만드는 데 집중했습니다.  
+React, TailwindCSS 등 프론트엔드는 도구로 사용되었고, 핵심은 다음과 같은 내부 설계에 있습니다:
+
+- **JWT + Redis 기반 보안 구조**: 무상태 서버 유지 + 효율적 토큰 관리
+- **예외/토큰/로그인 실패를 고려한 보안 정책**: 실제 운영 환경 대응
+- **S3 Presigned URL을 통한 파일 구조**: 서버 부하 분산 및 확장성
+- **WebSocket 기반의 실시간 채팅 및 알림 시스템**: 대용량 실시간 처리
+- **도메인 주도 설계(Domain-centric Layered Architecture)**: 유지보수성과 확장성
+
+**프론트엔드는 GPT의 도움을 받아 시각적으로 구성되었으며, 백엔드 설계와 구조화가 프로젝트의 중심입니다.**
+
+---
+
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
@@ -24,11 +39,15 @@
 
 - 🔐 **강화된 보안 시스템**: JWT + Redis 기반 토큰 관리, 단계별 로그인 실패 대응
 - 📱 **다중 인증 지원**: 이메일/SMS 인증을 통한 안전한 회원가입 (Gmail SMTP + CoolSMS)
-- 💬 **실시간 채팅**: WebSocket(STOMP) 기반 실시간 커뮤니케이션
-- 📁 **효율적 파일 관리**: AWS S3 Presigned URL을 활용한 직접 업로드
+- 💬 **실시간 채팅**: WebSocket(STOMP) 기반 실시간 커뮤니케이션  
+  > *선택 이유: HTTP 폴링 대비 성능 최적화, 대용량 동시 접속 지원, 양방향 통신*
+- 📁 **효율적 파일 관리**: AWS S3 Presigned URL을 활용한 직접 업로드  
+  > *선택 이유: 서버 부하 분산, 대용량 파일 처리 성능 최적화, 보안 정책 중앙화*
 - 👮 **관리자 시스템**: 사용자 관리, 콘텐츠 모더레이션, 로그 추적
-- 📰 **뉴스 수집 시스템**: NewsData.io API를 통한 우주 관련 뉴스 자동 수집
-- 🖼️ **이미지 검열 시스템**: Google Vision API 기반 이미지 콘텐츠 검증
+- 📰 **뉴스 수집 시스템**: NewsData.io API를 통한 우주 관련 뉴스 자동 수집  
+  > *선택 이유: 초기 웹 크롤링에서 API 방식으로 전환 - 안정성, 속도, 유지보수성 향상*
+- 🖼️ **이미지 검열 시스템**: Google Vision API 기반 이미지 콘텐츠 검증  
+  > *선택 이유: 초기 수작업 검증에서 운영 효율성과 자동화를 위해 Google Vision API 도입*
 - 💌 **쪽지 시스템**: 사용자 간 개인 메시지 기능
 - 🔔 **실시간 알림**: WebSocket 기반 즉시 알림 전달 (브라우저 네이티브 알림 지원)
 - 🏆 **인증서 시스템**: 사용자 활동 기반 성취 인증
@@ -140,7 +159,9 @@ src/
 
 ## 🔧 기술 스택
 
-### Backend
+> **핵심 역량**: 백엔드 아키텍처 설계 및 구현 (프론트엔드는 도구로 활용)
+
+### Backend (핵심 역량)
 - **Language**: Java 21 (LTS)
 - **Framework**: Spring Boot 3.2.4
 - **Security**: Spring Security + JWT
@@ -156,7 +177,7 @@ src/
 - **API Documentation**: Swagger (OpenAPI 3)
 - **Test**: JUnit 5, Mockito
 
-### Frontend
+### Frontend (도구로 활용)
 - **Framework**: React 18.3.1
 - **Build Tool**: Vite 6.3.5
 - **Language**: TypeScript 5.8.3
@@ -176,6 +197,11 @@ src/
 ---
 
 ## 🔐 보안 및 인증 시스템
+
+> **JWT + Redis 구조를 사용한 이유:**  
+> - 서버 무상태(stateless) 구조를 유지하면서도 Refresh Token 관리가 필요했기 때문  
+> - Redis에 Refresh Token을 저장하고, 블랙리스트 관리 및 계정 잠금 정책을 효율적으로 구현  
+> - 대용량 서비스에서 토큰 검증 성능 최적화
 
 > **보안 주의**: 실제 운영 환경에서는 모든 보안 설정을 강화하고 정기적인 보안 점검을 수행해야 합니다.
 
@@ -796,6 +822,8 @@ cd byeolnight
 ## 🙏 감사의 말
 
 이 프로젝트는 **"실제 운영 가능한 백엔드 시스템"**을 목표로 개발되었습니다. 단순한 기능 구현을 넘어서 보안, 성능, 확장성을 고려한 설계를 통해 실무에서 요구되는 역량을 기를 수 있었습니다.
+
+**프론트엔드는 GPT의 도움을 받아 감성적인 UI를 구성했으며, 저의 핵심 역량은 백엔드 아키텍처 설계와 시스템 구조화에 있습니다.**
 
 > "기능만 되는 코드가 아닌, 운영 환경에서 살아남는 구조를 만들어가는 개발자가 되겠습니다."
 

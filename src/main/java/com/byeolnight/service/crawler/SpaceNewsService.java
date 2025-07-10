@@ -2,7 +2,7 @@ package com.byeolnight.service.crawler;
 
 import com.byeolnight.domain.entity.News;
 import com.byeolnight.domain.repository.NewsRepository;
-import com.byeolnight.dto.ai.NewsDataResponseDto;
+import com.byeolnight.dto.ai.NewsApiResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,13 +19,13 @@ import java.util.List;
 public class SpaceNewsService {
     
     private final NewsRepository newsRepository;
-    private final NewsApiClient newsApiClient;
+    private final NewsDataService newsDataService;
     
     @Transactional
     public void collectAndSaveSpaceNews() {
-        log.info("우주 뉴스 수집 시작");
+        log.info("한국어 우주 뉴스 수집 시작");
         
-        NewsDataResponseDto response = newsApiClient.fetchSpaceNews();
+        NewsApiResponseDto response = newsDataService.fetchKoreanSpaceNews();
         if (response == null || response.getResults() == null) {
             log.warn("뉴스 데이터를 가져올 수 없습니다");
             return;
@@ -34,7 +34,7 @@ public class SpaceNewsService {
         List<News> savedNews = new ArrayList<>();
         int duplicateCount = 0;
         
-        for (NewsDataResponseDto.Result result : response.getResults()) {
+        for (NewsApiResponseDto.Result result : response.getResults()) {
             if (isDuplicateNews(result)) {
                 duplicateCount++;
                 log.debug("중복 뉴스 스킵: {}", result.getTitle());
@@ -47,15 +47,15 @@ public class SpaceNewsService {
             log.info("새 뉴스 저장: {}", saved.getTitle());
         }
         
-        log.info("우주 뉴스 수집 완료 - 저장: {}건, 중복 스킵: {}건", savedNews.size(), duplicateCount);
+        log.info("한국어 우주 뉴스 수집 완료 - 저장: {}건, 중복 스킵: {}건", savedNews.size(), duplicateCount);
     }
     
-    private boolean isDuplicateNews(NewsDataResponseDto.Result result) {
+    private boolean isDuplicateNews(NewsApiResponseDto.Result result) {
         return newsRepository.existsByTitle(result.getTitle()) || 
                newsRepository.existsByUrl(result.getLink());
     }
     
-    private News convertToNews(NewsDataResponseDto.Result result) {
+    private News convertToNews(NewsApiResponseDto.Result result) {
         return News.builder()
                 .title(result.getTitle())
                 .description(result.getDescription())
@@ -63,17 +63,23 @@ public class SpaceNewsService {
                 .url(result.getLink())
                 .publishedAt(parsePublishedAt(result.getPubDate()))
                 .hashtags(generateHashtags(result.getTitle(), result.getDescription()))
-                .source(result.getSourceId() != null ? result.getSourceId() : "Unknown")
+                .source(result.getSourceName() != null ? result.getSourceName() : "Unknown")
                 .summary("") // 현재는 비워둠
                 .build();
     }
     
     private LocalDateTime parsePublishedAt(String publishedAt) {
         try {
-            return LocalDateTime.parse(publishedAt, DateTimeFormatter.ISO_DATE_TIME);
+            // NewsData.io 날짜 형식: "2024-01-15 12:30:45"
+            return LocalDateTime.parse(publishedAt, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         } catch (Exception e) {
-            log.warn("발행일 파싱 실패: {}, 현재 시간으로 설정", publishedAt);
-            return LocalDateTime.now();
+            try {
+                // ISO 형식도 시도
+                return LocalDateTime.parse(publishedAt, DateTimeFormatter.ISO_DATE_TIME);
+            } catch (Exception ex) {
+                log.warn("발행일 파싱 실패: {}, 현재 시간으로 설정", publishedAt);
+                return LocalDateTime.now();
+            }
         }
     }
     

@@ -83,7 +83,7 @@ public class NewsBasedDiscussionService {
                 """, news.getTitle(), news.getDescription());
             
             Map<String, Object> requestBody = Map.of(
-                "model", "gpt-3.5-turbo",
+                "model", "gpt-4o-mini",
                 "messages", List.of(
                     Map.of("role", "user", "content", prompt)
                 ),

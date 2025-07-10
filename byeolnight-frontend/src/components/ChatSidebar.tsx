@@ -90,20 +90,28 @@ export default function ChatSidebar() {
           if (user) {
             client.subscribe(`/queue/user.${user.nickname}.ban`, (message) => {
               const banData = JSON.parse(message.body);
-              setBanStatus(banData);
+              console.log('WebSocket으로 받은 금지 알림:', banData);
               
               if (banData.banned) {
                 // 금지 종료 시간 계산
                 const endTime = new Date().getTime() + (banData.duration * 60 * 1000);
-                banData.bannedUntil = new Date(endTime).toISOString();
-                setBanStatus(banData);
-                setError(`채팅이 제한되었습니다.`);
+                const newBanStatus = {
+                  banned: true,
+                  reason: banData.reason,
+                  duration: banData.duration,
+                  bannedUntil: new Date(endTime).toISOString()
+                };
+                setBanStatus(newBanStatus);
+                setError(`채팅이 제한되었습니다: ${banData.reason}`);
               } else {
                 setError('');
                 setBanStatus(null);
                 setRemainingTime(0);
               }
             });
+            
+            // WebSocket 연결 후 즉시 금지 상태 확인
+            checkBanStatus();
           }
         },
         onStompError: (frame) => {
@@ -285,6 +293,8 @@ export default function ChatSidebar() {
       const response = await axios.get('/admin/chat/ban-status');
       const banData = response.data;
       
+      console.log('채팅 금지 상태 확인:', banData); // 디버깅용
+      
       if (banData.banned) {
         // 금지 종료 시간 설정
         setBanStatus({
@@ -296,9 +306,12 @@ export default function ChatSidebar() {
         setError(`채팅이 제한되었습니다.`);
       } else {
         setBanStatus(null);
+        setError('');
       }
     } catch (error) {
       console.error('채팅 금지 상태 확인 실패:', error);
+      // 에러가 발생해도 금지 상태는 초기화
+      setBanStatus(null);
     }
   };
 
@@ -313,11 +326,25 @@ export default function ChatSidebar() {
     // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
       checkBanStatus();
+      // 주기적으로 금지 상태 확인 (30초마다)
+      const statusInterval = setInterval(checkBanStatus, 30000);
+      return () => {
+        clearInterval(statusInterval);
+        if (stompClientRef.current) {
+          stompClientRef.current.deactivate();
+        }
+      };
     } else {
       setBanStatus(null);
     }
 
-    return () => stompClientRef.current?.deactivate();
+    return () => {
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
+    };
+
+    // cleanup은 위에서 처리됨
   }, [user]); // user 상태 변경 시 재실행
 
   // 관리자 권한 확인
@@ -512,17 +539,24 @@ export default function ChatSidebar() {
       </div>
 
       {/* 채팅 금지 상태 표시 */}
-      {banStatus?.banned && (
-        <div className="mb-2 p-3 bg-red-900/50 border border-red-500 rounded-lg">
+      {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) && (
+        <div className="mb-2 p-3 bg-red-900/50 border border-red-500 rounded-lg animate-pulse">
           <div className="text-red-300 text-sm font-semibold flex items-center justify-between">
             <span>🚫 채팅이 제한되었습니다</span>
-            <span className="text-orange-300 font-mono text-lg">
-              {formatTime(remainingTime)}
-            </span>
+            {remainingTime > 0 && (
+              <span className="text-orange-300 font-mono text-lg">
+                {formatTime(remainingTime)}
+              </span>
+            )}
           </div>
           <div className="text-red-200 text-xs mt-1">
-            사유: {banStatus.reason || '관리자에 의한 제재'}
+            사유: {banStatus?.reason || '관리자에 의한 제재'}
           </div>
+          {remainingTime > 0 && (
+            <div className="text-red-200 text-xs mt-1">
+              남은 시간: {Math.floor(remainingTime / 60)}분 {remainingTime % 60}초
+            </div>
+          )}
         </div>
       )}
 
@@ -531,26 +565,26 @@ export default function ChatSidebar() {
           <input
             type="text"
             className={`flex-1 px-3 py-2 rounded-l text-white placeholder-gray-400 ${
-              banStatus?.banned 
+              banStatus?.banned || bannedUsers.has(user?.nickname || '')
                 ? 'bg-red-900/30 border border-red-500 cursor-not-allowed' 
                 : 'bg-black/30'
             }`}
-            placeholder={banStatus?.banned ? `채팅정지당한 상태입니다` : '별빛처럼 속삭이세요...'}
+            placeholder={(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? `채팅정지당한 상태입니다` : '별빛처럼 속삭이세요...'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={connecting || !!error || banStatus?.banned}
+            disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
           />
           <button
             onClick={sendMessage}
             className={`px-4 rounded-r transition ${
-              banStatus?.banned
+              banStatus?.banned || bannedUsers.has(user?.nickname || '')
                 ? 'bg-red-600 cursor-not-allowed'
                 : 'bg-purple-600 hover:bg-purple-700'
             } text-white`}
-            disabled={connecting || !!error || banStatus?.banned}
+            disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
           >
-            {banStatus?.banned ? '금지됨' : '전송'}
+            {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? '금지됨' : '전송'}
           </button>
         </div>
       ) : (

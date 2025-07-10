@@ -187,9 +187,9 @@ public class CinemaService {
             headers.setBearerAuth(openaiApiKey);
             
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "gpt-3.5-turbo");
-            requestBody.put("max_tokens", 200);
-            requestBody.put("temperature", 0.7);
+            requestBody.put("model", "gpt-4o-mini");
+            requestBody.put("max_tokens", 150);  // 토큰 수 제한
+            requestBody.put("temperature", 0.5);  // 더 일관된 응답
             
             List<Map<String, String>> messages = Arrays.asList(
                 Map.of("role", "system", "content", 
