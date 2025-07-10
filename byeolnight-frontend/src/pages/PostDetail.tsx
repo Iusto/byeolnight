@@ -415,7 +415,9 @@ export default function PostDetail() {
           {/* 작성자 정보 */}
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <UserIconDisplay iconName={post.writerIcon} size="large" className="text-2xl" />
+              <div className="w-12 h-12 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
+                <UserIconDisplay iconName={post.writerIcon} size="large" className="text-2xl" />
+              </div>
               <div>
                 <ClickableNickname 
                   userId={post.writerId} 
@@ -656,7 +658,9 @@ export default function PostDetail() {
                 <div className="bg-[#2a2e45]/60 backdrop-blur-sm rounded-xl p-4 border border-purple-500/10 hover:border-purple-500/20 transition-all duration-200">
                   {/* 사용자 정보 */}
                   <div className="flex items-center gap-3 mb-3">
-                    <UserIconDisplay iconName={c.writerIcon} size="medium" className="text-lg" />
+                    <div className="w-8 h-8 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
+                      <UserIconDisplay iconName={c.writerIcon} size="medium" className="text-lg" />
+                    </div>
                     <div className="flex items-center gap-2 flex-1">
                       <ClickableNickname 
                         userId={c.writerId} 

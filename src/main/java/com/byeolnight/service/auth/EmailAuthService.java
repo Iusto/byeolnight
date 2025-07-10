@@ -31,7 +31,16 @@ public class EmailAuthService {
         // log.info("[📨 이메일 인증 코드 전송] email={}, code={}", email, code);
 
         String subject = "[별 헤는 밤] 이메일 인증 코드";
-        String body = "인증 코드는: " + code;
+        String body = """
+        [별 헤는 밤] 이메일 인증코드 안내
+        
+        안녕하세요. '별 헤는 밤'입니다.
+        아래 인증코드를 입력해 회원가입을 완료해주세요.
+        
+        🔐 인증번호: %s
+        
+        감사합니다.
+        """.formatted(code);
         gmailEmailService.send(email, subject, body);
     }
 

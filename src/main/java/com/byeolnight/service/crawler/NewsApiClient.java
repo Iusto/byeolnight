@@ -11,10 +11,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 public class NewsApiClient {
     
-    @Value("${news.api.key}")
+    @Value("${newsdata.api.key}")
     private String apiKey;
     
-    @Value("${news.api.url:https://newsdata.io/api/1/news}")
+    @Value("${newsdata.api.url:https://newsdata.io/api/1/news}")
     private String apiUrl;
     
     private final RestTemplate restTemplate;

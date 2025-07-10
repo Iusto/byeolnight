@@ -10,23 +10,35 @@ public class NewsApiResponseDto {
     
     private String status;
     private int totalResults;
-    private List<Article> articles;
+    private String nextPage;
+    private List<Result> results;
     
     @Data
-    public static class Article {
-        private Source source;
-        private String author;
+    public static class Result {
+        @JsonProperty("article_id")
+        private String articleId;
+        
         private String title;
+        private String link;
+        private List<String> keywords;
+        private List<String> creator;
         private String description;
-        private String url;
-        private String urlToImage;
-        private String publishedAt;
         private String content;
-    }
-    
-    @Data
-    public static class Source {
-        private String id;
-        private String name;
+        
+        @JsonProperty("pubDate")
+        private String pubDate;
+        
+        @JsonProperty("image_url")
+        private String imageUrl;
+        
+        @JsonProperty("source_id")
+        private String sourceId;
+        
+        @JsonProperty("source_name")
+        private String sourceName;
+        
+        private List<String> country;
+        private List<String> category;
+        private String language;
     }
 }

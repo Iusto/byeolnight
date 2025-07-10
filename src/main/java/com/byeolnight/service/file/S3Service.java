@@ -24,6 +24,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class S3Service {
+    
+    private final GoogleVisionService googleVisionService;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
@@ -78,7 +80,7 @@ public class S3Service {
             result.put("s3Key", s3Key);
             result.put("originalName", originalFilename);
 
-            log.info("Presigned URL 생성 완료: {}", s3Key);
+            log.info("Presigned URL 생성 완료: {} (Google Vision API 검열 준비됨)", s3Key);
             return result;
 
         } catch (Exception e) {
@@ -151,6 +153,20 @@ public class S3Service {
             return "image/webp";
         }
         return "application/octet-stream";
+    }
+    
+    /**
+     * 업로드된 이미지 검열 (Google Vision API)
+     */
+    public boolean validateUploadedImage(byte[] imageBytes) {
+        try {
+            boolean isSafe = googleVisionService.isImageSafe(imageBytes);
+            log.info("이미지 검열 결과: {}", isSafe ? "안전" : "부적절");
+            return isSafe;
+        } catch (Exception e) {
+            log.error("이미지 검열 중 오류 발생", e);
+            return true; // 오류 시 기본적으로 허용
+        }
     }
     
     /**

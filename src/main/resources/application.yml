@@ -73,10 +73,10 @@ app:
     refresh-token-validity: 7d
 
 # 뉴스 API 설정 (NewsData.io)
-news:
+newsdata:
   api:
-    key: ${NEWS_API_KEY:your-newsdata-io-key-here}
-    url: ${NEWS_API_URL:https://newsdata.io/api/1/news}
+    key: ${NEWSDATA_API_KEY:pub_3f5037199ae44a6b91c8bbee100fb76b}
+    url: ${NEWSDATA_API_URL:https://newsdata.io/api/1/news}
 
 # OpenAI API 설정
 openai:
