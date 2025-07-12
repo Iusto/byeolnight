@@ -6,92 +6,75 @@ set -e
 
 echo "🚀 byeolnight.com 프로덕션 배포를 시작합니다..."
 
-# 1. 기존 서비스 중지
-echo "🛑 기존 서비스를 중지합니다..."
-docker-compose down 2>/dev/null || true
-
-# 2. 최신 코드 빌드
-echo "🔨 최신 코드를 빌드합니다..."
-cd ..
-./gradlew clean build -x test
-
-# 3. SSL 인증서 확인 및 발급
-echo "🔐 SSL 인증서를 확인합니다..."
-if [ ! -f "/etc/letsencrypt/live/byeolnight.com/fullchain.pem" ]; then
-    echo "📋 SSL 인증서를 발급받습니다..."
-    
-    # 임시 HTTP 서버 시작
-    docker run -d --name temp-nginx \
-        -p 80:80 \
-        -v /var/www/certbot:/var/www/certbot \
-        nginx:alpine
-    
-    # 임시 Nginx 설정
-    docker exec temp-nginx sh -c 'cat > /etc/nginx/conf.d/default.conf << EOF
-server {
-    listen 80;
-    server_name byeolnight.com www.byeolnight.com;
-    
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-    
-    location / {
-        return 200 "OK";
-        add_header Content-Type text/plain;
-    }
-}
-EOF'
-    
-    docker exec temp-nginx nginx -s reload
-    
-    # SSL 인증서 발급
-    docker run --rm \
-        -v /etc/letsencrypt:/etc/letsencrypt \
-        -v /var/www/certbot:/var/www/certbot \
-        certbot/certbot certonly \
-        --webroot \
-        --webroot-path=/var/www/certbot \
-        --email iusto@naver.com \
-        --agree-tos \
-        --no-eff-email \
-        -d byeolnight.com \
-        -d www.byeolnight.com
-    
-    # 임시 서버 정리
-    docker stop temp-nginx
-    docker rm temp-nginx
-    
-    echo "✅ SSL 인증서 발급 완료!"
-else
-    echo "✅ SSL 인증서가 이미 존재합니다."
+# 1. 기존 서비스 완전 정리
+echo "🛑 기존 서비스를 완전히 정리합니다..."
+# deploy 디렉토리에서 실행되므로 상위 디렉토리로 이동
+if [[ $(basename $(pwd)) == "deploy" ]]; then
+    cd ..
 fi
+
+# 모든 컴테이너 중지 및 제거
+docker compose down 2>/dev/null || true
+docker stop $(docker ps -aq) 2>/dev/null || true
+docker rm $(docker ps -aq) 2>/dev/null || true
+
+echo "✅ 기존 컴테이너 정리 완료"
+
+# 2. 코드 빌드
+echo "🔨 코드를 빌드합니다..."
+
+if [ -f "gradlew" ]; then
+    chmod +x gradlew
+    ./gradlew build -x test
+    echo "✅ Gradle 빌드 완료"
+else
+    echo "⚠️ gradlew 파일이 없습니다. Docker 빌드로 진행합니다."
+fi
+
+# 3. DNS 설정 확인
+echo "🌐 DNS 설정을 확인합니다..."
+echo "⚠️ byeolnight.com 도메인이 이 서버 IP로 연결되어 있는지 확인하세요."
+echo "📍 현재 서버 IP: $(curl -s ifconfig.me)"
+echo "🔍 DNS 확인: nslookup byeolnight.com"
+echo "🚀 우선 HTTP로 배포합니다. DNS 설정 후 SSL을 추가하세요."
 
 # 4. 프로덕션 서비스 시작
 echo "🚀 프로덕션 서비스를 시작합니다..."
-docker-compose up --build -d
+echo "📍 현재 디렉토리: $(pwd)"
+echo "📁 파일 목록:"
+ls -la | head -10
+
+if [ -f "docker-compose.yml" ]; then
+    echo "✅ docker-compose.yml 파일을 찾았습니다."
+    docker compose up --build -d
+else
+    echo "❌ docker-compose.yml 파일을 찾을 수 없습니다."
+    echo "🔍 파일 검색:"
+    find . -name "docker-compose*.yml" -type f 2>/dev/null || echo "파일을 찾을 수 없습니다."
+    exit 1
+fi
 
 # 5. 서비스 상태 확인
 echo "⏳ 서비스 시작을 기다립니다..."
 sleep 30
 
 echo "📊 서비스 상태를 확인합니다..."
-docker-compose ps
+docker compose ps
 
 # 6. 헬스체크
 echo "🏥 헬스체크를 수행합니다..."
-if curl -f -s https://byeolnight.com/api/public/posts > /dev/null; then
+SERVER_IP=$(curl -s ifconfig.me)
+if curl -f -s http://$SERVER_IP/api/public/posts > /dev/null 2>&1; then
     echo "✅ 서비스가 정상적으로 실행 중입니다!"
-    echo "🌐 https://byeolnight.com 으로 접속하세요."
+    echo "🌐 http://$SERVER_IP 또는 http://byeolnight.com 으로 접속하세요."
 else
-    echo "❌ 서비스 헬스체크 실패. 로그를 확인하세요."
-    docker-compose logs app
-    exit 1
+    echo "⚠️ 헬스체크 실패. 서비스가 아직 시작 중일 수 있습니다."
+    echo "📋 로그를 확인하세요: docker compose logs app"
 fi
 
-# 7. 인증서 자동 갱신 설정
-echo "🔄 SSL 인증서 자동 갱신을 설정합니다..."
-(crontab -l 2>/dev/null | grep -v "certbot renew"; echo "0 12 * * * cd $(pwd) && docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -v /var/www/certbot:/var/www/certbot certbot/certbot renew --quiet && docker-compose restart nginx") | crontab -
-
-echo "🎉 배포가 완료되었습니다!"
-echo "📅 SSL 인증서는 매일 12시에 자동으로 갱신됩니다."
+echo "🎉 HTTP 배포가 완료되었습니다!"
+echo ""
+echo "📝 다음 단계:"
+echo "1. byeolnight.com DNS A 레코드를 $(curl -s ifconfig.me)로 설정"
+echo "2. DNS 전파 후 SSL 인증서 발급: ./deploy/add-ssl.sh"
+echo "3. 접속 테스트: http://byeolnight.com"
