@@ -13,15 +13,15 @@ import java.util.List;
 public interface DeleteLogRepository extends JpaRepository<DeleteLog, Long> {
     
     // 특정 대상의 삭제 로그 조회
-    List<DeleteLog> findByTargetIdAndTargetTypeOrderByDeletedAtDesc(Long targetId, DeleteLog.TargetType targetType);
+    List<DeleteLog> findByTargetIdAndTargetTypeOrderByCreatedAtDesc(Long targetId, DeleteLog.TargetType targetType);
     
     // 관리자용 로그 조회 (페이징)
-    Page<DeleteLog> findAllByOrderByDeletedAtDesc(Pageable pageable);
+    Page<DeleteLog> findAllByOrderByCreatedAtDesc(Pageable pageable);
     
     // 특정 타입별 삭제 로그 조회 (페이징)
-    Page<DeleteLog> findByTargetTypeOrderByDeletedAtDesc(DeleteLog.TargetType targetType, Pageable pageable);
+    Page<DeleteLog> findByTargetTypeOrderByCreatedAtDesc(DeleteLog.TargetType targetType, Pageable pageable);
     
     // 특정 기간 내 삭제 로그 조회
-    @Query("SELECT d FROM DeleteLog d WHERE d.deletedAt BETWEEN :startDate AND :endDate ORDER BY d.deletedAt DESC")
-    List<DeleteLog> findByDeletedAtBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    @Query("SELECT d FROM DeleteLog d WHERE d.createdAt BETWEEN :startDate AND :endDate ORDER BY d.createdAt DESC")
+    List<DeleteLog> findByCreatedAtBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }

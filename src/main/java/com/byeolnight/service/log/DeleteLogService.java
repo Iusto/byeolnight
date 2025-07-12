@@ -36,11 +36,11 @@ public class DeleteLogService {
     }
 
     public Page<DeleteLog> getAllDeleteLogs(Pageable pageable) {
-        return deleteLogRepository.findAllByOrderByDeletedAtDesc(pageable);
+        return deleteLogRepository.findAllByOrderByCreatedAtDesc(pageable);
     }
 
     public Page<DeleteLog> getDeleteLogsByType(DeleteLog.TargetType targetType, Pageable pageable) {
-        return deleteLogRepository.findByTargetTypeOrderByDeletedAtDesc(targetType, pageable);
+        return deleteLogRepository.findByTargetTypeOrderByCreatedAtDesc(targetType, pageable);
     }
 
     private String maskSensitiveInfo(String content) {

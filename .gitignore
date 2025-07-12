@@ -194,8 +194,15 @@ deploy/staging.env
 deploy/secrets/
 ssl/
 certs/
+nginx/ssl/
 *.crt
 *.csr
+*.pem
+*.key
+
+# Let's Encrypt 인증서
+/etc/letsencrypt/
+/var/www/certbot/
 
 # 배포 로그
 deploy/logs/
