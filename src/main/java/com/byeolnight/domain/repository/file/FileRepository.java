@@ -1,4 +1,4 @@
-package com.byeolnight.domain.repository.post;
+package com.byeolnight.domain.repository.file;
 
 import com.byeolnight.domain.entity.file.File;
 import com.byeolnight.domain.entity.post.Post;
