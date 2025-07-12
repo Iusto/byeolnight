@@ -1,12 +1,29 @@
-# 🚀 배포 가이드
+# 🚀 byeolnight.com 배포 가이드
+
+## ⚡ 빠른 배포
+
+### 🌐 **프로덕션 배포 (HTTPS 포함)**
+```bash
+cd deploy
+chmod +x deploy-production.sh
+./deploy-production.sh
+```
+
+### 🏠 **로컬 개발 환경**
+```bash
+cd deploy
+chmod +x run-local.bat
+./run-local.bat
+```
+
+---
 
 ## 📋 배포 전 체크리스트
 
 ### 1. 환경 설정
 - [ ] `.env` 파일 생성 및 설정
+- [ ] byeolnight.com 도메인 DNS 설정
 - [ ] AWS 계정 및 키 설정
-- [ ] 도메인 설정 (선택사항)
-- [ ] SSL 인증서 설정 (선택사항)
 
 ### 2. AWS 리소스 준비
 - [ ] EC2 인스턴스 생성 (t3.medium 이상 권장)

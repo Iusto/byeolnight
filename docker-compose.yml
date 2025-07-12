@@ -1,10 +1,29 @@
-# Docker Compose 설정 파일
+# Docker Compose 설정 파일 (HTTPS 지원)
 
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      - app
+      - frontend
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    profiles: ["cert"]
+
   app:
     build: .
-    ports:
-      - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -44,8 +63,6 @@ services:
 
   frontend:
     build: ./byeolnight-frontend
-    ports:
-      - "80:80"
     depends_on:
       - app
     restart: unless-stopped
