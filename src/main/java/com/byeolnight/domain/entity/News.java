@@ -46,6 +46,7 @@ public class News {
     private String source;
     
     @Column(name = "used_for_discussion")
+    @Builder.Default
     private boolean usedForDiscussion = false;
     
     @CreationTimestamp
