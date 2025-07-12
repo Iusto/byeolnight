@@ -2,6 +2,11 @@
 export function parseMarkdown(text: string): string {
   if (!text) return '';
   
+  // HTML 태그가 이미 있는 경우 그대로 반환 (iframe 등)
+  if (text.includes('<iframe') || text.includes('<div')) {
+    return text;
+  }
+  
   let html = text
     // 이미지: ![alt](url)
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-lg" />')

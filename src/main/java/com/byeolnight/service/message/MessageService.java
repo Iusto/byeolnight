@@ -7,6 +7,8 @@ import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.message.MessageDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.notification.NotificationService;
+import com.byeolnight.service.log.DeleteLogService;
+import com.byeolnight.domain.entity.log.DeleteLog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final DeleteLogService deleteLogService;
 
     // 쪽지 전송
     @Transactional
@@ -107,7 +110,16 @@ public class MessageService {
             message.markAsRead();
         }
 
-        return MessageDto.Response.from(message);
+        MessageDto.Response response = MessageDto.Response.from(message);
+        
+        // 탈퇴한 회원 처리
+        if (message.getSender().getStatus() == User.UserStatus.WITHDRAWN) {
+            response = response.toBuilder()
+                .senderNickname("탈퇴한 사용자")
+                .build();
+        }
+        
+        return response;
     }
 
     // 읽지 않은 쪽지 개수
@@ -124,17 +136,31 @@ public class MessageService {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new NotFoundException("쪽지를 찾을 수 없습니다."));
 
+        String deleteReason = "";
+        
         // 발신자가 삭제하는 경우
         if (message.getSender().getId().equals(userId)) {
             message.deleteBySender();
+            deleteReason = "발신자 삭제";
         }
         // 수신자가 삭제하는 경우
         else if (message.getReceiver().getId().equals(userId)) {
             message.deleteByReceiver();
+            deleteReason = "수신자 삭제";
         }
         else {
             throw new NotFoundException("쪽지를 찾을 수 없습니다.");
         }
+        
+        // 삭제 로그 기록
+        deleteLogService.logDeletion(
+            messageId,
+            DeleteLog.TargetType.MESSAGE,
+            DeleteLog.ActionType.SOFT_DELETE,
+            userId,
+            deleteReason,
+            message.getTitle() + ": " + message.getContent()
+        );
 
         // 양쪽 모두 삭제한 경우 실제 삭제
         if (message.getSenderDeleted() && message.getReceiverDeleted()) {

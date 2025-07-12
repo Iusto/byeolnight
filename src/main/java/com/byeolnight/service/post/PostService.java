@@ -15,6 +15,8 @@ import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.file.S3Service;
 import com.byeolnight.service.user.PointService;
+import com.byeolnight.service.log.DeleteLogService;
+import com.byeolnight.domain.entity.log.DeleteLog;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -38,6 +40,7 @@ public class PostService {
     private final PointService pointService;
     private final com.byeolnight.domain.repository.CommentRepository commentRepository;
     private final com.byeolnight.service.notification.NotificationService notificationService;
+    private final DeleteLogService deleteLogService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
@@ -264,6 +267,16 @@ public class PostService {
 
         validateAdminCategoryWrite(post.getCategory(), user);
 
+        // 삭제 로그 기록
+        deleteLogService.logDeletion(
+            postId,
+            DeleteLog.TargetType.POST,
+            DeleteLog.ActionType.SOFT_DELETE,
+            user.getId(),
+            "사용자 삭제",
+            post.getTitle() + ": " + post.getContent()
+        );
+
         List<File> files = fileRepository.findAllByPost(post);
         files.forEach(file -> s3Service.deleteObject(file.getS3Key()));
         fileRepository.deleteAllByPost(post);
@@ -319,6 +332,17 @@ public class PostService {
     public void blindPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        
+        // 블라인드 로그 기록
+        deleteLogService.logDeletion(
+            postId,
+            DeleteLog.TargetType.POST,
+            DeleteLog.ActionType.BLIND,
+            null, // 시스템 블라인드
+            "신고로 인한 블라인드",
+            post.getTitle() + ": " + post.getContent()
+        );
+        
         post.blind();
         pointService.applyPenalty(post.getWriter(), "게시글 블라인드 처리", postId.toString());
     }
@@ -327,6 +351,17 @@ public class PostService {
     public void blindPostByAdmin(Long postId, Long adminId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        
+        // 관리자 블라인드 로그 기록
+        deleteLogService.logDeletion(
+            postId,
+            DeleteLog.TargetType.POST,
+            DeleteLog.ActionType.BLIND,
+            adminId,
+            "관리자 직접 블라인드",
+            post.getTitle() + ": " + post.getContent()
+        );
+        
         post.blindByAdmin(adminId);
         postRepository.save(post);
         System.out.println("관리자 블라인드 처리: postId=" + postId + ", blindType=" + post.getBlindType());
@@ -344,6 +379,16 @@ public class PostService {
     public void deletePostPermanently(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        
+        // 영구 삭제 로그 기록
+        deleteLogService.logDeletion(
+            postId,
+            DeleteLog.TargetType.POST,
+            DeleteLog.ActionType.PERMANENT_DELETE,
+            null, // 시스템 삭제
+            "영구 삭제",
+            post.getTitle() + ": " + post.getContent()
+        );
         
         pointService.applyPenalty(post.getWriter(), "게시글 삭제", postId.toString());
         
@@ -461,6 +506,17 @@ public class PostService {
     public void blindComment(Long commentId) {
         com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
+        
+        // 댓글 블라인드 로그 기록
+        deleteLogService.logDeletion(
+            commentId,
+            DeleteLog.TargetType.COMMENT,
+            DeleteLog.ActionType.BLIND,
+            null, // 시스템 블라인드
+            "관리자 블라인드",
+            comment.getContent()
+        );
+        
         comment.blind();
         pointService.applyPenalty(comment.getWriter(), "댓글 블라인드 처리", commentId.toString());
     }

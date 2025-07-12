@@ -266,6 +266,45 @@ export default function PostCreate() {
                   ]}
                 />
               </div>
+              
+              {/* YouTube 영상 미리보기 */}
+              {content.includes('iframe') && content.includes('youtube.com') && (
+                <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                  <h3 className="text-sm font-medium text-gray-300 mb-3">🎬 YouTube 영상 미리보기:</h3>
+                  <div 
+                    className="prose prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ 
+                      __html: content.replace(
+                        /<iframe[^>]*src="https:\/\/www\.youtube\.com\/embed\/([^"?]+)[^"]*"[^>]*>.*?<\/iframe>/gi,
+                        (match, videoId) => {
+                          const cleanVideoId = videoId.split('?')[0].split('&')[0];
+                          return `
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border: 2px solid #8b5cf6;">
+                              <div style="color: #fbbf24; font-size: 16px; margin-bottom: 10px; font-weight: bold;">🎬 YouTube 영상</div>
+                              <div style="position: relative; display: inline-block; border-radius: 8px; overflow: hidden;">
+                                <img src="https://img.youtube.com/vi/${cleanVideoId}/maxresdefault.jpg" 
+                                     style="width: 100%; max-width: 400px; height: auto; cursor: pointer;"
+                                     onclick="window.open('https://www.youtube.com/watch?v=${cleanVideoId}', '_blank');" 
+                                     alt="YouTube 영상 썸네일" />
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,0,0,0.9); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="window.open('https://www.youtube.com/watch?v=${cleanVideoId}', '_blank')">
+                                  <div style="color: white; font-size: 20px; margin-left: 3px;">▶</div>
+                                </div>
+                              </div>
+                              <div style="margin-top: 10px;">
+                                <a href="https://www.youtube.com/watch?v=${cleanVideoId}" 
+                                   target="_blank" 
+                                   style="display: inline-block; background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px;">
+                                  🎥 YouTube에서 시청
+                                </a>
+                              </div>
+                            </div>
+                          `;
+                        }
+                      )
+                    }}
+                  />
+                </div>
+              )}
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
                 🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
                 🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>

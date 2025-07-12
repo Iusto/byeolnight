@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { parseMarkdown } from '../utils/markdown';
-import { sanitizeHtml } from '../utils/htmlSanitizer';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import ClickableNickname from '../components/ClickableNickname';
 import UserIconDisplay from '../components/UserIconDisplay';
 
@@ -57,6 +58,46 @@ export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // iframe 렌더링을 위한 전역 CSS 스타일 추가
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .youtube-content iframe {
+        width: 100% !important;
+        min-height: 400px !important;
+        border: none !important;
+        border-radius: 12px !important;
+        display: block !important;
+        visibility: visible !important;
+        background: #000 !important;
+      }
+      .youtube-content .video-container {
+        position: relative !important;
+        width: 100% !important;
+        padding-bottom: 56.25% !important;
+        height: 0 !important;
+        margin: 20px 0 !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+      }
+      .youtube-content .video-container iframe {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: unset !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
 
   // ID 유효성 검사
   if (!id || isNaN(Number(id))) {
@@ -378,9 +419,32 @@ export default function PostDetail() {
     fetchComments();
     setLoading(false);
     
-    // iframe 지원 여부 체크
-    checkIframeSupport();
+    // iframe 지원 여부 체크 (개발용)
+    if (process.env.NODE_ENV === 'development') {
+      checkIframeSupport();
+    }
   }, [id]);
+  
+  // iframe 로딩 보장
+  useEffect(() => {
+    if (post) {
+      const timer = setTimeout(() => {
+        const iframes = document.querySelectorAll('iframe[src*="youtube.com"]');
+        iframes.forEach((iframe) => {
+          if (!iframe.getAttribute('data-loaded')) {
+            iframe.setAttribute('data-loaded', 'true');
+            // iframe 재로드
+            const src = iframe.getAttribute('src');
+            if (src) {
+              iframe.setAttribute('src', src);
+            }
+          }
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [post]);
   
   const checkIframeSupport = () => {
     try {
@@ -418,35 +482,9 @@ export default function PostDetail() {
     }
   };
   
-  // iframe을 YouTube 링크로 변환하는 함수
+  // iframe을 실제 YouTube 플레이어로 렌더링하는 함수
   const processIframeContent = (content: string) => {
-    if (iframeSupported === false) {
-      // iframe을 YouTube 링크로 변환
-      return content.replace(
-        /<iframe[^>]*src="https:\/\/www\.youtube\.com\/embed\/([^"]+)"[^>]*>.*?<\/iframe>/gi,
-        (match, videoId) => {
-          return `
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; border: 2px solid #8b5cf6;">
-              <div style="color: #fbbf24; font-size: 18px; margin-bottom: 10px;">🎬 YouTube 영상</div>
-              <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" 
-                   style="width: 100%; max-width: 560px; height: auto; border-radius: 8px; margin-bottom: 15px; cursor: pointer;"
-                   onclick="window.open('https://www.youtube.com/watch?v=${videoId}', '_blank')"
-                   alt="YouTube 영상 썸네일" />
-              <div>
-                <a href="https://www.youtube.com/watch?v=${videoId}" 
-                   target="_blank" 
-                   style="display: inline-block; background: #ef4444; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: all 0.3s;">
-                  🎥 YouTube에서 시청하기
-                </a>
-              </div>
-              <div style="color: #d1d5db; font-size: 12px; margin-top: 10px;">
-                ⚠️ 브라우저 보안 정책으로 인해 iframe이 차단되었습니다
-              </div>
-            </div>
-          `;
-        }
-      );
-    }
+    // 이미 완성된 iframe은 그대로 유지
     return content;
   };
 
@@ -545,18 +583,13 @@ export default function PostDetail() {
         <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
           {/* 게시글 내용 */}
           <div className="mb-8">
-            <div 
-              className="prose prose-invert prose-lg max-w-none text-gray-100 leading-relaxed"
-              dangerouslySetInnerHTML={{ 
-                __html: sanitizeHtml(
-                  processIframeContent(
-                    parseMarkdown(
-                      post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')
-                    )
-                  )
-                )
-              }}
-            />
+            <div className="prose prose-lg max-w-none dark:prose-invert youtube-content">
+              <ReactMarkdown
+                children={post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')}
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              />
+            </div>
             
             {/* iframe 지원 상태 표시 (개발용) */}
             {process.env.NODE_ENV === 'development' && iframeSupported !== null && (
