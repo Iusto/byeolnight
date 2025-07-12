@@ -1,7 +1,7 @@
 package com.byeolnight.service.log;
 
 import com.byeolnight.domain.entity.log.DeleteLog;
-import com.byeolnight.domain.repository.DeleteLogRepository;
+import com.byeolnight.domain.repository.log.DeleteLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

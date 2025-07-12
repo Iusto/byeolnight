@@ -1,6 +1,6 @@
 package com.byeolnight.domain.entity.log;
 
-import com.byeolnight.domain.entity.common.BaseEntity;
+import com.byeolnight.domain.entity.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DeleteLog extends BaseEntity {
+public class DeleteLog extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

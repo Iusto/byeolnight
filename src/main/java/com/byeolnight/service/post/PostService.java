@@ -5,7 +5,7 @@ import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.post.Post.Category;
 import com.byeolnight.domain.entity.post.PostLike;
 import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.post.FileRepository;
+import com.byeolnight.domain.repository.file.FileRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.domain.repository.post.PostLikeRepository;

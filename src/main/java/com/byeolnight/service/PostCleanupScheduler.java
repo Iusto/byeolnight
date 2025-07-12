@@ -2,7 +2,7 @@ package com.byeolnight.service;
 
 import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.post.FileRepository;
+import com.byeolnight.domain.repository.file.FileRepository;
 import com.byeolnight.service.file.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
