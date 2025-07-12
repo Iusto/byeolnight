@@ -6,11 +6,15 @@ echo "🏥 서비스 헬스체크 시작..."
 echo "🔍 백엔드 서비스 확인..."
 if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
     echo "✅ 백엔드: 정상"
-    curl -s http://localhost:8080/actuator/health | jq .
+    if command -v jq &> /dev/null; then
+        curl -s http://localhost:8080/actuator/health | jq .
+    else
+        curl -s http://localhost:8080/actuator/health
+    fi
 else
     echo "❌ 백엔드: 응답 없음"
     echo "📋 백엔드 로그:"
-    docker-compose logs --tail=10 backend
+    docker-compose logs --tail=10 app
 fi
 
 echo ""
