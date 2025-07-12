@@ -16,15 +16,19 @@
 
 ## 🛠️ 배포 단계
 
-### 1단계: EC2 초기 설정
+### 1단계: Ubuntu 서버 초기 설정
 ```bash
-# EC2 인스턴스에 접속 후
-chmod +x deploy/ec2-setup.sh
-./deploy/ec2-setup.sh
+# Ubuntu EC2 인스턴스에 접속 후
+chmod +x deploy/ubuntu-setup.sh
+./deploy/ubuntu-setup.sh
 
 # 재로그인 필요 (Docker 그룹 적용)
 exit
-ssh -i your-key.pem ec2-user@your-ec2-ip
+ssh -i your-key.pem ubuntu@your-ec2-ip
+
+# Docker 작동 확인
+docker --version
+docker compose version
 ```
 
 ### 2단계: 프로젝트 배포
@@ -98,16 +102,17 @@ free -h
 
 ### 방화벽 설정
 ```bash
-# 필요한 포트만 열기
-sudo firewall-cmd --permanent --add-port=80/tcp
-sudo firewall-cmd --permanent --add-port=443/tcp
-sudo firewall-cmd --permanent --add-port=8080/tcp
-sudo firewall-cmd --reload
+# 필요한 포트만 열기 (Ubuntu UFW)
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 8080/tcp
+sudo ufw --force enable
 ```
 
 ### SSL 인증서 설정 (Let's Encrypt)
 ```bash
-sudo yum install -y certbot
+sudo apt install -y certbot
 sudo certbot certonly --standalone -d your-domain.com
 ```
 
