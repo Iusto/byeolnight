@@ -2,7 +2,7 @@ package com.byeolnight.service.crawler;
 
 import com.byeolnight.domain.entity.News;
 import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.post.PostCategory;
+import com.byeolnight.domain.entity.post.Post.Category;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.NewsRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
@@ -75,17 +75,52 @@ public class SpaceNewsService {
     
     private Post convertToPost(NewsApiResponseDto.Result result, User writer) {
         String content = formatNewsContent(result);
+        String title = translateTitleIfNeeded(result.getTitle());
+        
+        // 제목 길이 제한 (100자)
+        if (title.length() > 100) {
+            title = title.substring(0, 97) + "...";
+        }
         
         return Post.builder()
-                .title(result.getTitle())
+                .title(title)
                 .content(content)
-                .category(PostCategory.NEWS)
+                .category(Category.NEWS)
                 .writer(writer)
                 .build();
     }
     
+    private String translateTitleIfNeeded(String title) {
+        // 영어 제목인 경우 간단한 번역 처리
+        if (isEnglishTitle(title)) {
+            return "[해외뉴스] " + title;
+        }
+        return title;
+    }
+    
+    private boolean isEnglishTitle(String title) {
+        // 영어 문자가 한국어 문자보다 많으면 영어 제목으로 판단
+        int englishCount = 0;
+        int koreanCount = 0;
+        
+        for (char c : title.toCharArray()) {
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+                englishCount++;
+            } else if (c >= '가' && c <= '힣') {
+                koreanCount++;
+            }
+        }
+        
+        return englishCount > koreanCount;
+    }
+    
     private String formatNewsContent(NewsApiResponseDto.Result result) {
         StringBuilder content = new StringBuilder();
+        
+        // 뉴스 이미지 (있는 경우)
+        if (result.getImageUrl() != null && !result.getImageUrl().trim().isEmpty()) {
+            content.append("![뉴스 이미지](").append(result.getImageUrl()).append(")\n\n");
+        }
         
         // 뉴스 요약
         if (result.getDescription() != null && !result.getDescription().trim().isEmpty()) {
@@ -129,8 +164,10 @@ public class SpaceNewsService {
     }
     
     private News convertToNews(NewsApiResponseDto.Result result) {
+        String title = translateTitleIfNeeded(result.getTitle());
+        
         return News.builder()
-                .title(result.getTitle())
+                .title(title)
                 .description(result.getDescription())
                 .imageUrl(result.getImageUrl() != null ? result.getImageUrl() : getDefaultSpaceImage())
                 .url(result.getLink())

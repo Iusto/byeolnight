@@ -26,7 +26,15 @@ public class AdminCinemaController {
     public ResponseEntity<CommonResponse<String>> generateCinemaPost(
             @AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
     ) {
-        cinemaService.createCinemaPostManually(admin);
-        return ResponseEntity.ok(CommonResponse.success("별빛 시네마 포스트가 성공적으로 생성되었습니다."));
+        try {
+            if (admin == null) {
+                throw new IllegalArgumentException("관리자 정보가 없습니다.");
+            }
+            cinemaService.createCinemaPostManually(admin);
+            return ResponseEntity.ok(CommonResponse.success("별빛 시네마 포스트가 성공적으로 생성되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(CommonResponse.error("별빛 시네마 포스트 생성 실패: " + e.getMessage()));
+        }
     }
 }

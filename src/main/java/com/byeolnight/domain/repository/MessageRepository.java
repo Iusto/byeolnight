@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
@@ -27,4 +28,14 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
            "(m.sender = :user2 AND m.receiver = :user1 AND m.receiverDeleted = false)) " +
            "ORDER BY m.createdAt DESC")
     Page<Message> findConversationBetweenUsers(@Param("user1") User user1, @Param("user2") User user2, Pageable pageable);
+    
+    // 3년 경과 후 영구 삭제 대상 쪽지 조회
+    @Query("SELECT m FROM Message m WHERE m.senderDeleted = true AND m.receiverDeleted = true " +
+           "AND ((m.senderDeletedAt < :threeYearsAgo) OR (m.receiverDeletedAt < :threeYearsAgo))")
+    List<Message> findMessagesEligibleForPermanentDeletion(@Param("threeYearsAgo") java.time.LocalDateTime threeYearsAgo);
+    
+    // 편의 메서드
+    default List<Message> findMessagesEligibleForPermanentDeletion() {
+        return findMessagesEligibleForPermanentDeletion(java.time.LocalDateTime.now().minusYears(3));
+    }
 }

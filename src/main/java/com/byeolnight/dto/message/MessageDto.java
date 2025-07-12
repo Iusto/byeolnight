@@ -1,6 +1,7 @@
 package com.byeolnight.dto.message;
 
 import com.byeolnight.domain.entity.Message;
+import com.byeolnight.domain.entity.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,7 +13,7 @@ import java.util.List;
 public class MessageDto {
 
     @Getter
-    @Builder
+    @Builder(toBuilder = true)
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
@@ -28,12 +29,17 @@ public class MessageDto {
         private LocalDateTime createdAt;
 
         public static Response from(Message message) {
+            String senderNickname = message.getSender().getStatus() == User.UserStatus.WITHDRAWN 
+                ? "탈퇴한 사용자" : message.getSender().getNickname();
+            String receiverNickname = message.getReceiver().getStatus() == User.UserStatus.WITHDRAWN 
+                ? "탈퇴한 사용자" : message.getReceiver().getNickname();
+                
             return Response.builder()
                     .id(message.getId())
                     .senderId(message.getSender().getId())
-                    .senderNickname(message.getSender().getNickname())
+                    .senderNickname(senderNickname)
                     .receiverId(message.getReceiver().getId())
-                    .receiverNickname(message.getReceiver().getNickname())
+                    .receiverNickname(receiverNickname)
                     .title(message.getTitle())
                     .content(message.getContent())
                     .isRead(message.getIsRead())
