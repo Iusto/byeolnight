@@ -9,6 +9,9 @@ echo "🔒 SSL 인증서 자동 설정 시작..."
 echo "도메인: $DOMAIN"
 echo "이메일: $EMAIL"
 
+# 루트 디렉토리로 이동
+cd ..
+
 # 1. HTTP로 서비스가 실행 중인지 확인
 if ! curl -f http://localhost > /dev/null 2>&1; then
     echo "❌ HTTP 서비스가 실행되지 않았습니다. 먼저 docker-compose up -d를 실행하세요."
@@ -113,90 +116,18 @@ EOF
 
 # 4. docker-compose.yml을 HTTPS 지원으로 변경
 echo "🔧 docker-compose.yml을 HTTPS 지원으로 변경 중..."
+sed -i 's|nginx-http-only.conf|nginx.conf|g' docker-compose.yml
 
-cat > docker-compose.yml << 'EOF'
-# Docker Compose 설정 파일 (HTTPS 지원)
+# 5. .env 파일의 URL을 HTTPS로 변경
+echo "🔧 .env 파일 URL을 HTTPS로 변경 중..."
+sed -i "s|VITE_API_BASE_URL=http://|VITE_API_BASE_URL=https://|g" .env
+sed -i "s|VITE_WS_URL=ws://|VITE_WS_URL=wss://|g" .env
 
-services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot
-    depends_on:
-      - app
-      - frontend
-    restart: unless-stopped
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/www/certbot:/var/www/certbot
-    profiles: ["cert"]
-
-  app:
-    build: .
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      - JAVA_OPTS=-Xmx2g -Xms1g -XX:+UseG1GC
-    restart: unless-stopped
-    volumes:
-      - ./logs:/app/logs
-
-  mysql:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: byeolnight
-    ports:
-      - "3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-
-  frontend:
-    build: ./byeolnight-frontend
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-      - VITE_WS_URL=${VITE_WS_URL}
-    depends_on:
-      - app
-    restart: unless-stopped
-
-volumes:
-  mysql_data:
-  redis_data:
-EOF
-
-# 5. nginx 재시작
+# 6. nginx 재시작
 echo "🔄 nginx 재시작 중..."
 docker-compose up -d nginx
 
-# 6. SSL 인증서 자동 갱신 설정
+# 7. SSL 인증서 자동 갱신 설정
 echo "🔄 SSL 인증서 자동 갱신 설정 중..."
 (crontab -l 2>/dev/null; echo "0 12 * * * cd $(pwd) && docker-compose run --rm certbot renew && docker-compose restart nginx") | crontab -
 
