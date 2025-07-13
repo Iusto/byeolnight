@@ -35,7 +35,7 @@ export default function ChatSidebar() {
   const connect = () => {
     try {
       // WebSocket URL 설정
-      const wsUrl = import.meta.env.VITE_WS_URL || 'ws://byeolnight.com/ws';
+      const wsUrl = import.meta.env.VITE_WS_URL || 'wss://byeolnight.com/ws';
       const socketUrl = wsUrl.replace('ws://', 'http://').replace('wss://', 'https://');
       console.log('WebSocket 연결 시도:', wsUrl);
       console.log('개발 모드:', import.meta.env.DEV);
