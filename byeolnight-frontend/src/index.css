@@ -213,7 +213,7 @@ svg {
 
 /* 이모지 강제 렌더링 */
 .emoji-icon {
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', sans-serif !important;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'Android Emoji', 'EmojiOne Color', sans-serif !important;
   font-display: block !important;
   display: inline-block !important;
   line-height: 1 !important;
@@ -223,8 +223,52 @@ svg {
   font-variant: normal !important;
   text-transform: none !important;
   speak: none !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
+  font-feature-settings: "liga" off, "kern" off !important;
+  text-rendering: auto !important;
+  color: transparent !important;
+  text-shadow: 0 0 0 #000 !important;
+  background: none !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* 이모지 컨테이너 강제 렌더링 */
+.emoji-icon::before,
+.emoji-icon::after {
+  display: none !important;
+}
+
+/* 이모지 폰트 강제 로드 */
+@font-face {
+  font-family: 'EmojiFont';
+  src: local('Apple Color Emoji'), local('Segoe UI Emoji'), local('Noto Color Emoji');
+  font-display: block;
+}
+
+/* 이모지 렌더링 최적화 */
+span.emoji-icon,
+div.emoji-icon {
+  font-family: 'EmojiFont', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+  color: initial !important;
+  text-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  will-change: auto !important;
 }
 
 /* Tailwind 기반 우주 테마 */

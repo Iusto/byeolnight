@@ -150,7 +150,7 @@ export default function Home() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl">
-            <span className="emoji-icon">{icon}</span>
+            <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{icon}</span>
           </div>
           <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
             {title}
@@ -203,7 +203,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 py-20">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent mb-6">
-              <span className="emoji-icon">🌌</span> 별 헤는 밤
+              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif', fontSize: 'inherit', lineHeight: '1', display: 'inline-block' }}>🌌</span> 별 헤는 밤
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
               우주의 신비를 탐험하고, 지식을 나누며, 꿈을 향해 나아가는 커뮤니티
@@ -228,7 +228,7 @@ export default function Home() {
         <div className="mb-12">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              <span className="emoji-icon">🚀</span> 게시판 둘러보기
+              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif', fontSize: 'inherit', lineHeight: '1', display: 'inline-block' }}>🚀</span> 게시판 둘러보기
             </h2>
             <p className="text-gray-400 text-sm">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
           </div>
@@ -238,7 +238,7 @@ export default function Home() {
                 <div className="absolute top-2 right-2">
                   <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
                 </div>
-                <div className="text-3xl mb-2 group-hover:animate-bounce emoji-icon">🚀</div>
+                <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
                 <div className="text-sm font-medium text-blue-100">우주 뉴스</div>
                 <div className="text-xs text-blue-300 mt-1">자동 수집</div>
               </div>
@@ -248,14 +248,14 @@ export default function Home() {
                 <div className="absolute top-2 right-2">
                   <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
                 </div>
-                <div className="text-3xl mb-2 group-hover:animate-pulse emoji-icon">💬</div>
+                <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
                 <div className="text-sm font-medium text-green-100">토론</div>
                 <div className="text-xs text-green-300 mt-1">주제 생성</div>
               </div>
             </Link>
             <Link to="/posts?category=IMAGE&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25">
-                <div className="text-3xl mb-2 group-hover:animate-spin emoji-icon">🌌</div>
+                <div className="text-3xl mb-2 group-hover:animate-spin" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
                 <div className="text-sm font-medium text-purple-100">별 사진</div>
                 <div className="text-xs text-purple-300 mt-1">갤러리</div>
               </div>
@@ -263,21 +263,21 @@ export default function Home() {
 
             <Link to="/posts?category=REVIEW&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 hover:from-yellow-600/40 hover:to-orange-600/40 rounded-xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25">
-                <div className="text-3xl mb-2 group-hover:animate-pulse emoji-icon">⭐</div>
+                <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
                 <div className="text-sm font-medium text-yellow-100">후기</div>
                 <div className="text-xs text-yellow-300 mt-1">리뷰 공유</div>
               </div>
             </Link>
             <Link to="/posts?category=FREE&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-pink-600/20 to-rose-600/20 hover:from-pink-600/40 hover:to-rose-600/40 rounded-xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-pink-500/25">
-                <div className="text-3xl mb-2 group-hover:animate-bounce emoji-icon">🎈</div>
+                <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
                 <div className="text-sm font-medium text-pink-100">자유</div>
                 <div className="text-xs text-pink-300 mt-1">자유 소통</div>
               </div>
             </Link>
             <Link to="/posts?category=NOTICE&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-red-600/20 to-orange-600/20 hover:from-red-600/40 hover:to-orange-600/40 rounded-xl border border-red-500/30 hover:border-red-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-red-500/25">
-                <div className="text-3xl mb-2 group-hover:animate-pulse emoji-icon">📢</div>
+                <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
                 <div className="text-sm font-medium text-red-100">공지</div>
                 <div className="text-xs text-red-300 mt-1">중요 안내</div>
               </div>
@@ -288,14 +288,14 @@ export default function Home() {
                 <div className="absolute top-2 right-2">
                   <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
                 </div>
-                <div className="text-3xl mb-2 relative z-10 group-hover:animate-pulse emoji-icon">🎬</div>
+                <div className="text-3xl mb-2 relative z-10 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
                 <div className="text-sm font-medium relative z-10 text-purple-100">별빛 시네마</div>
                 <div className="text-xs text-purple-300 mt-1 relative z-10">영상 큐레이션</div>
               </div>
             </Link>
             <Link to="/suggestions" className="group">
               <div className="p-4 bg-gradient-to-br from-orange-600/20 to-amber-600/20 hover:from-orange-600/40 hover:to-amber-600/40 rounded-xl border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-orange-500/25">
-                <div className="text-3xl mb-2 group-hover:animate-bounce emoji-icon">💡</div>
+                <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💡</div>
                 <div className="text-sm font-medium text-orange-100">건의게시판</div>
                 <div className="text-xs text-orange-300 mt-1">아이디어 공유</div>
               </div>
@@ -343,7 +343,7 @@ export default function Home() {
             <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-6 border border-purple-500/20">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                  <span className="emoji-icon">🔥</span>
+                  <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🔥</span>
                 </div>
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
                   인기 게시글
