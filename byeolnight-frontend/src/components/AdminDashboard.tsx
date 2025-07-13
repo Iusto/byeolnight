@@ -45,6 +45,9 @@ const AdminDashboard: React.FC = () => {
   const [totalBlindedCount, setTotalBlindedCount] = useState(0);
   const [generatingDiscussion, setGeneratingDiscussion] = useState(false);
   const [generatingCinema, setGeneratingCinema] = useState(false);
+  const [orphanImageCount, setOrphanImageCount] = useState(0);
+  const [cleaningFiles, setCleaningFiles] = useState(false);
+  const [loadingOrphanCount, setLoadingOrphanCount] = useState(false);
 
   useEffect(() => {
     loadAdminData();
@@ -106,12 +109,13 @@ const AdminDashboard: React.FC = () => {
 
   const loadAdminData = async () => {
     try {
-      const [statsRes, bannedRes, blindedRes, totalBannedRes, totalBlindedRes] = await Promise.all([
+      const [statsRes, bannedRes, blindedRes, totalBannedRes, totalBlindedRes, orphanRes] = await Promise.all([
         axios.get('/admin/chat/stats'),
         axios.get('/admin/chat/banned-users?limit=5&offset=0'),
         axios.get('/admin/chat/blinded-messages?limit=5&offset=0'),
         axios.get('/admin/chat/banned-users?limit=1000&offset=0'),
-        axios.get('/admin/chat/blinded-messages?limit=1000&offset=0')
+        axios.get('/admin/chat/blinded-messages?limit=1000&offset=0'),
+        axios.get('/admin/files/orphan-count')
       ]);
 
       setStats(statsRes.data);
@@ -119,6 +123,7 @@ const AdminDashboard: React.FC = () => {
       setBlindedMessages(blindedRes.data);
       setTotalBannedCount(totalBannedRes.data.length);
       setTotalBlindedCount(totalBlindedRes.data.length);
+      setOrphanImageCount(orphanRes.data.data || 0);
       
       console.log('관리자 대시보드 데이터 로드 완료');
     } catch (error) {
@@ -128,6 +133,7 @@ const AdminDashboard: React.FC = () => {
       setBlindedMessages([]);
       setTotalBannedCount(0);
       setTotalBlindedCount(0);
+      setOrphanImageCount(0);
     } finally {
       setLoading(false);
     }
@@ -243,6 +249,36 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleRefreshOrphanCount = async () => {
+    setLoadingOrphanCount(true);
+    try {
+      const response = await axios.get('/admin/files/orphan-count');
+      setOrphanImageCount(response.data.data || 0);
+    } catch (error) {
+      console.error('고아 이미지 개수 조회 실패:', error);
+    } finally {
+      setLoadingOrphanCount(false);
+    }
+  };
+
+  const handleCleanupOrphanImages = async () => {
+    if (!confirm(`${orphanImageCount}개의 오래된 파일을 삭제하시겠습니까? (이 작업은 되돌릴 수 없습니다)`)) return;
+    
+    setCleaningFiles(true);
+    try {
+      const response = await axios.post('/admin/files/cleanup-orphans');
+      const deletedCount = response.data.data || 0;
+      alert(`${deletedCount}개의 고아 이미지를 성공적으로 삭제했습니다!`);
+      // 개수 새로고침
+      await handleRefreshOrphanCount();
+    } catch (error) {
+      console.error('고아 이미지 정리 실패:', error);
+      alert('고아 이미지 정리에 실패했습니다.');
+    } finally {
+      setCleaningFiles(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-[#1f2336]/70 backdrop-blur-md p-6 rounded-xl">
@@ -294,6 +330,74 @@ const AdminDashboard: React.FC = () => {
               </>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* 파일 정리 대시보드 */}
+      <div className="bg-black/30 p-4 rounded-lg">
+        <h3 className="text-lg font-semibold text-purple-300 mb-3">🗑️ 파일 정리 대시보드</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 오래된 파일 정보 */}
+          <div className="bg-gradient-to-r from-orange-600/20 to-red-600/20 p-4 rounded-lg border border-orange-500/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-2xl font-bold text-orange-400">{orphanImageCount}</div>
+              <button
+                onClick={handleRefreshOrphanCount}
+                disabled={loadingOrphanCount}
+                className="text-orange-300 hover:text-orange-200 transition-colors disabled:opacity-50"
+                title="새로고침"
+              >
+                {loadingOrphanCount ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-orange-300 border-t-transparent rounded-full"></div>
+                ) : (
+                  '🔄'
+                )}
+              </button>
+            </div>
+            <div className="text-sm text-gray-300 mb-3">
+              7일 이상 된 오래된 파일
+            </div>
+            <div className="text-xs text-gray-400">
+              ⚠️ 이 파일들은 더 이상 사용되지 않을 가능성이 높습니다.
+            </div>
+          </div>
+          
+          {/* 정리 버튼 */}
+          <div className="flex flex-col justify-center">
+            <button
+              onClick={handleCleanupOrphanImages}
+              disabled={cleaningFiles || orphanImageCount === 0}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              {cleaningFiles ? (
+                <>
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  정리 중...
+                </>
+              ) : orphanImageCount === 0 ? (
+                <>
+                  ✅ 정리할 파일 없음
+                </>
+              ) : (
+                <>
+                  🗑️ {orphanImageCount}개 파일 정리
+                </>
+              )}
+            </button>
+            <div className="text-xs text-gray-400 mt-2 text-center">
+              ⚠️ 삭제된 파일은 복구할 수 없습니다
+            </div>
+          </div>
+        </div>
+        
+        {/* 자동 정리 안내 */}
+        <div className="mt-4 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg">
+          <div className="text-sm text-blue-300 mb-1">
+            🤖 자동 정리 시스템 활성화
+          </div>
+          <div className="text-xs text-gray-400">
+            AWS S3 Lifecycle 정책으로 7일 후 자동 삭제됩니다. 수동 정리는 즉시 삭제가 필요한 경우에만 사용하세요.
+          </div>
         </div>
       </div>
 
