@@ -10,8 +10,15 @@ export const connectChat = (onMessage: (msg: any) => void) => {
     return;
   }
 
+  const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
+  const socketUrl = wsUrl.startsWith('wss://') 
+    ? wsUrl.replace('wss://', 'https://') 
+    : wsUrl.startsWith('ws://') 
+    ? wsUrl.replace('ws://', 'http://') 
+    : wsUrl;
+
   stompClient = new Client({
-    webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL || '/ws'),
+    webSocketFactory: () => new SockJS(socketUrl),
     reconnectDelay: 5000,
     heartbeatIncoming: 4000,
     heartbeatOutgoing: 4000,
