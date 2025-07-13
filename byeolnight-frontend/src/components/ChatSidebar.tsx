@@ -34,14 +34,13 @@ export default function ChatSidebar() {
 
   const connect = () => {
     try {
-      // 개발 환경에서는 전체 URL, 배포 환경에서는 상대 경로 사용
-      const wsUrl = import.meta.env.DEV 
-        ? 'http://localhost:8080/ws' 
-        : '/ws';
+      // WebSocket URL 설정
+      const wsUrl = import.meta.env.VITE_WS_URL || 'ws://byeolnight.com/ws';
+      const socketUrl = wsUrl.replace('ws://', 'http://').replace('wss://', 'https://');
       console.log('WebSocket 연결 시도:', wsUrl);
       console.log('개발 모드:', import.meta.env.DEV);
       
-      const socket = new SockJS(wsUrl);
+      const socket = new SockJS(socketUrl);
       const token = localStorage.getItem('accessToken');
       const connectHeaders: Record<string, string> = {};
       
