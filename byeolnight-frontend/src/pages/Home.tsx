@@ -230,7 +230,7 @@ export default function Home() {
         {/* 게시판 네비게이션 */}
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-3 flex items-center gap-2">
+            <h2 className="text-3xl font-bold mb-3 flex items-center justify-center gap-2">
               <span className="text-white text-3xl">🚀</span>
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                 게시판 둘러보기
