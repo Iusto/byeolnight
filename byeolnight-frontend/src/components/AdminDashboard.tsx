@@ -61,7 +61,8 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const connectWebSocket = () => {
-    const socket = new SockJS(import.meta.env.VITE_WS_URL || '/ws');
+    const wsUrl = import.meta.env.VITE_WS_URL || (window.location.protocol === 'https:' ? 'https://byeolnight.com/ws' : 'http://localhost:8080/ws');
+    const socket = new SockJS(wsUrl);
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
