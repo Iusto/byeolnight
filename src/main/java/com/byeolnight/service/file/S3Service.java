@@ -62,11 +62,6 @@ public class S3Service {
                             .key(s3Key)
                             .contentType(contentType)
                             .acl(ObjectCannedACL.PUBLIC_READ)
-                            .metadata(Map.of(
-                                "Access-Control-Allow-Origin", "*",
-                                "Access-Control-Allow-Methods", "PUT, GET, POST, DELETE",
-                                "Access-Control-Allow-Headers", "*"
-                            ))
                     )
                     .build();
 

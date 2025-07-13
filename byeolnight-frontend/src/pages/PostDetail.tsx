@@ -509,15 +509,17 @@ export default function PostDetail() {
               ← {categoryName} 게시판
             </button>
             <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
-              {{
-                NEWS: '🚀',
-                DISCUSSION: '💬',
-                IMAGE: '🌌',
-                REVIEW: '⭐',
-                FREE: '🎈',
-                NOTICE: '📢',
-                STARLIGHT_CINEMA: '🎬'
-              }[post.category] || '📝'}
+              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                {{
+                  NEWS: '🚀',
+                  DISCUSSION: '💬',
+                  IMAGE: '🌌',
+                  REVIEW: '⭐',
+                  FREE: '🎈',
+                  NOTICE: '📢',
+                  STARLIGHT_CINEMA: '🎬'
+                }[post.category] || '📝'}
+              </span>
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-6 leading-tight">
@@ -537,13 +539,13 @@ export default function PostDetail() {
                 />
                 <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
                   <span className="flex items-center gap-1">
-                    ❤️ {post.likeCount}
+                    <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>❤️</span> {post.likeCount}
                   </span>
                   <span className="flex items-center gap-1">
-                    👁 {post.viewCount}
+                    <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>👁</span> {post.viewCount}
                   </span>
                   <span className="flex items-center gap-1">
-                    📅 {formattedDate}
+                    <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📅</span> {formattedDate}
                   </span>
                 </div>
               </div>
@@ -759,7 +761,7 @@ export default function PostDetail() {
 
         {comments.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">💬</div>
+            <div className="text-6xl mb-4" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
             <p className="text-gray-400 text-lg">첫 댓글을 남겨보세요!</p>
           </div>
         ) : (
