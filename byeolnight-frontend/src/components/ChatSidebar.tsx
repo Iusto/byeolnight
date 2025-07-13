@@ -34,18 +34,12 @@ export default function ChatSidebar() {
 
   const connect = () => {
     try {
-      // WebSocket URL 설정
+      // SockJS는 HTTP/HTTPS 프로토콜을 사용
       const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
-      const socketUrl = wsUrl.startsWith('wss://') 
-        ? wsUrl.replace('wss://', 'https://') 
-        : wsUrl.startsWith('ws://') 
-        ? wsUrl.replace('ws://', 'http://') 
-        : wsUrl;
       console.log('WebSocket 연결 시도:', wsUrl);
-      console.log('Socket URL:', socketUrl);
       console.log('개발 모드:', import.meta.env.DEV);
       
-      const socket = new SockJS(socketUrl);
+      const socket = new SockJS(wsUrl);
       const token = localStorage.getItem('accessToken');
       const connectHeaders: Record<string, string> = {};
       

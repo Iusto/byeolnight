@@ -27,7 +27,7 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
   // 실제로는 모든 사용자가 소행성 아이콘을 보유하고 장착해야 함
   if (!iconName) {
     return (
-      <div className={`inline-flex items-center justify-center ${getSizeClass(size)} rounded-lg`}>
+      <div className={`icon-container ${getSizeClass(size)} rounded-lg`}>
         <DefaultAsteroid className={`w-full h-full text-gray-400 ${className}`} />
       </div>
     );
@@ -39,15 +39,15 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
     console.warn(`아이콘을 찾을 수 없습니다: ${iconName}`);
     // 아이콘을 찾을 수 없으면 기본 소행성 아이콘 표시
     return (
-      <div className={`inline-flex items-center justify-center ${getSizeClass(size)} rounded-lg`}>
+      <div className={`icon-container ${getSizeClass(size)} rounded-lg`}>
         <DefaultAsteroid className={`w-full h-full text-gray-400 ${className}`} />
       </div>
     );
   }
 
   return (
-    <div className={`inline-flex items-center justify-center ${getSizeClass(size)} rounded-lg ${className}`}>
-      <IconComponent className="w-full h-full" />
+    <div className={`icon-container ${getSizeClass(size)} rounded-lg ${className}`}>
+      <IconComponent className="w-full h-full" style={{ display: 'block' }} />
     </div>
   );
 }

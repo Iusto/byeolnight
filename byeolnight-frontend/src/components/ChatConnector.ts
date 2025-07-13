@@ -11,14 +11,11 @@ export const connectChat = (onMessage: (msg: any) => void) => {
   }
 
   const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
-  const socketUrl = wsUrl.startsWith('wss://') 
-    ? wsUrl.replace('wss://', 'https://') 
-    : wsUrl.startsWith('ws://') 
-    ? wsUrl.replace('ws://', 'http://') 
-    : wsUrl;
+  // SockJS는 HTTP/HTTPS 프로토콜을 사용
+  const socketUrl = wsUrl;
 
   stompClient = new Client({
-    webSocketFactory: () => new SockJS(socketUrl),
+    webSocketFactory: () => new SockJS(wsUrl),
     reconnectDelay: 5000,
     heartbeatIncoming: 4000,
     heartbeatOutgoing: 4000,
