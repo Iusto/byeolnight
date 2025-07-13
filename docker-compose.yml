@@ -62,10 +62,11 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./byeolnight-frontend
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-      - VITE_WS_URL=${VITE_WS_URL}
+    build:
+      context: ./byeolnight-frontend
+      args:
+        VITE_API_BASE_URL: http://byeolnight.com/api
+        VITE_WS_URL: ws://byeolnight.com/ws
     depends_on:
       - app
     restart: unless-stopped
