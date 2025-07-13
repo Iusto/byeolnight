@@ -53,12 +53,14 @@ public class S3Service {
                     .build();
 
             String s3Key = generateS3Key(originalFilename);
+            String contentType = getContentType(originalFilename);
 
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                     .signatureDuration(Duration.ofMinutes(10))
                     .putObjectRequest(builder -> builder
                             .bucket(bucketName)
                             .key(s3Key)
+                            .contentType(contentType) // 명시적 Content-Type 설정
                             .acl(ObjectCannedACL.PUBLIC_READ)
                     )
                     .build();
@@ -74,8 +76,9 @@ public class S3Service {
             result.put("url", permanentUrl);
             result.put("s3Key", s3Key);
             result.put("originalName", originalFilename);
+            result.put("contentType", contentType); // Content-Type 정보 추가
 
-            log.info("Presigned URL 생성 완료: {} (영구 URL: {})", s3Key, permanentUrl);
+            log.info("Presigned URL 생성 완료: {} (영구 URL: {}, Content-Type: {})", s3Key, permanentUrl, contentType);
             return result;
 
         } catch (Exception e) {
