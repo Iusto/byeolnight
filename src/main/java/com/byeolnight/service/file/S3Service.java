@@ -60,8 +60,13 @@ public class S3Service {
                     .putObjectRequest(builder -> builder
                             .bucket(bucketName)
                             .key(s3Key)
-                            .contentType(contentType) // 명시적 Content-Type 설정
+                            .contentType(contentType)
                             .acl(ObjectCannedACL.PUBLIC_READ)
+                            .metadata(Map.of(
+                                "Access-Control-Allow-Origin", "*",
+                                "Access-Control-Allow-Methods", "PUT, GET, POST, DELETE",
+                                "Access-Control-Allow-Headers", "*"
+                            ))
                     )
                     .build();
 
