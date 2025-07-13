@@ -44,10 +44,7 @@ export default function PostCreate() {
       if (imageData.uploadUrl) {
         await fetch(imageData.uploadUrl, {
           method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type
-          }
+          body: file
         });
       }
       
@@ -121,10 +118,7 @@ export default function PostCreate() {
           if (imageData.uploadUrl) {
             await fetch(imageData.uploadUrl, {
               method: 'PUT',
-              body: file,
-              headers: {
-                'Content-Type': file.type
-              }
+              body: file
             });
           }
           
