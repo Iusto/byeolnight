@@ -1,13 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- 배경 원 -->
-  <circle cx="16" cy="16" r="16" fill="#1a1a2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <radialGradient id="galaxyGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#e6e6fa;stop-opacity:0.9" />
+      <stop offset="60%" style="stop-color:#9370db;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#4b0082;stop-opacity:0.5" />
+    </radialGradient>
+    <radialGradient id="coreGradient" cx="50%" cy="50%" r="30%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff6347;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#8b0000;stop-opacity:0.6" />
+    </radialGradient>
+  </defs>
   
-  <!-- 별 -->
-  <path d="M16 6l2.5 5.5L24 12l-4 4 1 6-5-2.5L11 22l1-6-4-4 5.5-.5L16 6z" fill="#ffd700"/>
+  <!-- 배경 우주 -->
+  <rect width="32" height="32" fill="#0a0a0a"/>
   
-  <!-- 작은 별들 -->
-  <circle cx="8" cy="8" r="1" fill="#ffffff" opacity="0.8"/>
-  <circle cx="24" cy="10" r="0.8" fill="#ffffff" opacity="0.6"/>
-  <circle cx="6" cy="20" r="0.6" fill="#ffffff" opacity="0.7"/>
-  <circle cx="26" cy="24" r="0.7" fill="#ffffff" opacity="0.5"/>
+  <!-- 나선팔 1 -->
+  <path d="M16 4 Q8 8 6 16 Q8 24 16 28 Q20 26 22 22 Q20 18 16 16 Q14 14 12 12 Q10 8 12 6 Q14 4 16 4" 
+        fill="url(#galaxyGradient)" opacity="0.8"/>
+  
+  <!-- 나선팔 2 -->
+  <path d="M16 4 Q24 8 26 16 Q24 24 16 28 Q12 26 10 22 Q12 18 16 16 Q18 14 20 12 Q22 8 20 6 Q18 4 16 4" 
+        fill="url(#galaxyGradient)" opacity="0.6" transform="rotate(180 16 16)"/>
+  
+  <!-- 은하 중심 -->
+  <circle cx="16" cy="16" r="3" fill="url(#coreGradient)"/>
+  
+  <!-- 별들 -->
+  <circle cx="8" cy="8" r="0.5" fill="#ffffff" opacity="0.9"/>
+  <circle cx="24" cy="8" r="0.3" fill="#ffffff" opacity="0.7"/>
+  <circle cx="6" cy="20" r="0.4" fill="#ffffff" opacity="0.8"/>
+  <circle cx="26" cy="24" r="0.3" fill="#ffffff" opacity="0.6"/>
+  <circle cx="12" cy="26" r="0.2" fill="#ffffff" opacity="0.5"/>
+  <circle cx="22" cy="6" r="0.2" fill="#ffffff" opacity="0.7"/>
 </svg>
