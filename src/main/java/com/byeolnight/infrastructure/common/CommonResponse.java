@@ -26,6 +26,10 @@ public class CommonResponse<T> {
         return new CommonResponse<>(true, null, data);
     }
 
+    public static <T> CommonResponse<T> success(T data, String message) {
+        return new CommonResponse<>(true, message, data);
+    }
+
     public static <T> CommonResponse<T> success() {
         return new CommonResponse<>(true, null, null);
     }
