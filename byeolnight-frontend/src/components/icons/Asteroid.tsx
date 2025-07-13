@@ -6,15 +6,17 @@ interface IconProps {
 }
 
 export default function Asteroid({ className = "", size = 100 }: IconProps) {
+  const uniqueId = `asteroid-${Math.random().toString(36).substr(2, 9)}`;
+  
   return (
-    <svg className={className} width={size} height={size} viewBox="0 0 100 100" fill="none">
+    <svg className={className} width={size} height={size} viewBox="0 0 100 100" fill="none" style={{ display: 'block' }}>
       <defs>
-        <radialGradient id="asteroidGradient" cx="40%" cy="30%" r="80%">
+        <radialGradient id={`asteroidGradient-${uniqueId}`} cx="40%" cy="30%" r="80%">
           <stop offset="0%" stopColor="#8D6E63" />
           <stop offset="50%" stopColor="#5D4037" />
           <stop offset="100%" stopColor="#3E2723" />
         </radialGradient>
-        <filter id="asteroidGlow">
+        <filter id={`asteroidGlow-${uniqueId}`}>
           <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
           <feMerge> 
             <feMergeNode in="coloredBlur"/>
@@ -26,8 +28,8 @@ export default function Asteroid({ className = "", size = 100 }: IconProps) {
       {/* 소행성 본체 */}
       <path 
         d="M25 45 Q30 20 50 25 Q70 30 75 50 Q70 70 50 75 Q30 70 25 45 Z" 
-        fill="url(#asteroidGradient)"
-        filter="url(#asteroidGlow)"
+        fill={`url(#asteroidGradient-${uniqueId})`}
+        filter={`url(#asteroidGlow-${uniqueId})`}
       />
       
       {/* 크레이터들 */}

@@ -57,7 +57,7 @@ export default function AdminUserPage() {
   const [blindedComments, setBlindedComments] = useState<any[]>([]);
   const [deletedPosts, setDeletedPosts] = useState<any[]>([]);
   const [deletedComments, setDeletedComments] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reports' | 'blindComments' | 'deletedPosts' | 'deletedComments'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reports' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files'>('users');
   const [showIpModal, setShowIpModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [showPointModal, setShowPointModal] = useState(false);
@@ -69,6 +69,8 @@ export default function AdminUserPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [postSearchTerm, setPostSearchTerm] = useState('');
   const [ipSearchTerm, setIpSearchTerm] = useState('');
+  const [orphanImageCount, setOrphanImageCount] = useState<number>(0);
+  const [isCleaningFiles, setIsCleaningFiles] = useState(false);
   const { user: currentUser } = useAuth(); // 현재 로그인한 사용자
 
   const fetchUsers = async () => {
@@ -227,6 +229,7 @@ export default function AdminUserPage() {
     fetchBlindedComments();
     fetchDeletedPosts();
     fetchDeletedComments();
+    fetchOrphanImageCount();
   }, []);
 
   const fetchBlindedPosts = async () => {
@@ -412,6 +415,35 @@ export default function AdminUserPage() {
     }
   };
 
+  const fetchOrphanImageCount = async () => {
+    try {
+      const res = await axios.get('/admin/files/orphan-count');
+      const count = res.data?.data || 0;
+      setOrphanImageCount(count);
+    } catch (err) {
+      console.error('고아 이미지 개수 조회 실패:', err);
+      setOrphanImageCount(0);
+    }
+  };
+
+  const handleCleanupOrphanImages = async () => {
+    if (!confirm(`정말 ${orphanImageCount}개의 오래된 파일을 정리하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    
+    setIsCleaningFiles(true);
+    try {
+      const res = await axios.post('/admin/files/cleanup-orphans');
+      const deletedCount = res.data?.data || 0;
+      const message = res.data?.message || `${deletedCount}개의 파일이 정리되었습니다.`;
+      alert(message);
+      fetchOrphanImageCount(); // 개수 새로고침
+    } catch (err) {
+      console.error('파일 정리 실패:', err);
+      alert('파일 정리에 실패했습니다.');
+    } finally {
+      setIsCleaningFiles(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white px-6 py-12">
       <div className="max-w-6xl mx-auto">
@@ -508,6 +540,24 @@ export default function AdminUserPage() {
             <div className="text-3xl mb-2">💭</div>
             <div className="font-semibold">삭제된 댓글</div>
             <div className="text-sm text-gray-400 mt-1">삭제된 댓글 관리</div>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('files')}
+            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
+              activeTab === 'files'
+                ? 'bg-blue-600/40 border-blue-400 text-white shadow-lg transform scale-105'
+                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-blue-500/50'
+            }`}
+          >
+            <div className="text-3xl mb-2">📁</div>
+            <div className="font-semibold">파일 정리</div>
+            <div className="text-sm text-gray-400 mt-1">고아 이미지 파일 관리</div>
+            {orphanImageCount > 0 && (
+              <div className="text-xs bg-red-500 text-white px-2 py-1 rounded-full mt-2 inline-block">
+                {orphanImageCount}개
+              </div>
+            )}
           </button>
         </div>
 
@@ -959,6 +1009,106 @@ export default function AdminUserPage() {
                 ))}
               </div>
             )}
+          </div>
+        ) : activeTab === 'files' ? (
+          // 파일 정리 관리 섹션
+          <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
+            <h3 className="text-xl font-semibold text-white mb-6">📁 파일 정리 관리</h3>
+            
+            <div className="grid gap-6">
+              {/* 고아 이미지 정리 카드 */}
+              <div className="bg-[#2a2e45] p-6 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-2">🗑️ 고아 이미지 정리</h4>
+                    <p className="text-gray-400 text-sm">
+                      업로드 후 게시글에 사용되지 않은 오래된 이미지 파일들을 정리합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchOrphanImageCount}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm transition"
+                    disabled={isCleaningFiles}
+                  >
+                    🔄 새로고침
+                  </button>
+                </div>
+                
+                <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">📊</div>
+                    <div>
+                      <div className="text-2xl font-bold text-white">
+                        {orphanImageCount.toLocaleString()}개
+                      </div>
+                      <div className="text-sm text-gray-400">정리 대상 파일</div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleCleanupOrphanImages}
+                    disabled={orphanImageCount === 0 || isCleaningFiles}
+                    className={`px-6 py-3 rounded-lg font-medium transition ${
+                      orphanImageCount === 0 || isCleaningFiles
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-red-600 hover:bg-red-700 text-white hover:scale-105 shadow-lg'
+                    }`}
+                  >
+                    {isCleaningFiles ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        정리 중...
+                      </div>
+                    ) : (
+                      '🧹 파일 정리 실행'
+                    )}
+                  </button>
+                </div>
+                
+                {orphanImageCount === 0 && (
+                  <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <span>✅</span>
+                      <span className="text-sm">정리할 파일이 없습니다. 시스템이 깨끗합니다!</span>
+                    </div>
+                  </div>
+                )}
+                
+                {orphanImageCount > 0 && (
+                  <div className="mt-4 p-3 bg-yellow-600/20 border border-yellow-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-yellow-400">
+                      <span>⚠️</span>
+                      <span className="text-sm">
+                        7일 이상 된 미사용 파일들입니다. 정리를 권장합니다.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* 파일 관리 정보 카드 */}
+              <div className="bg-[#2a2e45] p-6 rounded-lg">
+                <h4 className="text-lg font-semibold text-white mb-4">📋 파일 관리 정보</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="bg-[#1f2336] p-4 rounded-lg">
+                    <div className="text-blue-400 font-medium mb-2">🔄 자동 정리 정책</div>
+                    <ul className="text-gray-300 space-y-1">
+                      <li>• 업로드 후 7일 경과 파일 대상</li>
+                      <li>• 게시글에 사용되지 않은 파일만</li>
+                      <li>• AWS S3 Lifecycle 정책 적용</li>
+                    </ul>
+                  </div>
+                  <div className="bg-[#1f2336] p-4 rounded-lg">
+                    <div className="text-green-400 font-medium mb-2">💡 관리 팁</div>
+                    <ul className="text-gray-300 space-y-1">
+                      <li>• 정기적인 파일 정리 권장</li>
+                      <li>• 스토리지 비용 절약 효과</li>
+                      <li>• 시스템 성능 최적화</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           // IP 차단 관리 섹션
