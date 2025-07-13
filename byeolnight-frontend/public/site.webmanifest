@@ -4,12 +4,12 @@
   "description": "우주를 테마로 한 감성적인 커뮤니티 플랫폼",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
     },
     {
-      "src": "/apple-touch-icon.png",
+      "src": "/favicon.png",
       "sizes": "180x180",
       "type": "image/png"
     }
