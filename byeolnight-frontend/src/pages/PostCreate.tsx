@@ -39,9 +39,21 @@ export default function PostCreate() {
       });
       
       const imageData = response.data.data || response.data;
+      
+      // S3에 실제 파일 업로드
+      if (imageData.uploadUrl) {
+        await fetch(imageData.uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type
+          }
+        });
+      }
+      
       setUploadedImages(prev => [...prev, imageData]);
       
-      return imageData.url;
+      return imageData.url; // 영구 URL 반환
     } catch (error) {
       console.error('클립보드 이미지 업로드 실패:', error);
       throw error;
@@ -65,9 +77,10 @@ export default function PostCreate() {
         if (file) {
           try {
             const imageUrl = await uploadClipboardImage(file);
-            // ReactQuill에 이미지 삽입
+            // ReactQuill에 이미지 삽입 (영구 URL 사용)
             setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
           } catch (error) {
+            console.error('클립보드 이미지 업로드 실패:', error);
             alert('이미지 업로드에 실패했습니다.');
           }
         }
@@ -103,9 +116,21 @@ export default function PostCreate() {
           });
           
           const imageData = response.data.data || response.data;
+          
+          // S3에 실제 파일 업로드
+          if (imageData.uploadUrl) {
+            await fetch(imageData.uploadUrl, {
+              method: 'PUT',
+              body: file,
+              headers: {
+                'Content-Type': file.type
+              }
+            });
+          }
+          
           setUploadedImages(prev => [...prev, imageData]);
           
-          // ReactQuill에 이미지 삽입
+          // ReactQuill에 이미지 삽입 (영구 URL 사용)
           setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
         } catch (error) {
           console.error('이미지 업로드 실패:', error);
@@ -357,6 +382,10 @@ export default function PostCreate() {
                       src={image.url}
                       alt={image.originalName}
                       className="w-full h-24 object-cover rounded-lg shadow-md"
+                      onError={(e) => {
+                        console.error('이미진 로드 실패:', image.url);
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo=';
+                      }}
                     />
                     <button
                       type="button"
