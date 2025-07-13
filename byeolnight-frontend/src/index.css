@@ -203,6 +203,30 @@ svg {
   display: block !important;
 }
 
+/* 이모지 폰트 렌더링 최적화 */
+* {
+  font-display: swap;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 이모지 강제 렌더링 */
+.emoji-icon {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', sans-serif !important;
+  font-display: block !important;
+  display: inline-block !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  speak: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
 /* Tailwind 기반 우주 테마 */
 body {
   margin: 0;
