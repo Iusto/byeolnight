@@ -280,7 +280,7 @@ export default function PostList() {
                       handleCategoryChange(cat);
                     }}
                     type="button"
-                    className={`relative p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${
+                    className={`relative p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-105 select-none ${
                       isActive
                         ? 'bg-gradient-to-br from-purple-600/50 to-pink-600/50 border-2 border-purple-400/50 text-white shadow-xl shadow-purple-500/25' 
                         : 'bg-gradient-to-br from-slate-700/30 to-slate-800/30 border border-slate-600/30 text-gray-300 hover:from-slate-600/40 hover:to-slate-700/40 hover:border-slate-500/50 shadow-lg'
@@ -291,7 +291,7 @@ export default function PostList() {
                         <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖</span>
                       </div>
                     )}
-                    <div className="text-3xl mb-2">{icons[cat as keyof typeof icons]}</div>
+                    <div className="text-3xl mb-2 select-none pointer-events-none">{icons[cat as keyof typeof icons]}</div>
                     <div className="text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
                   </button>
                 );
