@@ -1,6 +1,6 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.infrastructure.exception.CommonResponse;
+import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.file.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
