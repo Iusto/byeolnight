@@ -74,6 +74,7 @@ public class S3Service {
                             .bucket(bucketName)
                             .key(s3Key)
                             .contentType(getContentType(originalFilename))
+                            .acl(ObjectCannedACL.PUBLIC_READ) // 공개 읽기 권한
                     )
                     .build();
 
@@ -217,6 +218,7 @@ public class S3Service {
             S3Client s3Client = S3Client.builder()
                     .region(Region.of(region))
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .forcePathStyle(true)
                     .build();
 
             // Lifecycle 규칙 생성

@@ -299,7 +299,10 @@ export default function PostCreate() {
                       [{ 'align': [] }],
                       ['link', 'image', 'video'],
                       ['clean']
-                    ]
+                    ],
+                    clipboard: {
+                      matchVisual: false
+                    }
                   }}
                   formats={[
                     'header', 'bold', 'italic', 'underline', 'strike',
