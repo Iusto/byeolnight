@@ -17,14 +17,18 @@ export const uploadImageToS3 = async (file: File): Promise<string> => {
 
     const { uploadUrl, url, contentType }: PresignedUrlResponse = response.data.data;
 
-    // 2. S3에 직접 업로드 (CORS 헤더 명시)
-    await axios.put(uploadUrl, file, {
+    // 2. S3에 직접 업로드 (fetch 사용)
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
       headers: {
-        'Content-Type': contentType,
-        'x-amz-acl': 'public-read'
-      },
-      withCredentials: false // S3 업로드 시 쿠키 제외
+        'Content-Type': contentType
+      }
     });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`업로드 실패: ${uploadResponse.status}`);
+    }
 
     return url;
   } catch (error) {
