@@ -133,6 +133,14 @@ public class User implements UserDetails {
     @Column(length = 255)
     private String withdrawalReason;
 
+    /** 탈퇴 일시 */
+    @Column
+    private LocalDateTime withdrawnAt;
+
+    public LocalDateTime getWithdrawnAt() {
+        return withdrawnAt;
+    }
+
     /** 계정 생성 시각 */
     @Column(nullable = false)
     @Builder.Default
@@ -257,8 +265,18 @@ public class User implements UserDetails {
     public void withdraw(String reason) {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawalReason = reason;
+        this.withdrawnAt = LocalDateTime.now();
         this.nickname = "탈퇴회원_" + this.id;
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
+    }
+
+    /** 개인정보 완전 삭제 (5년 경과 후) */
+    public void completelyRemovePersonalInfo() {
+        this.nickname = "DELETED_" + this.id;
+        this.email = "deleted_" + this.id + "@removed.local";
+        this.phone = "DELETED";
+        this.phoneHash = "DELETED_" + this.id;
+        this.withdrawalReason = "5년 경과로 인한 자동 삭제";
     }
 
 // ======================== 🔐 Spring Security 구현부 ========================

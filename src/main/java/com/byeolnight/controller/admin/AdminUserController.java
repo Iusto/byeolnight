@@ -36,6 +36,7 @@ public class AdminUserController {
     private final StringRedisTemplate redisTemplate;
     private final PostService postService;
     private final com.byeolnight.service.user.PointService pointService;
+    private final com.byeolnight.service.user.WithdrawnUserCleanupService withdrawnUserCleanupService;
 
     @Operation(summary = "전체 사용자 요약 조회", description = "관리자 권한으로 전체 사용자 목록을 조회합니다.")
     @ApiResponses({
@@ -245,6 +246,25 @@ public class AdminUserController {
         result.put("similarNicknames", allNicknames);
         
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result));
+    }
+
+    @Operation(summary = "탈퇴 회원 정리 (수동 실행)", description = "탈퇴 후 5년 경과한 회원의 개인정보를 수동으로 정리합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "정리 완료"),
+            @ApiResponse(responseCode = "403", description = "권한 없음")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/cleanup-withdrawn")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> cleanupWithdrawnUsers() {
+        try {
+            withdrawnUserCleanupService.cleanupWithdrawnUsers();
+            return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
+                "탈퇴 회원 정리가 완료되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(com.byeolnight.infrastructure.common.CommonResponse.fail(
+                    "탈퇴 회원 정리 중 오류가 발생했습니다: " + e.getMessage()));
+        }
     }
 
 
