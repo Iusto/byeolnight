@@ -1,0 +1,22 @@
+{
+  "name": "별 헤는 밤",
+  "short_name": "별헤는밤",
+  "description": "우주를 테마로 한 감성적인 커뮤니티 플랫폼",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#1a1a2e",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}
