@@ -24,7 +24,7 @@ public class File {
     @Column(nullable = false)
     private String s3Key; // S3 내 저장 경로 및 파일명 (예: "posts/uuid_내사진.png")
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
     private String url; // S3 접근용 URL
 
     public void detachFromPost() {

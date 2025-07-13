@@ -21,6 +21,7 @@ export default function PostCreate() {
   const [category, setCategory] = useState('DISCUSSION');
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
+  const [isImageChecking, setIsImageChecking] = useState(false);
   const editorRef = useRef<any>(null);
   
   // URL 파라미터에서 originTopic 추출
@@ -28,6 +29,7 @@ export default function PostCreate() {
   
   // 클립보드 이미지 업로드 함수
   const uploadClipboardImage = async (file: File) => {
+    setIsImageChecking(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -43,6 +45,8 @@ export default function PostCreate() {
     } catch (error) {
       console.error('클립보드 이미지 업로드 실패:', error);
       throw error;
+    } finally {
+      setIsImageChecking(false);
     }
   };
   
@@ -89,6 +93,7 @@ export default function PostCreate() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        setIsImageChecking(true);
         try {
           const formData = new FormData();
           formData.append('file', file);
@@ -105,6 +110,8 @@ export default function PostCreate() {
         } catch (error) {
           console.error('이미지 업로드 실패:', error);
           alert('이미지 업로드에 실패했습니다.');
+        } finally {
+          setIsImageChecking(false);
         }
       }
     };
@@ -235,9 +242,19 @@ export default function PostCreate() {
                   <button
                     type="button"
                     onClick={handleImageUpload}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105"
+                    disabled={isImageChecking}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
                   >
-                    🖼️ 이미지
+                    {isImageChecking ? (
+                      <>
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        검열 중...
+                      </>
+                    ) : (
+                      <>
+                        🖼️ 이미지
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -308,14 +325,31 @@ export default function PostCreate() {
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
                 🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
                 🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
+                🛡️ 이미지 검열: 업로드된 모든 이미지는 자동으로 검열되어 안전한 콘텐츠만 허용됩니다<br/>
                 🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
               </div>
             </div>
           
+          {/* 이미지 검열 중 알림 */}
+          {isImageChecking && (
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm flex items-center gap-3">
+              <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+              <div>
+                <div className="font-medium">🛡️ 이미지 검열 중...</div>
+                <div className="text-xs text-blue-300 mt-1">안전한 콘텐츠를 위해 이미지를 검사하고 있습니다. 잠시만 기다려주세요.</div>
+              </div>
+            </div>
+          )}
+
           {/* 업로드된 이미지 미리보기 */}
           {uploadedImages.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-300">업로드된 이미지:</h3>
+              <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                업로드된 이미지:
+                <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
+                  ✓ 검열 완료
+                </span>
+              </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {uploadedImages.map((image, index) => (
                   <div key={index} className="relative group">
@@ -333,6 +367,9 @@ export default function PostCreate() {
                     </button>
                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg truncate">
                       {image.originalName}
+                    </div>
+                    <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
+                      ✓ 검열완료
                     </div>
                   </div>
                 ))}
@@ -379,9 +416,17 @@ export default function PostCreate() {
             
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+              disabled={isImageChecking}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
-              🚀 게시글 등록
+              {isImageChecking ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  이미지 검열 중... 잠시만 기다려주세요
+                </div>
+              ) : (
+                '🚀 게시글 등록'
+              )}
             </button>
           </form>
         </div>
