@@ -10,7 +10,7 @@ export default function TermsOfService() {
       <h2 className="text-xl font-semibold mt-6 mb-2">1. 정의</h2>
       <ul className="list-disc text-sm ml-6 space-y-1">
         <li>“회원”이라 함은 본 약관에 동의하고 서비스를 이용하는 개인 또는 단체를 말합니다.</li>
-        <li>“운영자”라 함은 본 서비스를 관리, 운영하는 주체(byeolservice 관리자)를 말합니다.</li>
+        <li>“운영자”라 함은 본 서비스를 관리, 운영하는 주체(byeolnightservice 관리자)를 말합니다.</li>
       </ul>
 
       <h2 className="text-xl font-semibold mt-6 mb-2">2. 목적</h2>
@@ -35,7 +35,7 @@ export default function TermsOfService() {
         <li>스팸성 글/댓글, 무단 홍보 행위</li>
       </ul>
       <p className="text-sm mt-2 ml-1">
-        제재는 위반의 정도에 따라 7일 이용 정지부터 영구 정지까지 적용되며, <strong>byeolservice@gmail.com</strong>으로 이의제기를 요청할 수 있습니다.
+        제재는 위반의 정도에 따라 7일 이용 정지부터 영구 정지까지 적용되며, <strong>byeolnightservice@gmail.com</strong>으로 이의제기를 요청할 수 있습니다.
       </p>
 
       <h2 className="text-xl font-semibold mt-6 mb-2">5. 게시물 관리</h2>

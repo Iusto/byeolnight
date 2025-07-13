@@ -54,7 +54,7 @@ export default function PrivacyPolicy() {
 
       <h2 className="text-xl font-semibold mt-6 mb-2">6. 권리 및 문의</h2>
       <p className="text-sm ml-1">
-        회원은 언제든지 개인정보 조회, 수정, 삭제, 처리정지 등을 요청할 수 있으며, 관련 문의는 <strong>byeolservice@gmail.com</strong> 또는 고객센터를 통해 가능합니다.
+        회원은 언제든지 개인정보 조회, 수정, 삭제, 처리정지 등을 요청할 수 있으며, 관련 문의는 <strong>byeolnightservice@gmail.com</strong> 또는 고객센터를 통해 가능합니다.
       </p>
 
       <h2 className="text-xl font-semibold mt-6 mb-2">7. 개인정보처리방침의 변경</h2>

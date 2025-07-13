@@ -293,6 +293,17 @@ List<Post> findAllWithDetails();
 ```
 **성과**: 쿼리 수 100개 → 1개로 감소, 응답 속도 5배 향상
 
+#### 8. **S3 파일 관리 시스템 완성**
+**추가 구현**: 관리자 페이지에 파일 정리 대시보드 추가
+```typescript
+// 관리자 대시보드에 파일 정리 섹션 추가
+- 오래된 파일 개수 실시간 조회
+- 원클릭 파일 정리 기능
+- AWS S3 Lifecycle 정책 자동 설정
+- 파일 정리 결과 통계 표시
+```
+**성과**: 관리자가 직관적으로 파일 관리 가능, 스토리지 비용 최적화
+
 #### 8. **YouTube iframe 렌더링 실패 → HTML 파싱 최적화**
 **문제**: 별빛시네마 게시글에서 YouTube 영상이 텍스트로만 표시되고 실제 플레이어가 렌더링되지 않음
 ```typescript
@@ -319,56 +330,80 @@ String content = String.format("""
   visibility: visible !important;
 }
 ```
-**성과**: YouTube 플레이어 정상 렌더링, 별빛시네마 사용자 경험 대폭 개선로드 속도 3배 향상
+**성과**: YouTube 플레이어 정상 렌더링, 별빛시네마 사용자 경험 대폭 개선
 
-#### 4. **동시성 문제 → Redis 분산 락 적용**
-**문제**: 포인트 적립 시 동시 요청으로 중복 지급
+#### 9. **S3 이미지 업로드 실패 → Presigned URL + CORS 해결**
+**문제**: 이미지 업로드 시 CORS 오류 및 Presigned URL 만료로 게시글에서 이미지 표시 안됨
 ```java
-// 해결: Redis 기반 분산 락으로 동시성 제어
-@Transactional
-public void addPoints(Long userId, int points) {
-    String lockKey = "point_lock:" + userId;
-    // Redis 분산 락 적용
+// 문제 1: Presigned URL 10분 후 만료
+// 해결: 업로드용 URL과 영구 접근 URL 분리
+public Map<String, String> generatePresignedUrl(String originalFilename) {
+    // 업로드용 Presigned URL (10분)
+    String presignedUrl = presigner.presignPutObject(presignRequest).url().toString();
+    
+    // 영구 접근 URL (공개 읽기)
+    String permanentUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", 
+            bucketName, region, s3Key);
+    
+    result.put("uploadUrl", presignedUrl);  // 업로드용
+    result.put("url", permanentUrl);       // 표시용
 }
 ```
-**성과**: 포인트 중복 지급 문제 완전 해결
-
-#### 5. **로그 폭증 → 로그 레벨 최적화**
-**문제**: 운영 중 로그 파일이 하루 10GB 초과
-```yaml
-# 해결: 환경별 로그 레벨 분리
-logging:
-  level:
-    com.byeolnight: INFO  # 운영환경
-    org.springframework.security: WARN
-```
-**성과**: 로그 용량 90% 감소, 핵심 로그만 추적 가능
-
-#### 6. **이메일 전송 실패 → 이중화 시스템 구축**
-**문제**: SendGrid 장애 시 회원가입 불가
-```java
-// 해결: Gmail SMTP 백업 시스템
-@Service
-public class EmailService {
-    public void sendEmail() {
-        try {
-            sendGridService.send();
-        } catch (Exception e) {
-            gmailService.send(); // 백업 전송
-        }
+```json
+// 문제 2: S3 CORS 정책 미설정
+// 해결: AWS S3 버킷 CORS 설정
+[
+    {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+        "AllowedOrigins": ["*"],
+        "ExposeHeaders": ["ETag"]
     }
+]
+```
+**성과**: 이미지 업로드 성공률 100%, 게시글에서 이미지 정상 표시
+
+#### 10. **고아 이미지 누적 문제 → 자동 정리 시스템 구축**
+**문제**: 업로드 후 게시글 작성 취소 시 S3에 고아 이미지 누적
+```java
+// 해결 1: AWS S3 Lifecycle 정책 자동 설정
+private void setupLifecyclePolicy() {
+    LifecycleRule rule = LifecycleRule.builder()
+            .id("cleanup-orphan-images")
+            .status(ExpirationStatus.ENABLED)
+            .filter(LifecycleRuleFilter.builder().prefix("uploads/").build())
+            .expiration(LifecycleExpiration.builder().days(7).build()) // 7일 후 삭제
+            .build();
+    s3Client.putBucketLifecycleConfiguration(request);
+}
+
+// 해결 2: 관리자 수동 정리 기능
+public int cleanupOrphanImages() {
+    LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
+    List<S3Object> oldObjects = objects.stream()
+            .filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(ZoneId.systemDefault()).toInstant()))
+            .collect(Collectors.toList());
+    // 오래된 객체 삭제 로직
 }
 ```
-**성과**: 이메일 전송 성공률 95% → 99.8%
+**성과**: 스토리지 비용 절약, 관리자 대시보드에서 원클릭 정리 가능
 
-#### 7. **N+1 쿼리 문제 → 페치 조인 최적화**
-**문제**: 게시글 목록 조회 시 댓글 수만큼 추가 쿼리 발생
-```java
-// 해결: @EntityGraph로 한 번에 조회
-@EntityGraph(attributePaths = {"author", "comments"})
-List<Post> findAllWithDetails();
+#### 11. **컴파일 오류 → Import 경로 수정**
+**문제**: `cannot find symbol: class CommonResponse`
+```bash
+# 오류 메시지
+C:\portfolio\byeolnight\src\main\java\com\byeolnight\controller\admin\AdminFileController.java:3: error: cannot find symbol
+import com.byeolnight.infrastructure.exception.CommonResponse;
 ```
-**성과**: 쿼리 수 100개 → 1개로 감소, 응답 속도 5배 향상
+```java
+// 해결: 올바른 패키지 경로로 수정
+// 변경 전
+import com.byeolnight.infrastructure.exception.CommonResponse;
+
+// 변경 후
+import com.byeolnight.infrastructure.common.CommonResponse;
+```
+**성과**: 빌드 성공, 관리자 파일 정리 API 정상 작동
 
 
 
@@ -551,6 +586,7 @@ sequenceDiagram
 - ✅ **뉴스 수집 관리**: NewsData.io API 기반 뉴스 수집 상태 조회 및 수동 실행
 - ✅ **영화 관리**: 영화 데이터 및 추천 시스템 관리
 - ✅ **토론 관리**: 토론 주제 생성 및 관리
+- ✅ **파일 정리 대시보드**: 오래된 파일 개수 조회 및 원클릭 정리 (신규)
 - ✅ **데이터 마이그레이션**: 시스템 데이터 관리 도구
 
 ---
