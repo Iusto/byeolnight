@@ -7,6 +7,9 @@ EMAIL=${2:-iusto@naver.com}
 
 echo "🚀 별 헤는 밤 전체 배포 + SSL 설정 시작..."
 
+# 루트 디렉토리로 이동
+cd ..
+
 # 1. 환경변수 파일 확인
 if [ ! -f ".env" ]; then
     echo "❌ .env 파일이 없습니다. .env.example을 복사하여 설정하세요."
@@ -50,8 +53,8 @@ if [ "$DOMAIN" != "localhost" ] && [ "$DOMAIN" != "127.0.0.1" ]; then
         echo "✅ 도메인 연결 확인됨: $DOMAIN"
         
         # SSL 설정 실행
-        chmod +x setup-ssl.sh
-        ./setup-ssl.sh $DOMAIN $EMAIL
+        chmod +x deploy/setup-ssl.sh
+        ./deploy/setup-ssl.sh $DOMAIN $EMAIL
         
         if [ $? -eq 0 ]; then
             echo "🎉 HTTPS 배포 완료!"
