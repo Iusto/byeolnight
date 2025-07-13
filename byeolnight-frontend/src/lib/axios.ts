@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://byeolnight.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -85,7 +85,7 @@ instance.interceptors.response.use(
 
         // Refresh Token으로 새 Access Token 요청
         const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/token/refresh`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://byeolnight.com/api'}/auth/token/refresh`,
           {},
           { withCredentials: true }
         );
