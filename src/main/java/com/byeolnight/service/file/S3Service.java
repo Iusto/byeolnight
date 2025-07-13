@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import javax.annotation.PostConstruct;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,12 +25,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class S3Service {
-    
-    @PostConstruct
-    public void init() {
-        ensureBucketPublicReadAccess();
-    }
-    
+
     private final GoogleVisionService googleVisionService;
 
     @Value("${cloud.aws.s3.bucket}")
@@ -49,6 +44,8 @@ public class S3Service {
      * S3 Presigned URL 생성 (이미지 검증 포함)
      */
     public Map<String, String> generatePresignedUrl(String originalFilename) {
+        // 첫 호출 시 버킷 권한 확인
+        ensureBucketPublicReadAccess();
         // 기본적인 파일 형식 검증
         if (!isValidImageFile(originalFilename)) {
             throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, png, gif, webp만 허용)");
