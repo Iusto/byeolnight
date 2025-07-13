@@ -1,14 +1,14 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // 쿠키 포함 (Refresh Token용)
 });
 
-console.log('Axios baseURL:', 'http://localhost:8080/api');
+console.log('Axios baseURL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
 
 // 요청 인터셉터
 instance.interceptors.request.use(
@@ -85,7 +85,7 @@ instance.interceptors.response.use(
 
         // Refresh Token으로 새 Access Token 요청
         const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/auth/token/refresh`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/token/refresh`,
           {},
           { withCredentials: true }
         );
