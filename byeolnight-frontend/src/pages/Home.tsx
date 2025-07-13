@@ -203,7 +203,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 py-20">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent mb-6">
-              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif', fontSize: 'inherit', lineHeight: '1', display: 'inline-block' }}>🌌</span> 별 헤는 밤
+🌌 별 헤는 밤
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
               우주의 신비를 탐험하고, 지식을 나누며, 꿈을 향해 나아가는 커뮤니티
@@ -228,7 +228,7 @@ export default function Home() {
         <div className="mb-12">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif', fontSize: 'inherit', lineHeight: '1', display: 'inline-block' }}>🚀</span> 게시판 둘러보기
+🚀 게시판 둘러보기
             </h2>
             <p className="text-gray-400 text-sm">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
           </div>

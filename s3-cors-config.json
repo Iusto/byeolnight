@@ -1,0 +1,24 @@
+[
+    {
+        "AllowedHeaders": [
+            "*"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE",
+            "HEAD"
+        ],
+        "AllowedOrigins": [
+            "https://byeolnight.com",
+            "http://localhost:5173",
+            "http://localhost:3000"
+        ],
+        "ExposeHeaders": [
+            "ETag",
+            "x-amz-version-id"
+        ],
+        "MaxAgeSeconds": 3000
+    }
+]
