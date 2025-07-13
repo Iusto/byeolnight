@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,11 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class S3Service {
+    
+    @PostConstruct
+    public void init() {
+        ensureBucketPublicReadAccess();
+    }
     
     private final GoogleVisionService googleVisionService;
 
@@ -60,9 +66,9 @@ public class S3Service {
             // 고유한 파일명 생성
             String s3Key = generateS3Key(originalFilename);
 
-            // Presigned URL 요청 생성
+            // Presigned URL 요청 생성 (업로드용)
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofMinutes(10)) // 10분간 유효
+                    .signatureDuration(Duration.ofMinutes(10)) // 업로드용 10분
                     .putObjectRequest(builder -> builder
                             .bucket(bucketName)
                             .key(s3Key)
@@ -70,17 +76,22 @@ public class S3Service {
                     )
                     .build();
 
-            // Presigned URL 생성
+            // Presigned URL 생성 (업로드용)
             PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(presignRequest);
             String presignedUrl = presignedRequest.url().toString();
+            
+            // 영구 접근 URL 생성 (조회용)
+            String permanentUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", 
+                    bucketName, region, s3Key);
 
             // 결과 반환
             Map<String, String> result = new HashMap<>();
-            result.put("url", presignedUrl);
+            result.put("uploadUrl", presignedUrl);  // 업로드용 URL
+            result.put("url", permanentUrl);       // 영구 접근 URL
             result.put("s3Key", s3Key);
             result.put("originalName", originalFilename);
 
-            log.info("Presigned URL 생성 완료: {} (Google Vision API 검열 준비됨)", s3Key);
+            log.info("Presigned URL 생성 완료: {} (영구 URL: {})", s3Key, permanentUrl);
             return result;
 
         } catch (Exception e) {
@@ -183,5 +194,27 @@ public class S3Service {
                extension.endsWith(".png") || 
                extension.endsWith(".gif") || 
                extension.endsWith(".webp");
+    }
+    
+    /**
+     * S3 버킷 공개 읽기 권한 확인
+     */
+    public void ensureBucketPublicReadAccess() {
+        log.info("S3 버킷 공개 읽기 권한 확인: {}", bucketName);
+        log.info("영구 URL 형식: https://{}.s3.{}.amazonaws.com/uploads/[filename]", bucketName, region);
+        
+        // AWS 콘솔에서 다음 버킷 정책을 설정해야 합니다:
+        // {
+        //   "Version": "2012-10-17",
+        //   "Statement": [
+        //     {
+        //       "Sid": "PublicReadGetObject",
+        //       "Effect": "Allow",
+        //       "Principal": "*",
+        //       "Action": "s3:GetObject",
+        //       "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/uploads/*"
+        //     }
+        //   ]
+        // }
     }
 }
