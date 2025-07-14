@@ -22,8 +22,7 @@ export const uploadImageToS3 = async (file: File): Promise<string> => {
       method: 'PUT',
       body: file,
       headers: {
-        'Content-Type': contentType,
-        'x-amz-acl': 'public-read'
+        'Content-Type': contentType
       }
     });
 

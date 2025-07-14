@@ -71,6 +71,8 @@ export default function AdminUserPage() {
   const [ipSearchTerm, setIpSearchTerm] = useState('');
   const [orphanImageCount, setOrphanImageCount] = useState<number>(0);
   const [isCleaningFiles, setIsCleaningFiles] = useState(false);
+  const [s3Status, setS3Status] = useState<any>(null);
+  const [showS3Status, setShowS3Status] = useState(false);
   const [schedulerStatus, setSchedulerStatus] = useState<{
     messagesToDelete: number;
     postsToDelete: number;
@@ -241,6 +243,7 @@ export default function AdminUserPage() {
     fetchDeletedComments();
     fetchOrphanImageCount();
     fetchSchedulerStatus();
+    fetchS3Status();
   }, []);
 
   const fetchBlindedPosts = async () => {
@@ -434,6 +437,16 @@ export default function AdminUserPage() {
     } catch (err) {
       console.error('고아 이미지 개수 조회 실패:', err);
       setOrphanImageCount(0);
+    }
+  };
+
+  const fetchS3Status = async () => {
+    try {
+      const res = await axios.get('/admin/files/s3-status');
+      const status = res.data?.data || {};
+      setS3Status(status);
+    } catch (err) {
+      console.error('S3 상태 조회 실패:', err);
     }
   };
 
@@ -1299,13 +1312,24 @@ export default function AdminUserPage() {
                       업로드 후 게시글에 사용되지 않은 오래된 이미지 파일들을 정리합니다.
                     </p>
                   </div>
-                  <button
-                    onClick={fetchOrphanImageCount}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm transition"
-                    disabled={isCleaningFiles}
-                  >
-                    🔄 새로고침
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowS3Status(!showS3Status)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition"
+                    >
+                      🔍 S3 상태
+                    </button>
+                    <button
+                      onClick={() => {
+                        fetchOrphanImageCount();
+                        fetchS3Status();
+                      }}
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm transition"
+                      disabled={isCleaningFiles}
+                    >
+                      🔄 새로고침
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
@@ -1358,6 +1382,49 @@ export default function AdminUserPage() {
                     </div>
                   </div>
                 )}
+                
+                {/* S3 상태 정보 */}
+                {showS3Status && s3Status && (
+                  <div className="mt-4 p-4 bg-[#1f2336] rounded-lg">
+                    <h5 className="text-white font-medium mb-3">📊 S3 연결 상태</h5>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-400">버킷:</span>
+                        <span className="text-white ml-2">{s3Status.bucketName}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">리전:</span>
+                        <span className="text-white ml-2">{s3Status.region}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">연결 상태:</span>
+                        <span className={`ml-2 ${
+                          s3Status.connectionStatus === 'SUCCESS' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {s3Status.connectionStatus === 'SUCCESS' ? '✅ 정상' : '❌ 오류'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">버킷 존재:</span>
+                        <span className={`ml-2 ${
+                          s3Status.bucketExists ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {s3Status.bucketExists ? '✅ 존재' : '❌ 없음'}
+                        </span>
+                      </div>
+                    </div>
+                    {s3Status.error && (
+                      <div className="mt-3 p-2 bg-red-600/20 border border-red-600/50 rounded text-red-400 text-sm">
+                        <strong>오류:</strong> {s3Status.error}
+                      </div>
+                    )}
+                    {s3Status.suggestion && (
+                      <div className="mt-2 p-2 bg-blue-600/20 border border-blue-600/50 rounded text-blue-400 text-sm">
+                        <strong>해결 방법:</strong> {s3Status.suggestion}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* 파일 관리 정보 카드 */}
@@ -1378,6 +1445,7 @@ export default function AdminUserPage() {
                       <li>• 정기적인 파일 정리 권장</li>
                       <li>• 스토리지 비용 절약 효과</li>
                       <li>• 시스템 성능 최적화</li>
+                      <li>• S3 상태 버튼으로 연결 문제 진단</li>
                     </ul>
                   </div>
                 </div>

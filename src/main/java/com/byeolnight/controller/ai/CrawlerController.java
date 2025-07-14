@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin/crawler")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "👮 관리자 API - 크롤러", description = "우주 뉴스 자동 수집 시스템")
@@ -20,7 +20,7 @@ public class CrawlerController {
     private final SpaceNewsScheduler spaceNewsScheduler;
 
     @Operation(summary = "우주 뉴스 수동 수집", description = "관리자가 수동으로 우주 뉴스를 수집합니다.")
-    @PostMapping("/start")
+    @PostMapping("/crawler/start")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResponse<String>> startCrawling() {
         try {
@@ -39,11 +39,27 @@ public class CrawlerController {
     }
 
     @Operation(summary = "크롤러 상태 확인", description = "우주 뉴스 크롤러 시스템의 상태를 확인합니다.")
-    @GetMapping("/status")
+    @GetMapping("/crawler/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResponse<String>> getStatus() {
         return ResponseEntity.ok(
             CommonResponse.success("우주 뉴스 크롤러 시스템이 정상 작동 중입니다. 매일 오전 8시에 자동 실행됩니다.")
+        );
+    }
+    
+    @GetMapping("/discussions/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResponse<String>> getDiscussionStatus() {
+        return ResponseEntity.ok(
+            CommonResponse.success("토론 주제 생성 시스템이 정상 작동 중입니다. 매일 오전 8시에 자동 실행됩니다.")
+        );
+    }
+    
+    @GetMapping("/cinema/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResponse<String>> getCinemaStatus() {
+        return ResponseEntity.ok(
+            CommonResponse.success("별빛 시네마 시스템이 정상 작동 중입니다. 매일 오후 8시에 자동 실행됩니다.")
         );
     }
 }
