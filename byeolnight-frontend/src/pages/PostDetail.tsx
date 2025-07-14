@@ -568,11 +568,9 @@ export default function PostDetail() {
                   const icon = certIcons[cert] || '🏆';
                   
                   return (
-                    <div key={idx} className="relative group">
-                      <div className="px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-sm font-bold rounded-full border border-yellow-500/40 shadow-lg backdrop-blur-sm certificate-glow">
-                        {icon} {cert}
-                      </div>
-                    </div>
+                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30" title={cert}>
+                      {icon} {cert}
+                    </span>
                   );
                 })}
               </div>

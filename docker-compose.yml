@@ -32,7 +32,7 @@ services:
     env_file:
       - .env
     environment:
-      - JAVA_OPTS=-Xmx2g -Xms1g -XX:+UseG1GC
+      - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
     restart: unless-stopped
     volumes:
@@ -44,6 +44,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: byeolnight
+    command: >
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=128M
+      --max-connections=50
+      --innodb-flush-log-at-trx-commit=2
     ports:
       - "3306:3306"  # 외부 접근을 위해 포트 노출
     volumes:
@@ -61,6 +66,7 @@ services:
       - "6379"
     volumes:
       - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
 
   frontend:
