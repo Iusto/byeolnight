@@ -89,6 +89,46 @@ export default function PostDetail() {
         height: 100% !important;
         min-height: unset !important;
       }
+      /* 글씨 크기 및 스타일 적용 */
+      .post-content h1 { font-size: 2rem !important; font-weight: bold !important; }
+      .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; }
+      .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; }
+      .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; }
+      .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; }
+      .post-content h6 { font-size: 1rem !important; font-weight: bold !important; }
+      .post-content p { font-size: 1rem !important; line-height: 1.6 !important; }
+      .post-content strong { font-weight: bold !important; }
+      .post-content em { font-style: italic !important; }
+      .post-content ul, .post-content ol { padding-left: 1.5rem !important; }
+      .post-content li { margin: 0.5rem 0 !important; }
+      .post-content blockquote { 
+        border-left: 4px solid #8b5cf6 !important; 
+        padding-left: 1rem !important; 
+        margin: 1rem 0 !important; 
+        font-style: italic !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+        border-radius: 0 8px 8px 0 !important;
+      }
+      .post-content code {
+        background: rgba(139, 92, 246, 0.2) !important;
+        padding: 0.2rem 0.4rem !important;
+        border-radius: 4px !important;
+        font-family: 'Courier New', monospace !important;
+      }
+      .post-content pre {
+        background: rgba(0, 0, 0, 0.3) !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+      }
+      .post-content a {
+        color: #a78bfa !important;
+        text-decoration: underline !important;
+      }
+      .post-content a:hover {
+        color: #c4b5fd !important;
+      }
     `;
     document.head.appendChild(style);
     
@@ -522,8 +562,13 @@ export default function PostDetail() {
               </span>
             </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-6 leading-tight">
-            {post.title}
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
+              {post.title.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}])/gu, '')}
+            </span>
+            <span className="text-white">
+              {(post.title.match(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}])/gu) || []).join('')}
+            </span>
           </h1>
           {/* 작성자 정보 */}
           <div className="flex items-center gap-4 mb-4">
@@ -583,7 +628,7 @@ export default function PostDetail() {
         <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
           {/* 게시글 내용 */}
           <div className="mb-8">
-            <div className="prose prose-lg max-w-none dark:prose-invert youtube-content">
+            <div className="prose prose-lg max-w-none dark:prose-invert youtube-content post-content">
               <ReactMarkdown
                 children={post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')}
                 remarkPlugins={[remarkGfm]}
