@@ -93,12 +93,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        log.debug("🔑 사용자 권한: {}", userDetails.getAuthorities());
+        
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
-        log.debug("✅ 인증 성공: {}", email);
+        log.debug("✅ 인증 성공: {} (권한: {})", email, userDetails.getAuthorities());
 
         filterChain.doFilter(request, response);
     }
