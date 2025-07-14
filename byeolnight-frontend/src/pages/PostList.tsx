@@ -406,23 +406,39 @@ export default function PostList() {
                   매일 오전 8시 자동 생성 | 스케줄 실패 시 수동 생성 가능
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!confirm('새로운 토론 주제를 생성하시겠습니까? 기존 주제는 비활성화됩니다.')) return;
-                  
-                  try {
-                    const response = await axios.post('/admin/discussions/generate-topic');
-                    alert('토론 주제가 성공적으로 생성되었습니다!');
-                    window.location.reload(); // 페이지 새로고침
-                  } catch (error) {
-                    console.error('토론 주제 생성 실패:', error);
-                    alert('토론 주제 생성에 실패했습니다.');
-                  }
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                🎯 토론 주제 생성
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await axios.get('/admin/discussions/status');
+                      alert(response.data.data || '토론 주제 생성 시스템이 정상 작동 중입니다.');
+                    } catch (error) {
+                      console.error('상태 확인 실패:', error);
+                      alert('상태 확인에 실패했습니다.');
+                    }
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  📊 상태 확인
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('새로운 토론 주제를 생성하시겠습니까? 기존 주제는 비활성화됩니다.')) return;
+                    
+                    try {
+                      const response = await axios.post('/admin/discussions/generate-topic');
+                      alert('토론 주제가 성공적으로 생성되었습니다!');
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('토론 주제 생성 실패:', error);
+                      alert('토론 주제 생성에 실패했습니다.');
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  🎯 토론 주제 생성
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -437,23 +453,39 @@ export default function PostList() {
                   매일 오후 8시 자동 생성 | 스케줄 실패 시 수동 생성 가능
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!confirm('새로운 별빛 시네마 포스트를 생성하시겠습니까?')) return;
-                  
-                  try {
-                    const response = await axios.post('/admin/cinema/generate-post');
-                    alert('별빛 시네마 포스트가 성공적으로 생성되었습니다!');
-                    window.location.reload(); // 페이지 새로고침
-                  } catch (error) {
-                    console.error('별빛 시네마 생성 실패:', error);
-                    alert('별빛 시네마 생성에 실패했습니다.');
-                  }
-                }}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                🎬 시네마 포스트 생성
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await axios.get('/admin/cinema/status');
+                      alert(response.data.data || '별빛 시네마 시스템이 정상 작동 중입니다.');
+                    } catch (error) {
+                      console.error('상태 확인 실패:', error);
+                      alert('상태 확인에 실패했습니다.');
+                    }
+                  }}
+                  className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  📊 상태 확인
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('새로운 별빛 시네마 포스트를 생성하시겠습니까?')) return;
+                    
+                    try {
+                      const response = await axios.post('/admin/cinema/generate-post');
+                      alert('별빛 시네마 포스트가 성공적으로 생성되었습니다!');
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('별빛 시네마 생성 실패:', error);
+                      alert('별빛 시네마 생성에 실패했습니다.');
+                    }
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  🎬 시네마 포스트 생성
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -468,23 +500,39 @@ export default function PostList() {
                   매일 오전 8시 자동 수집 | 스케줄 실패 시 수동 수집 가능
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!confirm('NewsData.io API를 통해 최신 우주 뉴스를 수집하시겠습니까?')) return;
-                  
-                  try {
-                    const response = await axios.post('/admin/news-test/collect');
-                    alert('뉴스 수집이 성공적으로 완료되었습니다!');
-                    window.location.reload(); // 페이지 새로고침
-                  } catch (error) {
-                    console.error('뉴스 수집 실패:', error);
-                    alert('뉴스 수집에 실패했습니다.');
-                  }
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                🚀 뉴스 수집
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await axios.get('/admin/crawler/status');
+                      alert(response.data.data || '뉴스 크롤러 시스템이 정상 작동 중입니다.');
+                    } catch (error) {
+                      console.error('상태 확인 실패:', error);
+                      alert('상태 확인에 실패했습니다.');
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  📊 상태 확인
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('NewsData.io API를 통해 최신 우주 뉴스를 수집하시겠습니까?')) return;
+                    
+                    try {
+                      const response = await axios.post('/admin/crawler/start');
+                      alert('뉴스 수집이 성공적으로 완료되었습니다!');
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('뉴스 수집 실패:', error);
+                      alert('뉴스 수집에 실패했습니다.');
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  🚀 뉴스 수집
+                </button>
+              </div>
             </div>
           </div>
         )}

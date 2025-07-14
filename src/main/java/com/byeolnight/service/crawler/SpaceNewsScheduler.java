@@ -35,12 +35,4 @@ public class SpaceNewsScheduler {
         spaceNewsService.collectAndSaveSpaceNews();
         log.info("=== 우주 뉴스 수동 수집 완료 ===");
     }
-    
-    // 테스트용 - 2분마다 실행 (시간대 확인용)
-    @Scheduled(fixedRate = 120000)
-    public void testTimezoneScheduler() {
-        log.info("테스트 스케줄러 - 서버 시간: {}, UTC: {}", 
-            java.time.LocalDateTime.now(), 
-            java.time.Instant.now());
-    }
 }

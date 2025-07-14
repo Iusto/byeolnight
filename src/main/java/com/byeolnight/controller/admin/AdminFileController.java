@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * 관리자 파일 관리 컨트롤러
  */
@@ -44,5 +46,18 @@ public class AdminFileController {
         
         return CommonResponse.success(deletedCount, 
             deletedCount + "개의 고아 이미지를 정리했습니다.");
+    }
+    
+    /**
+     * S3 연결 상태 확인
+     */
+    @GetMapping("/s3-status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public CommonResponse<Map<String, Object>> getS3Status() {
+        log.info("관리자 S3 상태 확인 요청");
+        
+        Map<String, Object> status = s3Service.getS3Status();
+        
+        return CommonResponse.success(status, "S3 상태 정보를 조회했습니다.");
     }
 }

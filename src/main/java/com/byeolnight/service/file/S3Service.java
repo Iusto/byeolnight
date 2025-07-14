@@ -71,7 +71,6 @@ public class S3Service {
                             .bucket(bucketName)
                             .key(s3Key)
                             .contentType(contentType)
-                            .acl(ObjectCannedACL.PUBLIC_READ)
                     )
                     .build();
 
@@ -108,11 +107,7 @@ public class S3Service {
 
     public void deleteObject(String s3Key) {
         try {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-            S3Client s3Client = S3Client.builder()
-                    .region(Region.of(region))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .build();
+            S3Client s3Client = createS3Client();
 
             s3Client.deleteObject(builder -> builder
                     .bucket(bucketName)
@@ -170,11 +165,7 @@ public class S3Service {
 
     private void setupLifecyclePolicy() {
         try {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-            S3Client s3Client = S3Client.builder()
-                    .region(Region.of(region))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .build();
+            S3Client s3Client = createS3Client();
 
             LifecycleRule rule = LifecycleRule.builder()
                     .id("cleanup-orphan-images")
@@ -197,11 +188,7 @@ public class S3Service {
 
     public int cleanupOrphanImages() {
         try {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-            S3Client s3Client = S3Client.builder()
-                    .region(Region.of(region))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .build();
+            S3Client s3Client = createS3Client();
 
             // S3에서 모든 uploads/ 파일 조회
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
@@ -248,6 +235,18 @@ public class S3Service {
                 deletedCount, 
                 orphanObjects.stream().mapToLong(S3Object::size).sum() / (1024 * 1024));
             return deletedCount;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            if (e.statusCode() == 301) {
+                log.error("S3 리전 오류 - 버킷: {}, 설정된 리전: {}, 오류: 올바른 엔드포인트를 사용해야 합니다.", bucketName, region);
+                log.info("해결 방법: 1) 버킷이 올바른 리전에 있는지 확인 2) AWS 자격 증명 확인");
+            } else {
+                log.error("S3 연결 오류 - 버킷: {}, 리전: {}, 상태코드: {}, 오류: {}", 
+                    bucketName, region, e.statusCode(), e.getMessage());
+            }
+            return 0;
+        } catch (RuntimeException e) {
+            log.error("S3 설정 오류: {}", e.getMessage());
+            return 0;
         } catch (Exception e) {
             log.error("고아 이미지 정리 실패", e);
             return 0;
@@ -256,11 +255,7 @@ public class S3Service {
 
     public int getOrphanImageCount() {
         try {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-            S3Client s3Client = S3Client.builder()
-                    .region(Region.of(region))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .build();
+            S3Client s3Client = createS3Client();
 
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
@@ -281,9 +276,45 @@ public class S3Service {
                 objects.size(),
                 objects.stream().filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant())).count());
             return (int) orphanCount;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            if (e.statusCode() == 301) {
+                log.error("S3 리전 오류 - 버킷: {}, 설정된 리전: {}, 오류: 올바른 엔드포인트를 사용해야 합니다.", bucketName, region);
+                log.info("해결 방법: 1) 버킷이 올바른 리전에 있는지 확인 2) AWS 자격 증명 확인");
+            } else {
+                log.error("S3 연결 오류 - 버킷: {}, 리전: {}, 상태코드: {}, 오류: {}", 
+                    bucketName, region, e.statusCode(), e.getMessage());
+            }
+            return 0;
+        } catch (RuntimeException e) {
+            log.error("S3 설정 오류: {}", e.getMessage());
+            return 0;
         } catch (Exception e) {
             log.error("고아 이미지 개수 조회 실패", e);
             return 0;
+        }
+    }
+
+    /**
+     * S3 클라이언트 생성 (공통 메서드)
+     */
+    private S3Client createS3Client() {
+        try {
+            // AWS 자격 증명 검증
+            if (accessKey == null || accessKey.trim().isEmpty() || 
+                secretKey == null || secretKey.trim().isEmpty()) {
+                log.warn("AWS S3 자격 증명이 설정되지 않았습니다.");
+                throw new RuntimeException("AWS S3 자격 증명이 설정되지 않았습니다.");
+            }
+            
+            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+            return S3Client.builder()
+                    .region(Region.of(region))
+                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .forcePathStyle(true)
+                    .build();
+        } catch (Exception e) {
+            log.error("S3 클라이언트 생성 실패 - 버킷: {}, 리전: {}, 오류: {}", bucketName, region, e.getMessage());
+            throw new RuntimeException("S3 연결에 실패했습니다: " + e.getMessage(), e);
         }
     }
 
@@ -320,5 +351,60 @@ public class S3Service {
             log.warn("고아 파일 검증 중 오류: {}", s3Object.key(), e);
             return false; // 오류 시 안전하게 삭제하지 않음
         }
+    }
+    
+    /**
+     * S3 연결 상태 확인
+     */
+    public Map<String, Object> getS3Status() {
+        Map<String, Object> status = new HashMap<>();
+        
+        try {
+            // 기본 설정 정보
+            status.put("bucketName", bucketName);
+            status.put("region", region);
+            status.put("accessKeyConfigured", accessKey != null && !accessKey.trim().isEmpty());
+            status.put("secretKeyConfigured", secretKey != null && !secretKey.trim().isEmpty());
+            
+            // S3 연결 테스트
+            S3Client s3Client = createS3Client();
+            
+            // 버킷 존재 여부 확인
+            try {
+                s3Client.headBucket(builder -> builder.bucket(bucketName));
+                status.put("bucketExists", true);
+                status.put("connectionStatus", "SUCCESS");
+                
+                // 파일 개수 조회 테스트
+                ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                        .bucket(bucketName)
+                        .prefix("uploads/")
+                        .maxKeys(1)
+                        .build();
+                        
+                ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
+                status.put("canListObjects", true);
+                status.put("totalObjects", response.keyCount());
+                
+            } catch (Exception e) {
+                status.put("bucketExists", false);
+                status.put("connectionStatus", "BUCKET_ERROR");
+                status.put("error", e.getMessage());
+            }
+            
+        } catch (Exception e) {
+            status.put("connectionStatus", "CONNECTION_ERROR");
+            status.put("error", e.getMessage());
+            
+            if (e.getMessage().contains("301")) {
+                status.put("suggestion", "버킷이 다른 리전에 있을 수 있습니다. AWS 콘솔에서 버킷 리전을 확인해주세요.");
+            } else if (e.getMessage().contains("403")) {
+                status.put("suggestion", "AWS 자격 증명이 잘못되었거나 권한이 부족합니다.");
+            } else if (e.getMessage().contains("404")) {
+                status.put("suggestion", "버킷이 존재하지 않습니다. 버킷 이름을 확인해주세요.");
+            }
+        }
+        
+        return status;
     }
 }

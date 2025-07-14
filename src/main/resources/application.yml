@@ -57,7 +57,7 @@ cloud:
       access-key: ${CLOUD_AWS_ACCESS_KEY}
       secret-key: ${CLOUD_AWS_SECRET_KEY}
     region:
-      static: ap-northeast-2
+      static: ${CLOUD_AWS_REGION:ap-northeast-2}
     stack:
       auto: false
 
