@@ -31,11 +31,14 @@ import MessagesPage from './pages/MessagesPage';
 function App() {
   return (
     <Routes>
+      {/* 독립적인 페이지들 (Layout 없음) */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/reset-password" element={<PasswordReset />} />
+      
+      {/* Layout이 적용되는 페이지들 */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/reset-password" element={<PasswordReset />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/edit" element={<ProfileEdit />} />

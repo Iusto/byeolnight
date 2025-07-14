@@ -141,7 +141,7 @@ export default function Login() {
         
         <div className="mt-4 text-center space-y-2">
           <button
-            onClick={() => navigate('/password-reset')}
+            onClick={() => navigate('/reset-password')}
             className="text-purple-400 hover:text-purple-300 text-sm underline"
           >
             비밀번호를 잊으셨나요?
