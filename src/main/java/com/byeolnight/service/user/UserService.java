@@ -560,45 +560,6 @@ public class UserService {
     }
 
     /**
-     * 테스트 데이터 생성 (개발용)
-     */
-    @Transactional
-    public void createTestData(User user) {
-        try {
-            // 테스트 게시글 생성
-            com.byeolnight.domain.entity.post.Post testPost = com.byeolnight.domain.entity.post.Post.builder()
-                    .title("테스트 게시글 - " + user.getNickname())
-                    .content("이것은 테스트용 게시글입니다.")
-                    .category(com.byeolnight.domain.entity.post.Post.Category.FREE)
-                    .writer(user)
-                    .build();
-            postRepository.save(testPost);
-            
-            // 테스트 댓글 생성
-            com.byeolnight.domain.entity.comment.Comment testComment = com.byeolnight.domain.entity.comment.Comment.builder()
-                    .post(testPost)
-                    .writer(user)
-                    .content("테스트 댓글입니다.")
-                    .build();
-            commentRepository.save(testComment);
-            
-            // 테스트 쪽지 생성 (자기 자신에게)
-            com.byeolnight.domain.entity.Message testMessage = com.byeolnight.domain.entity.Message.builder()
-                    .sender(user)
-                    .receiver(user)
-                    .title("테스트 쪽지")
-                    .content("테스트용 쪽지입니다.")
-                    .build();
-            messageRepository.save(testMessage);
-            
-            System.out.println("테스트 데이터 생성 완료 - 사용자: " + user.getNickname());
-        } catch (Exception e) {
-            System.err.println("테스트 데이터 생성 실패: " + e.getMessage());
-            throw e;
-        }
-    }
-
-    /**
      * 기본 소행성 아이콘 부여 및 장착
      */
     @Transactional
@@ -659,27 +620,6 @@ public class UserService {
             log.info("기본 소행성 아이콘 마이그레이션 완료: {}명 처리", processedCount);
         } catch (Exception e) {
             log.error("기본 소행성 아이콘 마이그레이션 중 오류 발생: {}", e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    /**
-     * 테스트 인증서 발급
-     */
-    @Transactional
-    public void createTestCertificates(User user) {
-        try {
-            // 기본 인증서 발급
-            certificateService.issueCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.STARLIGHT_EXPLORER);
-            certificateService.issueCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.SPACE_CITIZEN);
-            certificateService.issueCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.GALAXY_COMMUNICATOR);
-            
-            // 대표 인증서 설정
-            certificateService.setRepresentativeCertificate(user, com.byeolnight.domain.entity.certificate.Certificate.CertificateType.SPACE_CITIZEN);
-            
-            System.out.println("테스트 인증서 발급 완료 - 사용자: " + user.getNickname());
-        } catch (Exception e) {
-            System.err.println("테스트 인증서 발급 실패: " + e.getMessage());
             throw e;
         }
     }

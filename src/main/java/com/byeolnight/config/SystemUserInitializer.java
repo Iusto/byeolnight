@@ -77,7 +77,6 @@ public class SystemUserInitializer implements ApplicationRunner {
         }
         
         // 기본 소행성 아이콘 마이그레이션 (시스템 시작 시 한 번만 실행)
-        // StellaIconDataLoader가 완료될 때까지 대기
         try {
             int maxRetries = 10;
             int retryCount = 0;

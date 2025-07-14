@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
+import { parseMarkdown } from '../utils/markdownParser';
 
 interface FileDto {
   originalName: string;
@@ -23,10 +24,14 @@ export default function PostEdit() {
   const [images, setImages] = useState<FileDto[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const editorRef = useRef<any>(null);
+  
+  const [isImageChecking, setIsImageChecking] = useState(false);
   
   // 클립보드 이미지 업로드 함수
   const uploadClipboardImage = async (file: File) => {
+    setIsImageChecking(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -36,12 +41,26 @@ export default function PostEdit() {
       });
       
       const imageData = response.data.data || response.data;
+      
+      // S3에 실제 파일 업로드
+      if (imageData.uploadUrl) {
+        await fetch(imageData.uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': imageData.contentType || file.type
+          }
+        });
+      }
+      
       setImages(prev => [...prev, imageData]);
       
       return imageData.url;
     } catch (error) {
       console.error('클립보드 이미지 업로드 실패:', error);
       throw error;
+    } finally {
+      setIsImageChecking(false);
     }
   };
   
@@ -80,6 +99,7 @@ export default function PostEdit() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        setIsImageChecking(true);
         try {
           const formData = new FormData();
           formData.append('file', file);
@@ -89,19 +109,41 @@ export default function PostEdit() {
           });
           
           const imageData = response.data.data || response.data;
+          
+          // S3에 실제 파일 업로드
+          if (imageData.uploadUrl) {
+            await fetch(imageData.uploadUrl, {
+              method: 'PUT',
+              body: file,
+              headers: {
+                'Content-Type': imageData.contentType || file.type
+              }
+            });
+          }
+          
           setImages(prev => [...prev, imageData]);
           
-          // ReactQuill에 이미지 삽입
+          // ReactQuill에 이미지 삽입 (영구 URL 사용)
           setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
         } catch (error) {
           console.error('이미지 업로드 실패:', error);
           alert('이미지 업로드에 실패했습니다.');
+        } finally {
+          setIsImageChecking(false);
         }
       }
     };
   };
   
   const removeImage = (index: number) => {
+    const imageToRemove = images[index];
+    if (imageToRemove) {
+      // 게시글 내용에서도 해당 이미지 제거
+      setContent(prev => {
+        const imgRegex = new RegExp(`<img[^>]*src="${imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`, 'gi');
+        return prev.replace(imgRegex, '');
+      });
+    }
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -165,8 +207,8 @@ export default function PostEdit() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    // ReactQuill에서 콘텐츠 가져오기 및 보안 검증
-    const finalContent = sanitizeHtml(content);
+    // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
+    const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
     
     try {
       await axios.put(`/member/posts/${id}`, {
@@ -243,38 +285,75 @@ export default function PostEdit() {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <label className="text-sm font-medium text-gray-300">내용</label>
-                <button
-                  type="button"
-                  onClick={handleImageUpload}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105"
-                >
-                  🖼️ 이미지
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsMarkdownMode(!isMarkdownMode)}
+                    className={`flex items-center gap-2 px-4 py-2 ${isMarkdownMode ? 'bg-green-600/80 hover:bg-green-600' : 'bg-gray-600/80 hover:bg-gray-600'} text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg transform hover:scale-105`}
+                  >
+                    📝 {isMarkdownMode ? '마크다운 ON' : '마크다운 OFF'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleImageUpload}
+                    disabled={isImageChecking}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
+                  >
+                    {isImageChecking ? (
+                      <>
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        검열 중...
+                      </>
+                    ) : (
+                      <>
+                        🖼️ 이미지
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="rounded-xl overflow-hidden border border-slate-600/50">
-                <ReactQuill
-                  ref={editorRef}
-                  value={content}
-                  onChange={setContent}
-                  theme="snow"
-                  style={{ height: '400px', marginBottom: '50px' }}
-                  modules={{
-                    toolbar: [
-                      [{ 'header': [1, 2, 3, false] }],
-                      ['bold', 'italic', 'underline', 'strike'],
-                      [{ 'color': [] }, { 'background': [] }],
-                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                      [{ 'align': [] }],
-                      ['link', 'image', 'video'],
-                      ['clean']
-                    ]
-                  }}
-                  formats={[
-                    'header', 'bold', 'italic', 'underline', 'strike',
-                    'color', 'background', 'list', 'bullet', 'align',
-                    'link', 'image', 'video', 'iframe'
-                  ]}
-                />
+                {isMarkdownMode ? (
+                  <div className="space-y-4">
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="마크다운으로 수정해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
+                      className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
+                    />
+                    <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                      <h3 className="text-sm font-medium text-gray-300 mb-3">📝 마크다운 미리보기:</h3>
+                      <div 
+                        className="prose prose-invert max-w-none min-h-[100px] p-3 bg-slate-900/30 rounded-lg border border-slate-600/30"
+                        dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <ReactQuill
+                    ref={editorRef}
+                    value={content}
+                    onChange={setContent}
+                    theme="snow"
+                    style={{ height: '400px', marginBottom: '50px' }}
+                    modules={{
+                      toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['link', 'image', 'video'],
+                        ['clean']
+                      ]
+                    }}
+                    formats={[
+                      'header', 'bold', 'italic', 'underline', 'strike',
+                      'color', 'background', 'list', 'bullet', 'align',
+                      'link', 'image', 'video', 'iframe'
+                    ]}
+                  />
+                )}
               </div>
               
               {/* YouTube 영상 미리보기 */}
@@ -316,9 +395,19 @@ export default function PostEdit() {
                 </div>
               )}
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
-                🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
-                🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
+                {isMarkdownMode ? (
+                  <>
+                    📝 마크다운 모드: # 제목, **굵게**, *기울임*, - 리스트, --- 구분선, [링크](URL)<br/>
+                    🎨 실시간 미리보기로 결과를 확인하며 수정하세요!<br/>
+                    🔄 언제든 "마크다운 OFF" 버튼으로 리치 에디터로 전환 가능합니다
+                  </>
+                ) : (
+                  <>
+                    🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
+                    🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
+                    🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
+                  </>
+                )}
               </div>
             </div>
             <div>
@@ -336,27 +425,50 @@ export default function PostEdit() {
               </select>
             </div>
 
+            {/* 이미지 검열 중 알림 */}
+            {isImageChecking && (
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm flex items-center gap-3">
+                <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                <div>
+                  <div className="font-medium">🛡️ 이미지 검열 중...</div>
+                  <div className="text-xs text-blue-300 mt-1">안전한 콘텐츠를 위해 이미지를 검사하고 있습니다. 잠시만 기다려주세요.</div>
+                </div>
+              </div>
+            )}
+
             {/* 이미지 미리보기 */}
             {images.length > 0 && (
-              <div className="p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                <h3 className="text-sm font-medium text-gray-300 mb-4">업로드된 이미지:</h3>
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                  업로드된 이미지:
+                  <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
+                    ✓ 검열 완료
+                  </span>
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {images.map((image, index) => (
                     <div key={index} className="relative group">
                       <img
                         src={image.url}
                         alt={image.originalName}
-                        className="w-full h-24 object-cover rounded-xl shadow-lg"
+                        className="w-full h-24 object-cover rounded-lg shadow-md"
+                        onError={(e) => {
+                          console.error('이미진 로드 실패:', image.url);
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo=';
+                        }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         ×
                       </button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-2 rounded-b-xl truncate">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg truncate">
                         {image.originalName}
+                      </div>
+                      <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
+                        ✓ 검열완료
                       </div>
                     </div>
                   ))}
@@ -372,9 +484,17 @@ export default function PostEdit() {
             
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+              disabled={isImageChecking}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
-              ✏️ 수정 완료
+              {isImageChecking ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  이미지 검열 중... 잠시만 기다려주세요
+                </div>
+              ) : (
+                '✏️ 수정 완료'
+              )}
             </button>
           </form>
         </div>

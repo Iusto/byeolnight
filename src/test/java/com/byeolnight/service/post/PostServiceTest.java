@@ -44,10 +44,13 @@ class PostServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         user = User.builder()
-                .id(1L)
                 .email("test@example.com")
                 .nickname("nickname")
+                .password("password")
+                .phone("01012345678")
+                .role(User.Role.USER)
                 .build();
+        ReflectionTestUtils.setField(user, "id", 1L);
 
         post = Post.builder()
                 .title("제목")
@@ -61,7 +64,14 @@ class PostServiceTest {
     @DisplayName("게시글 작성 성공")
     void createPost_success() {
         // given
-        User writer = User.builder().id(1L).nickname("tester").email("tester@byeol.com").build();
+        User writer = User.builder()
+                .nickname("tester")
+                .email("tester@byeol.com")
+                .password("password")
+                .phone("01012345678")
+                .role(User.Role.USER)
+                .build();
+        ReflectionTestUtils.setField(writer, "id", 1L);
         PostRequestDto dto = PostRequestDto.builder()
                 .title("제목")
                 .content("내용")
@@ -99,7 +109,14 @@ class PostServiceTest {
     @Test
     @DisplayName("게시글 수정 실패 - 작성자 불일치")
     void updatePost_fail_notAuthor() {
-        User other = User.builder().id(2L).email("other@example.com").build();
+        User other = User.builder()
+                .email("other@example.com")
+                .password("password")
+                .phone("01012345679")
+                .nickname("other")
+                .role(User.Role.USER)
+                .build();
+        ReflectionTestUtils.setField(other, "id", 2L);
         given(postRepository.findById(anyLong())).willReturn(Optional.of(post));
 
         PostRequestDto dto = new PostRequestDto("제목", "내용", Category.NEWS, new ArrayList<>());
@@ -127,7 +144,14 @@ class PostServiceTest {
     @Test
     @DisplayName("게시글 삭제 실패 - 작성자 불일치")
     void deletePost_fail_notAuthor() {
-        User other = User.builder().id(3L).email("x@x.com").build();
+        User other = User.builder()
+                .email("x@x.com")
+                .password("password")
+                .phone("01012345680")
+                .nickname("other2")
+                .role(User.Role.USER)
+                .build();
+        ReflectionTestUtils.setField(other, "id", 3L);
         given(postRepository.findById(anyLong())).willReturn(Optional.of(post));
 
         assertThrows(IllegalArgumentException.class, () -> postService.deletePost(1L, other));
