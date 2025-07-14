@@ -67,7 +67,13 @@ public class SpaceNewsService {
                 continue;
             }
             
-            log.info("저장 진행 중...");
+            // 2개만 저장하고 종료
+            if (savedPosts.size() >= 2) {
+                log.info("이미 2개 뉴스를 저장했으므로 종료");
+                break;
+            }
+            
+            log.info("저장 진행 중... ({}/2)", savedPosts.size() + 1);
             
             // News 엔티티에 저장
             News news = convertToNews(result);
@@ -81,8 +87,8 @@ public class SpaceNewsService {
             log.info("새 뉴스 게시글 저장: {}", savedPost.getTitle());
         }
         
-        log.info("한국어 우주 뉴스 수집 완료 - 저장: {}건, 실제 중복: {}건, 필터링: {}건, 총 스킵: {}건", 
-                savedPosts.size(), actualDuplicateCount, filteredCount, actualDuplicateCount + filteredCount);
+        log.info("우주 뉴스 수집 완료 - 수집: {}개, 저장: {}건, 실제 중복: {}건, 필터링: {}건", 
+                response.getResults().size(), savedPosts.size(), actualDuplicateCount, filteredCount);
     }
     
     private boolean isDuplicateNews(NewsApiResponseDto.Result result) {
