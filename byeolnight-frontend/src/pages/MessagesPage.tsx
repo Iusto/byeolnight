@@ -180,9 +180,10 @@ export default function MessagesPage() {
                         </Link>
                         <button
                           onClick={() => handleDelete(message.id)}
-                          className="px-3 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-300 text-sm rounded transition-all"
+                          className="w-8 h-8 flex items-center justify-center bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded transition-all group"
+                          title="쪽지 삭제"
                         >
-                          삭제
+                          <span className="text-lg group-hover:scale-110 transition-transform">×</span>
                         </button>
                       </div>
                     </div>
