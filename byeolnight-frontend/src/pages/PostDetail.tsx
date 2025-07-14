@@ -99,6 +99,7 @@ export default function PostDetail() {
       .post-content p { font-size: 1rem !important; line-height: 1.6 !important; }
       .post-content strong { font-weight: bold !important; }
       .post-content em { font-style: italic !important; }
+      .post-content u { text-decoration: underline !important; font-weight: normal !important; }
       .post-content ul, .post-content ol { padding-left: 1.5rem !important; }
       .post-content li { margin: 0.5rem 0 !important; }
       .post-content blockquote { 
@@ -563,12 +564,17 @@ export default function PostDetail() {
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
-              {post.title.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}])/gu, '')}
-            </span>
-            <span className="text-white">
-              {(post.title.match(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}])/gu) || []).join('')}
-            </span>
+            {post.title.split('').map((char, index) => {
+              const isEmoji = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(char);
+              return (
+                <span 
+                  key={index} 
+                  className={isEmoji ? 'text-white' : 'bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent'}
+                >
+                  {char}
+                </span>
+              );
+            })}
           </h1>
           {/* 작성자 정보 */}
           <div className="flex items-center gap-4 mb-4">
