@@ -434,8 +434,9 @@ public class CinemaService {
      * 시네마 시스템 상태 조회
      */
     public Object getCinemaStatus() {
-        Post latestCinemaPost = postRepository.findTopByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA)
-                .orElse(null);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 1);
+        org.springframework.data.domain.Page<Post> latestPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA, pageable);
+        Post latestCinemaPost = latestPosts.hasContent() ? latestPosts.getContent().get(0) : null;
         long totalCinemaPosts = postRepository.countByCategoryAndIsDeletedFalse(Post.Category.STARLIGHT_CINEMA);
         
         Map<String, Object> result = new HashMap<>();
