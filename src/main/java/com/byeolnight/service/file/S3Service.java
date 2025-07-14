@@ -298,6 +298,13 @@ public class S3Service {
      * S3 클라이언트 생성 (공통 메서드)
      */
     private S3Client createS3Client() {
+        return createS3Client(region);
+    }
+    
+    /**
+     * 지정된 리전으로 S3 클라이언트 생성
+     */
+    private S3Client createS3Client(String targetRegion) {
         try {
             // AWS 자격 증명 검증
             if (accessKey == null || accessKey.trim().isEmpty() || 
@@ -308,14 +315,36 @@ public class S3Service {
             
             AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
             return S3Client.builder()
-                    .region(Region.of(region))
+                    .region(Region.of(targetRegion))
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .forcePathStyle(true)
                     .build();
         } catch (Exception e) {
-            log.error("S3 클라이언트 생성 실패 - 버킷: {}, 리전: {}, 오류: {}", bucketName, region, e.getMessage());
+            log.error("S3 클라이언트 생성 실패 - 버킷: {}, 리전: {}, 오류: {}", bucketName, targetRegion, e.getMessage());
             throw new RuntimeException("S3 연결에 실패했습니다: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 버킷의 실제 리전 찾기
+     */
+    private String findBucketRegion() {
+        String[] commonRegions = {
+            "us-east-1", "us-west-2", "ap-northeast-2", "eu-west-1", "ap-southeast-1"
+        };
+        
+        for (String testRegion : commonRegions) {
+            try {
+                S3Client testClient = createS3Client(testRegion);
+                testClient.headBucket(builder -> builder.bucket(bucketName));
+                log.info("버킷 리전 발견: {} -> {}", bucketName, testRegion);
+                return testRegion;
+            } catch (Exception e) {
+                log.debug("리전 {} 테스트 실패: {}", testRegion, e.getMessage());
+            }
+        }
+        
+        return region; // 기본 리전 반환
     }
 
     /**
@@ -362,12 +391,17 @@ public class S3Service {
         try {
             // 기본 설정 정보
             status.put("bucketName", bucketName);
-            status.put("region", region);
+            status.put("configuredRegion", region);
             status.put("accessKeyConfigured", accessKey != null && !accessKey.trim().isEmpty());
             status.put("secretKeyConfigured", secretKey != null && !secretKey.trim().isEmpty());
             
-            // S3 연결 테스트
-            S3Client s3Client = createS3Client();
+            // 자동 리전 감지 시도
+            String actualRegion = findBucketRegion();
+            status.put("actualRegion", actualRegion);
+            status.put("regionMatch", region.equals(actualRegion));
+            
+            // 실제 리전으로 S3 연결 테스트
+            S3Client s3Client = createS3Client(actualRegion);
             
             // 버킷 존재 여부 확인
             try {
@@ -386,6 +420,12 @@ public class S3Service {
                 status.put("canListObjects", true);
                 status.put("totalObjects", response.keyCount());
                 
+                // 리전 불일치 경고
+                if (!region.equals(actualRegion)) {
+                    status.put("warning", "설정된 리전(" + region + ")과 실제 버킷 리전(" + actualRegion + ")이 다릅니다.");
+                    status.put("suggestion", ".env 파일에서 CLOUD_AWS_REGION=" + actualRegion + "로 수정하세요.");
+                }
+                
             } catch (Exception e) {
                 status.put("bucketExists", false);
                 status.put("connectionStatus", "BUCKET_ERROR");
@@ -397,7 +437,7 @@ public class S3Service {
             status.put("error", e.getMessage());
             
             if (e.getMessage().contains("301")) {
-                status.put("suggestion", "버킷이 다른 리전에 있을 수 있습니다. AWS 콘솔에서 버킷 리전을 확인해주세요.");
+                status.put("suggestion", "버킷이 다른 리전에 있습니다. 자동 감지를 시도해보세요.");
             } else if (e.getMessage().contains("403")) {
                 status.put("suggestion", "AWS 자격 증명이 잘못되었거나 권한이 부족합니다.");
             } else if (e.getMessage().contains("404")) {

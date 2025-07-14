@@ -1393,9 +1393,20 @@ export default function AdminUserPage() {
                         <span className="text-white ml-2">{s3Status.bucketName}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">리전:</span>
-                        <span className="text-white ml-2">{s3Status.region}</span>
+                        <span className="text-gray-400">설정 리전:</span>
+                        <span className="text-white ml-2">{s3Status.configuredRegion}</span>
                       </div>
+                      {s3Status.actualRegion && (
+                        <div>
+                          <span className="text-gray-400">실제 리전:</span>
+                          <span className={`ml-2 ${
+                            s3Status.regionMatch ? 'text-green-400' : 'text-yellow-400'
+                          }`}>
+                            {s3Status.actualRegion}
+                            {!s3Status.regionMatch && ' ⚠️'}
+                          </span>
+                        </div>
+                      )}
                       <div>
                         <span className="text-gray-400">연결 상태:</span>
                         <span className={`ml-2 ${
@@ -1416,6 +1427,11 @@ export default function AdminUserPage() {
                     {s3Status.error && (
                       <div className="mt-3 p-2 bg-red-600/20 border border-red-600/50 rounded text-red-400 text-sm">
                         <strong>오류:</strong> {s3Status.error}
+                      </div>
+                    )}
+                    {s3Status.warning && (
+                      <div className="mt-3 p-2 bg-yellow-600/20 border border-yellow-600/50 rounded text-yellow-400 text-sm">
+                        <strong>경고:</strong> {s3Status.warning}
                       </div>
                     )}
                     {s3Status.suggestion && (
