@@ -257,8 +257,8 @@ export default function PostList() {
         {/* 카테고리 선택 */}
         <div className="mb-8">
           <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-bold text-center mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              📚 게시판 카테고리
+            <h3 className="text-xl font-bold text-center mb-6">
+              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📚</span> <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">게시판 카테고리</span>
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
               {Object.keys(CATEGORY_LABELS).map((cat) => {

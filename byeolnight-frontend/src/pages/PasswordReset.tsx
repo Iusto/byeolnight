@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 
@@ -18,12 +18,11 @@ export default function PasswordReset() {
   const [loading, setLoading] = useState(false); // 로딩 상태 추가
 
   // 토큰이 있으면 재설정 단계로
-  useState(() => {
+  useEffect(() => {
     if (token) {
       setStep('reset');
-      setForm(prev => ({ ...prev, token }));
     }
-  });
+  }, [token]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });

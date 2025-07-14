@@ -568,7 +568,7 @@ export default function PostDetail() {
                   const icon = certIcons[cert] || '🏆';
                   
                   return (
-                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30" title={cert}>
+                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30 animate-pulse" title={cert}>
                       {icon} {cert}
                     </span>
                   );
@@ -660,8 +660,8 @@ export default function PostDetail() {
 
           {/* 액션 버튼 */}
           <div className="flex flex-wrap gap-3 mb-8 p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
-            {/* 자기가 작성한 글이 아닌 경우에만 추천/신고 버튼 표시 */}
-            {user?.nickname !== post.writer && (
+            {/* 자기가 작성한 글이 아니고 공지글이 아닌 경우에만 추천/신고 버튼 표시 */}
+            {user?.nickname !== post.writer && post.category !== 'NOTICE' && (
               <>
                 <button
                   onClick={handleLike}

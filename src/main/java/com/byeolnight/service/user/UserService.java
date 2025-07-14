@@ -310,7 +310,22 @@ public class UserService {
         PasswordResetToken resetToken = PasswordResetToken.create(email, token, Duration.ofMinutes(30));
         passwordResetTokenRepository.save(resetToken);
         String resetLink = "https://byeolnight.com/reset-password?token=" + token;
-        gmailEmailService.send(email, "비밀번호 재설정 링크", resetLink);
+        String subject = "별 헤는 밤 - 비밀번호 재설정 안내";
+
+        String content = """
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2>안녕하세요, 별 헤는 밤입니다 🌌</h2>
+            <p>비밀번호 재설정을 요청하셨습니다.</p>
+            <p>아래 버튼을 클릭하여 비밀번호를 재설정해 주세요. 이 링크는 <strong>30분간만 유효</strong>합니다.</p>
+            <div style="margin: 30px 0;">
+                <a href="%s" style="background-color: #4a90e2; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px;">비밀번호 재설정하기</a>
+            </div>
+            <p>만약 본인이 요청하지 않으셨다면 이 메일을 무시하셔도 됩니다.</p>
+            <hr style="border: none; border-top: 1px solid #ccc;" />
+            <p style="font-size: 0.9em; color: #888;">© 2025 별 헤는 밤 | byeolnight.com</p>
+        </div>
+    """.formatted(resetLink);
+        gmailEmailService.sendHtml(email, subject, content);
     }
 
     /**
