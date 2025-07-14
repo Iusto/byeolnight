@@ -90,45 +90,62 @@ export default function PostDetail() {
         min-height: unset !important;
       }
       /* 글씨 크기 및 스타일 적용 */
-      .post-content h1 { font-size: 2rem !important; font-weight: bold !important; }
-      .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; }
-      .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; }
-      .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; }
-      .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; }
-      .post-content h6 { font-size: 1rem !important; font-weight: bold !important; }
-      .post-content p { font-size: 1rem !important; line-height: 1.6 !important; }
-      .post-content strong { font-weight: bold !important; }
-      .post-content em { font-style: italic !important; }
-      .post-content u { text-decoration: underline !important; font-weight: normal !important; }
-      .post-content ul, .post-content ol { padding-left: 1.5rem !important; }
-      .post-content li { margin: 0.5rem 0 !important; }
+      .post-content h1 { font-size: 2rem !important; font-weight: bold !important; margin: 1.5rem 0 1rem 0 !important; color: #e2e8f0 !important; }
+      .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; margin: 1.25rem 0 0.75rem 0 !important; color: #e2e8f0 !important; }
+      .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; margin: 1rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
+      .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
+      .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
+      .post-content h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; }
+      .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.75rem 0 !important; color: #cbd5e1 !important; }
+      .post-content strong { font-weight: bold !important; color: #f1f5f9 !important; }
+      .post-content em { font-style: italic !important; color: #a78bfa !important; }
+      .post-content u { text-decoration: underline !important; font-weight: normal !important; color: #cbd5e1 !important; }
+      .post-content s, .post-content del { text-decoration: line-through !important; color: #94a3b8 !important; }
+      .post-content ul, .post-content ol { padding-left: 1.5rem !important; margin: 1rem 0 !important; }
+      .post-content li { margin: 0.5rem 0 !important; color: #cbd5e1 !important; line-height: 1.6 !important; }
       .post-content blockquote { 
         border-left: 4px solid #8b5cf6 !important; 
-        padding-left: 1rem !important; 
-        margin: 1rem 0 !important; 
+        padding: 1rem 1.5rem !important; 
+        margin: 1.5rem 0 !important; 
         font-style: italic !important;
         background: rgba(139, 92, 246, 0.1) !important;
         border-radius: 0 8px 8px 0 !important;
+        color: #c4b5fd !important;
       }
       .post-content code {
         background: rgba(139, 92, 246, 0.2) !important;
+        color: #e879f9 !important;
         padding: 0.2rem 0.4rem !important;
         border-radius: 4px !important;
-        font-family: 'Courier New', monospace !important;
+        font-family: 'Courier New', 'Consolas', monospace !important;
+        font-size: 0.9em !important;
       }
       .post-content pre {
-        background: rgba(0, 0, 0, 0.3) !important;
-        padding: 1rem !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+        padding: 1.5rem !important;
         border-radius: 8px !important;
         overflow-x: auto !important;
         border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        margin: 1.5rem 0 !important;
+      }
+      .post-content pre code {
+        background: transparent !important;
+        padding: 0 !important;
+        color: #f8fafc !important;
       }
       .post-content a {
         color: #a78bfa !important;
         text-decoration: underline !important;
+        transition: color 0.2s ease !important;
       }
       .post-content a:hover {
         color: #c4b5fd !important;
+      }
+      .post-content hr {
+        border: none !important;
+        height: 2px !important;
+        background: linear-gradient(to right, transparent, #8b5cf6, transparent) !important;
+        margin: 2rem 0 !important;
       }
     `;
     document.head.appendChild(style);
