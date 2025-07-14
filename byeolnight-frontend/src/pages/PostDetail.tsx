@@ -581,17 +581,9 @@ export default function PostDetail() {
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            {post.title.split('').map((char, index) => {
-              const isEmoji = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(char);
-              return (
-                <span 
-                  key={index} 
-                  className={isEmoji ? 'text-white' : 'bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent'}
-                >
-                  {char}
-                </span>
-              );
-            })}
+            <span className="text-white" style={{color: 'white !important'}}>
+              {post.title}
+            </span>
           </h1>
           {/* 작성자 정보 */}
           <div className="flex items-center gap-4 mb-4">
