@@ -188,7 +188,9 @@ public class S3Service {
 
     public int cleanupOrphanImages() {
         try {
-            S3Client s3Client = createS3Client();
+            // 실제 버킷 리전 찾기
+            String actualRegion = findBucketRegion();
+            S3Client s3Client = createS3Client(actualRegion);
 
             // S3에서 모든 uploads/ 파일 조회
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
@@ -255,7 +257,9 @@ public class S3Service {
 
     public int getOrphanImageCount() {
         try {
-            S3Client s3Client = createS3Client();
+            // 실제 버킷 리전 찾기
+            String actualRegion = findBucketRegion();
+            S3Client s3Client = createS3Client(actualRegion);
 
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
