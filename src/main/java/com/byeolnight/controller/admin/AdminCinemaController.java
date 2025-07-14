@@ -37,4 +37,12 @@ public class AdminCinemaController {
                 .body(CommonResponse.error("별빛 시네마 포스트 생성 실패: " + e.getMessage()));
         }
     }
+
+    @Operation(summary = "별빛 시네마 상태 조회", description = "별빛 시네마 시스템의 상태를 조회합니다.")
+    @GetMapping("/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResponse<Object>> getCinemaStatus() {
+        Object status = cinemaService.getCinemaStatus();
+        return ResponseEntity.ok(CommonResponse.success(status));
+    }
 }
