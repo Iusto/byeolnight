@@ -9,6 +9,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -181,8 +182,14 @@ public class S3Service {
 
             s3Client.putBucketLifecycleConfiguration(request);
             log.info("✅ S3 Lifecycle 정책 설정 완료: uploads/ 폴더 7일 후 자동 삭제");
+        } catch (S3Exception e) {
+            if (e.statusCode() == 403 && e.getMessage().contains("PutLifecycleConfiguration")) {
+                log.debug("S3 Lifecycle 정책 권한 없음 (관리자 대시보드에서 수동 정리 가능)");
+            } else {
+                log.warn("⚠️ S3 Lifecycle 정책 설정 실패: {}", e.getMessage());
+            }
         } catch (Exception e) {
-            log.warn("⚠️ S3 Lifecycle 정책 설정 실패 (수동 설정 필요): {}", e.getMessage());
+            log.warn("⚠️ S3 Lifecycle 정책 설정 실패: {}", e.getMessage());
         }
     }
 
