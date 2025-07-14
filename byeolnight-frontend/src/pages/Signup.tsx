@@ -350,7 +350,17 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">🌟 회원가입</h2>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate('/')}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="홈으로 돌아가기"
+          >
+            ← 홈
+          </button>
+          <h2 className="text-2xl font-bold">🌟 회원가입</h2>
+          <div className="w-12"></div>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           {/* 이메일 인증 */}
           <div className="space-y-1">
