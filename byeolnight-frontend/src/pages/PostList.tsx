@@ -417,7 +417,8 @@ export default function PostList() {
                   onClick={async () => {
                     try {
                       const response = await axios.get('/admin/discussions/status');
-                      alert(response.data.data || '토론 주제 생성 시스템이 정상 작동 중입니다.');
+                      const message = response.data?.data || response.data?.message || response.data || '토론 주제 생성 시스템이 정상 작동 중입니다.';
+                      alert(typeof message === 'string' ? message : JSON.stringify(message));
                     } catch (error) {
                       console.error('상태 확인 실패:', error);
                       alert('상태 확인에 실패했습니다.');
@@ -464,7 +465,8 @@ export default function PostList() {
                   onClick={async () => {
                     try {
                       const response = await axios.get('/admin/cinema/status');
-                      alert(response.data.data || '별빛 시네마 시스템이 정상 작동 중입니다.');
+                      const message = response.data?.data || response.data?.message || response.data || '별빛 시네마 시스템이 정상 작동 중입니다.';
+                      alert(typeof message === 'string' ? message : JSON.stringify(message));
                     } catch (error) {
                       console.error('상태 확인 실패:', error);
                       alert('상태 확인에 실패했습니다.');
