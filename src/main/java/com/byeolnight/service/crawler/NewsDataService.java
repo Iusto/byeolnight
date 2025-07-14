@@ -26,16 +26,16 @@ public class NewsDataService {
             log.info("한국어 우주 뉴스를 수집합니다.");
             NewsApiResponseDto koreanNews = fetchNewsByLanguage("ko", "우주 OR 로켓 OR 위성 OR 화성 OR NASA OR SpaceX");
             
-            // 한국어 뉴스가 충분하지 않으면 영어 뉴스도 수집
-            if (koreanNews == null || koreanNews.getResults().size() < 3) {
-                log.info("한국어 뉴스가 부족하여 영어 뉴스도 수집합니다.");
-                NewsApiResponseDto englishNews = fetchNewsByLanguage("en", "NASA OR SpaceX OR space OR rocket OR Mars OR satellite");
+            // 한국어 1개 + 영어 1개 (총 2개)
+            if (koreanNews == null || koreanNews.getResults().size() < 2) {
+                log.info("한국어 뉴스가 부족하여 영어 뉴스 1개 추가 수집합니다.");
+                NewsApiResponseDto englishNews = fetchNewsByLanguage("en", "NASA OR SpaceX OR space OR rocket OR Mars OR satellite", 1);
                 
                 if (englishNews != null && englishNews.getResults().size() > 0) {
                     if (koreanNews == null) {
-                        return englishNews;
+                        koreanNews = englishNews;
                     } else {
-                        // 한국어와 영어 뉴스 합치기
+                        // 한국어 1개 + 영어 1개
                         koreanNews.getResults().addAll(englishNews.getResults());
                         koreanNews.setTotalResults(koreanNews.getTotalResults() + englishNews.getTotalResults());
                     }
@@ -51,12 +51,16 @@ public class NewsDataService {
     }
     
     private NewsApiResponseDto fetchNewsByLanguage(String language, String query) {
+        return fetchNewsByLanguage(language, query, 1); // 기본 1개
+    }
+    
+    private NewsApiResponseDto fetchNewsByLanguage(String language, String query, int size) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl(NEWS_API_URL)
                     .queryParam("apikey", apiKey)
                     .queryParam("language", language)
                     .queryParam("q", query)
-                    .queryParam("size", "2")
+                    .queryParam("size", String.valueOf(size))
                     .build()
                     .toUriString();
             

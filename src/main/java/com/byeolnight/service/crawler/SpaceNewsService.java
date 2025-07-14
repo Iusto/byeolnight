@@ -10,8 +10,12 @@ import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -96,12 +100,26 @@ public class SpaceNewsService {
         String description = (result.getDescription() != null ? result.getDescription() : "").toLowerCase();
         String content = title + " " + description;
         
-        log.info("=== 우주 관련성 체크 ===\n제목: {}\n설명: {}\n전체 내용: {}", 
-                result.getTitle(), result.getDescription(), content);
+        // 우주 관련 핵심 키워드 (최소 하나는 포함되어야 함)
+        String[] spaceKeywords = {
+            "우주", "space", "천문", "astronomy", "항공우주", "aerospace",
+            "로켓", "rocket", "위성", "satellite", "우주선", "spacecraft",
+            "화성", "mars", "달", "moon", "태양", "sun", "solar",
+            "은하", "galaxy", "블랙홀", "black hole", "우주정거장", "space station",
+            "우주비행사", "astronaut", "우주발사", "space launch", "우주탐사", "space exploration",
+            "망원경", "telescope", "혜성", "comet", "소행성", "asteroid",
+            "nasa", "spacex", "우주센터", "space center", "probe"
+        };
         
-        // 테스트를 위해 필터링 비활성화
-        log.info("필터링 비활성화 - 모든 뉴스 통과: {}", title);
-        return true;
+        // 우주 키워드 체크
+        for (String keyword : spaceKeywords) {
+            if (content.contains(keyword)) {
+                return true; // 우주 관련 키워드가 있으면 통과
+            }
+        }
+        
+        // 우주 관련 키워드가 없으면 제외
+        return false;
     }
     
     private Post convertToPost(NewsApiResponseDto.Result result, User writer) {
@@ -122,11 +140,71 @@ public class SpaceNewsService {
     }
     
     private String translateTitleIfNeeded(String title) {
-        // 영어 제목인 경우 간단한 번역 처리
         if (isEnglishTitle(title)) {
-            return "[해외뉴스] " + title;
+            String translatedTitle = translateWithOpenAI(title);
+            return translatedTitle != null ? translatedTitle : "[해외뉴스] " + title;
         }
         return title;
+    }
+    
+    private String translateWithOpenAI(String englishTitle) {
+        // OpenAI API 키 체크
+        String apiKey = System.getProperty("openai.api.key", System.getenv("OPENAI_API_KEY"));
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.debug("OpenAI API 키가 설정되지 않아 번역 스킵");
+            return null;
+        }
+        
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+            
+            String prompt = String.format("""
+                다음 영어 뉴스 제목을 자연스럽고 정확한 한국어로 번역해주세요:
+                
+                "%s"
+                
+                요구사항:
+                - 우주/과학 전문 용어는 정확하게 번역
+                - 자연스럽고 읽기 쉬운 한국어로 번역
+                - 번역문만 반환 (설명 없이)
+                """, englishTitle);
+            
+            Map<String, Object> requestBody = Map.of(
+                "model", "gpt-4o-mini",
+                "messages", List.of(
+                    Map.of("role", "user", "content", prompt)
+                ),
+                "max_tokens", 100,
+                "temperature", 0.3
+            );
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                "https://api.openai.com/v1/chat/completions",
+                HttpMethod.POST,
+                entity,
+                Map.class
+            );
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (!choices.isEmpty()) {
+                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                    String translatedTitle = (String) message.get("content");
+                    log.info("번역 성공: {} -> {}", englishTitle, translatedTitle);
+                    return translatedTitle.trim();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("번역 실패: {}", englishTitle, e);
+        }
+        
+        return null;
     }
     
     private boolean isEnglishTitle(String title) {
