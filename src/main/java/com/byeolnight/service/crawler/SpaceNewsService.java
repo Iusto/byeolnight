@@ -74,9 +74,14 @@ public class SpaceNewsService {
     }
     
     private boolean isDuplicateNews(NewsApiResponseDto.Result result) {
-        return newsRepository.existsByTitle(result.getTitle()) || 
-               newsRepository.existsByUrl(result.getLink()) ||
-               postRepository.existsByTitle(result.getTitle());
+        // URL 기준으로만 중복 체크 (제목은 번역되거나 수정될 수 있음)
+        boolean isDuplicate = newsRepository.existsByUrl(result.getLink());
+        
+        if (isDuplicate) {
+            log.debug("중복 URL로 스킵: {}", result.getLink());
+        }
+        
+        return isDuplicate;
     }
     
     private boolean isRelevantSpaceNews(NewsApiResponseDto.Result result) {
