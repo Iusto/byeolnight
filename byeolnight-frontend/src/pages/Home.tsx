@@ -387,7 +387,6 @@ export default function Home() {
                         {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">{post.dDay}</span>}
                         {post.title}
                       </h3>
-                      <p className="text-sm text-gray-400 line-clamp-2 mb-3">{post.content}</p>
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           🖊 {post.writer}

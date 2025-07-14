@@ -24,12 +24,12 @@ public class NewsDataService {
         try {
             // 먼저 한국어 뉴스 시도
             log.info("한국어 우주 뉴스를 수집합니다.");
-            NewsApiResponseDto koreanNews = fetchNewsByLanguage("ko", "\"우주 탐사\" OR \"우주 발사\" OR \"우주선\" OR \"로켓 발사\" OR \"위성 발사\" OR \"화성 탐사\" OR \"달 탐사\" OR \"우주정거장\" OR \"우주비행사\" OR \"천문학 발견\" OR \"블랙홀\" OR \"은하\" OR \"혜성\" OR \"소행성\" OR \"망원경\"");
+            NewsApiResponseDto koreanNews = fetchNewsByLanguage("ko", "우주 OR 로켓 OR 위성 OR 화성 OR NASA OR SpaceX");
             
             // 한국어 뉴스가 충분하지 않으면 영어 뉴스도 수집
             if (koreanNews == null || koreanNews.getResults().size() < 3) {
                 log.info("한국어 뉴스가 부족하여 영어 뉴스도 수집합니다.");
-                NewsApiResponseDto englishNews = fetchNewsByLanguage("en", "\"NASA launch\" OR \"SpaceX launch\" OR \"Mars mission\" OR \"space exploration\" OR \"rocket launch\" OR \"satellite launch\" OR \"astronaut mission\" OR \"space discovery\" OR \"astronomy discovery\" OR \"black hole\" OR \"galaxy discovery\" OR \"telescope discovery\" OR \"space station\" OR \"spacecraft\" OR \"asteroid\" OR \"comet\"");
+                NewsApiResponseDto englishNews = fetchNewsByLanguage("en", "NASA OR SpaceX OR space OR rocket OR Mars OR satellite");
                 
                 if (englishNews != null && englishNews.getResults().size() > 0) {
                     if (koreanNews == null) {
