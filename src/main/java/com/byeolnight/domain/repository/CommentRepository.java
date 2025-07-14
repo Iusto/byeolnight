@@ -51,4 +51,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      */
     @Query("SELECT c FROM Comment c WHERE c.deleted = true AND c.deletedAt < :threshold")
     List<Comment> findExpiredDeletedComments(@Param("threshold") java.time.LocalDateTime threshold);
+    
+    /**
+     * 댓글 내용에 특정 문자열이 포함된 댓글 존재 여부 확인 (S3 파일 사용 여부 체크용)
+     */
+    boolean existsByContentContaining(String content);
 }

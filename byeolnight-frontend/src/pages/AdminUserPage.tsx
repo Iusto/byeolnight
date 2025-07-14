@@ -57,7 +57,7 @@ export default function AdminUserPage() {
   const [blindedComments, setBlindedComments] = useState<any[]>([]);
   const [deletedPosts, setDeletedPosts] = useState<any[]>([]);
   const [deletedComments, setDeletedComments] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reports' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reports' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files' | 'scheduler'>('users');
   const [showIpModal, setShowIpModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [showPointModal, setShowPointModal] = useState(false);
@@ -71,6 +71,16 @@ export default function AdminUserPage() {
   const [ipSearchTerm, setIpSearchTerm] = useState('');
   const [orphanImageCount, setOrphanImageCount] = useState<number>(0);
   const [isCleaningFiles, setIsCleaningFiles] = useState(false);
+  const [schedulerStatus, setSchedulerStatus] = useState<{
+    messagesToDelete: number;
+    postsToDelete: number;
+    usersToCleanup: number;
+  }>({ messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 });
+  const [isRunningScheduler, setIsRunningScheduler] = useState<{
+    message: boolean;
+    post: boolean;
+    user: boolean;
+  }>({ message: false, post: false, user: false });
   const { user: currentUser } = useAuth(); // 현재 로그인한 사용자
 
   const fetchUsers = async () => {
@@ -230,6 +240,7 @@ export default function AdminUserPage() {
     fetchDeletedPosts();
     fetchDeletedComments();
     fetchOrphanImageCount();
+    fetchSchedulerStatus();
   }, []);
 
   const fetchBlindedPosts = async () => {
@@ -444,6 +455,46 @@ export default function AdminUserPage() {
     }
   };
 
+  const fetchSchedulerStatus = async () => {
+    try {
+      const res = await axios.get('/admin/scheduler/status');
+      const status = res.data?.data || { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 };
+      setSchedulerStatus(status);
+    } catch (err) {
+      console.error('스케줄러 상태 조회 실패:', err);
+    }
+  };
+
+  const handleManualScheduler = async (type: 'message' | 'post' | 'user') => {
+    const confirmMessages = {
+      message: `정말 ${schedulerStatus.messagesToDelete}개의 오래된 쪽지를 영구 삭제하시겠습니까?`,
+      post: `정말 ${schedulerStatus.postsToDelete}개의 만료된 게시글을 정리하시겠습니까?`,
+      user: `정말 ${schedulerStatus.usersToCleanup}명의 탈퇴 회원 정보를 정리하시겠습니까?`
+    };
+    
+    if (!confirm(confirmMessages[type] + '\n\n이 작업은 되돌릴 수 없습니다.')) return;
+    
+    setIsRunningScheduler(prev => ({ ...prev, [type]: true }));
+    
+    try {
+      const endpoints = {
+        message: '/admin/scheduler/message-cleanup/manual',
+        post: '/admin/scheduler/post-cleanup/manual',
+        user: '/admin/scheduler/user-cleanup/manual'
+      };
+      
+      const res = await axios.post(endpoints[type]);
+      const message = res.data?.message || '작업이 완료되었습니다.';
+      alert(message);
+      fetchSchedulerStatus(); // 상태 새로고침
+    } catch (err) {
+      console.error(`${type} 스케줄러 실행 실패:`, err);
+      alert('작업 실행에 실패했습니다.');
+    } finally {
+      setIsRunningScheduler(prev => ({ ...prev, [type]: false }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white px-6 py-12">
       <div className="max-w-6xl mx-auto">
@@ -556,6 +607,24 @@ export default function AdminUserPage() {
             {orphanImageCount > 0 && (
               <div className="text-xs bg-red-500 text-white px-2 py-1 rounded-full mt-2 inline-block">
                 {orphanImageCount}개
+              </div>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('scheduler')}
+            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
+              activeTab === 'scheduler'
+                ? 'bg-green-600/40 border-green-400 text-white shadow-lg transform scale-105'
+                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-green-500/50'
+            }`}
+          >
+            <div className="text-3xl mb-2">⏰</div>
+            <div className="font-semibold">스케줄러 관리</div>
+            <div className="text-sm text-gray-400 mt-1">자동 정리 작업 관리</div>
+            {(schedulerStatus.messagesToDelete + schedulerStatus.postsToDelete + schedulerStatus.usersToCleanup) > 0 && (
+              <div className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full mt-2 inline-block">
+                {schedulerStatus.messagesToDelete + schedulerStatus.postsToDelete + schedulerStatus.usersToCleanup}건
               </div>
             )}
           </button>
@@ -1009,6 +1078,211 @@ export default function AdminUserPage() {
                 ))}
               </div>
             )}
+          </div>
+        ) : activeTab === 'scheduler' ? (
+          // 스케줄러 관리 섹션
+          <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">⏰ 스케줄러 관리</h3>
+              <button
+                onClick={fetchSchedulerStatus}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm transition"
+              >
+                🔄 새로고침
+              </button>
+            </div>
+            
+            <div className="grid gap-6">
+              {/* 쪽지 정리 스케줄러 */}
+              <div className="bg-[#2a2e45] p-6 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-2">💌 쪽지 정리 스케줄러</h4>
+                    <p className="text-gray-400 text-sm">
+                      매일 새벽 2시 - 양쪽 모두 삭제 후 3년 경과한 쪽지를 영구 삭제합니다.
+                    </p>
+                  </div>
+                  <div className="text-2xl">🕐</div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">📊</div>
+                    <div>
+                      <div className="text-2xl font-bold text-white">
+                        {schedulerStatus.messagesToDelete.toLocaleString()}개
+                      </div>
+                      <div className="text-sm text-gray-400">정리 대상 쪽지</div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleManualScheduler('message')}
+                    disabled={schedulerStatus.messagesToDelete === 0 || isRunningScheduler.message}
+                    className={`px-6 py-3 rounded-lg font-medium transition ${
+                      schedulerStatus.messagesToDelete === 0 || isRunningScheduler.message
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 shadow-lg'
+                    }`}
+                  >
+                    {isRunningScheduler.message ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        실행 중...
+                      </div>
+                    ) : (
+                      '🧹 수동 실행'
+                    )}
+                  </button>
+                </div>
+                
+                {schedulerStatus.messagesToDelete === 0 && (
+                  <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <span>✅</span>
+                      <span className="text-sm">정리할 쪽지가 없습니다.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* 게시글 정리 스케줄러 */}
+              <div className="bg-[#2a2e45] p-6 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-2">📝 게시글 정리 스케줄러</h4>
+                    <p className="text-gray-400 text-sm">
+                      매일 새벽 3시 - 삭제 후 30일 경과한 게시글과 댓글을 영구 삭제합니다.
+                    </p>
+                  </div>
+                  <div className="text-2xl">🕒</div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">📊</div>
+                    <div>
+                      <div className="text-2xl font-bold text-white">
+                        {schedulerStatus.postsToDelete.toLocaleString()}개
+                      </div>
+                      <div className="text-sm text-gray-400">정리 대상 게시글</div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleManualScheduler('post')}
+                    disabled={schedulerStatus.postsToDelete === 0 || isRunningScheduler.post}
+                    className={`px-6 py-3 rounded-lg font-medium transition ${
+                      schedulerStatus.postsToDelete === 0 || isRunningScheduler.post
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-yellow-600 hover:bg-yellow-700 text-white hover:scale-105 shadow-lg'
+                    }`}
+                  >
+                    {isRunningScheduler.post ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        실행 중...
+                      </div>
+                    ) : (
+                      '🧹 수동 실행'
+                    )}
+                  </button>
+                </div>
+                
+                {schedulerStatus.postsToDelete === 0 && (
+                  <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <span>✅</span>
+                      <span className="text-sm">정리할 게시글이 없습니다.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* 탈퇴 회원 정리 스케줄러 */}
+              <div className="bg-[#2a2e45] p-6 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-2">👤 탈퇴 회원 정리 스케줄러</h4>
+                    <p className="text-gray-400 text-sm">
+                      매일 새벽 3시 - 탈퇴 후 5년 경과한 회원의 개인정보를 완전 삭제합니다.
+                    </p>
+                  </div>
+                  <div className="text-2xl">🕒</div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">📊</div>
+                    <div>
+                      <div className="text-2xl font-bold text-white">
+                        {schedulerStatus.usersToCleanup.toLocaleString()}명
+                      </div>
+                      <div className="text-sm text-gray-400">정리 대상 회원</div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleManualScheduler('user')}
+                    disabled={schedulerStatus.usersToCleanup === 0 || isRunningScheduler.user}
+                    className={`px-6 py-3 rounded-lg font-medium transition ${
+                      schedulerStatus.usersToCleanup === 0 || isRunningScheduler.user
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-red-600 hover:bg-red-700 text-white hover:scale-105 shadow-lg'
+                    }`}
+                  >
+                    {isRunningScheduler.user ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        실행 중...
+                      </div>
+                    ) : (
+                      '🧹 수동 실행'
+                    )}
+                  </button>
+                </div>
+                
+                {schedulerStatus.usersToCleanup === 0 && (
+                  <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <span>✅</span>
+                      <span className="text-sm">정리할 회원이 없습니다.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* 스케줄러 정보 카드 */}
+              <div className="bg-[#2a2e45] p-6 rounded-lg">
+                <h4 className="text-lg font-semibold text-white mb-4">📋 스케줄러 정보</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="bg-[#1f2336] p-4 rounded-lg">
+                    <div className="text-blue-400 font-medium mb-2">🕐 새벽 2시</div>
+                    <ul className="text-gray-300 space-y-1">
+                      <li>• 쪽지 자동 정리</li>
+                      <li>• 3년 경과 쪽지 삭제</li>
+                      <li>• 양쪽 모두 삭제한 경우만</li>
+                    </ul>
+                  </div>
+                  <div className="bg-[#1f2336] p-4 rounded-lg">
+                    <div className="text-yellow-400 font-medium mb-2">🕒 새벽 3시</div>
+                    <ul className="text-gray-300 space-y-1">
+                      <li>• 게시글/댓글 정리</li>
+                      <li>• 30일 경과 삭제 게시글</li>
+                      <li>• 관련 파일도 함께 삭제</li>
+                    </ul>
+                  </div>
+                  <div className="bg-[#1f2336] p-4 rounded-lg">
+                    <div className="text-red-400 font-medium mb-2">🕒 새벽 3시</div>
+                    <ul className="text-gray-300 space-y-1">
+                      <li>• 탈퇴 회원 정리</li>
+                      <li>• 5년 경과 탈퇴 회원</li>
+                      <li>• 개인정보 완전 삭제</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : activeTab === 'files' ? (
           // 파일 정리 관리 섹션

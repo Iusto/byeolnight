@@ -185,4 +185,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * 제목으로 게시글 존재 여부 확인 (뉴스 중복 체크용)
      */
     boolean existsByTitle(String title);
+    
+    /**
+     * 게시글 내용에 특정 문자열이 포함된 게시글 존재 여부 확인 (S3 파일 사용 여부 체크용)
+     */
+    boolean existsByContentContaining(String content);
 }

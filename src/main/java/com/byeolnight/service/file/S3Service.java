@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import org.springframework.context.annotation.Lazy;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -23,10 +24,19 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class S3Service {
 
     private final GoogleVisionService googleVisionService;
+    private final com.byeolnight.domain.repository.post.PostRepository postRepository;
+    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    
+    public S3Service(GoogleVisionService googleVisionService,
+                    @Lazy com.byeolnight.domain.repository.post.PostRepository postRepository,
+                    @Lazy com.byeolnight.domain.repository.CommentRepository commentRepository) {
+        this.googleVisionService = googleVisionService;
+        this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
+    }
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
@@ -193,6 +203,7 @@ public class S3Service {
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .build();
 
+            // S3에서 모든 uploads/ 파일 조회
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
                     .prefix("uploads/")
@@ -200,26 +211,42 @@ public class S3Service {
 
             ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
             List<S3Object> objects = response.contents();
+            log.info("S3에서 총 {}개의 파일 발견", objects.size());
 
+            // 7일 이상 된 파일만 필터링
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
             List<S3Object> oldObjects = objects.stream()
                     .filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant()))
                     .collect(Collectors.toList());
+            
+            log.info("7일 이상 된 파일: {}개", oldObjects.size());
+
+            // 실제 고아 파일 검증 (DB에서 사용 중인지 확인)
+            List<S3Object> orphanObjects = oldObjects.stream()
+                    .filter(this::isOrphanFile)
+                    .collect(Collectors.toList());
+            
+            log.info("실제 고아 파일: {}개", orphanObjects.size());
 
             int deletedCount = 0;
-            for (S3Object obj : oldObjects) {
+            for (S3Object obj : orphanObjects) {
                 try {
                     s3Client.deleteObject(DeleteObjectRequest.builder()
                             .bucket(bucketName)
                             .key(obj.key())
                             .build());
                     deletedCount++;
-                    log.info("🗑️ 고아 이미지 삭제: {}", obj.key());
+                    log.info("🗑️ 고아 이미지 삭제: {} (크기: {}KB, 수정일: {})", 
+                        obj.key(), 
+                        obj.size() / 1024,
+                        obj.lastModified());
                 } catch (Exception e) {
                     log.error("삭제 실패: {}", obj.key(), e);
                 }
             }
-            log.info("🧹 고아 이미지 정리 완료: {}개 삭제", deletedCount);
+            log.info("🧹 고아 이미지 정리 완료: {}개 삭제 (총 용량 절약: {}MB)", 
+                deletedCount, 
+                orphanObjects.stream().mapToLong(S3Object::size).sum() / (1024 * 1024));
             return deletedCount;
         } catch (Exception e) {
             log.error("고아 이미지 정리 실패", e);
@@ -244,15 +271,54 @@ public class S3Service {
             List<S3Object> objects = response.contents();
 
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
-            long oldObjectCount = objects.stream()
+            long orphanCount = objects.stream()
                     .filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant()))
+                    .filter(this::isOrphanFile)
                     .count();
 
-            log.info("고아 이미지 개수 조회: {}개", oldObjectCount);
-            return (int) oldObjectCount;
+            log.info("실제 고아 이미지 개수: {}개 (전체 파일: {}개, 7일 이상: {}개)", 
+                orphanCount, 
+                objects.size(),
+                objects.stream().filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant())).count());
+            return (int) orphanCount;
         } catch (Exception e) {
             log.error("고아 이미지 개수 조회 실패", e);
             return 0;
+        }
+    }
+
+    /**
+     * 파일이 실제로 고아 파일인지 확인
+     * DB에서 해당 파일을 사용하고 있는지 검사
+     */
+    private boolean isOrphanFile(S3Object s3Object) {
+        try {
+            String s3Key = s3Object.key();
+            String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
+            
+            // 1. 게시글 내용에서 해당 파일 URL이 사용되고 있는지 확인
+            boolean usedInPosts = postRepository.existsByContentContaining(fileUrl) || 
+                                postRepository.existsByContentContaining(s3Key);
+            
+            if (usedInPosts) {
+                log.debug("파일이 게시글에서 사용 중: {}", s3Key);
+                return false; // 사용 중이므로 고아 파일이 아님
+            }
+            
+            // 2. 댓글 내용에서 해당 파일 URL이 사용되고 있는지 확인
+            boolean usedInComments = commentRepository.existsByContentContaining(fileUrl) ||
+                                   commentRepository.existsByContentContaining(s3Key);
+            
+            if (usedInComments) {
+                log.debug("파일이 댓글에서 사용 중: {}", s3Key);
+                return false; // 사용 중이므로 고아 파일이 아님
+            }
+            
+            log.debug("고아 파일 확인: {} -> 사용되지 않는 파일", s3Key);
+            return true; // DB에서 사용되지 않는 고아 파일
+        } catch (Exception e) {
+            log.warn("고아 파일 검증 중 오류: {}", s3Object.key(), e);
+            return false; // 오류 시 안전하게 삭제하지 않음
         }
     }
 }
