@@ -14,6 +14,13 @@
       "Principal": "*",
       "Action": "s3:PutObject",
       "Resource": "arn:aws:s3:::byeolnight-bucket/uploads/*"
+    },
+    {
+      "Sid": "AllowPutObjectAcl",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:PutObjectAcl",
+      "Resource": "arn:aws:s3:::byeolnight-bucket/uploads/*"
     }
   ]
 }

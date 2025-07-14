@@ -33,9 +33,11 @@ services:
       - .env
     environment:
       - JAVA_OPTS=-Xmx2g -Xms1g -XX:+UseG1GC
+      - TZ=Asia/Seoul
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
 
   mysql:
     image: mysql:8

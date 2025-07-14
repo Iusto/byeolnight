@@ -29,12 +29,16 @@ public class DiscussionTopicScheduler {
     @Value("${system.password.system}")
     private String systemRawPassword;
 
-    @Scheduled(cron = "0 0 8 * * *") // 매일 오전 8시
+    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Seoul") // 매일 오전 8시 (한국 시간)
     @Transactional
     public void generateDailyDiscussionTopic() {
-        log.info("일일 토론 주제 생성 시작");
+        log.info("일일 토론 주제 생성 시작 - {}", java.time.LocalDateTime.now());
 
         try {
+            if (newsBasedDiscussionService == null) {
+                log.error("NewsBasedDiscussionService가 주입되지 않았습니다!");
+                return;
+            }
             // 기존 토론 주제 비활성화
             deactivateOldTopics();
 
@@ -60,10 +64,10 @@ public class DiscussionTopicScheduler {
             discussionPost.setAsDiscussionTopic();
             postRepository.save(discussionPost);
 
-            log.info("새로운 토론 주제 생성 완료: {}", title);
+            log.info("새로운 토론 주제 생성 완료: {} - {}", title, java.time.LocalDateTime.now());
 
         } catch (Exception e) {
-            log.error("토론 주제 생성 실패", e);
+            log.error("토론 주제 생성 실패 - {}", java.time.LocalDateTime.now(), e);
         }
     }
 
