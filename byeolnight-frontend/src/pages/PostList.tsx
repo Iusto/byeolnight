@@ -221,15 +221,17 @@ export default function PostList() {
           <div className="text-center">
             <div className="inline-flex items-center gap-3 mb-4">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
-                {{
-                  NEWS: '🚀',
-                  DISCUSSION: '💬',
-                  IMAGE: '🌌',
-                  REVIEW: '⭐',
-                  FREE: '🎈',
-                  NOTICE: '📢',
-                  STARLIGHT_CINEMA: '🎬'
-                }[category]}
+                <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                  {{
+                    NEWS: '🚀',
+                    DISCUSSION: '💬',
+                    IMAGE: '🌌',
+                    REVIEW: '⭐',
+                    FREE: '🎈',
+                    NOTICE: '📢',
+                    STARLIGHT_CINEMA: '🎬'
+                  }[category]}
+                </span>
               </div>
             </div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
@@ -291,7 +293,11 @@ export default function PostList() {
                         <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖</span>
                       </div>
                     )}
-                    <div className="text-3xl mb-2 select-none pointer-events-none">{icons[cat as keyof typeof icons]}</div>
+                    <div className="text-3xl mb-2 select-none pointer-events-none bg-slate-800/50 rounded-lg p-2 border border-slate-600/30">
+                      <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                        {icons[cat as keyof typeof icons]}
+                      </span>
+                    </div>
                     <div className="text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
                   </button>
                 );
@@ -689,7 +695,10 @@ export default function PostList() {
                         <p className="text-sm text-gray-300 mb-4 line-clamp-2 leading-relaxed">{post.content}</p>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-400 flex items-center gap-1">
-                            {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')} {post.blinded ? '***' : post.writer}
+                            <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                              {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                            </span>
+                            {post.blinded ? '***' : post.writer}
                           </span>
                           <div className="flex gap-3 text-gray-400">
                             <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
@@ -754,7 +763,10 @@ export default function PostList() {
                     </div>
                     <div className="flex justify-between items-center text-sm text-gray-400">
                       <span className="flex items-center gap-1">
-                        {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')} {post.blinded ? '***' : post.writer}
+                        <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                          {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                        </span>
+                        {post.blinded ? '***' : post.writer}
                       </span>
                       <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
                     </div>
