@@ -29,14 +29,14 @@ public class NewsDataService {
     public NewsApiResponseDto fetchKoreanSpaceNews() {
         try {
             // 더 많은 뉴스를 가져와서 중복 제외 후 2개 선택
-            // 적응형 수집량: 초기 40개 -> 장기적으로 80개까지 증가
-            int fetchSize = calculateOptimalFetchSize();
+            // API 제한으로 인해 10개씩 다중 호출로 더 많이 수집
+            int callCount = calculateOptimalCallCount();
             
-            log.info("한국어 우주 뉴스를 수집합니다 (적응형 수집량: {}개).", fetchSize);
-            NewsApiResponseDto koreanNews = fetchNewsByLanguage("ko", "우주 OR 로켓 OR 위성 OR 화성 OR NASA OR SpaceX", fetchSize);
+            log.info("한국어 우주 뉴스를 수집합니다 (10개 x {}번 호출).", callCount);
+            NewsApiResponseDto koreanNews = fetchMultipleNewsByLanguage("ko", "우주 OR 로켓 OR 위성 OR 화성 OR NASA OR SpaceX", callCount);
             
-            log.info("영어 우주 뉴스도 수집합니다 (적응형 수집량: {}개).", fetchSize);
-            NewsApiResponseDto englishNews = fetchNewsByLanguage("en", "NASA OR SpaceX OR space OR rocket OR Mars OR satellite", fetchSize);
+            log.info("영어 우주 뉴스도 수집합니다 (10개 x {}번 호출).", callCount);
+            NewsApiResponseDto englishNews = fetchMultipleNewsByLanguage("en", "NASA OR SpaceX OR space OR rocket OR Mars OR satellite", callCount);
             
             // 한국어와 영어 뉴스 합치기
             NewsApiResponseDto combinedNews = new NewsApiResponseDto();
@@ -51,10 +51,10 @@ public class NewsDataService {
             }
             
             combinedNews.setTotalResults(combinedNews.getResults().size());
-            log.info("총 {}+{} = {}개 뉴스 수집 완료 (중복 제외 전, 하루 400개 한도 내, 수집량: {}x2)", 
+            log.info("총 {}+{} = {}개 뉴스 수집 완룼 (중복 제외 전, 하루 400개 한도 내, 10개 x {}번)", 
                     koreanNews != null ? koreanNews.getResults().size() : 0,
                     englishNews != null ? englishNews.getResults().size() : 0,
-                    combinedNews.getResults().size(), fetchSize);
+                    combinedNews.getResults().size(), callCount);
             
             return combinedNews;
             
@@ -120,35 +120,59 @@ public class NewsDataService {
     }
     
     /**
-     * DB 뉴스 개수 기반 적응형 수집량 계산
-     * - 0~100개: 20개씩 (총 40개)
-     * - 100~500개: 30개씩 (총 60개)
-     * - 500~1000개: 40개씩 (총 80개)
-     * - 1000개+: 50개씩 (총 100개)
+     * DB 뉴스 개수 기반 적응형 호출 횟수 계산
+     * - 0~100개: 2번 호출 (총 20개)
+     * - 100~500개: 3번 호출 (총 30개)
+     * - 500개+: 4번 호출 (총 40개)
      */
-    private int calculateOptimalFetchSize() {
+    private int calculateOptimalCallCount() {
         try {
-            // NewsRepository를 직접 주입받지 않고 서비스를 통해 가져오기
-            // 임시로 기본값 사용 (나중에 수정 예정)
-            long newsCount = newsRepository.count(); // DB에 저장된 뉴스 개수
+            long newsCount = newsRepository.count();
             
-            int fetchSize;
+            int callCount;
             if (newsCount < 100) {
-                fetchSize = 20; // 초기 단계
+                callCount = 2; // 10개 x 2번 = 20개
             } else if (newsCount < 500) {
-                fetchSize = 30; // 중간 단계
-            } else if (newsCount < 1000) {
-                fetchSize = 40; // 고급 단계
+                callCount = 3; // 10개 x 3번 = 30개
             } else {
-                fetchSize = 50; // 최대 단계
+                callCount = 4; // 10개 x 4번 = 40개
             }
             
-            log.info("수집량 계산: DB 뉴스 {}개 -> 언어별 {}개 (총 {}x2개)", newsCount, fetchSize, fetchSize);
-            return fetchSize;
+            log.info("호출 횟수 계산: DB 뉴스 {}개 -> 언어별 {}번 호출 (총 {}x2개)", newsCount, callCount, callCount * 10);
+            return callCount;
             
         } catch (Exception e) {
-            log.warn("수집량 계산 실패, 기본값 20 사용", e);
-            return 20;
+            log.warn("호출 횟수 계산 실패, 기본값 2 사용", e);
+            return 2;
         }
+    }
+    
+    /**
+     * 다중 호출로 더 많은 뉴스 수집
+     */
+    private NewsApiResponseDto fetchMultipleNewsByLanguage(String language, String query, int callCount) {
+        NewsApiResponseDto combinedResponse = new NewsApiResponseDto();
+        combinedResponse.setStatus("success");
+        combinedResponse.setResults(new java.util.ArrayList<>());
+        
+        for (int i = 0; i < callCount; i++) {
+            try {
+                NewsApiResponseDto response = fetchNewsByLanguage(language, query, 10);
+                if (response != null && response.getResults() != null) {
+                    combinedResponse.getResults().addAll(response.getResults());
+                }
+                
+                // API 요청 간격 (Rate Limit 방지)
+                if (i < callCount - 1) {
+                    Thread.sleep(100); // 0.1초 대기
+                }
+            } catch (Exception e) {
+                log.warn("{} 뉴스 {}번째 호출 실패", language, i + 1, e);
+            }
+        }
+        
+        combinedResponse.setTotalResults(combinedResponse.getResults().size());
+        log.info("{} 뉴스 {}번 호출 완료: {}개 수집", language, callCount, combinedResponse.getResults().size());
+        return combinedResponse;
     }
 }
