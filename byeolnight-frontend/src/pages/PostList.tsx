@@ -417,8 +417,33 @@ export default function PostList() {
                   onClick={async () => {
                     try {
                       const response = await axios.get('/admin/discussions/status');
-                      const message = response.data?.data || response.data?.message || response.data || '토론 주제 생성 시스템이 정상 작동 중입니다.';
-                      alert(typeof message === 'string' ? message : JSON.stringify(message));
+                      const data = response.data?.data || response.data;
+                      
+                      if (typeof data === 'object' && data !== null) {
+                        const { totalDiscussionPosts, lastUpdated, todayTopicExists, todayTopicTitle } = data;
+                        
+                        // 시스템 상태 판단
+                        const now = new Date();
+                        const today = now.toDateString();
+                        const isHealthy = todayTopicExists || totalDiscussionPosts > 0;
+                        const statusIcon = isHealthy ? '✅' : '⚠️';
+                        const statusText = isHealthy ? '정상 작동 중' : '주의 필요';
+                        
+                        let warningMessage = '';
+                        if (!todayTopicExists) {
+                          warningMessage = '\n⚠️ 오늘의 토론 주제가 생성되지 않았습니다. 수동 생성을 고려해주세요.';
+                        }
+                        
+                        const statusMessage = `📊 토론 게시판 상태\n\n` +
+                          `• 총 토론 게시글: ${totalDiscussionPosts || 0}개\n` +
+                          `• 오늘의 토론 주제: ${todayTopicExists ? '생성됨' : '없음'}\n` +
+                          `${todayTopicTitle ? `• 주제: "${todayTopicTitle}"\n` : ''}` +
+                          `• 마지막 업데이트: ${lastUpdated ? new Date(lastUpdated).toLocaleString('ko-KR') : '정보 없음'}\n\n` +
+                          `${statusIcon} 토론 시스템 ${statusText}${warningMessage}`;
+                        alert(statusMessage);
+                      } else {
+                        alert('⚠️ 토론 시스템 상태를 확인할 수 없습니다.');
+                      }
                     } catch (error) {
                       console.error('상태 확인 실패:', error);
                       alert('상태 확인에 실패했습니다.');
@@ -465,8 +490,37 @@ export default function PostList() {
                   onClick={async () => {
                     try {
                       const response = await axios.get('/admin/cinema/status');
-                      const message = response.data?.data || response.data?.message || response.data || '별빛 시네마 시스템이 정상 작동 중입니다.';
-                      alert(typeof message === 'string' ? message : JSON.stringify(message));
+                      const data = response.data?.data || response.data;
+                      
+                      if (typeof data === 'object' && data !== null) {
+                        const { totalCinemaPosts, lastUpdated, latestPostExists, latestPostTitle } = data;
+                        
+                        // 시스템 상태 판단
+                        const now = new Date();
+                        const lastUpdateTime = lastUpdated ? new Date(lastUpdated) : null;
+                        const daysSinceUpdate = lastUpdateTime ? Math.floor((now - lastUpdateTime) / (1000 * 60 * 60 * 24)) : 999;
+                        
+                        const isHealthy = latestPostExists && totalCinemaPosts > 0 && daysSinceUpdate < 2;
+                        const statusIcon = isHealthy ? '✅' : '⚠️';
+                        const statusText = isHealthy ? '정상 작동 중' : '주의 필요';
+                        
+                        let warningMessage = '';
+                        if (!latestPostExists) {
+                          warningMessage = '\n⚠️ 최신 시네마 포스트가 없습니다. 수동 생성을 고려해주세요.';
+                        } else if (daysSinceUpdate >= 2) {
+                          warningMessage = `\n⚠️ 마지막 업데이트가 ${daysSinceUpdate}일 전입니다. 스케줄러 확인이 필요합니다.`;
+                        }
+                        
+                        const statusMessage = `🎬 별빛 시네마 상태\n\n` +
+                          `• 총 시네마 게시글: ${totalCinemaPosts || 0}개\n` +
+                          `• 최신 포스트: ${latestPostExists ? '있음' : '없음'}\n` +
+                          `${latestPostTitle ? `• 제목: "${latestPostTitle}"\n` : ''}` +
+                          `• 마지막 업데이트: ${lastUpdated ? new Date(lastUpdated).toLocaleString('ko-KR') : '정보 없음'}\n\n` +
+                          `${statusIcon} 별빛 시네마 시스템 ${statusText}${warningMessage}`;
+                        alert(statusMessage);
+                      } else {
+                        alert('⚠️ 별빛 시네마 시스템 상태를 확인할 수 없습니다.');
+                      }
                     } catch (error) {
                       console.error('상태 확인 실패:', error);
                       alert('상태 확인에 실패했습니다.');

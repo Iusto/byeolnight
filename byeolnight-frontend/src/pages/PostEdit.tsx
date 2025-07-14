@@ -207,18 +207,40 @@ export default function PostEdit() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
     // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
     const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
+    
+    // 콘텐츠에서 실제 사용된 이미지 URL 추출
+    const usedImageUrls = new Set<string>();
+    const imgRegex = /<img[^>]+src="([^"]+)"/gi;
+    let match;
+    while ((match = imgRegex.exec(finalContent)) !== null) {
+      usedImageUrls.add(match[1]);
+    }
+    
+    // 실제 사용된 이미지만 필터링
+    const usedImages = images.filter(img => usedImageUrls.has(img.url));
+    
+    console.log('수정 전송 데이터:', {
+      title,
+      content: finalContent,
+      category,
+      images: usedImages,
+      originalImages: images,
+      usedImageUrls: Array.from(usedImageUrls)
+    });
     
     try {
       await axios.put(`/member/posts/${id}`, {
         title,
         content: finalContent,
         category,
-        images,
+        images: usedImages,
       });
       navigate(`/posts/${id}`);
-    } catch {
+    } catch (error) {
+      console.error('게시글 수정 실패:', error);
       setError('수정 실패');
     }
   };

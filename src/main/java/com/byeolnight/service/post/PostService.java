@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -112,14 +113,34 @@ public class PostService {
         validateAdminCategoryWrite(dto.getCategory(), user);
         post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
 
+        // 기존 파일 목록 조회
         List<File> oldFiles = fileRepository.findAllByPost(post);
-        oldFiles.forEach(file -> s3Service.deleteObject(file.getS3Key()));
-        fileRepository.deleteAllByPost(post);
-
-        dto.getImages().forEach(image -> {
-            File file = File.of(post, image.originalName(), image.s3Key(), image.url());
-            fileRepository.save(file);
+        Set<String> newImageUrls = dto.getImages().stream()
+                .map(img -> img.url())
+                .collect(Collectors.toSet());
+        
+        // 더 이상 사용되지 않는 파일만 삭제
+        List<File> filesToDelete = oldFiles.stream()
+                .filter(file -> !newImageUrls.contains(file.getUrl()))
+                .toList();
+        
+        filesToDelete.forEach(file -> {
+            s3Service.deleteObject(file.getS3Key());
+            fileRepository.delete(file);
         });
+        
+        // 기존 파일 URL 목록
+        Set<String> existingUrls = oldFiles.stream()
+                .map(File::getUrl)
+                .collect(Collectors.toSet());
+        
+        // 새로운 이미지만 추가
+        dto.getImages().stream()
+                .filter(image -> !existingUrls.contains(image.url()))
+                .forEach(image -> {
+                    File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+                    fileRepository.save(file);
+                });
     }
 
     @Transactional
