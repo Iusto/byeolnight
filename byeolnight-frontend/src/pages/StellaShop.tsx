@@ -16,15 +16,17 @@ export default function StellaShop() {
   const grades = ['ALL', 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
 
   useEffect(() => {
+    fetchIcons();
     if (user) {
-      fetchIcons();
       fetchOwnedIcons();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const fetchIcons = async () => {
     try {
-      const response = await axios.get('/shop/icons');
+      const response = await axios.get('/public/shop/icons');
       if (response.data.success) {
         setIcons(response.data.data);
       } else {
@@ -39,7 +41,7 @@ export default function StellaShop() {
 
   const fetchOwnedIcons = async () => {
     try {
-      const response = await axios.get('/shop/my-icons');
+      const response = await axios.get('/member/shop/my-icons');
       if (response.data.success) {
         setOwnedIcons(response.data.data);
       }
@@ -60,7 +62,7 @@ export default function StellaShop() {
 
     setPurchasing(iconId);
     try {
-      const response = await axios.post(`/shop/purchase/${iconId}`);
+      const response = await axios.post(`/member/shop/purchase/${iconId}`);
       if (response.data.success) {
         alert('아이콘을 성공적으로 구매했습니다!');
         await fetchOwnedIcons();
@@ -99,15 +101,7 @@ export default function StellaShop() {
     
 
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg mb-4">스텔라 상점은 로그인이 필요합니다.</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
@@ -118,11 +112,19 @@ export default function StellaShop() {
             ⭐ 스텔라 아이콘 상점
           </h1>
           <p className="text-gray-400 mb-4">특별한 아이콘으로 당신의 개성을 표현해보세요</p>
-          <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 inline-block">
-            <p className="text-yellow-400 font-bold text-lg">
-              보유 스텔라: ⭐ {user.points?.toLocaleString() || 0}
-            </p>
-          </div>
+          {user ? (
+            <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 inline-block">
+              <p className="text-yellow-400 font-bold text-lg">
+                보유 스텔라: ⭐ {user.points?.toLocaleString() || 0}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 inline-block">
+              <p className="text-gray-400 text-lg">
+                🔒 로그인하면 구매 및 장착이 가능합니다
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 등급 필터 */}
@@ -205,7 +207,14 @@ export default function StellaShop() {
                           />
                           
                           <div className="mt-4">
-                            {isOwned(icon.id) ? (
+                            {!user ? (
+                              <button
+                                onClick={() => alert('로그인이 필요합니다!')}
+                                className="w-full bg-gray-600/50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                              >
+                                🔒 로그인 필요
+                              </button>
+                            ) : isOwned(icon.id) ? (
                               <button
                                 onClick={() => handleEquip(icon.id)}
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-all duration-200"
@@ -257,7 +266,14 @@ export default function StellaShop() {
                     />
                     
                     <div className="mt-4">
-                      {isOwned(icon.id) ? (
+                      {!user ? (
+                        <button
+                          onClick={() => alert('로그인이 필요합니다!')}
+                          className="w-full bg-gray-600/50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                        >
+                          🔒 로그인 필요
+                        </button>
+                      ) : isOwned(icon.id) ? (
                         <button
                           onClick={() => handleEquip(icon.id)}
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-all duration-200"

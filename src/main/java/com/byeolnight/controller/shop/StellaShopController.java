@@ -26,8 +26,8 @@ public class StellaShopController {
 
     private final StellaShopService stellaShopService;
 
-    @Operation(summary = "스텔라 상점 아이콘 목록 조회")
-    @GetMapping("/api/shop/icons")
+    @Operation(summary = "스텔라 상점 아이콘 목록 조회 (공개)")
+    @GetMapping("/api/public/shop/icons")
     public ResponseEntity<CommonResponse<List<StellaIconDto>>> getShopIcons(
             @AuthenticationPrincipal User user) {
         
@@ -63,17 +63,13 @@ public class StellaShopController {
         }
     }
 
-    @Operation(summary = "스텔라 아이콘 구매")
-    @PostMapping("/api/shop/purchase/{iconId}")
+    @Operation(summary = "스텔라 아이콘 구매 (로그인 필요)")
+    @PostMapping("/api/member/shop/purchase/{iconId}")
     public ResponseEntity<CommonResponse<String>> purchaseIcon(
             @PathVariable Long iconId,
             @AuthenticationPrincipal User user) {
         
-        log.info("아이콘 구매 요청 - 사용자: {}, 아이콘ID: {}", user != null ? user.getNickname() : "null", iconId);
-        
-        if (user == null) {
-            return ResponseEntity.ok(CommonResponse.error("로그인이 필요합니다."));
-        }
+        log.info("아이콘 구매 요청 - 사용자: {}, 아이콘ID: {}", user.getNickname(), iconId);
         
         try {
             stellaShopService.purchaseIcon(user, iconId);
@@ -83,16 +79,12 @@ public class StellaShopController {
         }
     }
 
-    @Operation(summary = "내 보관함 조회")
-    @GetMapping("/api/shop/my-icons")
+    @Operation(summary = "내 보관함 조회 (로그인 필요)")
+    @GetMapping("/api/member/shop/my-icons-legacy")
     public ResponseEntity<CommonResponse<List<com.byeolnight.dto.shop.UserIconDto>>> getMyIcons(
             @AuthenticationPrincipal User user) {
         
-        log.info("보유 아이콘 요청 - 사용자: {}", user != null ? user.getNickname() : "null");
-        
-        if (user == null) {
-            return ResponseEntity.ok(CommonResponse.error("로그인이 필요합니다."));
-        }
+        log.info("보유 아이콘 요청 - 사용자: {}", user.getNickname());
         
         try {
             List<UserIcon> userIcons = stellaShopService.getUserIcons(user);
@@ -105,7 +97,7 @@ public class StellaShopController {
         }
     }
 
-    @Operation(summary = "내 보관함 조회 (멤버 전용)")
+    @Operation(summary = "내 보관함 조회")
     @GetMapping("/api/member/shop/my-icons")
     public ResponseEntity<CommonResponse<List<com.byeolnight.dto.shop.UserIconDto>>> getMyIconsForMember(
             @AuthenticationPrincipal User user) {
