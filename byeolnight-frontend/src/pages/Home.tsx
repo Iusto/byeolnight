@@ -131,6 +131,19 @@ export default function Home() {
     return `${date.getFullYear()}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  // 게시글 내용에서 첫 번째 이미지 URL 추출
+  const extractFirstImage = (content: string): string | null => {
+    if (!content) return null;
+    
+    // img 태그에서 src 추출
+    const imgMatch = content.match(/<img[^>]+src="([^"]+)"/i);
+    if (imgMatch) {
+      return imgMatch[1];
+    }
+    
+    return null;
+  };
+
   const Section = ({
     title,
     icon,
@@ -389,18 +402,29 @@ export default function Home() {
               borderColor="border-indigo-500/30"
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {starPhotos.filter(photo => !photo.blinded).map((photo) => (
-                  <Link to={`/posts/${photo.id}`} key={photo.id}>
-                    <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20">
-                      <img
-                        src={photo.thumbnailUrl || '/placeholder-image.jpg'}
-                        alt={photo.title}
-                        className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <div className="px-3 py-2 text-sm truncate text-indigo-100">{photo.title}</div>
-                    </div>
-                  </Link>
-                ))}
+                {starPhotos.filter(photo => !photo.blinded).map((photo) => {
+                  const imageUrl = photo.thumbnailUrl || extractFirstImage(photo.content);
+                  return (
+                    <Link to={`/posts/${photo.id}`} key={photo.id}>
+                      <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={photo.title}
+                            className="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7snbTrr7jsp4A8L3RleHQ+Cjwvc3ZnPgo=';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-40 bg-gradient-to-br from-indigo-800/50 to-purple-800/50 flex items-center justify-center">
+                            <span className="text-4xl opacity-50">🌌</span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </Section>
 
