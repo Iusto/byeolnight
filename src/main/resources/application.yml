@@ -78,6 +78,18 @@ newsdata:
     key: ${NEWSDATA_API_KEY:pub_3f5037199ae44a6b91c8bbee100fb76b}
     url: ${NEWSDATA_API_URL:https://newsdata.io/api/1/news}
 
+# 뉴스 수집 설정
+news:
+  collection:
+    max-posts: 1
+    similarity-threshold: 0.7
+    similarity-check-days: 7
+  quality:
+    min-title-length: 15
+    min-description-length: 80
+    min-space-keywords: 2
+    max-hashtags: 8
+
 # OpenAI API 설정
 openai:
   api:
@@ -87,6 +99,12 @@ openai:
 google:
   api:
     key: ${GOOGLE_API_KEY:}
+
+# YouTube 서비스 설정
+youtube:
+  search:
+    max-results: 12
+    keyword-count: 3
 
 # 관리자, 봇
 system:
