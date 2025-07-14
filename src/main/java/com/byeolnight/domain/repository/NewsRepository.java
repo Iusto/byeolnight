@@ -15,4 +15,10 @@ public interface NewsRepository extends JpaRepository<News, Long> {
     boolean existsByUrl(String url);
     
     List<News> findTop10ByCreatedAtAfterAndUsedForDiscussionFalseOrderByCreatedAtDesc(LocalDateTime after);
+    
+    List<News> findTop10ByUsedForDiscussionFalseOrderByCreatedAtAsc();
+    
+    List<News> findTop20ByCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime after);
+    
+    List<News> findByPublishedAtAfter(LocalDateTime after);
 }

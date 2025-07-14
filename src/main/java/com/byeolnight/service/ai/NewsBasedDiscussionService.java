@@ -53,10 +53,25 @@ public class NewsBasedDiscussionService {
     }
     
     private Optional<News> getUnusedRecentNews() {
+        // 최근 3일 내 미사용 뉴스 우선 (가장 신선한 뉴스)
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
         List<News> recentNews = newsRepository.findTop10ByCreatedAtAfterAndUsedForDiscussionFalseOrderByCreatedAtDesc(threeDaysAgo);
         
-        return recentNews.isEmpty() ? Optional.empty() : Optional.of(recentNews.get(0));
+        if (!recentNews.isEmpty()) {
+            log.info("최근 3일 내 미사용 뉴스 선택: {}", recentNews.get(0).getTitle());
+            return Optional.of(recentNews.get(0));
+        }
+        
+        // 최근 3일 내에 없으면 전체 미사용 뉴스 중 가장 오래된 것 선택
+        List<News> allUnusedNews = newsRepository.findTop10ByUsedForDiscussionFalseOrderByCreatedAtAsc();
+        
+        if (!allUnusedNews.isEmpty()) {
+            log.info("가장 오래된 미사용 뉴스 선택 (순환 활용): {}", allUnusedNews.get(0).getTitle());
+            return Optional.of(allUnusedNews.get(0));
+        }
+        
+        log.warn("사용 가능한 뉴스가 전혀 없음 - fallback 주제 사용");
+        return Optional.empty();
     }
     
     private String generateDiscussionWithGPT(News news) {

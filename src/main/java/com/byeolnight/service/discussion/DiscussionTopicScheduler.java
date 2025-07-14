@@ -95,79 +95,40 @@ public class DiscussionTopicScheduler {
     }
 
     public String generateUniqueTopicWithRetry() {
-        int maxRetries = 3;
+        // 뉴스 수집에서 이미 중복 검사를 완료했으므로 간단한 체크만 수행
+        String topicContent = newsBasedDiscussionService.generateNewsBasedDiscussion();
         
-        for (int i = 0; i < maxRetries; i++) {
-            String topicContent = newsBasedDiscussionService.generateNewsBasedDiscussion();
-            
-            if (isUniqueContent(topicContent)) {
-                return topicContent;
-            }
-            
-            log.warn("중복된 토론 주제 감지, 재시도 {}/{}", i + 1, maxRetries);
+        // 기본적인 중복 체크 (오늘 날짜만)
+        if (isDuplicatedToday(topicContent)) {
+            log.warn("오늘 이미 비슷한 토론 주제 존재, fallback 사용");
+            return newsBasedDiscussionService.generateNewsBasedDiscussion(); // fallback 시도
         }
         
-        log.warn("최대 재시도 횟수 초과, fallback 주제 사용");
-        return newsBasedDiscussionService.generateNewsBasedDiscussion();
+        return topicContent;
     }
-
-    private boolean isUniqueContent(String topicContent) {
+    
+    /**
+     * 오늘 날짜에만 중복 체크 (간소화된 버전)
+     */
+    private boolean isDuplicatedToday(String topicContent) {
         String[] parsed = parseTopicContent(topicContent);
         String title = parsed[0];
-        String content = parsed[1];
-
-        // 최근 60일간의 토론 주제와 비교
-        LocalDateTime since = LocalDateTime.now().minusDays(60);
-        List<Post> recentTopics = postRepository.findByDiscussionTopicTrueAndCreatedAtAfter(since);
-
-        for (Post topic : recentTopics) {
-            if (isSimilarContent(title, topic.getTitle()) || 
-                isSimilarContent(content, topic.getContent())) {
-                return false;
+        
+        // 오늘 날짜의 토론 주제만 체크
+        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        List<Post> todayTopics = postRepository.findByDiscussionTopicTrueAndCreatedAtAfter(todayStart);
+        
+        for (Post topic : todayTopics) {
+            if (title.toLowerCase().contains(topic.getTitle().toLowerCase()) || 
+                topic.getTitle().toLowerCase().contains(title.toLowerCase())) {
+                return true;
             }
         }
         
-        return true;
+        return false;
     }
 
-    private boolean isSimilarContent(String content1, String content2) {
-        // 간단한 유사도 검사 (포함 관계)
-        String normalized1 = content1.toLowerCase().replaceAll("\\s+", "");
-        String normalized2 = content2.toLowerCase().replaceAll("\\s+", "");
-        
-        return normalized1.contains(normalized2) || 
-               normalized2.contains(normalized1) ||
-               calculateSimilarity(normalized1, normalized2) > 0.7;
-    }
 
-    private double calculateSimilarity(String s1, String s2) {
-        int maxLength = Math.max(s1.length(), s2.length());
-        if (maxLength == 0) return 1.0;
-        
-        int editDistance = levenshteinDistance(s1, s2);
-        return 1.0 - (double) editDistance / maxLength;
-    }
-
-    private int levenshteinDistance(String s1, String s2) {
-        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
-        
-        for (int i = 0; i <= s1.length(); i++) {
-            for (int j = 0; j <= s2.length(); j++) {
-                if (i == 0) {
-                    dp[i][j] = j;
-                } else if (j == 0) {
-                    dp[i][j] = i;
-                } else {
-                    dp[i][j] = Math.min(
-                        Math.min(dp[i-1][j] + 1, dp[i][j-1] + 1),
-                        dp[i-1][j-1] + (s1.charAt(i-1) == s2.charAt(j-1) ? 0 : 1)
-                    );
-                }
-            }
-        }
-        
-        return dp[s1.length()][s2.length()];
-    }
 
     public String[] parseTopicContent(String content) {
         Pattern pattern = Pattern.compile("제목:\\s*(.+?)\\n내용:\\s*(.+)", Pattern.DOTALL);

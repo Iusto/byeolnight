@@ -46,6 +46,8 @@ React, TailwindCSS 등 프론트엔드는 도구로 사용되었고, 핵심은 �
 - 👮 **관리자 시스템**: 사용자 관리, 콘텐츠 모더레이션, 로그 추적
 - 📰 **뉴스 수집 시스템**: NewsData.io API를 통한 우주 관련 뉴스 자동 수집  
   > *구현 이유: 초기 웹 크롤링에서 API 방식으로 전환 - 안정성, 속도, 유지보수성 향상*
+- 🤖 **AI 뉴스 처리**: Claude/OpenAI API를 통한 뉴스 요약 및 분류
+- 📅 **스케줄링 시스템**: 매일 오전 8시 자동 뉴스 수집 및 처리
 - 🖼️ **이미지 검열 시스템**: Google Vision API 기반 이미지 콘텐츠 검증  
   > *구현 이유: 초기 수작업 검증에서 운영 효율성과 자동화를 위해 Google Vision API 도입*
 - 💌 **쪽지 시스템**: 사용자 간 개인 메시지 기능  
@@ -117,7 +119,7 @@ src/
 │   │   ├── chat/           # 채팅 서비스
 │   │   ├── cinema/         # 영화 추천 서비스
 │   │   ├── comment/        # 댓글 서비스
-│   │   ├── crawler/        # 뉴스 수집 서비스 (NewsData.io API)
+│   │   ├── crawler/        # 뉴스 수집 서비스 (NewsData.io API + AI 처리)
 │   │   ├── discussion/     # 토론 서비스
 │   │   ├── file/           # S3 파일 서비스
 │   │   ├── message/        # 쪽지 서비스
@@ -558,10 +560,14 @@ sequenceDiagram
 - ✅ 실시간 아이콘 미리보기
 
 ### 📰 뉴스 수집 시스템
-- ✅ NewsData.io API를 통한 우주 관련 뉴스 자동 수집
-- ✅ 스케줄링 기반 자동 뉴스 업데이트 (매일 오전 8시)
-- ✅ 중복 뉴스 필터링 및 해시태그 자동 생성
-- ✅ 관리자 수동 뉴스 수집 제어
+- ✅ **NewsData.io API 연동**: 우주 관련 뉴스 자동 수집 (space, astronomy, NASA 키워드)
+- ✅ **AI 기반 뉴스 처리**: Claude/OpenAI API를 통한 뉴스 요약 및 분류
+- ✅ **스케줄링 시스템**: 매일 오전 8시 자동 뉴스 수집 (@Scheduled)
+- ✅ **중복 제거**: URL 기반 중복 뉴스 필터링
+- ✅ **해시태그 자동 생성**: AI 기반 키워드 추출 및 태그 생성
+- ✅ **관리자 제어**: 수동 뉴스 수집 시작/중지 기능
+- ✅ **상태 모니터링**: 뉴스 수집 상태 실시간 조회
+- ✅ **에러 처리**: API 한도 초과 시 자동 재시도 로직
 
 ### 🖼️ 이미지 검열 시스템
 - ✅ 기본 이미지 형식 및 크기 검증
@@ -888,9 +894,11 @@ POST   /api/admin/chat/ip-block  # IP 차단 처리
 GET    /api/admin/chat/stats     # 채팅 통계 조회
 
 # 뉴스 수집 관리
-POST   /api/admin/crawler/start  # 뉴스 수집 시작
-POST   /api/admin/crawler/stop   # 뉴스 수집 중지
-GET    /api/admin/crawler/status # 뉴스 수집 상태 조회
+POST   /api/admin/crawler/start    # 뉴스 수집 시작
+POST   /api/admin/crawler/stop     # 뉴스 수집 중지
+GET    /api/admin/crawler/status   # 뉴스 수집 상태 조회
+GET    /api/admin/crawler/stats    # 뉴스 수집 통계
+POST   /api/admin/crawler/manual   # 수동 뉴스 수집 실행
 
 # 영화 관리
 GET    /api/admin/cinema/movies     # 영화 목록 관리
@@ -933,6 +941,14 @@ POST   /api/discussions/{id}/participate  # 토론 참여
 GET    /api/points/status     # 포인트 현황 조회
 GET    /api/points/history    # 포인트 히스토리 조회
 POST   /api/points/attendance # 출석체크
+```
+
+#### 📰 뉴스 (News)
+```http
+GET    /api/public/news           # 뉴스 목록 조회 (공개)
+GET    /api/public/news/{id}      # 뉴스 상세 조회
+GET    /api/public/news/latest    # 최신 뉴스 조회
+GET    /api/public/news/search    # 뉴스 검색 (키워드, 해시태그)
 ```
 
 ---
