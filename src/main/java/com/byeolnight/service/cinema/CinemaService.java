@@ -429,4 +429,21 @@ public class CinemaService {
         return userRepository.findByEmail("system@byeolnight.com")
             .orElseThrow(() -> new RuntimeException("시스템 사용자를 찾을 수 없습니다."));
     }
+
+    /**
+     * 시네마 시스템 상태 조회
+     */
+    public Object getCinemaStatus() {
+        Post latestCinemaPost = postRepository.findTopByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA)
+                .orElse(null);
+        long totalCinemaPosts = postRepository.countByCategoryAndIsDeletedFalse(Post.Category.STARLIGHT_CINEMA);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("latestPostExists", latestCinemaPost != null);
+        result.put("latestPostTitle", latestCinemaPost != null ? latestCinemaPost.getTitle() : null);
+        result.put("totalCinemaPosts", totalCinemaPosts);
+        result.put("lastUpdated", java.time.LocalDateTime.now());
+        
+        return result;
+    }
 }
