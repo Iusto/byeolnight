@@ -135,10 +135,21 @@ export default function Home() {
   const extractFirstImage = (content: string): string | null => {
     if (!content) return null;
     
-    // img 태그에서 src 추출
-    const imgMatch = content.match(/<img[^>]+src="([^"]+)"/i);
-    if (imgMatch) {
-      return imgMatch[1];
+    // img 태그에서 src 추출 (다양한 형태 지원)
+    const imgMatches = [
+      content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i),
+      content.match(/!\[.*?\]\(([^)]+)\)/), // 마크다운 이미지
+      content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i) // 직접 URL
+    ];
+    
+    for (const match of imgMatches) {
+      if (match && match[1]) {
+        const url = match[1].trim();
+        // 유효한 URL인지 간단 검증
+        if (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:')) {
+          return url;
+        }
+      }
     }
     
     return null;
@@ -401,31 +412,56 @@ export default function Home() {
               bgColor="bg-gradient-to-br from-indigo-900/30 to-purple-900/30"
               borderColor="border-indigo-500/30"
             >
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {starPhotos.filter(photo => !photo.blinded).map((photo) => {
+              {starPhotos.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4 opacity-50">🌌</div>
+                  <p className="text-indigo-300">아직 업로드된 별 사진이 없습니다</p>
+                  <p className="text-indigo-400 text-sm mt-2">첫 번째 별 사진을 공유해보세요!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {starPhotos.filter(photo => !photo.blinded).slice(0, 8).map((photo) => {
                   const imageUrl = photo.thumbnailUrl || extractFirstImage(photo.content);
                   return (
                     <Link to={`/posts/${photo.id}`} key={photo.id}>
-                      <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20">
+                      <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20 relative aspect-square">
                         {imageUrl ? (
                           <img
                             src={imageUrl}
-                            alt={photo.title}
-                            className="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-300"
+                            alt="별 사진"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            loading="lazy"
                             onError={(e) => {
-                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7snbTrr7jsp4A8L3RleHQ+Cjwvc3ZnPgo=';
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `
+                                  <div class="w-full h-full bg-gradient-to-br from-indigo-800/50 to-purple-800/50 flex items-center justify-center">
+                                    <span class="text-4xl opacity-50">🌌</span>
+                                  </div>
+                                `;
+                              }
                             }}
                           />
                         ) : (
-                          <div className="w-full h-40 bg-gradient-to-br from-indigo-800/50 to-purple-800/50 flex items-center justify-center">
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-800/50 to-purple-800/50 flex items-center justify-center">
                             <span className="text-4xl opacity-50">🌌</span>
                           </div>
                         )}
+                        {/* 호버 시 제목 표시 */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+                          <div className="p-3 w-full">
+                            <p className="text-white text-sm font-medium truncate">{photo.title}</p>
+                            <p className="text-gray-300 text-xs">👁 {photo.viewCount} • ❤️ {photo.likeCount}</p>
+                          </div>
+                        </div>
                       </div>
                     </Link>
                   );
                 })}
-              </div>
+                </div>
+              )}
             </Section>
 
 

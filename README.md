@@ -352,8 +352,8 @@ public Map<String, String> generatePresignedUrl(String originalFilename) {
 ```
 **성과**: 이미지 업로드 성공률 100%, 게시글에서 이미지 정상 표시
 
-#### 10. **고아 이미지 누적 문제 → 자동 정리 시스템 구축**
-**문제**: 업로드 후 게시글 작성 취소 시 S3에 고아 이미지 누적
+#### 10. **orphan image 누적 문제 → 자동 정리 시스템 구축**
+**문제**: 업로드 후 게시글 작성 취소 시 S3에 orphan image 누적
 ```java
 // 해결 1: AWS S3 Lifecycle 정책 자동 설정
 private void setupLifecyclePolicy() {
