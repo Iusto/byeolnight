@@ -33,4 +33,20 @@ public class GmailEmailService {
             throw new RuntimeException("이메일 전송 실패", e);
         }
     }
+
+    public void sendHtml(String to, String subject, String htmlContent) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // ← HTML 사용 설정
+            helper.setFrom(fromEmail);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("이메일 전송 실패", e);
+        }
+    }
 }
