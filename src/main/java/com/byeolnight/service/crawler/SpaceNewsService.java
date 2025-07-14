@@ -52,6 +52,12 @@ public class SpaceNewsService {
                 continue;
             }
             
+            if (!isRelevantSpaceNews(result)) {
+                duplicateCount++; // 필터링된 것도 스킵 카운트에 포함
+                log.debug("우주 관련성 부족으로 스킵: {}", result.getTitle());
+                continue;
+            }
+            
             // News 엔티티에 저장
             News news = convertToNews(result);
             newsRepository.save(news);
@@ -71,6 +77,55 @@ public class SpaceNewsService {
         return newsRepository.existsByTitle(result.getTitle()) || 
                newsRepository.existsByUrl(result.getLink()) ||
                postRepository.existsByTitle(result.getTitle());
+    }
+    
+    private boolean isRelevantSpaceNews(NewsApiResponseDto.Result result) {
+        String title = (result.getTitle() != null ? result.getTitle() : "").toLowerCase();
+        String description = (result.getDescription() != null ? result.getDescription() : "").toLowerCase();
+        String content = title + " " + description;
+        
+        // 우주 관련 핵심 키워드 (최소 하나는 포함되어야 함)
+        String[] spaceKeywords = {
+            "우주", "space", "천문", "astronomy", "항공우주", "aerospace",
+            "로켓", "rocket", "위성", "satellite", "우주선", "spacecraft",
+            "화성", "mars", "달 탐사", "moon mission", "태양계", "solar system",
+            "은하", "galaxy", "블랙홀", "black hole", "우주정거장", "space station",
+            "우주비행사", "astronaut", "우주발사", "space launch", "우주탐사", "space exploration",
+            "망원경", "telescope", "혜성", "comet", "소행성", "asteroid"
+        };
+        
+        boolean hasSpaceKeyword = false;
+        for (String keyword : spaceKeywords) {
+            if (content.contains(keyword)) {
+                hasSpaceKeyword = true;
+                break;
+            }
+        }
+        
+        // 우주 키워드가 없으면 제외
+        if (!hasSpaceKeyword) {
+            log.debug("우주 관련 키워드 없음으로 제외: {}", title);
+            return false;
+        }
+        
+        // 교육/연수 관련 기사 제외 (NASA 방문이 부차적인 경우)
+        String[] educationKeywords = {
+            "연수", "교육", "장학", "학생", "대학", "캠프", "체험", "견학",
+            "training", "education", "scholarship", "student", "university", "camp", "visit"
+        };
+        
+        for (String keyword : educationKeywords) {
+            if (content.contains(keyword)) {
+                // NASA나 우주센터 방문이 주요 내용이 아닌 경우 제외
+                if (!content.contains("nasa 발표") && !content.contains("nasa announces") && 
+                    !content.contains("우주 연구") && !content.contains("space research")) {
+                    log.debug("교육/연수 관련 기사로 제외: {}", title);
+                    return false;
+                }
+            }
+        }
+        
+        return true;
     }
     
     private Post convertToPost(NewsApiResponseDto.Result result, User writer) {

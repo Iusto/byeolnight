@@ -190,4 +190,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * 게시글 내용에 특정 문자열이 포함된 게시글 존재 여부 확인 (S3 파일 사용 여부 체크용)
      */
     boolean existsByContentContaining(String content);
+    
+    /**
+     * 카테고리별 삭제되지 않은 게시글 개수 조회
+     */
+    long countByCategoryAndIsDeletedFalse(Category category);
 }

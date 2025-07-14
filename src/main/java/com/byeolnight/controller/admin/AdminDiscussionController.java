@@ -20,6 +20,14 @@ public class AdminDiscussionController {
 
     private final DiscussionService discussionService;
 
+    @Operation(summary = "토론 시스템 상태 조회", description = "토론 시스템의 현재 상태를 조회합니다.")
+    @GetMapping("/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResponse<Object>> getDiscussionStatus() {
+        Object status = discussionService.getDiscussionStatus();
+        return ResponseEntity.ok(CommonResponse.success(status));
+    }
+
     @Operation(summary = "토론 주제 수동 생성", description = "관리자가 수동으로 토론 주제를 생성합니다.")
     @PostMapping("/generate-topic")
     @PreAuthorize("hasRole('ADMIN')")

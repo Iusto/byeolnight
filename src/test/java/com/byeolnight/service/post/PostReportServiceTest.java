@@ -56,7 +56,7 @@ class PostReportServiceTest {
         when(postBlindLogRepository.existsByPostId(post.getId())).thenReturn(false); // ✅ 메서드 수정
 
         // when
-        postReportService.reportPost(2L, 1L, "도배");
+        postReportService.reportPost(2L, 1L, "도배", "도배 신고입니다");
 
         // then
         assertThat(post.isBlinded()).isTrue();

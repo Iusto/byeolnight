@@ -66,6 +66,21 @@ public class DiscussionService {
     }
 
     /**
+     * 토론 시스템 상태 조회
+     */
+    public Object getDiscussionStatus() {
+        Post todayTopic = postRepository.findTodayDiscussionTopic().orElse(null);
+        long totalDiscussionPosts = postRepository.countByCategoryAndIsDeletedFalse(Post.Category.DISCUSSION);
+        
+        return java.util.Map.of(
+            "todayTopicExists", todayTopic != null,
+            "todayTopicTitle", todayTopic != null ? todayTopic.getTitle() : null,
+            "totalDiscussionPosts", totalDiscussionPosts,
+            "lastUpdated", java.time.LocalDateTime.now()
+        );
+    }
+
+    /**
      * 관리자 수동 토론 주제 생성
      */
     @Transactional

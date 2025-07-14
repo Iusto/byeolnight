@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
+import { parseMarkdown } from '../utils/markdownParser';
 
 interface FileDto {
   originalName: string;
@@ -22,6 +23,7 @@ export default function PostCreate() {
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
   const [isImageChecking, setIsImageChecking] = useState(false);
+  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const editorRef = useRef<any>(null);
   
   // URL 파라미터에서 originTopic 추출
@@ -143,6 +145,14 @@ export default function PostCreate() {
   };
   
   const removeImage = (index: number) => {
+    const imageToRemove = uploadedImages[index];
+    if (imageToRemove) {
+      // 게시글 내용에서도 해당 이미지 제거
+      setContent(prev => {
+        const imgRegex = new RegExp(`<img[^>]*src="${imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`, 'gi');
+        return prev.replace(imgRegex, '');
+      });
+    }
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -167,8 +177,8 @@ export default function PostCreate() {
       return;
     }
 
-    // ReactQuill에서 콘텐츠 가져오기 및 보안 검증
-    const finalContent = sanitizeHtml(content);
+    // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
+    const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
     
     try {
       const response = await axios.post('/member/posts', {
@@ -266,6 +276,13 @@ export default function PostCreate() {
                 <div className="flex gap-2">
                   <button
                     type="button"
+                    onClick={() => setIsMarkdownMode(!isMarkdownMode)}
+                    className={`flex items-center gap-2 px-4 py-2 ${isMarkdownMode ? 'bg-green-600/80 hover:bg-green-600' : 'bg-gray-600/80 hover:bg-gray-600'} text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg transform hover:scale-105`}
+                  >
+                    📝 {isMarkdownMode ? '마크다운 ON' : '마크다운 OFF'}
+                  </button>
+                  <button
+                    type="button"
                     onClick={handleImageUpload}
                     disabled={isImageChecking}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
@@ -284,32 +301,50 @@ export default function PostCreate() {
                 </div>
               </div>
               <div className="rounded-xl overflow-hidden border border-slate-600/50">
-                <ReactQuill
-                  ref={editorRef}
-                  value={content}
-                  onChange={setContent}
-                  theme="snow"
-                  style={{ height: '400px', marginBottom: '50px' }}
-                  modules={{
-                    toolbar: [
-                      [{ 'header': [1, 2, 3, false] }],
-                      ['bold', 'italic', 'underline', 'strike'],
-                      [{ 'color': [] }, { 'background': [] }],
-                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                      [{ 'align': [] }],
-                      ['link', 'image', 'video'],
-                      ['clean']
-                    ],
-                    clipboard: {
-                      matchVisual: false
-                    }
-                  }}
-                  formats={[
-                    'header', 'bold', 'italic', 'underline', 'strike',
-                    'color', 'background', 'list', 'bullet', 'align',
-                    'link', 'image', 'video', 'iframe'
-                  ]}
-                />
+                {isMarkdownMode ? (
+                  <div className="space-y-4">
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="마크다운으로 작성해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
+                      className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
+                    />
+                    <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                      <h3 className="text-sm font-medium text-gray-300 mb-3">📝 마크다운 미리보기:</h3>
+                      <div 
+                        className="prose prose-invert max-w-none min-h-[100px] p-3 bg-slate-900/30 rounded-lg border border-slate-600/30"
+                        dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <ReactQuill
+                    ref={editorRef}
+                    value={content}
+                    onChange={setContent}
+                    theme="snow"
+                    style={{ height: '400px', marginBottom: '50px' }}
+                    modules={{
+                      toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['link', 'image', 'video'],
+                        ['clean']
+                      ],
+                      clipboard: {
+                        matchVisual: false
+                      }
+                    }}
+                    formats={[
+                      'header', 'bold', 'italic', 'underline', 'strike',
+                      'color', 'background', 'list', 'bullet', 'align',
+                      'link', 'image', 'video', 'iframe'
+                    ]}
+                  />
+                )}
               </div>
               
               {/* YouTube 영상 미리보기 */}
@@ -351,10 +386,20 @@ export default function PostCreate() {
                 </div>
               )}
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
-                🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
-                🛡️ 이미지 검열: 업로드된 모든 이미지는 자동으로 검열되어 안전한 콘텐츠만 허용됩니다<br/>
-                🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
+                {isMarkdownMode ? (
+                  <>
+                    📝 마크다운 모드: # 제목, **굵게**, *기울임*, - 리스트, --- 구분선, [링크](URL)<br/>
+                    🎨 실시간 미리보기로 결과를 확인하며 작성하세요!<br/>
+                    🔄 언제든 "마크다운 OFF" 버튼으로 리치 에디터로 전환 가능합니다
+                  </>
+                ) : (
+                  <>
+                    🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
+                    🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
+                    🛡️ 이미지 검열: 업로드된 모든 이미지는 자동으로 검열되어 안전한 콘텐츠만 허용됩니다<br/>
+                    🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
+                  </>
+                )}
               </div>
             </div>
           
