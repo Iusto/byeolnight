@@ -526,7 +526,7 @@ export default function Signup() {
             <div className="bg-blue-900/20 border border-blue-600/30 p-3 rounded">
               <p className="text-blue-300 text-center mb-2 font-medium">
                 ⚠️ 중요: 약관보기 및 방침보기를 클릭하여 내용을 확인한 후<br/>
-                각 모달창에서 '동의합니다' 버튼을 클릭해야 체크박스가 활성화됩니다.
+                '동의합니다' 버튼을 클릭해야 체크박스가 활성화됩니다.
               </p>
             </div>
             <div className="flex items-center gap-2">
