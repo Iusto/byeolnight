@@ -150,6 +150,91 @@ public class S3Service {
         }
     }
 
+    /**
+     * 이미지 파일을 직접 업로드하고 Google Vision API로 검열
+     */
+    public Map<String, String> uploadImageWithValidation(org.springframework.web.multipart.MultipartFile file) {
+        try {
+            // 1. 파일 유효성 검사
+            if (!isValidImageFile(file.getOriginalFilename())) {
+                throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, png, gif, webp만 허용)");
+            }
+            
+            // 2. 파일 크기 검사 (10MB 제한)
+            if (file.getSize() > 10 * 1024 * 1024) {
+                throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
+            }
+            
+            // 3. Google Vision API로 이미지 검열
+            byte[] imageBytes = file.getBytes();
+            boolean isSafe = googleVisionService.isImageSafe(imageBytes);
+            
+            if (!isSafe) {
+                log.warn("부적절한 이미지 업로드 시도 차단: {}", file.getOriginalFilename());
+                throw new IllegalArgumentException("부적절한 콘텐츠가 포함된 이미지입니다. 업로드가 거부되었습니다.");
+            }
+            
+            // 4. S3에 업로드
+            String s3Key = generateS3Key(file.getOriginalFilename());
+            String contentType = getContentType(file.getOriginalFilename());
+            
+            S3Client s3Client = createS3Client();
+            
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(s3Key)
+                    .contentType(contentType)
+                    .build();
+            
+            s3Client.putObject(putRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(imageBytes));
+            
+            String permanentUrl = String.format("https://%s.s3.%s.amazonaws.com/%s",
+                    bucketName, region, s3Key);
+            
+            Map<String, String> result = new HashMap<>();
+            result.put("url", permanentUrl);
+            result.put("s3Key", s3Key);
+            result.put("originalName", file.getOriginalFilename());
+            result.put("contentType", contentType);
+            result.put("size", String.valueOf(file.getSize()));
+            result.put("validated", "true");
+            
+            log.info("✅ 이미지 검열 통과 및 업로드 완료: {} -> {}", file.getOriginalFilename(), s3Key);
+            return result;
+            
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("이미지 업로드 및 검열 실패: {}", file.getOriginalFilename(), e);
+            throw new RuntimeException("이미지 업로드 중 오류가 발생했습니다.", e);
+        }
+    }
+    
+    /**
+     * URL로 이미지를 다운로드하여 검증
+     */
+    public boolean validateImageByUrl(String imageUrl) {
+        try {
+            if (!imageUrl.contains(bucketName)) {
+                throw new IllegalArgumentException("유효하지 않은 이미지 URL입니다.");
+            }
+            
+            java.net.URL url = new java.net.URL(imageUrl);
+            java.io.InputStream inputStream = url.openStream();
+            byte[] imageBytes = inputStream.readAllBytes();
+            inputStream.close();
+            
+            boolean isSafe = googleVisionService.isImageSafe(imageBytes);
+            log.info("URL 이미지 검증 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
+            
+            return isSafe;
+            
+        } catch (Exception e) {
+            log.error("URL 이미지 검증 실패: {}", imageUrl, e);
+            return false;
+        }
+    }
+
     private boolean isValidImageFile(String filename) {
         if (filename == null || filename.trim().isEmpty()) return false;
         String extension = filename.toLowerCase();
