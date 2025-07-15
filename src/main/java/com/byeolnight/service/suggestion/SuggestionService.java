@@ -26,7 +26,7 @@ public class SuggestionService {
     private final UserRepository userRepository;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
 
-    // 건의사항 목록 조회
+    // 건의사항 목록 조회 (공개 건의사항만)
     public SuggestionDto.ListResponse getSuggestions(
             Suggestion.SuggestionCategory category,
             Suggestion.SuggestionStatus status,
@@ -35,13 +35,13 @@ public class SuggestionService {
         Page<Suggestion> suggestions;
 
         if (category != null && status != null) {
-            suggestions = suggestionRepository.findByCategoryAndStatus(category, status, pageable);
+            suggestions = suggestionRepository.findByCategoryAndStatusAndIsPublicTrue(category, status, pageable);
         } else if (category != null) {
-            suggestions = suggestionRepository.findByCategory(category, pageable);
+            suggestions = suggestionRepository.findByCategoryAndIsPublicTrue(category, pageable);
         } else if (status != null) {
-            suggestions = suggestionRepository.findByStatus(status, pageable);
+            suggestions = suggestionRepository.findByStatusAndIsPublicTrue(status, pageable);
         } else {
-            suggestions = suggestionRepository.findAll(pageable);
+            suggestions = suggestionRepository.findByIsPublicTrue(pageable);
         }
 
         return SuggestionDto.ListResponse.builder()
@@ -60,6 +60,31 @@ public class SuggestionService {
     public SuggestionDto.Response getSuggestion(Long id) {
         Suggestion suggestion = suggestionRepository.findById(id)
                 .orElseThrow(() -> new SuggestionNotFoundException());
+        
+        return SuggestionDto.Response.from(suggestion);
+    }
+
+    // 건의사항 상세 조회 (접근 권한 체크)
+    public SuggestionDto.Response getSuggestion(Long id, Long userId) {
+        Suggestion suggestion = suggestionRepository.findById(id)
+                .orElseThrow(() -> new SuggestionNotFoundException());
+        
+        // 비공개 건의사항인 경우 작성자 또는 관리자만 접근 가능
+        if (!suggestion.getIsPublic()) {
+            if (userId == null) {
+                throw new SuggestionAccessDeniedException();
+            }
+            
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+            
+            boolean isAuthor = suggestion.getAuthor().getId().equals(userId);
+            boolean isAdmin = user.getRole() == User.Role.ADMIN;
+            
+            if (!isAuthor && !isAdmin) {
+                throw new SuggestionAccessDeniedException();
+            }
+        }
         
         return SuggestionDto.Response.from(suggestion);
     }

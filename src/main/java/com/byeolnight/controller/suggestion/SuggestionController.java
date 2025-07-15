@@ -33,7 +33,8 @@ public class SuggestionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
-            @RequestParam(defaultValue = "desc") String direction
+            @RequestParam(defaultValue = "desc") String direction,
+            HttpServletRequest httpRequest
     ) {
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") 
             ? Sort.Direction.DESC 
@@ -41,15 +42,32 @@ public class SuggestionController {
         
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
         
-        SuggestionDto.ListResponse response = suggestionService.getSuggestions(category, status, pageable);
+        Long userId = null;
+        try {
+            userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        } catch (Exception e) {
+            // 비로그인 사용자도 공개 건의사항은 볼 수 있음
+        }
+        
+        SuggestionDto.ListResponse response = suggestionService.getSuggestions(category, status, pageable, userId);
         
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "건의사항 상세 조회", description = "특정 건의사항의 상세 정보를 조회합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> getSuggestion(@PathVariable Long id) {
-        SuggestionDto.Response response = suggestionService.getSuggestion(id);
+    public ResponseEntity<ApiResponse<SuggestionDto.Response>> getSuggestion(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest
+    ) {
+        Long userId = null;
+        try {
+            userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        } catch (Exception e) {
+            // 비로그인 사용자도 공개 건의사항은 볼 수 있음
+        }
+        
+        SuggestionDto.Response response = suggestionService.getSuggestion(id, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

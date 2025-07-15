@@ -31,6 +31,10 @@ public class SuggestionDto {
         private String adminNickname;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        
+        public void setContent(String content) {
+            this.content = content;
+        }
 
         public static Response from(Suggestion suggestion) {
             return Response.builder()

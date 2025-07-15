@@ -26,6 +26,7 @@ public class CertificateService {
     private final com.byeolnight.domain.repository.chat.ChatParticipationRepository chatParticipationRepository;
     private final com.byeolnight.domain.repository.post.PostReportRepository postReportRepository;
     private final com.byeolnight.domain.repository.SuggestionRepository suggestionRepository;
+    private final com.byeolnight.domain.repository.user.DailyAttendanceRepository dailyAttendanceRepository;
 
     // 인증서 발급 체크 및 발급
     @Transactional
@@ -99,13 +100,13 @@ public class CertificateService {
         }
     }
 
-    // 💬 별빛 채팅사 인증서 (채팅 10회 이상 + 3일 이상 참여)
+    // 💬 별빛 채팅사 인증서 (출석일수 3회 + 채팅 10회)
     private void checkChatMaster(User user) {
         if (!hasUserCertificate(user, Certificate.CertificateType.CHAT_MASTER)) {
             Long totalMessages = chatParticipationRepository.getTotalMessageCountByUser(user);
-            long participationDays = chatParticipationRepository.countParticipationDaysByUser(user);
+            long attendanceCount = dailyAttendanceRepository.countByUser(user);
             
-            if (totalMessages != null && totalMessages >= 10 && participationDays >= 3) {
+            if (totalMessages != null && totalMessages >= 10 && attendanceCount >= 3) {
                 issueCertificate(user, Certificate.CertificateType.CHAT_MASTER);
             }
         }
