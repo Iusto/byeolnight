@@ -565,6 +565,26 @@ export default function Signup() {
 
           {error && <p className="text-red-400 text-xs text-center">{error}</p>}
           
+          {/* 회원가입 버튼 비활성화 이유 안내 */}
+          {(loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed) && (
+            <div className="bg-yellow-900/20 border border-yellow-600/30 p-3 rounded text-xs">
+              <p className="text-yellow-300 font-medium mb-2">⚠️ 회원가입을 완료하려면 아래 항목들을 모두 완료해주세요:</p>
+              <ul className="space-y-1 text-yellow-200">
+                {!form.email && <li>• 이메일을 입력해주세요</li>}
+                {form.email && !emailVerified && <li>• 이메일 인증을 완료해주세요</li>}
+                {!form.nickname && <li>• 닉네임을 입력해주세요</li>}
+                {form.nickname && !nicknameChecked && <li>• 닉네임 중복 확인을 해주세요</li>}
+                {!form.phone && <li>• 휴대폰 번호를 입력해주세요</li>}
+                {form.phone && !phoneVerified && <li>• 휴대폰 인증을 완료해주세요</li>}
+                {!form.password && <li>• 비밀번호를 입력해주세요</li>}
+                {!form.confirmPassword && <li>• 비밀번호 확인을 입력해주세요</li>}
+                {form.password && form.confirmPassword && form.password !== form.confirmPassword && <li>• 비밀번호가 일치하지 않습니다</li>}
+                {!termsAgreed && <li>• 이용약관에 동의해주세요</li>}
+                {!privacyAgreed && <li>• 개인정보 처리방침에 동의해주세요</li>}
+              </ul>
+            </div>
+          )}
+          
           <button 
             type="submit" 
             disabled={loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed}
