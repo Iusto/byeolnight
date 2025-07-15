@@ -57,8 +57,8 @@ export default function Signup() {
         [name]: formatted,
       }));
     } else if (name === 'nickname') {
-      // 닉네임은 한글, 영어만 허용 (8자 제한)
-      const nicknameRegex = /^[가-힣a-zA-Z]{0,8}$/;
+      // 닉네임은 한글(자음/모음 포함), 영어만 허용 (8자 제한)
+      const nicknameRegex = /^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z]{0,8}$/;
       if (nicknameRegex.test(value)) {
         setForm((prev) => ({
           ...prev,
@@ -107,7 +107,7 @@ export default function Signup() {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  // 닉네임 형식 검증 (한글, 영어만 허용, 2-8자)
+  // 닉네임 형식 검증 (완성된 한글, 영어만 허용, 2-8자)
   const validateNickname = (nickname: string) => {
     const nicknameRegex = /^[가-힣a-zA-Z]{2,8}$/;
     return nicknameRegex.test(nickname);
