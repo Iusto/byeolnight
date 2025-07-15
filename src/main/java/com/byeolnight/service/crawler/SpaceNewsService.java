@@ -394,19 +394,14 @@ public class SpaceNewsService {
             content.append("이 뉴스는 우주와 천문학 관련 최신 소식을 다룹니다. 자세한 내용은 원문 링크를 통해 확인하세요.\n\n");
         }
         
-        // 상세 내용 (무료 플랜에서는 제한됨)
-        if (result.getContent() != null && !result.getContent().trim().isEmpty() && !result.getContent().contains("ONLY AVAILABLE IN PAID PLANS")) {
-            content.append("## 📄 상세 내용\n\n");
-            String contentText = result.getContent();
-            if (isEnglishTitle(result.getTitle())) {
-                String translatedContent = translateWithOpenAI(contentText);
-                contentText = translatedContent != null ? translatedContent : contentText;
-            }
-            content.append(contentText).append("\n\n");
-        } else {
-            content.append("## 📄 상세 내용\n\n");
-            content.append("상세한 내용은 아래 원문 링크를 통해 확인하실 수 있습니다.\n\n");
-        }
+        // AI 기반 상세 분석 (원문 크롤링 대신)
+        content.append("## 🤖 AI 분석\n\n");
+        String aiAnalysis = generateAIAnalysis(result);
+        content.append(aiAnalysis).append("\n\n");
+        
+        content.append("## 📄 상세 내용\n\n");
+        content.append("⚠️ **원문 크롤링 제한**: 저작권 및 기술적 제약으로 원문 내용을 직접 가져올 수 없습니다.\n\n");
+        content.append("💡 **대신 제공**: AI 기반 분석과 요약을 통해 핵심 내용을 파악하실 수 있습니다.\n\n");
         
         // 원문 링크
         content.append("## 🔗 원문 보기\n\n");
@@ -490,6 +485,60 @@ public class SpaceNewsService {
     
     private String getDefaultSpaceImage() {
         return "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=800&h=600&fit=crop";
+    }
+    
+    /**
+     * AI 기반 뉴스 상세 분석 생성
+     */
+    private String generateAIAnalysis(NewsApiResponseDto.Result result) {
+        String apiKey = System.getProperty("openai.api.key", System.getenv("OPENAI_API_KEY"));
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            return "현재 이용 가능한 정보를 바탕으로 한 분석입니다. 더 자세한 내용은 원문 링크를 통해 확인하세요.";
+        }
+        
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+            
+            String content = result.getTitle() + "\n" + (result.getDescription() != null ? result.getDescription() : "");
+            String prompt = String.format("""
+                다음 우주 뉴스를 분석하여 주요 포인트를 정리해주세요:
+                
+                "%s"
+                
+                요구사항:
+                - 주요 내용 3-4개 포인트로 정리
+                - 과학적 의미와 중요성 설명
+                - 일반인이 이해하기 쉬운 언어로 설명
+                - 200자 내외로 작성
+                """, content);
+            
+            Map<String, Object> requestBody = Map.of(
+                "model", "gpt-4o-mini",
+                "messages", List.of(Map.of("role", "user", "content", prompt)),
+                "max_tokens", 250,
+                "temperature", 0.4
+            );
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                "https://api.openai.com/v1/chat/completions", HttpMethod.POST, entity, Map.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (!choices.isEmpty()) {
+                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                    return ((String) message.get("content")).trim();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("AI 분석 생성 실패: {}", result.getTitle(), e);
+        }
+        
+        return "현재 이용 가능한 정보를 바탕으로 한 분석입니다. 더 자세한 내용은 원문 링크를 통해 확인하세요.";
     }
     
     /**
