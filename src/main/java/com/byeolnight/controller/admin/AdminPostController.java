@@ -1,4 +1,4 @@
-package com.byeolnight.controller.post;
+package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.service.post.PostService;
