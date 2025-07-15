@@ -83,10 +83,15 @@ export default function Navbar() {
                 {/* 포인트 (데스크톱만) */}
                 <Link 
                   to="/points" 
-                  className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-3 py-2 rounded-full border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-300 transform hover:scale-105"
+                  className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-3 py-2 rounded-full border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-300 transform hover:scale-105 group cursor-pointer"
+                  title="출석체크 & 포인트 내역 보기"
                 >
-                  <span className="text-yellow-400 text-sm animate-pulse">✨</span>
-                  <span className="text-yellow-200 font-bold text-sm">{user.points?.toLocaleString() || 0}</span>
+                  <span className="text-yellow-400 text-sm animate-pulse group-hover:animate-bounce">✨</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-yellow-200 font-bold text-xs leading-tight">{user.points?.toLocaleString() || 0}</span>
+                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors">출석체크</span>
+                  </div>
+                  <span className="text-yellow-300/50 text-xs group-hover:text-yellow-200 transition-colors">📊</span>
                 </Link>
 
                 {/* 사용자 정보 */}
@@ -223,10 +228,14 @@ export default function Navbar() {
               <Link 
                 to="/points"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-3 mt-3 p-4 rounded-xl bg-gradient-to-r from-yellow-900/40 to-orange-900/40 border border-yellow-500/30"
+                className="flex items-center justify-center gap-3 mt-3 p-4 rounded-xl bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 group"
               >
-                <span className="text-yellow-400 text-xl animate-pulse">✨</span>
-                <span className="text-yellow-200 font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
+                <span className="text-yellow-400 text-xl animate-pulse group-hover:animate-bounce">✨</span>
+                <div className="flex flex-col items-center">
+                  <span className="text-yellow-200 font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
+                  <span className="text-yellow-300/70 text-sm group-hover:text-yellow-200 transition-colors">출석체크 & 내역보기</span>
+                </div>
+                <span className="text-yellow-300/50 text-lg group-hover:text-yellow-200 transition-colors">📊</span>
               </Link>
             )}
           </div>
