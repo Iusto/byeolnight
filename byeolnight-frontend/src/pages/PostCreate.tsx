@@ -29,35 +29,25 @@ export default function PostCreate() {
   // URL 파라미터에서 originTopic 추출
   const originTopicId = searchParams.get('originTopic');
   
-  // 클립보드 이미지 업로드 함수
+  // 클립보드 이미지 업로드 함수 (검열 포함)
   const uploadClipboardImage = async (file: File) => {
     setIsImageChecking(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post('/files/presigned-url', formData, {
+      const response = await axios.post('/files/upload-image', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      const imageData = response.data.data || response.data;
-      
-      // S3에 실제 파일 업로드
-      if (imageData.uploadUrl) {
-        await fetch(imageData.uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': imageData.contentType || file.type
-          }
-        });
-      }
-      
+      const imageData = response.data.data;
       setUploadedImages(prev => [...prev, imageData]);
       
-      return imageData.url; // 영구 URL 반환
-    } catch (error) {
+      return imageData.url;
+    } catch (error: any) {
       console.error('클립보드 이미지 업로드 실패:', error);
+      const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
+      alert(errorMsg);
       throw error;
     } finally {
       setIsImageChecking(false);
@@ -113,30 +103,19 @@ export default function PostCreate() {
           const formData = new FormData();
           formData.append('file', file);
           
-          const response = await axios.post('/files/presigned-url', formData, {
+          const response = await axios.post('/files/upload-image', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
           
-          const imageData = response.data.data || response.data;
-          
-          // S3에 실제 파일 업로드
-          if (imageData.uploadUrl) {
-            await fetch(imageData.uploadUrl, {
-              method: 'PUT',
-              body: file,
-              headers: {
-                'Content-Type': imageData.contentType || file.type
-              }
-            });
-          }
-          
+          const imageData = response.data.data;
           setUploadedImages(prev => [...prev, imageData]);
           
-          // ReactQuill에 이미지 삽입 (영구 URL 사용)
+          // ReactQuill에 이미지 삽입
           setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
-        } catch (error) {
+        } catch (error: any) {
           console.error('이미지 업로드 실패:', error);
-          alert('이미지 업로드에 실패했습니다.');
+          const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
+          alert(errorMsg);
         } finally {
           setIsImageChecking(false);
         }
