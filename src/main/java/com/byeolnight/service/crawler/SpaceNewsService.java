@@ -177,17 +177,29 @@ public class SpaceNewsService {
     private boolean isSpaceRelated(String title, String description) {
         String content = (title + " " + description).toLowerCase();
         
+        // 비우주 키워드 먼저 체크 (정치, 경제 등 제외)
+        String[] excludeKeywords = {"trump", "obama", "democrat", "republican", "politics", "election", 
+                                   "트럼프", "오바마", "정치", "선거", "경제", "주식", "코인"};
+        for (String exclude : excludeKeywords) {
+            if (content.contains(exclude)) {
+                log.info("비우주 키워드 '{}' 발견으로 제외", exclude);
+                return false;
+            }
+        }
+        
         // 캐싱된 키워드 배열 사용 (성능 최적화)
         String[] allKeywords = newsDataService.getAllSpaceKeywordsCached();
         
         int keywordCount = 0;
+        List<String> foundKeywords = new ArrayList<>();
         for (String keyword : allKeywords) {
             if (content.contains(keyword)) {
                 keywordCount++;
+                foundKeywords.add(keyword);
             }
         }
         
-        log.debug("우주 관련 키워드 {}개 발견", keywordCount);
+        log.info("우주 관련 키워드 {}개 발견: {}", keywordCount, foundKeywords.stream().limit(5).toList());
         return keywordCount >= newsConfig.getQuality().getMinSpaceKeywords();
     }
     
