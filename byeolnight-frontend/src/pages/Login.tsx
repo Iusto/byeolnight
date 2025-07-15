@@ -83,7 +83,7 @@ export default function Login() {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate('/')}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white hover:bg-purple-600/50 px-2 py-1 rounded transition-colors"
             title="홈으로 돌아가기"
           >
             ← 홈
@@ -163,11 +163,11 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !email || !password}
             className={`w-full py-2 rounded transition-colors ${
-              loading
-                ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-purple-700 hover:bg-purple-800'
+              loading || !email || !password
+                ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                : 'bg-purple-700 hover:bg-purple-800 text-white'
             }`}
           >
             {loading ? '🌠 로그인 중...' : '🌌 로그인'}
