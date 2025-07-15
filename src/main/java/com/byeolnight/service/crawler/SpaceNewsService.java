@@ -368,10 +368,15 @@ public class SpaceNewsService {
             content.append("![뉴스 이미지](").append(result.getImageUrl()).append(")\n\n");
         }
         
-        // 뉴스 요약
+        // 뉴스 요약 (영어인 경우 번역)
         if (result.getDescription() != null && !result.getDescription().trim().isEmpty()) {
             content.append("## 📰 뉴스 요약\n\n");
-            content.append(result.getDescription()).append("\n\n");
+            String description = result.getDescription();
+            if (isEnglishTitle(result.getTitle())) {
+                String translatedDesc = translateWithOpenAI(description);
+                description = translatedDesc != null ? translatedDesc : description;
+            }
+            content.append(description).append("\n\n");
         } else {
             content.append("## 📰 뉴스 요약\n\n");
             content.append("이 뉴스는 우주와 천문학 관련 최신 소식을 다룹니다. 자세한 내용은 원문 링크를 통해 확인하세요.\n\n");
@@ -380,7 +385,12 @@ public class SpaceNewsService {
         // 상세 내용 (무료 플랜에서는 제한됨)
         if (result.getContent() != null && !result.getContent().trim().isEmpty() && !result.getContent().contains("ONLY AVAILABLE IN PAID PLANS")) {
             content.append("## 📄 상세 내용\n\n");
-            content.append(result.getContent()).append("\n\n");
+            String contentText = result.getContent();
+            if (isEnglishTitle(result.getTitle())) {
+                String translatedContent = translateWithOpenAI(contentText);
+                contentText = translatedContent != null ? translatedContent : contentText;
+            }
+            content.append(contentText).append("\n\n");
         } else {
             content.append("## 📄 상세 내용\n\n");
             content.append("상세한 내용은 아래 원문 링크를 통해 확인하실 수 있습니다.\n\n");
