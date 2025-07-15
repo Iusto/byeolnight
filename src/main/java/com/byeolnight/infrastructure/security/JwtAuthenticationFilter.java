@@ -68,7 +68,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.debug("🪪 추출된 토큰: {}", token);
 
         if (token == null) {
-            log.warn("❌ Authorization 헤더 없음 또는 형식 오류");
+            // 헬스체크 요청은 로그 레벨 낮춤
+            if (uri.contains("/health") || uri.contains("/actuator") || uri.contains("/favicon.ico")) {
+                log.debug("헬스체크 요청: {}", uri);
+            } else {
+                log.warn("❌ Authorization 헤더 없음 또는 형식 오류: {}", uri);
+            }
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }

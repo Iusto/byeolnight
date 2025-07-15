@@ -92,7 +92,7 @@ public class NewsDataService {
             }
             
             combinedNews.setTotalResults(combinedNews.getResults().size());
-            log.info("총 {}+{} = {}개 뉴스 수집 완룼 (중복 제외 전, 하루 400개 한도 내, 10개 x {}번)", 
+            log.info("총 {}+{} = {}개 뉴스 수집 완료 (중복 제외 전, 하루 400개 한도 내, 10개 x {}번)",
                     koreanNews != null ? koreanNews.getResults().size() : 0,
                     englishNews != null ? englishNews.getResults().size() : 0,
                     combinedNews.getResults().size(), callCount);
@@ -115,6 +115,7 @@ public class NewsDataService {
                     .queryParam("apikey", getCurrentApiKey())
                     .queryParam("language", language)
                     .queryParam("q", query)
+                    .queryParam("category", "science") // 과학 카테고리 추가
                     .queryParam("size", String.valueOf(size))
                     .build()
                     .toUriString();

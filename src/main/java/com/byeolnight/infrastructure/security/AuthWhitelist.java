@@ -11,6 +11,9 @@ public class AuthWhitelist {
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/ws/**",
-            "/api/suggestions"
+            "/api/suggestions",
+            "/actuator/**",         // 헬스체크
+            "/health",              // 헬스체크
+            "/favicon.ico"          // 파비콘
     };
 }
