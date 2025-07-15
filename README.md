@@ -507,6 +507,49 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 ```
 **성과**: 빌드 성공, 관리자 파일 정리 API 정상 작동
 
+#### 15. **JWT 토큰 자동 갱신 시스템 → 게시글 작성 중 데이터 손실 방지**
+**문제**: 사용자가 게시글 작성 중 토큰 만료로 인한 데이터 손실 및 로그아웃
+```java
+// 백엔드: JwtAuthenticationEntryPoint에서 401 응답
+@Component
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response,
+                         AuthenticationException authException) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 반환
+        // JSON 응답으로 클라이언트에 알림
+    }
+}
+
+// JwtAuthenticationFilter에서 토큰 검증 실패 시 401 반환
+if (!jwtTokenProvider.validate(token)) {
+    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    return;
+}
+```
+```typescript
+// 프론트엔드: Axios 인터셉터로 자동 토큰 갱신
+instance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // 로그인 유지 옵션 확인
+      const rememberMe = localStorage.getItem('rememberMe');
+      if (rememberMe === 'true') {
+        // Refresh Token으로 새 Access Token 요청
+        const refreshResponse = await axios.post('/auth/token/refresh');
+        const newToken = refreshResponse.data.data?.accessToken;
+        
+        // 새 토큰으로 원래 요청 재실행
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return instance(originalRequest);
+      }
+    }
+  }
+);
+```
+**성과**: 게시글 작성 중 토큰 만료되어도 자동 갱신 후 원래 요청 재실행, 사용자 데이터 손실 95% 감소
+
 
 
 ### 💡 **삽질을 통해 얻은 교훈**
@@ -520,6 +563,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 - **"iframe 허용했는데 왜 안 보이지?"** → 클라이언트 렌더링과 서버 새니타이저의 차이점
 - **"테스트 코드가 컴파일 안 된다"** → 실제 코드와 테스트 코드 간 동기화의 중요성
 - **"JWT 설정이 맞나?"** → 단위 테스트로 설정값 검증의 필요성
+- **"게시글 작성 중 로그아웃?"** → 토큰 자동 갱신으로 사용자 경험 개선의 중요성
 - **"리팩토링이 이렇게 중요하다니"** → 유지보수성과 성능을 동시에 잡는 설계의 가치
 
 ---

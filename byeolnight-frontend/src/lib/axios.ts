@@ -95,12 +95,14 @@ instance.interceptors.response.use(
           localStorage.setItem('accessToken', newToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           processQueue(null, newToken);
+          console.log('토큰 자동 갱신 성공');
           return instance(originalRequest);
         } else {
           throw new Error('새 토큰을 받지 못했습니다.');
         }
       } catch (refreshError) {
         // Refresh Token도 만료된 경우 로그아웃 처리
+        console.warn('토큰 갱신 실패:', refreshError);
         processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('rememberMe');
