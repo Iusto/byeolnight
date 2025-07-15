@@ -353,7 +353,7 @@ export default function Signup() {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate('/')}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white hover:bg-purple-600/50 px-2 py-1 rounded transition-colors"
             title="홈으로 돌아가기"
           >
             ← 홈
@@ -378,7 +378,11 @@ export default function Signup() {
                 type="button" 
                 onClick={sendEmailCode} 
                 disabled={loading.emailSend || !form.email || emailVerified}
-                className="w-20 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors text-xs"
+                className={`w-20 py-1 rounded transition-colors text-xs ${
+                  loading.emailSend || !form.email || emailVerified
+                    ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                    : 'bg-gray-600 hover:bg-gray-700 text-white'
+                }`}
               >
                 {emailVerified ? '완료' : loading.emailSend ? '전송중' : '전송'}
               </button>
@@ -401,7 +405,11 @@ export default function Signup() {
                 type="button" 
                 onClick={verifyEmailCode} 
                 disabled={loading.emailVerify || !form.emailCode}
-                className="w-16 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 py-1 rounded transition-colors text-xs"
+                className={`w-16 py-1 rounded transition-colors text-xs ${
+                  loading.emailVerify || !form.emailCode
+                    ? 'bg-blue-800 cursor-not-allowed text-gray-500'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
                 {loading.emailVerify ? '확인중' : '확인'}
               </button>
@@ -425,7 +433,11 @@ export default function Signup() {
               type="button" 
               onClick={checkNickname} 
               disabled={loading.nicknameCheck || !form.nickname}
-              className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors"
+              className={`w-full py-1 rounded transition-colors ${
+                loading.nicknameCheck || !form.nickname
+                  ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
             >
               {loading.nicknameCheck ? '확인중...' : '닉네임 중복 확인'}
             </button>
@@ -450,7 +462,11 @@ export default function Signup() {
                 type="button" 
                 onClick={sendPhoneCode} 
                 disabled={loading.phoneSend || !form.phone || phoneVerified}
-                className="w-20 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-1 rounded transition-colors text-xs"
+                className={`w-20 py-1 rounded transition-colors text-xs ${
+                  loading.phoneSend || !form.phone || phoneVerified
+                    ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                    : 'bg-gray-600 hover:bg-gray-700 text-white'
+                }`}
               >
                 {phoneVerified ? '완료' : loading.phoneSend ? '전송중' : '전송'}
               </button>
@@ -473,7 +489,11 @@ export default function Signup() {
                 type="button" 
                 onClick={verifyPhoneCode} 
                 disabled={loading.phoneVerify || !form.phoneCode}
-                className="w-16 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 py-1 rounded transition-colors text-xs"
+                className={`w-16 py-1 rounded transition-colors text-xs ${
+                  loading.phoneVerify || !form.phoneCode
+                    ? 'bg-blue-800 cursor-not-allowed text-gray-500'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
                 {loading.phoneVerify ? '확인중' : '확인'}
               </button>
@@ -503,6 +523,12 @@ export default function Signup() {
 
           {/* 약관 동의 */}
           <div className="space-y-2 text-xs">
+            <div className="bg-blue-900/20 border border-blue-600/30 p-3 rounded">
+              <p className="text-blue-300 text-center mb-2 font-medium">
+                ⚠️ 중요: 약관보기 및 방침보기를 클릭하여 내용을 확인한 후<br/>
+                각 모달창에서 '동의합니다' 버튼을 클릭해야 체크박스가 활성화됩니다.
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <input 
                 type="checkbox" 
@@ -541,8 +567,12 @@ export default function Signup() {
           
           <button 
             type="submit" 
-            disabled={loading.signup}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 transition-colors py-2 rounded"
+            disabled={loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed}
+            className={`w-full py-2 rounded transition-colors ${
+              loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed
+                ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
+            }`}
           >
             {loading.signup ? '가입 중...' : '회원가입'}
           </button>
