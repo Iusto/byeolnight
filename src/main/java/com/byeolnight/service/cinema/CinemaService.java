@@ -222,24 +222,49 @@ public class CinemaService {
         String channelTitle = (String) snippet.get("channelTitle");
         String description = (String) snippet.get("description");
         
+        String titleLower = title.toLowerCase();
+        String descLower = description != null ? description.toLowerCase() : "";
+        String channelLower = channelTitle.toLowerCase();
+        
         // 기본 품질 체크
-        if (title.toLowerCase().contains("shorts") || 
-            title.toLowerCase().contains("#shorts") ||
+        if (titleLower.contains("shorts") || titleLower.contains("#shorts") ||
             title.length() < cinemaConfig.getQuality().getMinTitleLength() ||
             (description != null && description.length() < cinemaConfig.getQuality().getMinDescriptionLength())) {
             return false;
         }
         
+        // 음악/가사 관련 제외
+        if (titleLower.contains("가사") || titleLower.contains("lyrics") || 
+            titleLower.contains("music video") || titleLower.contains("뮤직비디오") ||
+            titleLower.contains("노래") || titleLower.contains("song")) {
+            return false;
+        }
+        
+        // 캐시된 우주 키워드 사용 (뉴스와 동일한 200개 키워드)
+        String[] cachedKeywords = newsDataService.getAllSpaceKeywordsCached();
+        
+        boolean hasSpaceKeyword = false;
+        for (String keyword : cachedKeywords) {
+            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
+                hasSpaceKeyword = true;
+                break;
+            }
+        }
+        
+        if (!hasSpaceKeyword) {
+            return false;
+        }
+        
         // 고품질 채널 체크
         for (String channel : cinemaConfig.getYoutube().getQualityChannels()) {
-            if (channelTitle.toLowerCase().contains(channel.toLowerCase())) {
+            if (channelLower.contains(channel.toLowerCase())) {
                 return true;
             }
         }
         
         // 전문 용어 체크
         for (String term : cinemaConfig.getYoutube().getProfessionalTerms()) {
-            if (title.toLowerCase().contains(term)) {
+            if (titleLower.contains(term) || descLower.contains(term)) {
                 return true;
             }
         }
@@ -499,9 +524,18 @@ public class CinemaService {
     private String formatVideoContent(String title, String description, String videoId, String channelTitle, LocalDateTime publishedAt) {
         StringBuilder content = new StringBuilder();
         
+        // 🎬 제목과 요약
+        content.append("🎬 **오늘의 우주 영상**: ").append(title).append("\n\n");
+        
+        if (description != null && !description.trim().isEmpty()) {
+            String summary = description.length() > 150 ? description.substring(0, 147) + "..." : description;
+            content.append("📌 **요약** ").append(summary).append("\n\n");
+        }
+        
         // YouTube 비디오 임베드
+        content.append("▶️ **영상 보기**\n\n");
         content.append(String.format("""
-            <div class="video-container" style="position: relative; padding-bottom: 56.25%%; height: 0; overflow: hidden; max-width: 100%%; background: #000;">
+            <div class="video-container" style="position: relative; padding-bottom: 56.25%%; height: 0; overflow: hidden; max-width: 100%%; background: #000; margin: 20px 0;">
                 <iframe src="https://www.youtube.com/embed/%s" 
                         frameborder="0" 
                         allowfullscreen 
@@ -511,17 +545,26 @@ public class CinemaService {
             
             """, videoId));
         
-        // 비디오 설명
+        content.append("⚠️ **영상이 보이지 않나요?** [YouTube에서 보기](https://www.youtube.com/watch?v=").append(videoId).append(")\n\n");
+        
+        // 채널 및 발행일 정보
+        content.append("📺 **채널명**: ").append(channelTitle);
+        if (publishedAt != null) {
+            content.append(" 📅 **발행일**: ").append(publishedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")));
+        }
+        content.append("\n\n");
+        
+        // 상세 설명
         if (description != null && !description.trim().isEmpty()) {
-            content.append("🎥 **비디오 소개**\n\n");
-            content.append(description).append("\n\n");
+            content.append("📝 **설명** ").append(description).append("\n\n");
         }
         
-        // 채널 정보
-        content.append("📺 **채널**: ").append(channelTitle).append("\n");
-        if (publishedAt != null) {
-            content.append("📅 **발행일**: ").append(publishedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        }
+        // YouTube 링크
+        content.append("🔗 **YouTube 바로가기**\n");
+        content.append("[🎬 원본 영상 보기](https://www.youtube.com/watch?v=").append(videoId).append(")\n\n");
+        
+        content.append("💬 **자유롭게 의견을 나눠주세요!**\n\n");
+        content.append("---\n\n");
         
         return content.toString();
     }
