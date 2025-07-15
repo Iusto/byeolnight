@@ -38,7 +38,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
 
 /**
  * 사용자 관련 비즈니스 로직 처리 서비스
@@ -693,5 +692,22 @@ public class UserService {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    /**
+     * 관리자 - 닉네임 변경권 수여
+     */
+    @Transactional
+    public void grantNicknameChangeTicket(Long userId, Long adminId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new NotFoundException("관리자를 찾을 수 없습니다."));
+        
+        // 닉네임 변경 제한 해제
+        user.resetNicknameChangeRestriction();
+        
+        log.info("관리자 {}가 사용자 {}에게 닉네임 변경권을 수여했습니다.", admin.getNickname(), user.getNickname());
     }
 }

@@ -5,6 +5,7 @@ import IpBlockModal from '../components/IpBlockModal';
 import AdminReasonModal from '../components/AdminReasonModal';
 import PointAwardModal from '../components/PointAwardModal';
 import ReportDetailModal from '../components/ReportDetailModal';
+import { grantNicknameChangeTicket } from '../lib/api/admin';
 
 interface UserSummary {
   id: number;
@@ -508,6 +509,18 @@ export default function AdminUserPage() {
     }
   };
 
+  const handleGrantNicknameChangeTicket = async (userId: number) => {
+    if (!confirm('이 사용자에게 닉네임 변경권을 수여하시겠습니까?\n\n닉네임 변경 제한이 해제되어 즉시 닉네임을 변경할 수 있습니다.')) return;
+    
+    try {
+      await grantNicknameChangeTicket(userId);
+      alert('닉네임 변경권이 성공적으로 수여되었습니다.');
+    } catch (err) {
+      console.error('닉네임 변경권 수여 실패:', err);
+      alert('닉네임 변경권 수여에 실패했습니다.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white px-6 py-12">
       <div className="max-w-6xl mx-auto">
@@ -700,7 +713,7 @@ export default function AdminUserPage() {
                   <th className="p-3">ID</th>
                   <th className="p-3">이메일</th>
                   <th className="p-3">닉네임</th>
-                  <th className="p-3">전화번호</th>
+                  <th className="p-3">닉네임 변경권</th>
                   <th className="p-3">권한</th>
                   <th className="p-3">상태</th>
                   <th className="p-3">포인트</th>
@@ -727,7 +740,16 @@ export default function AdminUserPage() {
                     <td className="p-3 text-center">{user.id}</td>
                     <td className="p-3">{user.email}</td>
                     <td className="p-3">{user.nickname}</td>
-                    <td className="p-3">{user.phone}</td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => handleGrantNicknameChangeTicket(user.id)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs font-medium transition"
+                        disabled={user.status === 'WITHDRAWN'}
+                        title="닉네임 변경 제한을 해제합니다"
+                      >
+                        티켓 수여
+                      </button>
+                    </td>
                     <td className="p-3 text-center">{user.role}</td>
                     <td className="p-3 text-center">{user.status}</td>
                     <td className="p-3 text-center">

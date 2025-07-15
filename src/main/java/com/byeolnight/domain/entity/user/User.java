@@ -279,6 +279,12 @@ public class User implements UserDetails {
         this.withdrawalReason = "5년 경과로 인한 자동 삭제";
     }
 
+    /** 관리자에 의한 닉네임 변경 제한 해제 */
+    public void resetNicknameChangeRestriction() {
+        this.nicknameChanged = false;
+        this.nicknameUpdatedAt = LocalDateTime.now().minusMonths(7); // 6개월 제한을 우회하기 위해 7개월 전으로 설정
+    }
+
 // ======================== 🔐 Spring Security 구현부 ========================
 
     @Override

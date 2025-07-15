@@ -52,14 +52,8 @@ public class SuggestionController {
             // 비로그인 사용자도 공개 건의사항은 볼 수 있음
         }
         
-        SuggestionDto.ListResponse response;
-        if (isAdmin) {
-            // 관리자는 모든 건의사항 조회 가능
-            response = suggestionService.getAllSuggestionsForAdmin(category, status, pageable);
-        } else {
-            // 일반 사용자는 공개 건의사항만 조회
-            response = suggestionService.getSuggestions(category, status, pageable);
-        }
+        // 모든 사용자가 모든 건의사항을 볼 수 있도록 수정 (비공개는 제목만 마스킹)
+        SuggestionDto.ListResponse response = suggestionService.getAllSuggestionsForAdmin(category, status, pageable);
         
         return ResponseEntity.ok(ApiResponse.success(response));
     }
