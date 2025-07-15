@@ -49,7 +49,7 @@ public class SuggestionController {
             // 비로그인 사용자도 공개 건의사항은 볼 수 있음
         }
         
-        SuggestionDto.ListResponse response = suggestionService.getSuggestions(category, status, pageable, userId);
+        SuggestionDto.ListResponse response = suggestionService.getSuggestions(category, status, pageable);
         
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -67,7 +67,9 @@ public class SuggestionController {
             // 비로그인 사용자도 공개 건의사항은 볼 수 있음
         }
         
-        SuggestionDto.Response response = suggestionService.getSuggestion(id, userId);
+        SuggestionDto.Response response = userId != null ? 
+            suggestionService.getSuggestion(id, userId) : 
+            suggestionService.getSuggestion(id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -119,27 +121,5 @@ public class SuggestionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PostMapping("/{id}/admin-response")
-    @Operation(summary = "관리자 답변 추가", description = "건의사항에 관리자 답변을 추가합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> addAdminResponse(
-            @PathVariable Long id,
-            @RequestBody SuggestionDto.AdminResponseRequest request,
-            HttpServletRequest httpRequest
-    ) {
-        Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        SuggestionDto.Response response = suggestionService.addAdminResponse(id, adminId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
 
-    @PatchMapping("/{id}/status")
-    @Operation(summary = "건의사항 상태 변경", description = "관리자가 건의사항 상태를 변경합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> updateStatus(
-            @PathVariable Long id,
-            @RequestBody SuggestionDto.StatusUpdateRequest request,
-            HttpServletRequest httpRequest
-    ) {
-        Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        SuggestionDto.Response response = suggestionService.updateStatus(id, adminId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
 }
