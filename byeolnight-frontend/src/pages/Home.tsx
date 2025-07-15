@@ -18,15 +18,6 @@ interface Post {
   blinded: boolean;
   thumbnailUrl?: string;
   dDay?: string;
-  comments?: Comment[];
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  writer: string;
-  createdAt: string;
-  blinded: boolean;
 }
 
 export default function Home() {
@@ -39,7 +30,7 @@ export default function Home() {
   const [discussionPosts, setDiscussionPosts] = useState<Post[]>([]);
   const [freePosts, setFreePosts] = useState<Post[]>([]);
   const [cinemaPosts, setCinemaPosts] = useState<Post[]>([]);
-  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
+
   const { user } = useAuth();
 
   useEffect(() => {
@@ -204,49 +195,7 @@ export default function Home() {
     </div>
   );
 
-  const loadComments = async (postId: number) => {
-    try {
-      const response = await axios.get(`/posts/${postId}/comments`);
-      if (response.data.success) {
-        return response.data.data.filter((comment: Comment) => !comment.blinded).slice(0, 3); // 최대 3개만
-      }
-    } catch (error) {
-      console.error('댓글 로딩 실패:', error);
-    }
-    return [];
-  };
 
-  const toggleComments = async (postId: number) => {
-    const newExpanded = new Set(expandedComments);
-    
-    if (expandedComments.has(postId)) {
-      newExpanded.delete(postId);
-    } else {
-      newExpanded.add(postId);
-      // 댓글 로드
-      const comments = await loadComments(postId);
-      setPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, comments } : post
-      ));
-      setNewsPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, comments } : post
-      ));
-      setReviewPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, comments } : post
-      ));
-      setDiscussionPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, comments } : post
-      ));
-      setFreePosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, comments } : post
-      ));
-      setCinemaPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, comments } : post
-      ));
-    }
-    
-    setExpandedComments(newExpanded);
-  };
 
   const PostListItem = (post: Post, showLike = true) => {
     // 블라인드된 게시글은 표시하지 않음
@@ -255,7 +204,7 @@ export default function Home() {
     }
     
     return (
-      <li key={post.id} className="text-[15px] border-b border-gray-700 py-2 hover:text-purple-300 transition">
+      <li key={post.id} className="text-[15px] flex items-center justify-between border-b border-gray-700 py-2 hover:text-purple-300 transition">
         <Link to={`/posts/${post.id}`} className="flex flex-col w-full">
           <span className="font-semibold truncate">
             {post.dDay && <span className="text-orange-300 text-sm mr-2">[{post.dDay}]</span>}
@@ -265,45 +214,10 @@ export default function Home() {
             🖊 {post.writer}
             <span>📅 {formatDate(post.updatedAt)}</span>
             <span>👁 {post.viewCount}</span>
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                toggleComments(post.id);
-              }}
-              className="hover:text-purple-300 transition-colors"
-            >
-              💬 {post.commentCount || 0}
-            </button>
+            <span>💬 {post.commentCount || 0}</span>
             {showLike && <span>❤️ {post.likeCount}</span>}
           </div>
         </Link>
-        
-        {/* 댓글 표시 */}
-        {expandedComments.has(post.id) && (
-          <div className="mt-3 ml-4 space-y-2 border-l-2 border-purple-500/30 pl-3">
-            {post.comments && post.comments.length > 0 ? (
-              post.comments.map((comment) => (
-                <div key={comment.id} className="bg-gray-800/50 rounded-lg p-2 text-xs">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-purple-300 font-medium">{comment.writer}</span>
-                    <span className="text-gray-500">{formatDate(comment.createdAt)}</span>
-                  </div>
-                  <p className="text-gray-300">{comment.content}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-xs">댓글이 없습니다.</p>
-            )}
-            {post.commentCount > 3 && (
-              <Link 
-                to={`/posts/${post.id}`} 
-                className="text-purple-400 text-xs hover:underline"
-              >
-                더 많은 댓글 보기 ({post.commentCount - 3}개 더)
-              </Link>
-            )}
-          </div>
-        )}
       </li>
     );
   };
@@ -447,7 +361,10 @@ export default function Home() {
                             {post.title}
                           </span>
                         </div>
-                        <span className="text-emerald-300 text-sm">👁 {post.viewCount}</span>
+                        <div className="flex items-center gap-2 text-emerald-300 text-sm">
+                          <span>💬 {post.commentCount || 0}</span>
+                          <span>👁 {post.viewCount}</span>
+                        </div>
                       </div>
                       <div className="text-emerald-200/70 text-sm">
                         🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}
@@ -576,47 +493,12 @@ export default function Home() {
                         <span className="font-semibold text-blue-100">{post.title}</span>
                         <div className="flex items-center gap-2 text-blue-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleComments(post.id);
-                            }}
-                            className="hover:text-blue-200 transition-colors"
-                          >
-                            💬 {post.commentCount || 0}
-                          </button>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
                       <div className="text-blue-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
-                    
-                    {/* 댓글 표시 */}
-                    {expandedComments.has(post.id) && (
-                      <div className="mt-3 space-y-2 border-l-2 border-blue-500/30 pl-3">
-                        {post.comments && post.comments.length > 0 ? (
-                          post.comments.map((comment) => (
-                            <div key={comment.id} className="bg-blue-800/30 rounded-lg p-2 text-xs">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-blue-200 font-medium">{comment.writer}</span>
-                                <span className="text-blue-400">{formatDate(comment.createdAt)}</span>
-                              </div>
-                              <p className="text-blue-100">{comment.content}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-blue-400 text-xs">댓글이 없습니다.</p>
-                        )}
-                        {post.commentCount > 3 && (
-                          <Link 
-                            to={`/posts/${post.id}`} 
-                            className="text-blue-300 text-xs hover:underline"
-                          >
-                            더 많은 댓글 보기 ({post.commentCount - 3}개 더)
-                          </Link>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -638,47 +520,12 @@ export default function Home() {
                         <span className="font-semibold text-purple-100">{post.title}</span>
                         <div className="flex items-center gap-2 text-purple-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleComments(post.id);
-                            }}
-                            className="hover:text-purple-200 transition-colors"
-                          >
-                            💬 {post.commentCount || 0}
-                          </button>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
                       <div className="text-purple-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
-                    
-                    {/* 댓글 표시 */}
-                    {expandedComments.has(post.id) && (
-                      <div className="mt-3 space-y-2 border-l-2 border-purple-500/30 pl-3">
-                        {post.comments && post.comments.length > 0 ? (
-                          post.comments.map((comment) => (
-                            <div key={comment.id} className="bg-purple-800/30 rounded-lg p-2 text-xs">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-purple-200 font-medium">{comment.writer}</span>
-                                <span className="text-purple-400">{formatDate(comment.createdAt)}</span>
-                              </div>
-                              <p className="text-purple-100">{comment.content}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-purple-400 text-xs">댓글이 없습니다.</p>
-                        )}
-                        {post.commentCount > 3 && (
-                          <Link 
-                            to={`/posts/${post.id}`} 
-                            className="text-purple-300 text-xs hover:underline"
-                          >
-                            더 많은 댓글 보기 ({post.commentCount - 3}개 더)
-                          </Link>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -706,47 +553,12 @@ export default function Home() {
                         <span className="font-semibold text-green-100">{post.title}</span>
                         <div className="flex items-center gap-2 text-green-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleComments(post.id);
-                            }}
-                            className="hover:text-green-200 transition-colors"
-                          >
-                            💬 {post.commentCount || 0}
-                          </button>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
                       <div className="text-green-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
-                    
-                    {/* 댓글 표시 */}
-                    {expandedComments.has(post.id) && (
-                      <div className="mt-3 space-y-2 border-l-2 border-green-500/30 pl-3">
-                        {post.comments && post.comments.length > 0 ? (
-                          post.comments.map((comment) => (
-                            <div key={comment.id} className="bg-green-800/30 rounded-lg p-2 text-xs">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-green-200 font-medium">{comment.writer}</span>
-                                <span className="text-green-400">{formatDate(comment.createdAt)}</span>
-                              </div>
-                              <p className="text-green-100">{comment.content}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-green-400 text-xs">댓글이 없습니다.</p>
-                        )}
-                        {post.commentCount > 3 && (
-                          <Link 
-                            to={`/posts/${post.id}`} 
-                            className="text-green-300 text-xs hover:underline"
-                          >
-                            더 많은 댓글 보기 ({post.commentCount - 3}개 더)
-                          </Link>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -768,47 +580,12 @@ export default function Home() {
                         <span className="font-semibold text-pink-100">{post.title}</span>
                         <div className="flex items-center gap-2 text-pink-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleComments(post.id);
-                            }}
-                            className="hover:text-pink-200 transition-colors"
-                          >
-                            💬 {post.commentCount || 0}
-                          </button>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
                       <div className="text-pink-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
-                    
-                    {/* 댓글 표시 */}
-                    {expandedComments.has(post.id) && (
-                      <div className="mt-3 space-y-2 border-l-2 border-pink-500/30 pl-3">
-                        {post.comments && post.comments.length > 0 ? (
-                          post.comments.map((comment) => (
-                            <div key={comment.id} className="bg-pink-800/30 rounded-lg p-2 text-xs">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-pink-200 font-medium">{comment.writer}</span>
-                                <span className="text-pink-400">{formatDate(comment.createdAt)}</span>
-                              </div>
-                              <p className="text-pink-100">{comment.content}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-pink-400 text-xs">댓글이 없습니다.</p>
-                        )}
-                        {post.commentCount > 3 && (
-                          <Link 
-                            to={`/posts/${post.id}`} 
-                            className="text-pink-300 text-xs hover:underline"
-                          >
-                            더 많은 댓글 보기 ({post.commentCount - 3}개 더)
-                          </Link>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -839,47 +616,12 @@ export default function Home() {
                         </span>
                         <div className="flex items-center gap-2 text-purple-300 text-sm">
                           <span>❤️ {post.likeCount}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleComments(post.id);
-                            }}
-                            className="hover:text-purple-200 transition-colors"
-                          >
-                            💬 {post.commentCount || 0}
-                          </button>
+                          <span>💬 {post.commentCount || 0}</span>
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
                       <div className="text-purple-200/70 text-sm mt-1">🤖 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
-                    
-                    {/* 댓글 표시 */}
-                    {expandedComments.has(post.id) && (
-                      <div className="mt-3 space-y-2 border-l-2 border-purple-500/30 pl-3">
-                        {post.comments && post.comments.length > 0 ? (
-                          post.comments.map((comment) => (
-                            <div key={comment.id} className="bg-purple-800/30 rounded-lg p-2 text-xs">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-purple-200 font-medium">{comment.writer}</span>
-                                <span className="text-purple-400">{formatDate(comment.createdAt)}</span>
-                              </div>
-                              <p className="text-purple-100">{comment.content}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-purple-400 text-xs">댓글이 없습니다.</p>
-                        )}
-                        {post.commentCount > 3 && (
-                          <Link 
-                            to={`/posts/${post.id}`} 
-                            className="text-purple-300 text-xs hover:underline"
-                          >
-                            더 많은 댓글 보기 ({post.commentCount - 3}개 더)
-                          </Link>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
