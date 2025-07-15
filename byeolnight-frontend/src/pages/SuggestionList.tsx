@@ -194,12 +194,24 @@ export default function SuggestionList() {
                         </span>
                       )}
                     </div>
-                    <Link
-                      to={`/suggestions/${suggestion.id}`}
-                      className="text-xl font-bold text-white hover:text-purple-300 transition-colors"
-                    >
-                      {suggestion.isPublic ? suggestion.title : "관리자만 확인할 수 있습니다"}
-                    </Link>
+                    {/* 제목: 공개/비공개 및 권한에 따라 Link 또는 span */}
+                    {suggestion.isPublic || (user && user.isAdmin) ? (
+                      <Link
+                        to={`/suggestions/${suggestion.id}`}
+                        className={`text-xl font-bold hover:text-purple-300 transition-colors ${
+                          suggestion.isPublic ? 'text-white' : 'text-gray-500'
+                        }`}
+                      >
+                        {suggestion.isPublic ? suggestion.title : '비공개 건의사항입니다'}
+                      </Link>
+                    ) : (
+                      <span
+                        className="text-xl font-bold text-gray-500 cursor-not-allowed opacity-60 select-none"
+                        title="비공개 건의사항은 관리자만 볼 수 있습니다."
+                      >
+                        비공개 건의사항입니다
+                      </span>
+                    )}
                   </div>
                 </div>
 
