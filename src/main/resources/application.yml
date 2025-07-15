@@ -81,13 +81,13 @@ newsdata:
 # 뉴스 수집 설정
 news:
   collection:
-    max-posts: 1
-    similarity-threshold: 0.7
+    max-posts: 2
+    similarity-threshold: 0.6
     similarity-check-days: 7
   quality:
-    min-title-length: 15
-    min-description-length: 80
-    min-space-keywords: 2
+    min-title-length: 10
+    min-description-length: 30
+    min-space-keywords: 1
     max-hashtags: 8
 
 # OpenAI API 설정

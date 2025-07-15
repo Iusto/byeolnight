@@ -68,14 +68,16 @@ public class NewsDataService {
     public NewsApiResponseDto fetchKoreanSpaceNews() {
         try {
             // 더 많은 뉴스를 가져와서 중복 제외 후 2개 선택
-            // 최고 품질 뉴스를 위해 100개 수집 (10개 x 10번)
-            int callCount = 10; // 총 100개 수집
+            // 최고 품질 뉴스를 위해 60개 수집 (10개 x 6번)
+            int callCount = 6; // 총 60개 수집
             
-            String koreanQuery = getRandomSpaceKeywords(KOREAN_SPACE_KEYWORDS, 5);
+            // 한국어 뉴스 수집 (더 구체적인 키워드 사용)
+            String koreanQuery = "NASA OR SpaceX OR 우주탐사 OR 화성탐사 OR 달탐사";
             log.info("한국어 뉴스 수집 키워드: {}", koreanQuery);
             NewsApiResponseDto koreanNews = fetchMultipleNewsByLanguage("ko", koreanQuery, callCount / 2);
             
-            String englishQuery = getRandomSpaceKeywords(ENGLISH_SPACE_KEYWORDS, 5);
+            // 영어 뉴스 수집 (더 구체적인 키워드 사용)
+            String englishQuery = "NASA OR SpaceX OR Mars OR Moon OR space exploration OR astronomy";
             log.info("영어 뉴스 수집 키워드: {}", englishQuery);
             NewsApiResponseDto englishNews = fetchMultipleNewsByLanguage("en", englishQuery, callCount / 2);
             
@@ -168,17 +170,28 @@ public class NewsDataService {
         NewsApiResponseDto combinedResponse = new NewsApiResponseDto();
         combinedResponse.setStatus("success");
         combinedResponse.setResults(new java.util.ArrayList<>());
+        java.util.Set<String> seenUrls = new java.util.HashSet<>();
         
         for (int i = 0; i < callCount; i++) {
             try {
-                NewsApiResponseDto response = fetchNewsByLanguage(language, query, 10);
+                // 매번 다른 키워드로 호출하여 다양성 확보
+                String[] keywords = language.equals("ko") ? KOREAN_SPACE_KEYWORDS : ENGLISH_SPACE_KEYWORDS;
+                String randomQuery = getRandomSpaceKeywords(keywords, 3);
+                
+                NewsApiResponseDto response = fetchNewsByLanguage(language, randomQuery, 10);
                 if (response != null && response.getResults() != null) {
-                    combinedResponse.getResults().addAll(response.getResults());
+                    // 중복 URL 제거
+                    for (NewsApiResponseDto.Result result : response.getResults()) {
+                        if (result.getLink() != null && !seenUrls.contains(result.getLink())) {
+                            seenUrls.add(result.getLink());
+                            combinedResponse.getResults().add(result);
+                        }
+                    }
                 }
                 
                 // API 요청 간격 (Rate Limit 방지)
                 if (i < callCount - 1) {
-                    Thread.sleep(100); // 0.1초 대기
+                    Thread.sleep(200); // 0.2초 대기
                 }
             } catch (Exception e) {
                 log.warn("{} 뉴스 {}번째 호출 실패", language, i + 1, e);
@@ -186,7 +199,7 @@ public class NewsDataService {
         }
         
         combinedResponse.setTotalResults(combinedResponse.getResults().size());
-        log.info("{} 뉴스 {}번 호출 완료: {}개 수집", language, callCount, combinedResponse.getResults().size());
+        log.info("{} 뉴스 {}번 호출 완료: {}개 수집 (중복 제거됨)", language, callCount, combinedResponse.getResults().size());
         return combinedResponse;
     }
     
