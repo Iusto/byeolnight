@@ -195,11 +195,11 @@ export default function SuggestionList() {
                       )}
                     </div>
                     {/* 제목: 공개/비공개 및 권한에 따라 Link 또는 span */}
-햐                    {(suggestion.isPublic || (user && user.isAdmin)) ? (
+                    {(suggestion.isPublic || (user && user.role === 'ADMIN')) ? (
                       <Link
                         to={`/suggestions/${suggestion.id}`}
                         className={`text-xl font-bold hover:text-purple-300 transition-colors ${
-                          suggestion.isPublic || (user && user.isAdmin)
+                          suggestion.isPublic || (user && user.role === 'ADMIN')
                             ? 'text-white'
                             : 'text-gray-500'
                         }`}
