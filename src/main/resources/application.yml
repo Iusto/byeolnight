@@ -1,249 +1,32 @@
-spring:
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  
-  task:
-    scheduling:
-      enabled: true
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-    open-in-view: false
-
-  web:
-    resources:
-      static-locations: classpath:/static/
-      add-mappings: false
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-
-send:
-  from: ${MAIL_FROM}
-
-coolsms:
-  api-key: ${COOLSMS_API_KEY}
-  api-secret: ${COOLSMS_API_SECRET}
-  sender-number: ${COOLSMS_SENDER}
-
-server:
-  port: 8080
-
-cloud:
-  aws:
-    s3:
-      bucket: ${CLOUD_AWS_S3_BUCKET}
-    credentials:
-      access-key: ${CLOUD_AWS_ACCESS_KEY}
-      secret-key: ${CLOUD_AWS_SECRET_KEY}
-    region:
-      static: ${CLOUD_AWS_REGION:ap-northeast-2}
-    stack:
-      auto: false
-
-# 애플리케이션 보안 설정
-app:
-  security:
-    max-login-attempts: 10
-    ip-block-duration: 1h
-    password-reset-validity: 30m
-  jwt:
-    secret: ${JWT_SECRET:defaultSecretKeyForDevelopmentOnlyNotForProduction}
-    access-token-validity: 30m
-    refresh-token-validity: 7d
-
-# 뉴스 API 설정 (NewsData.io)
-newsdata:
-  api:
-    key: ${NEWSDATA_API_KEY:pub_3f5037199ae44a6b91c8bbee100fb76b}
-    url: ${NEWSDATA_API_URL:https://newsdata.io/api/1/news}
-
-# 뉴스 수집 설정
-news:
+# Cinema 설정 추가
+cinema:
   collection:
     max-posts: 1
+    similarity-check-days: 30
     similarity-threshold: 0.7
-    similarity-check-days: 7
-  quality:
-    min-title-length: 15
-    min-description-length: 80
-    min-space-keywords: 2
-    max-hashtags: 8
-
-# OpenAI API 설정
-openai:
-  api:
-    key: ${OPENAI_API_KEY}
-
-# Google API 설정 (YouTube, Vision API 등)
-google:
-  api:
-    key: ${GOOGLE_API_KEY:}
-
-# YouTube 서비스 설정
-youtube:
-  search:
-    max-results: 12
     keyword-count: 3
-
-# 관리자, 봇
-system:
-  password:
-    newsbot: ${SYSTEM_PASSWORD_NEWSBOT}
-    system: ${SYSTEM_PASSWORD_SYSTEM}
-
-# Swagger/OpenAPI 설정
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-    enabled: true
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operations-sorter: alpha
-    tags-sorter: alpha
-    try-it-out-enabled: true
-    filter: true
-    display-request-duration: true
-    default-models-expand-depth: 2
-    default-model-expand-depth: 2
-    doc-expansion: none
-    persist-authorization: true
-  show-actuator: false
-
-
-# 스텔라 아이콘 설정
-stella:
-  icons:
-    folder-path: "byeolnight-frontend/src/components/icons"
-    file-extension: ".tsx"
-    exclude-files: ["index.tsx"]
-    grades:
-      COMMON:
-        price: 100
-        icons: ["Mercury", "Venus", "Mars", "Star", "Sun", "Moon", "Comet", "Rocket"]
-      FREE:
-        price: 0
-        icons: ["Asteroid"]
-      RARE:
-        price: 200
-        icons: ["Earth", "Jupiter", "Uranus", "Neptune", "Saturn", "AuroraNebula", "MeteorShower", "UFO", "GalaxySpiral", "Constellation", "SpaceStation", "CosmicVortex"]
-      EPIC:
-        price: 350
-        icons: ["Pulsar", "Quasar", "RedGiant", "WhiteDwarf", "NeutronStar", "StellarMagnetar", "StellarLightYear", "StellarAndromeda", "StellarOrion", "StellarSolarSystem", "StellarDarkMatter", "StellarMilkyWay", "StellarCosmos", "GravitationalWave", "TimeLoop"]
-      LEGENDARY:
-        price: 500
-        icons: ["BlackHole", "Supernova", "DarkEnergy", "QuantumTunnel", "Multiverse", "StringTheory", "StellarInfiniteUniverse"]
-      MYTHIC:
-        price: 1000
-        icons: ["BigBang"]
-    names:
-      Mercury: "수성"
-      Venus: "금성"
-      Mars: "화성"
-      Star: "별"
-      Sun: "태양"
-      Moon: "달"
-      Comet: "혜성"
-      Asteroid: "소행성"
-      Rocket: "로켓"
-      Saturn: "토성"
-      Earth: "지구"
-      Jupiter: "목성"
-      Uranus: "천왕성"
-      Neptune: "해왕성"
-      AuroraNebula: "오로라 성운"
-      MeteorShower: "유성우"
-      UFO: "UFO"
-      GalaxySpiral: "나선 은하"
-      Constellation: "별자리"
-      SpaceStation: "우주 정거장"
-      CosmicVortex: "우주 소용돌이"
-      Pulsar: "펄사"
-      Quasar: "퀘이사"
-      RedGiant: "적색거성"
-      WhiteDwarf: "백색왜성"
-      NeutronStar: "중성자별"
-      StellarMagnetar: "마그네타"
-      StellarLightYear: "광년"
-      StellarAndromeda: "안드로메다"
-      StellarOrion: "오리온"
-      StellarSolarSystem: "태양계"
-      StellarDarkMatter: "암흑물질"
-      StellarMilkyWay: "은하수"
-      StellarCosmos: "코스모스"
-      GravitationalWave: "중력파"
-      TimeLoop: "타임루프"
-      BlackHole: "블랙홀"
-      Supernova: "초신성"
-      DarkEnergy: "다크에너지"
-      QuantumTunnel: "양자터널"
-      Multiverse: "다중우주"
-      StringTheory: "스트링이론"
-      StellarInfiniteUniverse: "무한우주"
-      BigBang: "빅뱅"
-    descriptions:
-      Mercury: "태양에 가장 가까운 행성"
-      Venus: "아름다운 새벽별"
-      Mars: "붉은 행성의 신비"
-      Star: "밤하늘의 반짝이는 별"
-      Sun: "생명을 주는 따뜻한 별"
-      Moon: "지구의 아름다운 위성"
-      Comet: "천년에 한 번 나타나는 신비"
-      Asteroid: "작은 우주 암석"
-      Rocket: "우주를 향한 꿈과 모험"
-      Saturn: "우아한 고리를 가진 행성"
-      Earth: "우리의 푸른 행성"
-      Jupiter: "거대한 가스 행성"
-      Uranus: "옆으로 누운 신비한 행성"
-      Neptune: "푸른 바다의 행성"
-      AuroraNebula: "극지방의 신비한 빛"
-      MeteorShower: "소원을 들어주는 별똥별"
-      UFO: "미확인 비행 물체"
-      GalaxySpiral: "아름다운 나선형 은하"
-      Constellation: "밤하늘의 아름다운 별 그림"
-      SpaceStation: "인류의 우주 진출 기지"
-      CosmicVortex: "시공간을 빨아들이는 우주 소용돌이"
-      Pulsar: "규칙적으로 신호를 보내는 별"
-      Quasar: "우주에서 가장 밝은 천체"
-      RedGiant: "거대하게 팽창한 늙은 별"
-      WhiteDwarf: "다이아몬드처럼 빛나는 별의 영원한 유산"
-      NeutronStar: "초당 수백 번 회전하며 강렬한 에너지 빔을 방출하는 우주의 등대"
-      StellarMagnetar: "강력한 자기장을 가진 별"
-      StellarLightYear: "빛이 1년간 이동하는 거리"
-      StellarAndromeda: "우리 은하의 이웃 은하"
-      StellarOrion: "겨울 밤하늘의 대표 별자리"
-      StellarSolarSystem: "우리 태양계 전체"
-      StellarDarkMatter: "보이지 않지만 우주 전체를 지배하는 신비로운 존재"
-      StellarMilkyWay: "우리 은하계의 전체 모습"
-      StellarCosmos: "우주 전체를 아우르는 존재"
-      GravitationalWave: "시공간의 파동"
-      TimeLoop: "시간의 순환과 무한반복"
-      BlackHole: "시공간을 지배하는 절대적 존재"
-      Supernova: "별의 장엄한 마지막 순간"
-      DarkEnergy: "우주 팽창을 가속화하는 신비한 힘"
-      QuantumTunnel: "양자역학의 신비를 보여주는 차원의 통로"
-      Multiverse: "무한한 가능성이 존재하는 평행우주들"
-      StringTheory: "모든 것을 설명하는 우주의 근본 이론"
-      StellarInfiniteUniverse: "끝없이 펼쳐진 무한한 우주의 신비"
-      BigBang: "무(無)에서 시작된 우주 창조의 순간"
+    retry-count: 3
+  quality:
+    min-title-length: 10
+    min-description-length: 50
+    max-results: 20
+    video-duration: medium
+    video-definition: high
+  youtube:
+    quality-channels:
+      - NASA
+      - SpaceX
+      - ESA
+      - National Geographic
+      - Discovery
+      - Science Channel
+      - Kurzgesagt
+    professional-terms:
+      - documentary
+      - science
+      - research
+      - mission
+      - exploration
+      - universe
+      - cosmos
+    published-after-years: 2

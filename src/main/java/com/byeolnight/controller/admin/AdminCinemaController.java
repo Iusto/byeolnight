@@ -42,7 +42,12 @@ public class AdminCinemaController {
     @GetMapping("/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResponse<Object>> getCinemaStatus() {
-        Object status = cinemaService.getCinemaStatus();
-        return ResponseEntity.ok(CommonResponse.success(status));
+        try {
+            Object status = cinemaService.getCinemaStatus();
+            return ResponseEntity.ok(CommonResponse.success(status));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(CommonResponse.error("상태 조회 실패: " + e.getMessage()));
+        }
     }
 }

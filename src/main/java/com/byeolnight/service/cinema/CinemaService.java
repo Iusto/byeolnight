@@ -7,6 +7,7 @@ import com.byeolnight.domain.repository.CinemaRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.service.crawler.NewsDataService;
+import com.byeolnight.infrastructure.config.CinemaCollectionProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -30,6 +30,7 @@ public class CinemaService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final NewsDataService newsDataService;
+    private final CinemaCollectionProperties cinemaConfig;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${google.api.key:}")
@@ -37,8 +38,6 @@ public class CinemaService {
     
     @Value("${openai.api.key:}")
     private String openaiApiKey;
-
-
 
     @Scheduled(cron = "0 0 20 * * ?") // 매일 오후 8시
     @Transactional
@@ -131,12 +130,16 @@ public class CinemaService {
         }
 
         try {
-            Map<String, Object> koreanVideo = fetchVideoByLanguage(Arrays.asList(newsDataService.getKoreanSpaceKeywords()), "ko");
+            // 한국어 키워드로 먼저 시도
+            List<String> koreanKeywords = Arrays.asList(newsDataService.getKoreanSpaceKeywords());
+            Map<String, Object> koreanVideo = fetchVideoByLanguage(koreanKeywords, "ko");
             if (koreanVideo != null) {
                 return koreanVideo;
             }
             
-            Map<String, Object> englishVideo = fetchVideoByLanguage(Arrays.asList(newsDataService.getEnglishSpaceKeywords()), "en");
+            // 영어 키워드로 시도
+            List<String> englishKeywords = Arrays.asList(newsDataService.getEnglishSpaceKeywords());
+            Map<String, Object> englishVideo = fetchVideoByLanguage(englishKeywords, "en");
             if (englishVideo != null) {
                 return englishVideo;
             }
@@ -149,47 +152,65 @@ public class CinemaService {
     }
     
     private Map<String, Object> fetchVideoByLanguage(List<String> keywords, String language) {
-        try {
-            String keyword = keywords.get(new Random().nextInt(keywords.size()));
-            
-            String url = String.format(
-                "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=20&order=relevance&publishedAfter=%s&videoDuration=medium&videoDefinition=high&key=%s",
-                keyword, getTwoYearsAgo(), googleApiKey
-            );
-            
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-            if (response != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
+        for (int attempt = 0; attempt < cinemaConfig.getCollection().getRetryCount(); attempt++) {
+            try {
+                String query = getRandomKeywords(keywords, cinemaConfig.getCollection().getKeywordCount());
                 
-                if (items != null && !items.isEmpty()) {
-                    List<Map<String, Object>> qualityVideos = items.stream()
-                        .filter(this::isQualityVideo)
-                        .collect(java.util.stream.Collectors.toList());
+                String url = String.format(
+                    "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=relevance&publishedAfter=%s&videoDuration=%s&videoDefinition=%s&key=%s",
+                    query, cinemaConfig.getQuality().getMaxResults(), getPublishedAfterDate(), 
+                    cinemaConfig.getQuality().getVideoDuration(), cinemaConfig.getQuality().getVideoDefinition(), googleApiKey
+                );
+                
+                log.info("YouTube API 호출 시도 {}/{}: {}", attempt + 1, cinemaConfig.getCollection().getRetryCount(), query);
+            
+                @SuppressWarnings("unchecked")
+                Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+                if (response != null) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
                     
-                    if (!qualityVideos.isEmpty()) {
-                        Map<String, Object> video = qualityVideos.get(new Random().nextInt(qualityVideos.size()));
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> videoId = (Map<String, Object>) video.get("id");
+                    if (items != null && !items.isEmpty()) {
+                        List<Map<String, Object>> qualityVideos = items.stream()
+                            .filter(this::isQualityVideo)
+                            .collect(java.util.stream.Collectors.toList());
                         
-                        String publishedAt = (String) snippet.get("publishedAt");
-                        LocalDateTime publishDateTime = parsePublishedDateTime(publishedAt);
-                        
-                        return formatVideoData(
-                            (String) snippet.get("title"),
-                            (String) snippet.get("description"),
-                            (String) videoId.get("videoId"),
-                            (String) snippet.get("channelTitle"),
-                            publishDateTime
-                        );
+                        if (!qualityVideos.isEmpty()) {
+                            Map<String, Object> video = qualityVideos.get(new Random().nextInt(qualityVideos.size()));
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> videoId = (Map<String, Object>) video.get("id");
+                            
+                            String publishedAt = (String) snippet.get("publishedAt");
+                            LocalDateTime publishDateTime = parsePublishedDateTime(publishedAt);
+                            
+                            Map<String, Object> videoData = formatVideoData(
+                                (String) snippet.get("title"),
+                                (String) snippet.get("description"),
+                                (String) videoId.get("videoId"),
+                                (String) snippet.get("channelTitle"),
+                                publishDateTime
+                            );
+                            
+                            // 유사도 체크
+                            if (!isSimilarToExistingVideos(videoData)) {
+                                return videoData;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("{} YouTube 영상 검색 시도 {}/{} 실패: {}", language, attempt + 1, cinemaConfig.getCollection().getRetryCount(), e.getMessage());
+                if (attempt < cinemaConfig.getCollection().getRetryCount() - 1) {
+                    try {
+                        Thread.sleep(1000 * (attempt + 1)); // 점진적 대기
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
             }
-        } catch (Exception e) {
-            log.error("{} YouTube 영상 검색 실패", language, e);
         }
         return null;
     }
@@ -201,22 +222,23 @@ public class CinemaService {
         String channelTitle = (String) snippet.get("channelTitle");
         String description = (String) snippet.get("description");
         
+        // 기본 품질 체크
         if (title.toLowerCase().contains("shorts") || 
             title.toLowerCase().contains("#shorts") ||
-            title.length() < 10 ||
-            (description != null && description.length() < 50)) {
+            title.length() < cinemaConfig.getQuality().getMinTitleLength() ||
+            (description != null && description.length() < cinemaConfig.getQuality().getMinDescriptionLength())) {
             return false;
         }
         
-        String[] qualityChannels = {"NASA", "SpaceX", "ESA", "National Geographic", "Discovery", "Science Channel"};
-        for (String channel : qualityChannels) {
+        // 고품질 채널 체크
+        for (String channel : cinemaConfig.getYoutube().getQualityChannels()) {
             if (channelTitle.toLowerCase().contains(channel.toLowerCase())) {
                 return true;
             }
         }
         
-        String[] professionalTerms = {"documentary", "science", "research", "mission", "exploration"};
-        for (String term : professionalTerms) {
+        // 전문 용어 체크
+        for (String term : cinemaConfig.getYoutube().getProfessionalTerms()) {
             if (title.toLowerCase().contains(term)) {
                 return true;
             }
@@ -225,10 +247,57 @@ public class CinemaService {
         return false;
     }
     
-    private String getTwoYearsAgo() {
-        return LocalDateTime.now().minusYears(2).format(
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-        );
+    private String getPublishedAfterDate() {
+        return LocalDateTime.now()
+                .minusYears(cinemaConfig.getYoutube().getPublishedAfterYears())
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+    }
+    
+    private String getRandomKeywords(List<String> keywords, int count) {
+        Random random = new Random();
+        Set<String> selectedKeywords = new HashSet<>();
+        
+        while (selectedKeywords.size() < count && selectedKeywords.size() < keywords.size()) {
+            int randomIndex = random.nextInt(keywords.size());
+            selectedKeywords.add(keywords.get(randomIndex));
+        }
+        
+        return String.join(" OR ", selectedKeywords);
+    }
+    
+    private boolean isSimilarToExistingVideos(Map<String, Object> videoData) {
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(cinemaConfig.getCollection().getSimilarityCheckDays());
+        List<Cinema> recentVideos = cinemaRepository.findByCreatedAtAfter(cutoffDate);
+        
+        String newTitle = (String) videoData.get("title");
+        
+        for (Cinema cinema : recentVideos) {
+            double similarity = calculateTitleSimilarity(newTitle, cinema.getTitle());
+            if (similarity > cinemaConfig.getCollection().getSimilarityThreshold()) {
+                log.info("유사 영상 발견 (유사도: {:.1f}%): {} vs {}", 
+                        similarity * 100, newTitle, cinema.getTitle());
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private double calculateTitleSimilarity(String title1, String title2) {
+        String[] words1 = title1.toLowerCase().split("\\s+");
+        String[] words2 = title2.toLowerCase().split("\\s+");
+        
+        int commonWords = 0;
+        for (String word1 : words1) {
+            for (String word2 : words2) {
+                if (word1.equals(word2) && word1.length() > 2) {
+                    commonWords++;
+                    break;
+                }
+            }
+        }
+        
+        return (double) commonWords / Math.max(words1.length, words2.length);
     }
 
     private Map<String, Object> createMockVideoData() {
@@ -468,5 +537,14 @@ public class CinemaService {
         } catch (Exception e) {
             return LocalDateTime.now();
         }
+    }
+    
+    public Map<String, Object> getCinemaStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("totalVideos", cinemaRepository.count());
+        status.put("recentVideos", cinemaRepository.findTop10ByOrderByCreatedAtDesc().size());
+        status.put("lastCollectionTime", LocalDateTime.now());
+        status.put("configuration", cinemaConfig);
+        return status;
     }
 }
