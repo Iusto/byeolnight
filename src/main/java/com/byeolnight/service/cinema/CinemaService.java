@@ -240,6 +240,15 @@ public class CinemaService {
             return false;
         }
         
+        // AI/기술 관련 키워드 제외 (우주 관련이 아닌 경우)
+        if ((titleLower.contains("ai") || titleLower.contains("인공지능") || 
+             titleLower.contains("특이점") || titleLower.contains("singularity") ||
+             titleLower.contains("머신러닝") || titleLower.contains("딥러닝") ||
+             titleLower.contains("chatgpt") || titleLower.contains("gpt")) &&
+            !hasSpaceContext(titleLower, descLower)) {
+            return false;
+        }
+        
         // 캐시된 우주 키워드 사용 (뉴스와 동일한 200개 키워드)
         String[] cachedKeywords = newsDataService.getAllSpaceKeywordsCached();
         
@@ -265,6 +274,24 @@ public class CinemaService {
         // 전문 용어 체크
         for (String term : cinemaConfig.getYoutube().getProfessionalTerms()) {
             if (titleLower.contains(term) || descLower.contains(term)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean hasSpaceContext(String titleLower, String descLower) {
+        // 우주 관련 핵심 키워드 체크
+        String[] spaceKeywords = {
+            "우주", "space", "은하", "galaxy", "별", "star", "행성", "planet",
+            "태양계", "solar", "nasa", "spacex", "블랙홀", "blackhole",
+            "화성", "mars", "달", "moon", "지구", "earth", "우주선", "spacecraft",
+            "로켓", "rocket", "인공위성", "satellite", "천문", "astronomy"
+        };
+        
+        for (String keyword : spaceKeywords) {
+            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
                 return true;
             }
         }

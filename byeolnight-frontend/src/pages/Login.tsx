@@ -11,6 +11,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [loginSuccess, setLoginSuccess] = useState(false)
+  const [capsLockOn, setCapsLockOn] = useState(false)
   
   // 이미 로그인된 사용자 리다이렉트
   useEffect(() => {
@@ -101,17 +102,41 @@ export default function Login() {
             disabled={loading}
           />
 
-          <input
-            type="password"
-            placeholder="비밀번호"
-            className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
+          <div className="relative">
+            <input
+              type="password"
+              placeholder="비밀번호"
+              className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                // Caps Lock 감지
+                if (e.getModifierState && e.getModifierState('CapsLock')) {
+                  setCapsLockOn(true)
+                } else {
+                  setCapsLockOn(false)
+                }
+              }}
+              onKeyUp={(e) => {
+                // Caps Lock 상태 재확인
+                if (e.getModifierState && e.getModifierState('CapsLock')) {
+                  setCapsLockOn(true)
+                } else {
+                  setCapsLockOn(false)
+                }
+              }}
+              required
+              disabled={loading}
+            />
+            {capsLockOn && (
+              <div className="absolute -bottom-6 left-0 text-xs text-yellow-400 flex items-center gap-1">
+                <span>⚠️</span>
+                <span>Caps Lock이 켜져 있습니다</span>
+              </div>
+            )}
+          </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-2">
             <input
               type="checkbox"
               id="rememberMe"
