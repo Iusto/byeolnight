@@ -188,6 +188,11 @@ export default function SuggestionList() {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[suggestion.status]}`}>
                         {STATUS[suggestion.status]}
                       </span>
+                      {!suggestion.isPublic && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
+                          🔒 비공개
+                        </span>
+                      )}
                     </div>
                     <Link
                       to={`/suggestions/${suggestion.id}`}
@@ -198,7 +203,20 @@ export default function SuggestionList() {
                   </div>
                 </div>
 
-                <p className="text-gray-300 mb-4 line-clamp-2">{suggestion.content}</p>
+                {suggestion.isPublic ? (
+                  <p className="text-gray-300 mb-4 line-clamp-2">{suggestion.content}</p>
+                ) : (
+                  <div className="mb-4">
+                    <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-4 text-center">
+                      <div className="text-gray-400 text-sm mb-2">
+                        🔒 비공개 건의사항
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        관리자만 내용을 확인할 수 있습니다
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center text-sm text-gray-400">
                   <div className="flex items-center gap-4">

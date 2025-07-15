@@ -123,7 +123,7 @@ export default function Navbar() {
                   
                   <Link 
                     to="/profile" 
-                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all duration-200"
+                    className="p-2 rounded-full bg-white hover:bg-gray-100 text-gray-800 hover:text-gray-900 transition-all duration-200"
                     title="내 정보"
                   >
                     <span className="text-sm">👤</span>

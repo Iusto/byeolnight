@@ -46,7 +46,7 @@ public class AllCertificateResponseDto {
             case SPACE_CITIZEN -> "첫 게시글 작성 시 발급됩니다.";
             case GALAXY_COMMUNICATOR -> "댓글을 10회 이상 작성하면 발급됩니다.";
             case STAR_OBSERVER -> "IMAGE 게시판에 사진을 5장 이상 업로드하면 발급됩니다.";
-            case CHAT_MASTER -> "채팅 10회 이상 + 3일 이상 참여 시 발급됩니다.";
+            case CHAT_MASTER -> "출석체크 3일 이상 + 채팅 10회 이상 시 발급됩니다.";
             case NIGHT_CITIZEN -> "누적 스텔라포인트 350점 이상 달성 시 발급됩니다.";
             case GUARDIAN -> "게시글 신고 3회 이상 + 1건 이상 관리자 승인 시 발급됩니다.";
             case EXPERIMENTER -> "게시글 5개 이상 작성 + 서로 다른 게시판 3곳 이상 작성 시 발급됩니다.";

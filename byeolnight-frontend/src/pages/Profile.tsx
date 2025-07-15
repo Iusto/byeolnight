@@ -68,6 +68,7 @@ interface UserProfile {
   nicknameChanged: boolean;
   nicknameUpdatedAt?: string;
   points: number;
+  attendanceCount?: number;
   ownedIcons?: UserIcon[];
   equippedIcon?: UserIcon;
 }
@@ -518,6 +519,19 @@ export default function Profile() {
                           </div>
                           <div className="text-xl font-bold text-purple-400">
                             {activity?.totalCommentCount || 0}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-4 bg-[#1f2336]/60 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">📅</span>
+                            <div>
+                              <div className="text-white font-medium">출석일수</div>
+                              <div className="text-sm text-gray-400">누적 출석체크 일수</div>
+                            </div>
+                          </div>
+                          <div className="text-xl font-bold text-orange-400">
+                            {profile?.attendanceCount || 0}일
                           </div>
                         </div>
                       </div>

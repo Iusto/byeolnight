@@ -25,6 +25,22 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
             Pageable pageable
     );
 
+    // 공개 건의사항만 조회
+    Page<Suggestion> findByIsPublicTrue(Pageable pageable);
+    
+    // 공개 + 카테고리별 조회
+    Page<Suggestion> findByCategoryAndIsPublicTrue(Suggestion.SuggestionCategory category, Pageable pageable);
+    
+    // 공개 + 상태별 조회
+    Page<Suggestion> findByStatusAndIsPublicTrue(Suggestion.SuggestionStatus status, Pageable pageable);
+    
+    // 공개 + 카테고리 + 상태별 조회
+    Page<Suggestion> findByCategoryAndStatusAndIsPublicTrue(
+            Suggestion.SuggestionCategory category, 
+            Suggestion.SuggestionStatus status, 
+            Pageable pageable
+    );
+
     // 작성자별 조회
     Page<Suggestion> findByAuthor(User author, Pageable pageable);
 

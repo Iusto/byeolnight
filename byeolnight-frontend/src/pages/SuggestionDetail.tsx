@@ -47,6 +47,9 @@ export default function SuggestionDetail() {
   const [adminResponse, setAdminResponse] = useState('');
   const [responseStatus, setResponseStatus] = useState<'IN_PROGRESS' | 'COMPLETED' | 'REJECTED'>('IN_PROGRESS');
   const [submitting, setSubmitting] = useState(false);
+  const [editingResponse, setEditingResponse] = useState(false);
+  const [editResponse, setEditResponse] = useState('');
+  const [editStatus, setEditStatus] = useState<'IN_PROGRESS' | 'COMPLETED' | 'REJECTED'>('IN_PROGRESS');
 
   useEffect(() => {
     if (!id) {
@@ -125,6 +128,39 @@ export default function SuggestionDetail() {
     }
   };
 
+  const handleEditResponse = async () => {
+    if (!editResponse.trim()) {
+      alert('답변 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await addAdminResponse(Number(id), {
+        response: editResponse,
+        status: editStatus
+      });
+      alert('관리자 답변이 수정되었습니다.');
+      setEditingResponse(false);
+      setEditResponse('');
+      fetchSuggestion(); // 새로고침
+    } catch (error: any) {
+      console.error('관리자 답변 수정 실패:', error);
+      const errorMessage = error.response?.data?.message || '답변 수정에 실패했습니다.';
+      alert(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEditResponse = () => {
+    if (suggestion?.adminResponse) {
+      setEditResponse(suggestion.adminResponse);
+      setEditStatus(suggestion.status as 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED');
+      setEditingResponse(true);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
@@ -139,6 +175,24 @@ export default function SuggestionDetail() {
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
           <p className="text-gray-400 text-lg mb-4">건의사항을 찾을 수 없습니다.</p>
+          <Link
+            to="/suggestions"
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            목록으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // 비공개 건의사항 접근 제한
+  if (!suggestion.isPublic && user?.role !== 'ADMIN' && user?.id !== suggestion.authorId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <p className="text-gray-400 text-lg mb-4">비공개 건의사항입니다.</p>
           <Link
             to="/suggestions"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
@@ -177,6 +231,11 @@ export default function SuggestionDetail() {
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${STATUS_COLORS[suggestion.status]}`}>
                     {STATUS[suggestion.status]}
                   </span>
+                  {!suggestion.isPublic && (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
+                      🔒 비공개
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-2xl font-bold text-white mb-4">{suggestion.title}</h1>
               </div>
@@ -210,7 +269,7 @@ export default function SuggestionDetail() {
           </div>
 
           {/* 관리자 답변 */}
-          {suggestion.adminResponse && (
+          {suggestion.adminResponse && !editingResponse && (
             <div className="mx-8 mb-8 bg-green-500/10 border border-green-500/30 rounded-lg overflow-hidden">
               <div className="bg-green-500/20 px-6 py-3 border-b border-green-500/30">
                 <div className="flex items-center justify-between">
@@ -218,8 +277,18 @@ export default function SuggestionDetail() {
                     <span className="text-green-400">✅</span>
                     <span className="text-green-300 font-medium">관리자 답변</span>
                   </div>
-                  <div className="text-sm text-green-400">
-                    {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleString('ko-KR')}
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-green-400">
+                      {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleString('ko-KR')}
+                    </div>
+                    {user && user.role === 'ADMIN' && (
+                      <button
+                        onClick={startEditResponse}
+                        className="text-sm px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 rounded transition-all"
+                      >
+                        수정
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -227,6 +296,51 @@ export default function SuggestionDetail() {
                 <div className="text-green-200 whitespace-pre-wrap leading-relaxed">
                   {suggestion.adminResponse}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* 관리자 답변 수정 */}
+          {editingResponse && (
+            <div className="mx-8 mb-8 bg-green-500/10 border border-green-500/30 rounded-lg p-6">
+              <div className="mb-4">
+                <label className="block text-green-300 font-medium mb-2">답변 상태</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
+                  className="w-full px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white focus:outline-none focus:border-green-400"
+                >
+                  <option value="IN_PROGRESS">진행 중</option>
+                  <option value="COMPLETED">완료</option>
+                  <option value="REJECTED">거절</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-green-300 font-medium mb-2">답변 내용</label>
+                <textarea
+                  value={editResponse}
+                  onChange={(e) => setEditResponse(e.target.value)}
+                  placeholder="건의사항에 대한 답변을 작성해주세요..."
+                  className="w-full h-32 px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-400 resize-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleEditResponse}
+                  disabled={submitting}
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white rounded-lg transition-all font-medium"
+                >
+                  {submitting ? '수정 중...' : '수정 완료'}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingResponse(false);
+                    setEditResponse('');
+                  }}
+                  className="px-6 py-2 bg-gray-600/20 hover:bg-gray-600/40 text-gray-300 border border-gray-500/30 rounded-lg transition-all"
+                >
+                  취소
+                </button>
               </div>
             </div>
           )}
