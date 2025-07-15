@@ -267,5 +267,28 @@ public class AdminUserController {
         }
     }
 
+    @Operation(summary = "닉네임 변경권 수여", description = "관리자가 특정 사용자에게 닉네임 변경권을 수여합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "닉네임 변경권 수여 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "사용자 없음")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/{userId}/nickname-change-ticket")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> grantNicknameChangeTicket(
+            @PathVariable Long userId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
+    ) {
+        try {
+            userService.grantNicknameChangeTicket(userId, currentUser.getId());
+            return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
+                    "닉네임 변경권이 성공적으로 수여되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(com.byeolnight.infrastructure.common.CommonResponse.fail(e.getMessage()));
+        }
+    }
+
 
 }

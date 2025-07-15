@@ -471,66 +471,66 @@ export default function Profile() {
                       <h3 className="text-lg font-bold text-white mb-4">✨ 활동 정보</h3>
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div className="flex items-center justify-between p-4 bg-[#1f2336]/60 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">✨</span>
-                            <div>
-                              <div className="text-white font-medium">보유 포인트</div>
-                              <div className="text-sm text-gray-400">활동으로 획득한 포인트</div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="text-2xl flex-shrink-0">✨</span>
+                            <div className="min-w-0">
+                              <div className="text-white font-medium whitespace-nowrap">보유 포인트</div>
+                              <div className="text-sm text-gray-400 whitespace-nowrap">활동으로 획득</div>
                             </div>
                           </div>
-                          <div className="text-xl font-bold text-yellow-400">
+                          <div className="text-xl font-bold text-yellow-400 flex-shrink-0">
                             {(profile.points || 0).toLocaleString()}
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between p-4 bg-[#1f2336]/60 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">🎨</span>
-                            <div>
-                              <div className="text-white font-medium">보유 아이콘</div>
-                              <div className="text-sm text-gray-400">구매한 스텔라 아이콘</div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="text-2xl flex-shrink-0">🎨</span>
+                            <div className="min-w-0">
+                              <div className="text-white font-medium whitespace-nowrap">보유 아이콘</div>
+                              <div className="text-sm text-gray-400 whitespace-nowrap">스텔라 아이콘</div>
                             </div>
                           </div>
-                          <div className="text-xl font-bold text-blue-400">
+                          <div className="text-xl font-bold text-blue-400 flex-shrink-0">
                             {icons.length}
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between p-4 bg-[#1f2336]/60 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">📝</span>
-                            <div>
-                              <div className="text-white font-medium">작성한 게시글</div>
-                              <div className="text-sm text-gray-400">내가 작성한 게시글 수</div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="text-2xl flex-shrink-0">📝</span>
+                            <div className="min-w-0">
+                              <div className="text-white font-medium whitespace-nowrap">작성 게시글</div>
+                              <div className="text-sm text-gray-400 whitespace-nowrap">내가 작성한 글</div>
                             </div>
                           </div>
-                          <div className="text-xl font-bold text-green-400">
+                          <div className="text-xl font-bold text-green-400 flex-shrink-0">
                             {activity?.totalPostCount || 0}
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between p-4 bg-[#1f2336]/60 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">💬</span>
-                            <div>
-                              <div className="text-white font-medium">작성한 댓글</div>
-                              <div className="text-sm text-gray-400">내가 작성한 댓글 수</div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="text-2xl flex-shrink-0">💬</span>
+                            <div className="min-w-0">
+                              <div className="text-white font-medium whitespace-nowrap">작성 댓글</div>
+                              <div className="text-sm text-gray-400 whitespace-nowrap">내가 작성한 댓글</div>
                             </div>
                           </div>
-                          <div className="text-xl font-bold text-purple-400">
+                          <div className="text-xl font-bold text-purple-400 flex-shrink-0">
                             {activity?.totalCommentCount || 0}
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between p-4 bg-[#1f2336]/60 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">📅</span>
-                            <div>
-                              <div className="text-white font-medium">출석일수</div>
-                              <div className="text-sm text-gray-400">누적 출석체크 일수</div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="text-2xl flex-shrink-0">📅</span>
+                            <div className="min-w-0">
+                              <div className="text-white font-medium whitespace-nowrap">출석일수</div>
+                              <div className="text-sm text-gray-400 whitespace-nowrap">누적 출석체크</div>
                             </div>
                           </div>
-                          <div className="text-xl font-bold text-orange-400">
+                          <div className="text-xl font-bold text-orange-400 flex-shrink-0">
                             {profile?.attendanceCount || 0}일
                           </div>
                         </div>
