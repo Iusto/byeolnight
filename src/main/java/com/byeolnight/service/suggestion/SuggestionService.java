@@ -240,4 +240,46 @@ public class SuggestionService {
                 .hasPrevious(suggestions.hasPrevious())
                 .build();
     }
+
+    // 관리자용 전체 건의사항 조회 (공개/비공개 모두 포함)
+    public SuggestionDto.ListResponse getAllSuggestionsForAdmin(
+            Suggestion.SuggestionCategory category,
+            Suggestion.SuggestionStatus status,
+            Pageable pageable
+    ) {
+        Page<Suggestion> suggestions;
+
+        if (category != null && status != null) {
+            suggestions = suggestionRepository.findByCategoryAndStatus(category, status, pageable);
+        } else if (category != null) {
+            suggestions = suggestionRepository.findByCategory(category, pageable);
+        } else if (status != null) {
+            suggestions = suggestionRepository.findByStatus(status, pageable);
+        } else {
+            suggestions = suggestionRepository.findAll(pageable);
+        }
+
+        return SuggestionDto.ListResponse.builder()
+                .suggestions(suggestions.getContent().stream()
+                        .map(SuggestionDto.Response::from)
+                        .toList())
+                .totalCount(suggestions.getTotalElements())
+                .currentPage(suggestions.getNumber())
+                .totalPages(suggestions.getTotalPages())
+                .hasNext(suggestions.hasNext())
+                .hasPrevious(suggestions.hasPrevious())
+                .build();
+    }
+
+    // 관리자 여부 확인
+    public boolean isAdmin(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElse(null);
+        
+        return user != null && user.getRole() == User.Role.ADMIN;
+    }
 }
