@@ -285,49 +285,56 @@ export default function Signup() {
     e.preventDefault();
     setError('');
 
-    // 입력 검증
-    if (!validateEmail(form.email)) {
-      setError('올바른 이메일 형식을 입력해주세요.');
-      return;
+    // 필수 입력 항목 검증
+    const missingFields = [];
+    
+    if (!form.email) {
+      missingFields.push('이메일을 입력해주세요');
+    } else if (!validateEmail(form.email)) {
+      missingFields.push('올바른 이메일 형식을 입력해주세요');
+    } else if (!emailVerified) {
+      missingFields.push('이메일 인증을 완료해주세요');
     }
     
-    if (!validateNickname(form.nickname)) {
-      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다. (특수문자 불가)');
-      return;
+    if (!form.nickname) {
+      missingFields.push('닉네임을 입력해주세요');
+    } else if (!validateNickname(form.nickname)) {
+      missingFields.push('닉네임은 2-8자의 한글 또는 영어만 가능합니다');
+    } else if (!nicknameChecked) {
+      missingFields.push('닉네임 중복 확인을 해주세요');
     }
     
-    if (!validatePhone(form.phone)) {
-      setError('올바른 휴대폰 번호 형식을 입력해주세요. (예: 010-1234-5678)');
-      return;
+    if (!form.phone) {
+      missingFields.push('휴대폰 번호를 입력해주세요');
+    } else if (!validatePhone(form.phone)) {
+      missingFields.push('올바른 휴대폰 번호 형식을 입력해주세요 (예: 010-1234-5678)');
+    } else if (!phoneVerified) {
+      missingFields.push('휴대폰 인증을 완료해주세요');
     }
     
-    if (!validatePassword(form.password)) {
-      setError('비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다.');
-      return;
+    if (!form.password) {
+      missingFields.push('비밀번호를 입력해주세요');
+    } else if (!validatePassword(form.password)) {
+      missingFields.push('비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다');
+    }
+    
+    if (!form.confirmPassword) {
+      missingFields.push('비밀번호 확인을 입력해주세요');
+    } else if (form.password !== form.confirmPassword) {
+      missingFields.push('비밀번호가 일치하지 않습니다');
+    }
+    
+    if (!termsAgreed) {
+      missingFields.push('이용약관에 동의해주세요');
+    }
+    
+    if (!privacyAgreed) {
+      missingFields.push('개인정보 처리방침에 동의해주세요');
     }
 
-    if (!termsAgreed || !privacyAgreed) {
-      setError('이용약관 및 개인정보 처리방침에 모두 동의해야 합니다.');
-      return;
-    }
-    
-    if (form.password !== form.confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    
-    if (!emailVerified) {
-      setError('이메일 인증을 완료해주세요.');
-      return;
-    }
-    
-    if (!phoneVerified) {
-      setError('전화번호 인증을 완료해주세요.');
-      return;
-    }
-    
-    if (!nicknameChecked) {
-      setError('닉네임 중복 확인을 해주세요.');
+    // 누락된 항목이 있으면 에러 메시지 표시
+    if (missingFields.length > 0) {
+      setError(`다음 항목을 확인해주세요:\n• ${missingFields.join('\n• ')}`);
       return;
     }
 
@@ -563,33 +570,17 @@ export default function Signup() {
             </div>
           </div>
 
-          {error && <p className="text-red-400 text-xs text-center">{error}</p>}
-          
-          {/* 회원가입 버튼 비활성화 이유 안내 */}
-          {(loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed) && (
-            <div className="bg-yellow-900/20 border border-yellow-600/30 p-3 rounded text-xs">
-              <p className="text-yellow-300 font-medium mb-2">⚠️ 회원가입을 완료하려면 아래 항목들을 모두 완료해주세요:</p>
-              <ul className="space-y-1 text-yellow-200">
-                {!form.email && <li>• 이메일을 입력해주세요</li>}
-                {form.email && !emailVerified && <li>• 이메일 인증을 완료해주세요</li>}
-                {!form.nickname && <li>• 닉네임을 입력해주세요</li>}
-                {form.nickname && !nicknameChecked && <li>• 닉네임 중복 확인을 해주세요</li>}
-                {!form.phone && <li>• 휴대폰 번호를 입력해주세요</li>}
-                {form.phone && !phoneVerified && <li>• 휴대폰 인증을 완료해주세요</li>}
-                {!form.password && <li>• 비밀번호를 입력해주세요</li>}
-                {!form.confirmPassword && <li>• 비밀번호 확인을 입력해주세요</li>}
-                {form.password && form.confirmPassword && form.password !== form.confirmPassword && <li>• 비밀번호가 일치하지 않습니다</li>}
-                {!termsAgreed && <li>• 이용약관에 동의해주세요</li>}
-                {!privacyAgreed && <li>• 개인정보 처리방침에 동의해주세요</li>}
-              </ul>
+          {error && (
+            <div className="bg-red-900/20 border border-red-600/30 p-3 rounded text-xs">
+              <p className="text-red-400 whitespace-pre-line">{error}</p>
             </div>
           )}
           
           <button 
             type="submit" 
-            disabled={loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed}
+            disabled={loading.signup}
             className={`w-full py-2 rounded transition-colors ${
-              loading.signup || !form.email || !form.nickname || !form.phone || !form.password || !form.confirmPassword || !emailVerified || !phoneVerified || !nicknameChecked || !termsAgreed || !privacyAgreed
+              loading.signup
                 ? 'bg-gray-600 cursor-not-allowed text-gray-400'
                 : 'bg-purple-600 hover:bg-purple-700 text-white'
             }`}
