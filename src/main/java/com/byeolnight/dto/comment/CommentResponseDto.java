@@ -20,6 +20,9 @@ public class CommentResponseDto {
     private String parentWriter;
     private String writerIcon;
     private java.util.List<String> writerCertificates;
+    private int likeCount;
+    private int reportCount;
+    private boolean isPopular;
 
     public static CommentResponseDto from(Comment comment) {
         System.out.println("CommentResponseDto.from 호출 - 댓글 ID: " + comment.getId());
@@ -78,6 +81,9 @@ public class CommentResponseDto {
                 .parentWriter(parentWriter)
                 .writerIcon(writerIcon)
                 .writerCertificates(writerCertificates)
+                .likeCount(comment.getLikeCount())
+                .reportCount(comment.getReportCount())
+                .isPopular(comment.isPopular())
                 .build();
     }
 }

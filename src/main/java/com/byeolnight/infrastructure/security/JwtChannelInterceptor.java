@@ -1,5 +1,6 @@
 package com.byeolnight.infrastructure.security;
 
+import com.byeolnight.infrastructure.util.IpUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -9,6 +10,8 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Component
 @RequiredArgsConstructor
@@ -21,6 +24,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            // 클라이언트 IP 추출 및 세션에 저장
+            try {
+                String clientIp = extractClientIp(accessor);
+                accessor.getSessionAttributes().put("clientIp", clientIp);
+            } catch (Exception e) {
+                System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
+            }
+            
             String token = accessor.getFirstNativeHeader("Authorization");
             if (token != null && token.startsWith("Bearer ")) {
                 token = token.substring(7);
@@ -38,5 +49,24 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         return message;
+    }
+    
+    private String extractClientIp(StompHeaderAccessor accessor) {
+        // 프론트엔드에서 전송한 X-Client-IP 헤더 우선 처리
+        String ip = accessor.getFirstNativeHeader("X-Client-IP");
+        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+            return ip.contains(",") ? ip.split(",")[0].trim() : ip;
+        }
+        
+        // 기존 헤더들 순서대로 확인
+        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP"};
+        for (String header : headers) {
+            ip = accessor.getFirstNativeHeader(header);
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                return ip.contains(",") ? ip.split(",")[0].trim() : ip;
+            }
+        }
+        
+        return "unknown";
     }
 }

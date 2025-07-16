@@ -60,4 +60,22 @@ public class CommentController {
         commentService.delete(commentId, user);
         return ResponseEntity.ok(CommonResponse.success());
     }
+    
+    @Operation(summary = "댓글 좋아요/취소", description = "댓글에 좋아요를 누르거나 취소합니다.")
+    @PostMapping("/{commentId}/like")
+    public ResponseEntity<CommonResponse<Boolean>> toggleLike(@PathVariable Long commentId,
+                                                              @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        boolean liked = commentService.toggleCommentLike(commentId, user);
+        return ResponseEntity.ok(CommonResponse.success(liked));
+    }
+    
+    @Operation(summary = "댓글 신고", description = "부적절한 댓글을 신고합니다.")
+    @PostMapping("/{commentId}/report")
+    public ResponseEntity<CommonResponse<Void>> report(@PathVariable Long commentId,
+                                                       @RequestParam String reason,
+                                                       @RequestParam(required = false) String description,
+                                                       @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        commentService.reportComment(commentId, user, reason, description);
+        return ResponseEntity.ok(CommonResponse.success());
+    }
 }

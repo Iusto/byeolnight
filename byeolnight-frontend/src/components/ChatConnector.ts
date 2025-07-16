@@ -14,11 +14,18 @@ export const connectChat = (onMessage: (msg: any) => void) => {
   // SockJS는 HTTP/HTTPS 프로토콜을 사용
   const socketUrl = wsUrl;
 
+  // 클라이언트 IP 가져오기
+  const clientIp = sessionStorage.getItem('clientIp') || 'unknown';
+  
   stompClient = new Client({
     webSocketFactory: () => new SockJS(wsUrl),
     reconnectDelay: 5000,
     heartbeatIncoming: 4000,
     heartbeatOutgoing: 4000,
+    connectHeaders: {
+      'X-Client-IP': clientIp,
+      'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`
+    }
   });
 
   stompClient.onConnect = () => {
@@ -45,7 +52,14 @@ export const connectChat = (onMessage: (msg: any) => void) => {
 
 export const sendMessage = (message: any) => {
   if (stompClient?.connected) {
-    stompClient.publish({ destination: '/app/chat.send', body: JSON.stringify(message) });
+    const clientIp = sessionStorage.getItem('clientIp') || 'unknown';
+    stompClient.publish({ 
+      destination: '/app/chat.send', 
+      body: JSON.stringify(message),
+      headers: {
+        'X-Client-IP': clientIp
+      }
+    });
   } else {
     console.warn('❌ WebSocket 연결되지 않음');
   }

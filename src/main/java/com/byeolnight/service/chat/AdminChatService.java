@@ -8,10 +8,13 @@ import com.byeolnight.dto.admin.ChatStatsDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,6 +28,7 @@ public class AdminChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatBanRepository chatBanRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final StringRedisTemplate redisTemplate;
 
     // 메시지 블라인드 처리
     @Transactional
@@ -198,5 +202,22 @@ public class AdminChatService {
             chatBanRepository.saveAll(expiredBans);
             log.info("만료된 채팅 금지 {}건 정리됨", expiredBans.size());
         }
+    }
+
+    // IP 차단
+    public void blockIp(String ip, int durationMinutes, Long adminId, String reason) {
+        String key = "blocked:chat:ip:" + ip;
+        redisTemplate.opsForValue().set(key, reason, durationMinutes, TimeUnit.MINUTES);
+        
+        // 관리자들에게 실시간 알림
+        messagingTemplate.convertAndSend("/topic/admin/chat-update", 
+            Map.of("type", "IP_BLOCKED", "ip", ip, "duration", durationMinutes, "reason", reason));
+        
+        log.info("IP {} {}분간 채팅 차단됨 by 관리자 {} - 사유: {}", ip, durationMinutes, adminId, reason);
+    }
+
+    // IP 차단 여부 확인
+    public boolean isIpBlocked(String ip) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey("blocked:chat:ip:" + ip));
     }
 }

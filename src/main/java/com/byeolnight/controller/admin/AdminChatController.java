@@ -2,6 +2,7 @@ package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.admin.ChatBanRequestDto;
 import com.byeolnight.dto.admin.ChatStatsDto;
+import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.AdminChatService;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,10 +52,28 @@ public class AdminChatController {
     @PostMapping("/ban")
     public ResponseEntity<Void> banUser(
             @RequestBody ChatBanRequestDto request,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
+        String adminIp = IpUtil.getClientIp(httpRequest);
         adminChatService.banUser(request.getUsername(), request.getDuration(), admin.getId(), request.getReason());
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "IP 차단", description = "관리자가 특정 IP를 채팅에서 차단합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/ip-block")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> blockIp(
+            @RequestParam String ip,
+            @RequestParam(defaultValue = "60") int durationMinutes,
+            @RequestParam(required = false) String reason,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin,
+            jakarta.servlet.http.HttpServletRequest httpRequest
+    ) {
+        String adminIp = IpUtil.getClientIp(httpRequest);
+        adminChatService.blockIp(ip, durationMinutes, admin.getId(), reason != null ? reason : "관리자에 의한 IP 차단");
+        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
+            String.format("IP %s가 %d분간 차단되었습니다.", ip, durationMinutes)));
     }
 
     @Operation(summary = "채팅 금지 해제", description = "관리자가 사용자의 채팅 금지를 해제합니다.")

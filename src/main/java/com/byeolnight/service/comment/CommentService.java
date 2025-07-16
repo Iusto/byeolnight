@@ -3,7 +3,7 @@ package com.byeolnight.service.comment;
 import com.byeolnight.domain.entity.comment.Comment;
 import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.CommentRepository;
+import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
@@ -29,6 +29,8 @@ public class CommentService {
     private final com.byeolnight.service.user.PointService pointService;
     private final UserRepository userRepository;
     private final com.byeolnight.service.notification.NotificationService notificationService;
+    private final com.byeolnight.domain.repository.comment.CommentLikeRepository commentLikeRepository;
+    private final com.byeolnight.domain.repository.comment.CommentReportRepository commentReportRepository;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -250,5 +252,83 @@ public class CommentService {
         return commentRepository.findByDeletedTrueOrderByCreatedAtDesc().stream()
                 .map(CommentResponseDto::from)
                 .toList();
+    }
+    
+    // 댓글 좋아요/취소
+    @Transactional
+    public boolean toggleCommentLike(Long commentId, User user) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+        
+        boolean exists = commentLikeRepository.existsByCommentAndUser(comment, user);
+        
+        if (exists) {
+            // 좋아요 취소
+            commentLikeRepository.deleteByCommentAndUser(comment, user);
+            comment.decreaseLikeCount();
+            return false;
+        } else {
+            // 좋아요 추가
+            com.byeolnight.domain.entity.comment.CommentLike like = 
+                com.byeolnight.domain.entity.comment.CommentLike.builder()
+                    .comment(comment)
+                    .user(user)
+                    .build();
+            commentLikeRepository.save(like);
+            comment.increaseLikeCount();
+            return true;
+        }
+    }
+    
+    // 댓글 신고
+    @Transactional
+    public void reportComment(Long commentId, User reporter, String reason, String description) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+        
+        // 중복 신고 방지
+        if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
+            throw new IllegalArgumentException("이미 신고한 댓글입니다.");
+        }
+        
+        com.byeolnight.domain.entity.comment.CommentReport report = 
+            com.byeolnight.domain.entity.comment.CommentReport.builder()
+                .comment(comment)
+                .reporter(reporter)
+                .reason(reason)
+                .description(description)
+                .build();
+        
+        commentReportRepository.save(report);
+        comment.increaseReportCount();
+        
+        // 신고 수가 5개 이상이면 자동 블라인드
+        if (comment.getReportCount() >= 5) {
+            comment.blind();
+        }
+    }
+    
+    // 관리자: 댓글 신고 처리
+    @Transactional
+    public void processCommentReport(Long reportId, User admin, boolean approve) {
+        com.byeolnight.domain.entity.comment.CommentReport report = 
+            commentReportRepository.findById(reportId)
+                .orElseThrow(() -> new NotFoundException("신고를 찾을 수 없습니다."));
+        
+        if (approve) {
+            report.approve(admin);
+            report.getComment().blind();
+            // 페널티 적용
+            pointService.applyPenalty(report.getComment().getWriter(), "댓글 신고 승인", reportId.toString());
+        } else {
+            report.reject(admin);
+            report.getComment().decreaseReportCount();
+        }
+    }
+    
+    // 관리자: 대기 중인 댓글 신고 목록
+    @Transactional(readOnly = true)
+    public List<com.byeolnight.domain.entity.comment.CommentReport> getPendingCommentReports() {
+        return commentReportRepository.findPendingReports();
     }
 }

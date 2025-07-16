@@ -7,6 +7,7 @@ import com.byeolnight.domain.repository.log.AuditLoginLogRepository;
 import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
+import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +37,10 @@ public class AuthService {
      * 로그인 인증 처리
      */
     public LoginResult authenticate(LoginRequestDto dto, HttpServletRequest request) {
-        String ip = request.getRemoteAddr();
+        String ip = IpUtil.getClientIp(request);
         String userAgent = request.getHeader("User-Agent");
+        
+        log.info("로그인 시도 - 이메일: {}, IP: {}, User-Agent: {}", dto.getEmail(), ip, userAgent);
 
         // IP 차단 확인
         validateIpNotBlocked(ip);
