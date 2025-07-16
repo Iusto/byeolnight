@@ -1,5 +1,16 @@
 package com.byeolnight.infrastructure.config;
 
+/**
+ * 스텔라 아이콘 상점 설정
+ * 
+ * 역할:
+ * - 45개 우주 테마 아이콘 메타데이터 관리
+ * - 등급별 가격 설정 (COMMON, RARE, EPIC, LEGENDARY)
+ * - 아이콘 한글명, 설명 매핑 정보
+ * - 아이콘 파일 경로 및 확장자 설정
+ * - 등급별 아이콘 분류 및 가격 조회 유틸리티
+ */
+
 import com.byeolnight.domain.entity.shop.StellaIconGrade;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

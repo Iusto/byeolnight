@@ -1,5 +1,16 @@
 package com.byeolnight.infrastructure.security;
 
+/**
+ * SMS 인증 요청 빈도 제한 서비스
+ * 
+ * 역할:
+ * - 전화번호별 SMS 전송 빈도 제한 (1분/1시간/1일)
+ * - IP별 SMS 요청 빈도 제한 (도스 공격 방지)
+ * - Redis 기반 레이트 리미팅 및 자동 차단
+ * - 관리자용 제한 해제 기능
+ * - 단계별 차단 시간 설정 (오남용 방지)
+ */
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;

@@ -1,5 +1,15 @@
 package com.byeolnight.infrastructure.config;
 
+/**
+ * 인증서 시스템 초기 데이터 로더
+ * 
+ * 역할:
+ * - 애플리케이션 시작 시 인증서 시스템 초기화
+ * - 관리자 계정에 관리자 훈장 자동 발급
+ * - 인증서 데이터 현황 로깅 및 모니터링
+ * - Order(3)으로 사용자 데이터 로드 후 실행
+ */
+
 import com.byeolnight.domain.entity.certificate.Certificate;
 import com.byeolnight.domain.entity.certificate.UserCertificate;
 import com.byeolnight.domain.entity.user.User;

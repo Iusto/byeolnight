@@ -1,5 +1,16 @@
 package com.byeolnight.infrastructure.security;
 
+/**
+ * Spring Security 메인 설정 클래스
+ * 
+ * 역할:
+ * - HTTP 보안 설정 (CSRF 비활성화, CORS 설정)
+ * - URL 별 인증/인가 정책 설정
+ * - JWT 인증 필터 등록
+ * - 예외 처리기 설정 (401/403 에러 응답)
+ * - 비밀번호 인코더 및 인증 매니저 빈 등록
+ */
+
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.user.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -94,9 +105,7 @@ public class SecurityConfig {
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"message\": \"접근 권한이 없습니다.\"}");
+            SecurityUtils.writeAuthErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, "접근 권한이 없습니다.");
         };
     }
 }

@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ * HTTP 요청용 (HttpServletRequest 기반)
  * 클라이언트의 실제 IP 주소를 추출하는 유틸리티 클래스
  * 프록시, 로드밸런서, CDN 등을 고려하여 실제 클라이언트 IP를 반환
  */
