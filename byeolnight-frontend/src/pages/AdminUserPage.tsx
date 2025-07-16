@@ -218,6 +218,7 @@ export default function AdminUserPage() {
       await axios.patch(`/admin/reports/${reportId}/approve`);
       alert('신고가 승인되었습니다. 신고자들에게 포인트가 지급되었습니다.');
       fetchReportedPosts();
+      fetchReportedComments();
     } catch (error) {
       console.error('신고 승인 실패:', error);
       alert('신고 승인에 실패했습니다.');
@@ -229,6 +230,7 @@ export default function AdminUserPage() {
       await axios.patch(`/admin/reports/${reportId}/reject`, { reason });
       alert('신고가 거부되었습니다.');
       fetchReportedPosts();
+      fetchReportedComments();
     } catch (error) {
       console.error('신고 거부 실패:', error);
       alert('신고 거부에 실패했습니다.');
