@@ -35,6 +35,8 @@ export default function AdminReportsPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchType, setSearchType] = useState('title');
   const [expandedPost, setExpandedPost] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState('posts');
+  const [reportedComments, setReportedComments] = useState([]);
 
   useEffect(() => {
     if (user === null) {
@@ -45,9 +47,21 @@ export default function AdminReportsPage() {
       navigate('/');
       return;
     }
-    fetchReportedPosts();
-    fetchReportStats();
+    if (activeTab === 'posts') {
+      fetchReportedPosts();
+      fetchReportStats();
+    } else {
+      fetchReportedComments();
+    }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (user && user.role === 'ADMIN') {
+      if (activeTab === 'comments') {
+        fetchReportedComments();
+      }
+    }
+  }, [activeTab]);
 
   const fetchReportedPosts = async () => {
     try {
@@ -110,6 +124,15 @@ export default function AdminReportsPage() {
     setExpandedPost(expandedPost === postId ? null : postId);
   };
 
+  const fetchReportedComments = async () => {
+    try {
+      const res = await axios.get('/admin/reports/comments');
+      setReportedComments(res.data?.data?.content || []);
+    } catch (err) {
+      console.error('신고된 댓글 조회 실패:', err);
+    }
+  };
+
   if (loading) return <div className="text-white p-8">로딩 중...</div>;
 
   return (
@@ -123,6 +146,32 @@ export default function AdminReportsPage() {
             ← 관리자 페이지
           </button>
           <h1 className="text-3xl font-bold">🚨 신고 관리</h1>
+        </div>
+
+        {/* 탭 메뉴 */}
+        <div className="mb-6">
+          <div className="flex border-b border-gray-600">
+            <button
+              onClick={() => setActiveTab('posts')}
+              className={`px-6 py-3 font-medium transition ${
+                activeTab === 'posts'
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📝 신고된 게시글
+            </button>
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`px-6 py-3 font-medium transition ${
+                activeTab === 'comments'
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              💬 신고된 댓글
+            </button>
+          </div>
         </div>
 
         {/* 신고 통계 */}
@@ -174,87 +223,176 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        {/* 신고된 게시글 목록 */}
+        {/* 콘텐츠 영역 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl shadow-xl overflow-hidden">
-          {posts.length === 0 ? (
-            <div className="text-center text-gray-400 py-12">
-              {searchKeyword ? '검색 결과가 없습니다.' : '신고된 게시글이 없습니다.'}
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-600">
-              {posts.map((post) => (
-                <div key={post.postId} className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+          {activeTab === 'posts' ? (
+            // 신고된 게시글 목록
+            posts.length === 0 ? (
+              <div className="text-center text-gray-400 py-12">
+                {searchKeyword ? '검색 결과가 없습니다.' : '신고된 게시글이 없습니다.'}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-600">
+                {posts.map((post) => (
+                  <div key={post.postId} className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <button
+                            onClick={() => navigate(`/posts/${post.postId}`)}
+                            className="text-blue-400 hover:text-blue-300 hover:underline text-lg font-semibold"
+                          >
+                            {post.title}
+                          </button>
+                          {post.blinded && (
+                            <span className="px-2 py-1 bg-red-600 rounded text-xs">블라인드</span>
+                          )}
+                          <span className="px-2 py-1 bg-gray-600 rounded text-xs">{post.category}</span>
+                        </div>
+                        <div className="text-gray-300 text-sm mb-2">
+                          작성자: {post.writer} | 작성일: {new Date(post.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-gray-400 text-sm line-clamp-2">{post.content}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded text-sm font-bold ${
+                          post.totalReportCount >= 5 ? 'bg-red-600' : 
+                          post.totalReportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
+                        }`}>
+                          신고 {post.totalReportCount}건
+                        </span>
                         <button
-                          onClick={() => navigate(`/posts/${post.postId}`)}
-                          className="text-blue-400 hover:text-blue-300 hover:underline text-lg font-semibold"
+                          onClick={() => toggleExpanded(post.postId)}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition"
                         >
-                          {post.title}
+                          {expandedPost === post.postId ? '접기' : '상세보기'}
                         </button>
-                        {post.blinded && (
-                          <span className="px-2 py-1 bg-red-600 rounded text-xs">블라인드</span>
-                        )}
-                        <span className="px-2 py-1 bg-gray-600 rounded text-xs">{post.category}</span>
                       </div>
-                      <div className="text-gray-300 text-sm mb-2">
-                        작성자: {post.writer} | 작성일: {new Date(post.createdAt).toLocaleDateString()}
-                      </div>
-                      <div className="text-gray-400 text-sm line-clamp-2">{post.content}</div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 rounded text-sm font-bold ${
-                        post.totalReportCount >= 5 ? 'bg-red-600' : 
-                        post.totalReportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
-                      }`}>
-                        신고 {post.totalReportCount}건
-                      </span>
-                      <button
-                        onClick={() => toggleExpanded(post.postId)}
-                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition"
-                      >
-                        {expandedPost === post.postId ? '접기' : '상세보기'}
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* 신고 상세 내역 */}
-                  {expandedPost === post.postId && (
-                    <div className="mt-4 p-4 bg-[#2a2e45]/60 rounded-lg">
-                      <h4 className="font-semibold mb-3">신고 내역</h4>
-                      <div className="space-y-3">
-                        {post.reports.map((report) => (
-                          <div key={report.reportId} className="flex justify-between items-center p-3 bg-[#1f2336]/60 rounded">
-                            <div>
-                              <div className="font-medium">{report.reporterNickname}</div>
-                              <div className="text-sm text-gray-400">{report.reason}</div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(report.reportedAt).toLocaleString()}
+                    {/* 신고 상세 내역 */}
+                    {expandedPost === post.postId && (
+                      <div className="mt-4 p-4 bg-[#2a2e45]/60 rounded-lg">
+                        <h4 className="font-semibold mb-3">신고 내역</h4>
+                        <div className="space-y-3">
+                          {post.reports.map((report) => (
+                            <div key={report.reportId} className="flex justify-between items-center p-3 bg-[#1f2336]/60 rounded">
+                              <div>
+                                <div className="font-medium">{report.reporterNickname}</div>
+                                <div className="text-sm text-gray-400">{report.reason}</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(report.reportedAt).toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleApproveReport(report.reportId)}
+                                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
+                                >
+                                  승인
+                                </button>
+                                <button
+                                  onClick={() => handleRejectReport(report.reportId)}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
+                                >
+                                  거부
+                                </button>
                               </div>
                             </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApproveReport(report.reportId)}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
-                              >
-                                승인
-                              </button>
-                              <button
-                                onClick={() => handleRejectReport(report.reportId)}
-                                className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
-                              >
-                                거부
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            // 신고된 댓글 목록
+            reportedComments.length === 0 ? (
+              <div className="text-center text-gray-400 py-12">
+                신고된 댓글이 없습니다.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-600">
+                {reportedComments.map((comment: any) => (
+                  <div key={comment.commentId} className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <button
+                            onClick={() => navigate(`/posts/${comment.postId}`)}
+                            className="text-blue-400 hover:text-blue-300 hover:underline text-lg font-semibold"
+                          >
+                            {comment.postTitle}
+                          </button>
+                          {comment.blinded && (
+                            <span className="px-2 py-1 bg-red-600 rounded text-xs">블라인드</span>
+                          )}
+                        </div>
+                        <div className="text-gray-300 text-sm mb-2">
+                          작성자: {comment.writer} | 작성일: {new Date(comment.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-gray-400 text-sm p-3 bg-[#2a2e45]/60 rounded">
+                          {comment.content}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded text-sm font-bold ${
+                          comment.reportCount >= 5 ? 'bg-red-600' : 
+                          comment.reportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
+                        }`}>
+                          신고 {comment.reportCount}건
+                        </span>
+                        <button
+                          onClick={() => toggleExpanded(comment.commentId)}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition"
+                        >
+                          {expandedPost === comment.commentId ? '접기' : '상세보기'}
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+
+                    {/* 신고 상세 내역 */}
+                    {expandedPost === comment.commentId && (
+                      <div className="mt-4 p-4 bg-[#2a2e45]/60 rounded-lg">
+                        <h4 className="font-semibold mb-3">신고 내역</h4>
+                        <div className="space-y-3">
+                          {comment.reportDetails.map((report: any) => (
+                            <div key={report.reportId} className="flex justify-between items-center p-3 bg-[#1f2336]/60 rounded">
+                              <div>
+                                <div className="font-medium">{report.reporterNickname}</div>
+                                <div className="text-sm text-gray-400">{report.reason}</div>
+                                {report.description && (
+                                  <div className="text-xs text-gray-500 mt-1">{report.description}</div>
+                                )}
+                                <div className="text-xs text-gray-500">
+                                  {new Date(report.reportedAt).toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleApproveReport(report.reportId)}
+                                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
+                                >
+                                  승인
+                                </button>
+                                <button
+                                  onClick={() => handleRejectReport(report.reportId)}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
+                                >
+                                  거부
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>
