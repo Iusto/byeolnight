@@ -18,6 +18,16 @@ import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
 
+/**
+ * JWT 토큰 생성, 검증, 파싱 담당 프로바이더
+ *
+ * 역할:
+ * - Access Token 및 Refresh Token 생성 (30분/7일 유효기간)
+ * - JWT 토큰 서명 및 검증
+ * - 토큰에서 사용자 정보(이메일, 권한) 추출
+ * - Spring Security Authentication 객체 생성
+ * - HTTP 요청에서 사용자 ID 추출 지원
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -79,9 +89,7 @@ public class JwtTokenProvider {
         return false;
     }
 
-    public boolean validateRefreshToken(String token) {
-        return validate(token);
-    }
+
 
     /**
      * 토큰에서 이메일 추출
@@ -129,7 +137,7 @@ public class JwtTokenProvider {
      * HTTP 요청에서 사용자 ID 추출
      */
     public Long getUserIdFromRequest(HttpServletRequest request) {
-        String token = resolveToken(request);
+        String token = SecurityUtils.resolveToken(request);
         if (token != null && validate(token)) {
             String email = getEmail(token);
             if (email != null) {
@@ -142,14 +150,5 @@ public class JwtTokenProvider {
         throw new RuntimeException("유효하지 않은 토큰입니다.");
     }
 
-    /**
-     * HTTP 요청에서 JWT 토큰 추출
-     */
-    private String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
-    }
+
 }

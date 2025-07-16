@@ -1,5 +1,9 @@
 package com.byeolnight.infrastructure.security;
 
+/**
+ * 인증 없이 접근 가능한 URL 패턴 정의
+ * Spring Security에서 permitAll() 처리할 경로들을 중앙 관리
+ */
 public class AuthWhitelist {
     public static final String[] PATHS = {
             "/api/public/**",

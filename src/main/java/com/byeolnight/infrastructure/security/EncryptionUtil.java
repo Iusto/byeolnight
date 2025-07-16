@@ -11,7 +11,11 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * 개인정보 암호화/복호화 유틸리티
- * AES-128 암호화를 사용하여 전화번호 등 민감정보를 보호
+ * 
+ * 역할:
+ * - AES-128 암호화로 전화번호 등 민감정보 보호
+ * - 암호화된 데이터의 안전한 저장/조회 지원
+ * - SHA-256 해시로 중복 검사용 해시값 생성
  */
 @Component
 public class EncryptionUtil {

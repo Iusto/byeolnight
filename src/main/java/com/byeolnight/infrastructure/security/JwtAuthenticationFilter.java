@@ -18,6 +18,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * JWT 토큰 기반 인증 필터
+ *
+ * 역할:
+ * - 모든 HTTP 요청에서 JWT 토큰 추출 및 검증
+ * - 화이트리스트 경로는 인증 없이 통과 허용
+ * - 블랙리스트 토큰 차단
+ * - 인증 성공 시 SecurityContext에 인증 정보 설정
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -64,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = resolveToken(request);
+        String token = SecurityUtils.resolveToken(request);
         log.debug("🪪 추출된 토큰: {}", token);
 
         if (token == null) {
@@ -110,14 +119,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Authorization 헤더에서 Bearer 토큰 추출
-     */
-    private String resolveToken(HttpServletRequest request) {
-        String bearer = request.getHeader("Authorization");
-        if (bearer != null && bearer.startsWith("Bearer ")) {
-            return bearer.substring(7);
-        }
-        return null;
-    }
+
 }

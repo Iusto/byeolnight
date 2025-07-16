@@ -1,6 +1,5 @@
 package com.byeolnight.infrastructure.security;
 
-import com.byeolnight.infrastructure.util.IpUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -11,8 +10,15 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+/**
+ * WebSocket 연결 시 JWT 인증 처리 인터셉터
+ *
+ * 역할:
+ * - WebSocket CONNECT 시 JWT 토큰 검증
+ * - 인증된 사용자는 인증 정보 설정, 비로그인도 연결 허용
+ * - 클라이언트 IP 주소 추출 및 세션에 저장
+ * - 실시간 채팅 및 알림 시스템에서 사용
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
@@ -26,7 +32,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             // 클라이언트 IP 추출 및 세션에 저장
             try {
-                String clientIp = extractClientIp(accessor);
+                String clientIp = extractClientIpFromHeaders(accessor);
                 accessor.getSessionAttributes().put("clientIp", clientIp);
             } catch (Exception e) {
                 System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
@@ -51,17 +57,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         return message;
     }
     
-    private String extractClientIp(StompHeaderAccessor accessor) {
-        // 프론트엔드에서 전송한 X-Client-IP 헤더 우선 처리
-        String ip = accessor.getFirstNativeHeader("X-Client-IP");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip.contains(",") ? ip.split(",")[0].trim() : ip;
-        }
+    private String extractClientIpFromHeaders(StompHeaderAccessor accessor) {
+        // WebSocket 헤더에서 IP 추출 (IpUtil과 동일한 우선순위)
+        String[] headers = {
+            "X-Client-IP",
+            "X-Forwarded-For", 
+            "X-Real-IP", 
+            "Proxy-Client-IP"
+        };
         
-        // 기존 헤더들 순서대로 확인
-        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP"};
         for (String header : headers) {
-            ip = accessor.getFirstNativeHeader(header);
+            String ip = accessor.getFirstNativeHeader(header);
             if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
                 return ip.contains(",") ? ip.split(",")[0].trim() : ip;
             }

@@ -88,13 +88,24 @@ public class AuthController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "이메일 전송 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "429", description = "요청 제한 초과"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    public ResponseEntity<CommonResponse<String>> sendEmailCode(@RequestBody @Valid EmailRequestDto dto) {
+    public ResponseEntity<CommonResponse<String>> sendEmailCode(@RequestBody @Valid EmailRequestDto dto, HttpServletRequest request) {
+        // IP당 이메일 인증 요청 제한 (시간당 10개)
+        String clientIp = IpUtil.getClientIp(request);
+        // TODO: Redis로 Rate Limiting 구현
+        
         // 이메일 중복 검사
         if (userService.findByEmail(dto.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(CommonResponse.fail("이미 가입된 이메일입니다."));
+        }
+        
+        // 이메일 형식 검증
+        if (!isValidEmail(dto.getEmail())) {
+            return ResponseEntity.badRequest()
+                    .body(CommonResponse.fail("올바른 이메일 형식이 아닙니다."));
         }
         
         emailAuthService.sendCode(dto.getEmail());
@@ -132,6 +143,12 @@ public class AuthController {
                         .body(CommonResponse.fail("SMS 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."));
             }
             
+            // 추가 보안: 전화번호 형식 검증
+            if (!isValidPhoneNumber(dto.getPhone())) {
+                return ResponseEntity.badRequest()
+                        .body(CommonResponse.fail("올바른 전화번호 형식이 아닙니다."));
+            }
+            
             // 핸드폰번호 중복 검사
             if (userService.isPhoneDuplicated(dto.getPhone())) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -145,6 +162,15 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(CommonResponse.fail("휴대폰 인증 코드 전송에 실패했습니다."));
         }
+    }
+    
+    private boolean isValidPhoneNumber(String phone) {
+        // 한국 휴대폰 번호 형식 검증 (010, 011, 016, 017, 018, 019)
+        return phone != null && phone.matches("^01[0-9]-?\\d{3,4}-?\\d{4}$");
+    }
+    
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     }
 
     @PostMapping("/phone/verify")
