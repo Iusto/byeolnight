@@ -58,7 +58,8 @@ export default function AdminUserPage() {
   const [blindedComments, setBlindedComments] = useState<any[]>([]);
   const [deletedPosts, setDeletedPosts] = useState<any[]>([]);
   const [deletedComments, setDeletedComments] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reports' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files' | 'scheduler'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reportedPosts' | 'reportedComments' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files' | 'scheduler'>('users');
+  const [reportedComments, setReportedComments] = useState<any[]>([]);
   const [showIpModal, setShowIpModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [showPointModal, setShowPointModal] = useState(false);
@@ -239,6 +240,7 @@ export default function AdminUserPage() {
     fetchBlockedIps();
     fetchBlindedPosts();
     fetchReportedPosts();
+    fetchReportedComments();
     fetchBlindedComments();
     fetchDeletedPosts();
     fetchDeletedComments();
@@ -269,7 +271,27 @@ export default function AdminUserPage() {
     }
   };
 
+  const fetchReportedComments = async () => {
+    try {
+      const res = await axios.get('/admin/reports/comments');
+      const commentsData = Array.isArray(res.data) ? res.data : (res.data?.data?.content || res.data?.data || []);
+      setReportedComments(commentsData);
+    } catch (err) {
+      console.error('신고된 댓글 목록 조회 실패', err);
+    }
+  };
+
   const fetchBlindedComments = async () => {
+    try {
+      const res = await axios.get('/admin/comments/blinded');
+      const commentsData = Array.isArray(res.data) ? res.data : (res.data?.data || res.data || []);
+      setBlindedComments(commentsData);
+    } catch (err) {
+      console.error('블라인드 댓글 목록 조회 실패', err);
+    }
+  };
+
+  const fetchDeletedPosts = async () => {
     try {
       const res = await axios.get('/admin/comments/blinded');
       const commentsData = Array.isArray(res.data) ? res.data : (res.data?.data || res.data || []);
@@ -555,9 +577,9 @@ export default function AdminUserPage() {
           </button>
           
           <button
-            onClick={() => setActiveTab('reports')}
+            onClick={() => setActiveTab('reportedPosts')}
             className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-              activeTab === 'reports'
+              activeTab === 'reportedPosts'
                 ? 'bg-orange-600/40 border-orange-400 text-white shadow-lg transform scale-105'
                 : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-orange-500/50'
             }`}
@@ -565,6 +587,19 @@ export default function AdminUserPage() {
             <div className="text-3xl mb-2">🚨</div>
             <div className="font-semibold">신고된 게시글</div>
             <div className="text-sm text-gray-400 mt-1">신고된 게시글 관리</div>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('reportedComments')}
+            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
+              activeTab === 'reportedComments'
+                ? 'bg-pink-600/40 border-pink-400 text-white shadow-lg transform scale-105'
+                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-pink-500/50'
+            }`}
+          >
+            <div className="text-3xl mb-2">💬</div>
+            <div className="font-semibold">신고된 댓글</div>
+            <div className="text-sm text-gray-400 mt-1">신고된 댓글 관리</div>
           </button>
           
           <button
@@ -885,7 +920,7 @@ export default function AdminUserPage() {
               </div>
             )}
           </div>
-        ) : activeTab === 'reports' ? (
+        ) : activeTab === 'reportedPosts' ? (
           // 신고된 게시글 관리 섹션
           <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
             <div className="flex justify-between items-center mb-6">
@@ -1005,6 +1040,96 @@ export default function AdminUserPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'reportedComments' ? (
+          // 신고된 댓글 관리 섹션
+          <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">💬 신고된 댓글</h3>
+              <input
+                type="text"
+                placeholder="댓글 내용, 작성자로 검색..."
+                value={postSearchTerm}
+                onChange={(e) => setPostSearchTerm(e.target.value)}
+                className="w-64 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+            
+            {reportedComments.filter(comment => 
+              postSearchTerm === '' ||
+              comment.content?.toLowerCase().includes(postSearchTerm.toLowerCase()) ||
+              comment.writer?.toLowerCase().includes(postSearchTerm.toLowerCase())
+            ).length === 0 ? (
+              <p className="text-center text-gray-400 py-8">신고된 댓글이 없습니다.</p>
+            ) : (
+              <div className="space-y-4">
+                {reportedComments
+                  .filter(comment => 
+                    postSearchTerm === '' ||
+                    comment.content?.toLowerCase().includes(postSearchTerm.toLowerCase()) ||
+                    comment.writer?.toLowerCase().includes(postSearchTerm.toLowerCase())
+                  )
+                  .map((comment) => (
+                  <div key={comment.id} className="bg-[#2a2e45] p-4 rounded-lg">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <p className="text-gray-300 mb-2">{comment.content}</p>
+                        <p className="text-gray-400 text-sm mb-2">
+                          작성자: {comment.writer} | 게시글: 
+                          <button
+                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
+                            className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
+                            title="게시글로 이동"
+                          >
+                            {comment.postTitle}
+                          </button>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-red-400 text-sm font-medium">
+                            🚨 신고 {comment.reportCount || 0}건
+                          </span>
+                          {comment.reportReasons && comment.reportReasons.length > 0 && (
+                            <div className="flex gap-1">
+                              {comment.reportReasons.map((reason, index) => (
+                                <span key={index} className="px-2 py-1 bg-red-600/20 text-red-400 text-xs rounded">
+                                  {reason}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        {comment.reportDetails && comment.reportDetails.map((report) => (
+                          !report.reviewed && (
+                            <div key={report.reportId} className="flex gap-1">
+                              <button
+                                onClick={() => handleApproveReport(report.reportId)}
+                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-medium transition"
+                              >
+                                승인
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('거부 사유를 입력하세요:');
+                                  if (reason) handleRejectReport(report.reportId, reason);
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition"
+                              >
+                                거부
+                              </button>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-gray-500 text-xs">
+                      작성일: {new Date(comment.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
