@@ -88,6 +88,13 @@ public class JwtTokenProvider {
         }
         return false;
     }
+    
+    /**
+     * Refresh Token 유효성 검증
+     */
+    public boolean validateRefreshToken(String token) {
+        return validate(token);
+    }
 
 
 

@@ -47,12 +47,6 @@ public class ChatController {
             log.debug("IP 추출 실패, 기본값 사용: {}", e.getMessage());
         }
         
-        // IP 차단 확인
-        if (adminChatService.isIpBlocked(clientIp)) {
-            log.warn("차단된 IP에서 채팅 시도: {}", clientIp);
-            return;
-        }
-        
         if (principal instanceof Authentication auth && auth.getPrincipal() instanceof User user) {
             chatMessage.setSender(user.getNickname());  // ✅ 이메일 대신 닉네임 사용
             
