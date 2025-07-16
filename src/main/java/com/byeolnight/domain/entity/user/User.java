@@ -1,6 +1,7 @@
 package com.byeolnight.domain.entity.user;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -47,6 +48,7 @@ public class User implements UserDetails {
     private String password;
 
     /** 닉네임 */
+    @Size(min = 2, max = 8, message = "닉네임은 2-8자로 입력해주세요.")
     @Column(nullable = false)
     private String nickname;
 

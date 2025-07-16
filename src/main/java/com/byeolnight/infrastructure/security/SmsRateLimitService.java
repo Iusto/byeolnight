@@ -119,4 +119,44 @@ public class SmsRateLimitService {
             return true; // 오류 시 허용
         }
     }
+    
+    /**
+     * 전화번호별 제한 해제 (관리자용)
+     */
+    public void clearPhoneLimit(String phone) {
+        String[] keys = {
+            "sms_phone_1m:" + phone,
+            "sms_phone_1h:" + phone,
+            "sms_phone_1d:" + phone,
+            "sms_phone_1m:" + phone + ":blocked",
+            "sms_phone_1h:" + phone + ":blocked",
+            "sms_phone_1d:" + phone + ":blocked"
+        };
+        
+        for (String key : keys) {
+            redisTemplate.delete(key);
+        }
+        
+        log.info("전화번호 SMS 제한 해제 완료 - Phone: {}", phone);
+    }
+    
+    /**
+     * IP별 제한 해제 (관리자용)
+     */
+    public void clearIpLimit(String clientIp) {
+        String[] keys = {
+            "sms_ip_1m:" + clientIp,
+            "sms_ip_1h:" + clientIp,
+            "sms_ip_1d:" + clientIp,
+            "sms_ip_1m:" + clientIp + ":blocked",
+            "sms_ip_1h:" + clientIp + ":blocked",
+            "sms_ip_1d:" + clientIp + ":blocked"
+        };
+        
+        for (String key : keys) {
+            redisTemplate.delete(key);
+        }
+        
+        log.info("IP SMS 제한 해제 완료 - IP: {}", clientIp);
+    }
 }
