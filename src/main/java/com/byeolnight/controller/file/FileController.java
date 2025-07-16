@@ -2,6 +2,7 @@ package com.byeolnight.controller.file;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.util.IpUtil;
+import com.byeolnight.service.file.FileUploadRateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import com.byeolnight.service.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class FileController {
 
     private final S3Service s3Service;
+    private final FileUploadRateLimitService rateLimitService;
 
     @Operation(summary = "S3 Presigned URL 생성", description = "파일 업로드를 위한 S3 Presigned URL을 생성합니다.")
     @PostMapping("/presigned-url")
@@ -37,16 +39,15 @@ public class FileController {
             return ResponseEntity.badRequest().body(CommonResponse.error("파일명이 필요합니다."));
         }
         
-        // 파일 업로드 Rate Limiting (IP당 시간당 10개)
+        // Rate Limiting 검사
         String clientIp = IpUtil.getClientIp(request);
-        String rateLimitKey = "file_upload:" + clientIp;
         
-        // Redis에서 현재 시간대 업로드 횟수 확인
-        String currentHour = String.valueOf(System.currentTimeMillis() / (1000 * 60 * 60));
-        String key = rateLimitKey + ":" + currentHour;
+        // Presigned URL 생성 제한 확인
+        if (!rateLimitService.isPresignedUrlAllowed(clientIp)) {
+            return ResponseEntity.status(429).body(CommonResponse.error("Presigned URL 생성 한도를 초과했습니다. 잠시 후 다시 시도해주세요."));
+        }
         
-        // 간단한 Rate Limiting (실제로는 Redis 사용)
-        // 여기서는 임시로 파일 크기 제한만 추가
+        // 파일 크기 제한
         if (file != null && file.getSize() > 10 * 1024 * 1024) { // 10MB 제한
             return ResponseEntity.badRequest().body(CommonResponse.error("파일 크기는 10MB를 초과할 수 없습니다."));
         }
@@ -74,9 +75,16 @@ public class FileController {
             return ResponseEntity.badRequest().body(CommonResponse.error("이미지 크기는 5MB를 초과할 수 없습니다."));
         }
         
-        // IP당 시간당 업로드 제한 (20개)
+        // Rate Limiting 검사
         String clientIp = IpUtil.getClientIp(request);
-        // TODO: Redis Rate Limiting 구현
+        
+        // 파일 업로드 제한 확인
+        if (!rateLimitService.isUploadAllowed(clientIp, file.getSize())) {
+            return ResponseEntity.status(429).body(CommonResponse.error("파일 업로드 한도를 초과했습니다. 잠시 후 다시 시도해주세요."));
+        }
+        
+        // 동시 업로드 시작
+        rateLimitService.startUpload(clientIp);
         
         try {
             Map<String, String> result = s3Service.uploadImageWithValidation(file);
@@ -85,6 +93,9 @@ public class FileController {
             return ResponseEntity.badRequest().body(CommonResponse.error(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(CommonResponse.error("이미지 업로드 중 오류가 발생했습니다."));
+        } finally {
+            // 동시 업로드 완료
+            rateLimitService.finishUpload(clientIp);
         }
     }
 
