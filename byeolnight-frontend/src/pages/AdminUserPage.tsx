@@ -295,16 +295,6 @@ export default function AdminUserPage() {
 
   const fetchDeletedPosts = async () => {
     try {
-      const res = await axios.get('/admin/comments/blinded');
-      const commentsData = Array.isArray(res.data) ? res.data : (res.data?.data || res.data || []);
-      setBlindedComments(commentsData);
-    } catch (err) {
-      console.error('블라인드 댓글 목록 조회 실패', err);
-    }
-  };
-
-  const fetchDeletedPosts = async () => {
-    try {
       const res = await axios.get('/admin/posts/deleted');
       const postsData = Array.isArray(res.data) ? res.data : (res.data?.data || res.data || []);
       setDeletedPosts(postsData);

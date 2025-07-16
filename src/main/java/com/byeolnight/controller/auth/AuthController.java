@@ -8,6 +8,7 @@ import com.byeolnight.dto.user.*;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
+import com.byeolnight.infrastructure.security.SmsRateLimitService;
 import com.byeolnight.service.auth.AuthService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
@@ -48,6 +49,7 @@ public class AuthController {
     private final com.byeolnight.service.certificate.CertificateService certificateService;
     private final com.byeolnight.service.user.PointService pointService;
     private final com.byeolnight.service.user.MissionService missionService;
+    private final SmsRateLimitService smsRateLimitService;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
@@ -116,10 +118,20 @@ public class AuthController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "전화번호 인증 코드 전송 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "429", description = "요청 제한 초과"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    public ResponseEntity<CommonResponse<String>> sendPhoneCode(@RequestBody @Valid PhoneRequestDto dto) {
+    public ResponseEntity<CommonResponse<String>> sendPhoneCode(@RequestBody @Valid PhoneRequestDto dto, HttpServletRequest request) {
         try {
+            String clientIp = IpUtil.getClientIp(request);
+            
+            // Rate Limiting 확인
+            if (!smsRateLimitService.isSmsAllowed(dto.getPhone(), clientIp)) {
+                log.warn("SMS 인증 요청 제한 - Phone: {}, IP: {}", dto.getPhone(), clientIp);
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .body(CommonResponse.fail("SMS 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."));
+            }
+            
             // 핸드폰번호 중복 검사
             if (userService.isPhoneDuplicated(dto.getPhone())) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
