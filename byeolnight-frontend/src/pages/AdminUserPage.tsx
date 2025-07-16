@@ -58,7 +58,7 @@ export default function AdminUserPage() {
   const [blindedComments, setBlindedComments] = useState<any[]>([]);
   const [deletedPosts, setDeletedPosts] = useState<any[]>([]);
   const [deletedComments, setDeletedComments] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reportedPosts' | 'reportedComments' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files' | 'scheduler' | 'rateLimit'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reportedPosts' | 'reportedComments' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files' | 'scheduler'>('users');
   const [reportedComments, setReportedComments] = useState<any[]>([]);
   const [showIpModal, setShowIpModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
@@ -680,19 +680,6 @@ export default function AdminUserPage() {
                 {schedulerStatus.messagesToDelete + schedulerStatus.postsToDelete + schedulerStatus.usersToCleanup}건
               </div>
             )}
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('rateLimit')}
-            className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-              activeTab === 'rateLimit'
-                ? 'bg-purple-600/40 border-purple-400 text-white shadow-lg transform scale-105'
-                : 'bg-[#1f2336]/80 border-gray-600/50 text-gray-300 hover:bg-[#252842]/80 hover:border-purple-500/50'
-            }`}
-          >
-            <div className="text-3xl mb-2">🛡️</div>
-            <div className="font-semibold">Rate Limit 관리</div>
-            <div className="text-sm text-gray-400 mt-1">SMS 인증 제한 관리</div>
           </button>
         </div>
 
@@ -1614,101 +1601,6 @@ export default function AdminUserPage() {
                       <li>• 스토리지 비용 절약 효과</li>
                       <li>• 시스템 성능 최적화</li>
                       <li>• S3 상태 버튼으로 연결 문제 진단</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : activeTab === 'rateLimit' ? (
-          // Rate Limit 관리 섹션
-          <div className="bg-[#1f2336]/80 backdrop-blur rounded-xl p-6">
-            <h3 className="text-xl font-semibold text-white mb-6">🛡️ Rate Limit 관리</h3>
-            
-            <div className="grid gap-6">
-              {/* SMS Rate Limit 관리 */}
-              <div className="bg-[#2a2e45] p-6 rounded-lg">
-                <h4 className="text-lg font-semibold text-white mb-4">📱 SMS 인증 제한 관리</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 전화번호 제한 해제 */}
-                  <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <h5 className="text-white font-medium mb-3">📞 전화번호 제한 해제</h5>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="전화번호 입력 (예: 01012345678)"
-                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        id="phoneInput"
-                      />
-                      <button
-                        onClick={() => {
-                          const phone = (document.getElementById('phoneInput') as HTMLInputElement)?.value;
-                          if (phone && confirm(`전화번호 ${phone}의 SMS 제한을 해제하시겠습니까?`)) {
-                            axios.post(`/admin/rate-limit/sms/clear-phone/${phone}`)
-                              .then(() => {
-                                alert('전화번호 SMS 제한이 해제되었습니다.');
-                                (document.getElementById('phoneInput') as HTMLInputElement).value = '';
-                              })
-                              .catch(() => alert('제한 해제에 실패했습니다.'));
-                          }
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition"
-                      >
-                        해제
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* IP 제한 해제 */}
-                  <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <h5 className="text-white font-medium mb-3">🌐 IP 제한 해제</h5>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="IP 주소 입력 (예: 192.168.1.1)"
-                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        id="ipInput"
-                      />
-                      <button
-                        onClick={() => {
-                          const ip = (document.getElementById('ipInput') as HTMLInputElement)?.value;
-                          if (ip && confirm(`IP ${ip}의 SMS 제한을 해제하시겠습니까?`)) {
-                            axios.post(`/admin/rate-limit/sms/clear-ip/${ip}`)
-                              .then(() => {
-                                alert('IP SMS 제한이 해제되었습니다.');
-                                (document.getElementById('ipInput') as HTMLInputElement).value = '';
-                              })
-                              .catch(() => alert('제한 해제에 실패했습니다.'));
-                          }
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition"
-                      >
-                        해제
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Rate Limit 정책 정보 */}
-              <div className="bg-[#2a2e45] p-6 rounded-lg">
-                <h4 className="text-lg font-semibold text-white mb-4">📋 SMS Rate Limit 정책</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-blue-400 font-medium mb-2">📞 전화번호별 제한</div>
-                    <ul className="text-gray-300 space-y-1">
-                      <li>• 1분에 1회</li>
-                      <li>• 1시간에 5회 (30분 차단)</li>
-                      <li>• 1일에 10회 (24시간 차단)</li>
-                    </ul>
-                  </div>
-                  <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-green-400 font-medium mb-2">🌐 IP별 제한</div>
-                    <ul className="text-gray-300 space-y-1">
-                      <li>• 1분에 3회</li>
-                      <li>• 1시간에 20회 (1시간 차단)</li>
-                      <li>• 1일에 50회 (24시간 차단)</li>
                     </ul>
                   </div>
                 </div>
