@@ -9,6 +9,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.infrastructure.security.SmsRateLimitService;
+import com.byeolnight.infrastructure.security.AuthRateLimitService;
 import com.byeolnight.service.auth.AuthService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
@@ -50,6 +51,7 @@ public class AuthController {
     private final com.byeolnight.service.user.PointService pointService;
     private final com.byeolnight.service.user.MissionService missionService;
     private final SmsRateLimitService smsRateLimitService;
+    private final AuthRateLimitService authRateLimitService;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
@@ -92,9 +94,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<CommonResponse<String>> sendEmailCode(@RequestBody @Valid EmailRequestDto dto, HttpServletRequest request) {
-        // IP당 이메일 인증 요청 제한 (시간당 10개)
         String clientIp = IpUtil.getClientIp(request);
-        // TODO: Redis로 Rate Limiting 구현
+        
+        // Rate Limiting 확인
+        if (!authRateLimitService.isEmailAuthAllowed(dto.getEmail(), clientIp)) {
+            return ResponseEntity.status(429).body(CommonResponse.fail("이메일 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."));
+        }
         
         // 이메일 중복 검사
         if (userService.findByEmail(dto.getEmail()).isPresent()) {
@@ -136,11 +141,10 @@ public class AuthController {
         try {
             String clientIp = IpUtil.getClientIp(request);
             
-            // Rate Limiting 확인
-            if (!smsRateLimitService.isSmsAllowed(dto.getPhone(), clientIp)) {
-                log.warn("SMS 인증 요청 제한 - Phone: {}, IP: {}", dto.getPhone(), clientIp);
-                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                        .body(CommonResponse.fail("SMS 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."));
+            // Rate Limiting 확인 (기존 SMS + 새로운 통합 제한)
+            if (!smsRateLimitService.isSmsAllowed(dto.getPhone(), clientIp) || 
+                !authRateLimitService.isSmsAuthAllowed(dto.getPhone(), clientIp)) {
+                return ResponseEntity.status(429).body(CommonResponse.fail("SMS 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."));
             }
             
             // 추가 보안: 전화번호 형식 검증
