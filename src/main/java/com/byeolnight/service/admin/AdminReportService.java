@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 public class AdminReportService {
 
     private final PostReportRepository postReportRepository;
+    private final com.byeolnight.domain.repository.comment.CommentReportRepository commentReportRepository;
     private final PointService pointService;
     private final com.byeolnight.domain.repository.user.UserRepository userRepository;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
@@ -111,7 +112,7 @@ public class AdminReportService {
     }
 
     /**
-     * 신고 사유별 통계
+     * 신고 사유별 통계 (추후, 개발 필요 시, 사용할 예정)
      */
     public Map<String, Long> getReportStatsByReason() {
         List<PostReport> allReports = postReportRepository.findAll();
@@ -186,5 +187,57 @@ public class AdminReportService {
         for (int i = 0; i < rejectedCount; i++) {
             post.decreaseReportCount();
         }
+    }
+
+    /**
+     * 신고된 댓글 목록 조회
+     */
+    public Page<com.byeolnight.dto.admin.ReportedCommentDetailDto> getReportedComments(int page, int size) {
+        var commentReports = commentReportRepository.findPendingReports();
+        
+        // 댓글별로 그룹화
+        var groupedReports = commentReports.stream()
+                .filter(report -> !report.getComment().isDeleted())
+                .collect(java.util.stream.Collectors.groupingBy(
+                    com.byeolnight.domain.entity.comment.CommentReport::getComment));
+        
+        var reportedComments = groupedReports.entrySet().stream()
+                .map(entry -> {
+                    var comment = entry.getKey();
+                    var reports = entry.getValue();
+                    
+                    var reportDetails = reports.stream()
+                            .map(report -> com.byeolnight.dto.admin.ReportedCommentDetailDto.ReportDetail.builder()
+                                    .reportId(report.getId())
+                                    .reporterNickname(report.getReporter().getNickname())
+                                    .reason(report.getReason())
+                                    .description(report.getDescription())
+                                    .reportedAt(report.getCreatedAt())
+                                    .build())
+                            .collect(java.util.stream.Collectors.toList());
+                    
+                    return com.byeolnight.dto.admin.ReportedCommentDetailDto.builder()
+                            .commentId(comment.getId())
+                            .content(comment.getContent())
+                            .writer(comment.getWriter().getNickname())
+                            .postTitle(comment.getPost().getTitle())
+                            .postId(comment.getPost().getId())
+                            .createdAt(comment.getCreatedAt())
+                            .blinded(comment.isBlinded())
+                            .reportCount(reports.size())
+                            .reportDetails(reportDetails)
+                            .build();
+                })
+                .sorted((a, b) -> b.getReportCount() - a.getReportCount())
+                .collect(java.util.stream.Collectors.toList());
+        
+        // 페이징 처리
+        int start = page * size;
+        int end = Math.min(start + size, reportedComments.size());
+        var pagedList = reportedComments.subList(start, end);
+        
+        return new org.springframework.data.domain.PageImpl<>(pagedList, 
+                org.springframework.data.domain.PageRequest.of(page, size), 
+                reportedComments.size());
     }
 }

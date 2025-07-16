@@ -47,6 +47,17 @@ public class AdminReportController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @Operation(summary = "신고된 댓글 목록 조회", description = "신고된 댓글 목록을 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/comments")
+    public ResponseEntity<ApiResponse<?>> getReportedComments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = adminReportService.getReportedComments(page, size);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     public static class RejectReportRequest {
         private String reason;
         
