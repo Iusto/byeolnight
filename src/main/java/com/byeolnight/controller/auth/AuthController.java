@@ -289,6 +289,12 @@ public class AuthController {
     })
     public ResponseEntity<CommonResponse<String>> withdraw(@AuthenticationPrincipal User user, @RequestBody @Valid WithdrawRequestDto dto) {
         try {
+            if (user == null) {
+                log.warn("회원 탈퇴 요청 시 인증되지 않은 사용자");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(CommonResponse.fail("인증이 필요합니다. 다시 로그인해주세요."));
+            }
+            
             userService.withdraw(user.getId(), dto.getPassword(), dto.getReason());
             return ResponseEntity.ok(CommonResponse.success("회원 탈퇴가 완료되었습니다."));
         } catch (Exception e) {
