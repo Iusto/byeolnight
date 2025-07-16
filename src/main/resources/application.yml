@@ -11,10 +11,13 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
     open-in-view: false
 
   web:
