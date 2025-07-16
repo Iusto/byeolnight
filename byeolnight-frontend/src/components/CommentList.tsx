@@ -129,48 +129,60 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
             </div>
           ) : (
             <>
-              <p className="text-sm">{c.blinded ? '[블라인드 처리된 댓글입니다]' : c.content}</p>
+              <div className="break-words overflow-wrap-anywhere">
+                <p className="text-sm whitespace-pre-wrap">{c.blinded ? '[블라인드 처리된 댓글입니다]' : c.content}</p>
+              </div>
               
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center gap-4 text-xs text-gray-400">
                   <span>✍ {c.writer}</span>
                   <span>{new Date(c.createdAt).toLocaleString()}</span>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* 좋아요 버튼 - 로그인한 사용자만 */}
                   {user && !c.blinded && (
                     <button
                       onClick={() => handleLike(c.id)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                         likedComments.has(c.id)
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                          : 'bg-gray-600/50 text-gray-300 hover:bg-gray-600/70'
+                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                          : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 border border-gray-600/30'
                       }`}
                     >
                       {likedComments.has(c.id) ? '❤️' : '🤍'} {c.likeCount}
                     </button>
                   )}
                   
+                  {/* 신고 버튼 - 다른 사용자 댓글만 */}
                   {user && user.nickname !== c.writer && !c.blinded && (
                     <button
                       onClick={() => setReportingId(c.id)}
-                      className="px-2 py-1 bg-orange-600/50 text-orange-300 hover:bg-orange-600/70 rounded text-xs transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-orange-600/30 text-orange-300 hover:bg-orange-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-orange-600/30"
                     >
                       🚨 신고
                     </button>
                   )}
                   
+                  {/* 좋아요 수만 표시 - 비로그인 사용자 */}
+                  {!user && c.likeCount > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400">
+                      🤍 {c.likeCount}
+                    </span>
+                  )}
+                  
+                  {/* 수정/삭제 버튼 - 작성자만 */}
                   {user?.nickname === c.writer && (
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEdit(c)}
-                        className="px-2 py-1 bg-blue-600/50 text-blue-300 hover:bg-blue-600/70 rounded text-xs transition-colors"
+                        className="px-3 py-1.5 bg-blue-600/30 text-blue-300 hover:bg-blue-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-blue-600/30"
                       >
                         수정
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
-                        className="px-2 py-1 bg-red-600/50 text-red-300 hover:bg-red-600/70 rounded text-xs transition-colors"
+                        className="px-3 py-1.5 bg-red-600/30 text-red-300 hover:bg-red-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-red-600/30"
                       >
                         삭제
                       </button>
