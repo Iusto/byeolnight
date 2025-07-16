@@ -86,6 +86,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       console.log('로그인 요청 시작:', { email, rememberMe });
+      console.log('모바일 디버그:', {
+        userAgent: navigator.userAgent,
+        isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        baseURL: axios.defaults.baseURL
+      });
+      
       const res = await axios.post('/auth/login', {
         email,
         password,
@@ -110,7 +116,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('토큰을 받지 못했습니다.');
       }
     } catch (err: any) {
-      console.error('로그인 에러:', err);
+      console.error('로그인 에러 상세:', {
+        message: err?.message,
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        data: err?.response?.data,
+        config: {
+          url: err?.config?.url,
+          baseURL: err?.config?.baseURL,
+          headers: err?.config?.headers
+        },
+        network: err?.code === 'NETWORK_ERROR' || err?.message?.includes('Network Error'),
+        timeout: err?.code === 'ECONNABORTED'
+      });
+      
+      // 네트워크 오류 시 사용자 친화적 메시지
+      if (err?.code === 'NETWORK_ERROR' || err?.message?.includes('Network Error')) {
+        throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인해주세요.');
+      }
+      
       // 서버에서 온 구체적인 에러 메시지 전달
       const errorMessage = err?.response?.data?.message || '로그인에 실패했습니다.';
       throw new Error(errorMessage);

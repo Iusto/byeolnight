@@ -64,9 +64,8 @@ export default function ProfileEdit() {
     setLoading(true);
 
     // 닉네임 검증
-    const nicknameRegex = /^[가-힣a-zA-Z]{2,8}$/;
-    if (!nicknameRegex.test(form.nickname)) {
-      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다. (특수문자 불가)');
+    if (form.nickname.length < 2 || form.nickname.length > 8) {
+      setError('닉네임은 2-8자로 입력해주세요.');
       setLoading(false);
       return;
     }
@@ -124,7 +123,7 @@ export default function ProfileEdit() {
     }
     
     if (!validateNickname(form.nickname)) {
-      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다.');
+      setError('닉네임은 2-8자로 입력해주세요.');
       return;
     }
     
@@ -169,8 +168,7 @@ export default function ProfileEdit() {
   
   // 닉네임 유효성 검사
   const validateNickname = (nickname: string) => {
-    const nicknameRegex = /^[가-힣a-zA-Z]{2,8}$/;
-    return nicknameRegex.test(nickname);
+    return nickname.length >= 2 && nickname.length <= 8;
   };
 
   if (!user) {
@@ -211,7 +209,7 @@ export default function ProfileEdit() {
                 name="nickname"
                 value={form.nickname}
                 onChange={handleChange}
-                placeholder="닉네임 (2-8자, 한글/영어만)"
+                placeholder="닉네임 (2-8자)"
                 className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
                   !nicknameInfo.canChange && user?.nicknameChanged
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed focus:ring-gray-500'
@@ -233,7 +231,7 @@ export default function ProfileEdit() {
               )}
             </div>
             <div className="text-xs mt-1 space-y-1">
-              <p className="text-gray-400">* 한글 또는 영어만 가능, 특수문자 불가 (2-8자)</p>
+              <p className="text-gray-400">* 모든 문자 가능 (2-8자)</p>
               <p className="text-yellow-400">* 닉네임은 6개월마다 변경 가능합니다</p>
               {!nicknameInfo.canChange && nicknameInfo.nextChangeDate && (
                 <p className="text-red-400">

@@ -10,15 +10,30 @@ const instance = axios.create({
 
 console.log('Axios baseURL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
 
-// 클라이언트 IP 추출 함수
+// 클라이언트 IP 추출 함수 (모바일 호환성 개선)
 const getClientIp = async (): Promise<string> => {
   try {
-    // 외부 IP 조회 서비스 사용
-    const response = await fetch('https://api.ipify.org?format=json');
+    // 타임아웃 설정으로 모바일 네트워크 대응
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 타임아웃
+    
+    const response = await fetch('https://api.ipify.org?format=json', {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
     const data = await response.json();
     return data.ip || 'unknown';
   } catch (error) {
-    console.warn('IP 조회 실패:', error);
+    console.warn('IP 조회 실패 (모바일 네트워크 이슈 가능):', error);
     return 'unknown';
   }
 };
@@ -39,19 +54,30 @@ instance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // 클라이언트 IP를 헤더에 추가 (캐시된 IP 사용)
-    const cachedIp = sessionStorage.getItem('clientIp');
-    if (cachedIp) {
-      config.headers['X-Client-IP'] = cachedIp;
-    } else {
-      // IP가 캐시되지 않은 경우 비동기로 조회
-      try {
-        const clientIp = await getClientIp();
-        sessionStorage.setItem('clientIp', clientIp);
-        config.headers['X-Client-IP'] = clientIp;
-      } catch (error) {
-        config.headers['X-Client-IP'] = 'unknown';
+    // 클라이언트 IP를 헤더에 추가 (모바일 호환성 개선)
+    try {
+      const cachedIp = sessionStorage.getItem('clientIp');
+      if (cachedIp) {
+        config.headers['X-Client-IP'] = cachedIp;
+      } else {
+        // 모바일 호환성을 위해 IP 조회 비활성화 (임시)
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        config.headers['X-Client-IP'] = isMobile ? 'mobile-device' : 'desktop-unknown';
+        
+        // PC에서만 IP 조회 시도
+        if (!isMobile) {
+          getClientIp().then(ip => {
+            if (ip !== 'unknown') {
+              sessionStorage.setItem('clientIp', ip);
+            }
+          }).catch(() => {
+            // PC에서도 IP 조회 실패 시 무시
+          });
+        }
       }
+    } catch (error) {
+      // sessionStorage 접근 실패 시에도 요청 진행
+      config.headers['X-Client-IP'] = 'storage-error';
     }
 
     return config;

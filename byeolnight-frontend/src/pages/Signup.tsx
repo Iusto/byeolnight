@@ -57,15 +57,13 @@ export default function Signup() {
         [name]: formatted,
       }));
     } else if (name === 'nickname') {
-      // 닉네임은 한글(자음/모음 포함), 영어만 허용 (8자 제한)
-      const nicknameRegex = /^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z]{0,8}$/;
-      if (nicknameRegex.test(value)) {
+      // 닉네임은 8자 제한만 적용
+      if (value.length <= 8) {
         setForm((prev) => ({
           ...prev,
           [name]: value,
         }));
       }
-      // 유효하지 않은 문자는 입력 차단
     } else {
       setForm((prev) => ({
         ...prev,
@@ -107,10 +105,9 @@ export default function Signup() {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  // 닉네임 형식 검증 (완성된 한글, 영어만 허용, 2-8자)
+  // 닉네임 형식 검증 (2-8자)
   const validateNickname = (nickname: string) => {
-    const nicknameRegex = /^[가-힣a-zA-Z]{2,8}$/;
-    return nicknameRegex.test(nickname);
+    return nickname.length >= 2 && nickname.length <= 8;
   };
 
   const sendEmailCode = async () => {
@@ -222,7 +219,7 @@ export default function Signup() {
     }
     
     if (!validateNickname(form.nickname)) {
-      setError('닉네임은 2-8자의 한글 또는 영어만 가능합니다. (특수문자 불가)');
+      setError('닉네임은 2-8자로 입력해주세요.');
       return;
     }
 
@@ -299,7 +296,7 @@ export default function Signup() {
     if (!form.nickname) {
       missingFields.push('닉네임을 입력해주세요');
     } else if (!validateNickname(form.nickname)) {
-      missingFields.push('닉네임은 2-8자의 한글 또는 영어만 가능합니다');
+      missingFields.push('닉네임은 2-8자로 입력해주세요');
     } else if (!nicknameChecked) {
       missingFields.push('닉네임 중복 확인을 해주세요');
     }
@@ -429,13 +426,13 @@ export default function Signup() {
             <input 
               type="text" 
               name="nickname" 
-              placeholder="닉네임 (2-8자, 한글/영어만)" 
+              placeholder="닉네임 (2-8자)" 
               value={form.nickname} 
               onChange={handleChange} 
               className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
               required 
             />
-            <p className="text-xs text-gray-400">* 한글 또는 영어만 가능, 특수문자 불가 (2-8자)</p>
+            <p className="text-xs text-gray-400">* 모든 문자 가능 (2-8자)</p>
             <button 
               type="button" 
               onClick={checkNickname} 
