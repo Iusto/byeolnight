@@ -98,143 +98,177 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     }
   };
 
-  return (
-    <ul className="space-y-4">
-      {comments.map((c) => (
-        <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
-          {editingId === c.id ? (
-            <div className="space-y-2">
+  // 댓글 렌더링 함수
+  const renderComment = (c: Comment) => (
+    <>
+      {editingId === c.id ? (
+        <div className="space-y-2">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="w-full p-2 rounded bg-[#1f2336] text-white text-sm"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleUpdate(c.id)}
+              className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 rounded"
+            >
+              저장
+            </button>
+            <button
+              onClick={() => {
+                setEditingId(null);
+                setEditContent('');
+              }}
+              className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600 rounded"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="break-words overflow-wrap-anywhere">
+            <p className="text-sm whitespace-pre-wrap">{c.blinded ? '[블라인드 처리된 댓글입니다]' : c.content}</p>
+          </div>
+          
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <span>✍ {c.writer}</span>
+              <span>{new Date(c.createdAt).toLocaleString()}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* 좋아요 버튼 - 로그인한 사용자만 */}
+              {user && !c.blinded && (
+                <button
+                  onClick={() => handleLike(c.id)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                    likedComments.has(c.id)
+                      ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                      : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 border border-gray-600/30'
+                  }`}
+                >
+                  {likedComments.has(c.id) ? '❤️' : '🤍'} {c.likeCount}
+                </button>
+              )}
+              
+              {/* 신고 버튼 - 다른 사용자 댓글만 */}
+              {user && user.nickname !== c.writer && !c.blinded && (
+                <button
+                  onClick={() => setReportingId(c.id)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-orange-600/30 text-orange-300 hover:bg-orange-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-orange-600/30"
+                >
+                  🚨 신고
+                </button>
+              )}
+              
+              {/* 좋아요 수만 표시 - 비로그인 사용자 */}
+              {!user && c.likeCount > 0 && (
+                <span className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400">
+                  🤍 {c.likeCount}
+                </span>
+              )}
+              
+              {/* 수정/삭제 버튼 - 작성자만 */}
+              {user?.nickname === c.writer && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleEdit(c)}
+                    className="px-3 py-1.5 bg-blue-600/30 text-blue-300 hover:bg-blue-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-blue-600/30"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDelete(c.id)}
+                    className="px-3 py-1.5 bg-red-600/30 text-red-300 hover:bg-red-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-red-600/30"
+                  >
+                    삭제
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {reportingId === c.id && (
+            <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-orange-500/30">
+              <h4 className="text-sm font-medium text-orange-300 mb-2">댓글 신고</h4>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full p-2 mb-2 bg-gray-700 text-white rounded text-sm"
+              >
+                <option value="">신고 사유 선택</option>
+                <option value="스팸">스팸</option>
+                <option value="욕설">욕설/비방</option>
+                <option value="음란물">음란물</option>
+                <option value="기타">기타</option>
+              </select>
               <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full p-2 rounded bg-[#1f2336] text-white text-sm"
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                placeholder="상세 내용 (선택사항)"
+                className="w-full p-2 mb-2 bg-gray-700 text-white rounded text-sm h-16 resize-none"
               />
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleUpdate(c.id)}
-                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 rounded"
+                  onClick={() => handleReport(c.id)}
+                  className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-sm"
                 >
-                  저장
+                  신고하기
                 </button>
                 <button
                   onClick={() => {
-                    setEditingId(null);
-                    setEditContent('');
+                    setReportingId(null);
+                    setReportReason('');
+                    setReportDescription('');
                   }}
-                  className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600 rounded"
+                  className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm"
                 >
                   취소
                 </button>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="break-words overflow-wrap-anywhere">
-                <p className="text-sm whitespace-pre-wrap">{c.blinded ? '[블라인드 처리된 댓글입니다]' : c.content}</p>
-              </div>
-              
-              <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center gap-4 text-xs text-gray-400">
-                  <span>✍ {c.writer}</span>
-                  <span>{new Date(c.createdAt).toLocaleString()}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* 좋아요 버튼 - 로그인한 사용자만 */}
-                  {user && !c.blinded && (
-                    <button
-                      onClick={() => handleLike(c.id)}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                        likedComments.has(c.id)
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                          : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 border border-gray-600/30'
-                      }`}
-                    >
-                      {likedComments.has(c.id) ? '❤️' : '🤍'} {c.likeCount}
-                    </button>
-                  )}
-                  
-                  {/* 신고 버튼 - 다른 사용자 댓글만 */}
-                  {user && user.nickname !== c.writer && !c.blinded && (
-                    <button
-                      onClick={() => setReportingId(c.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-orange-600/30 text-orange-300 hover:bg-orange-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-orange-600/30"
-                    >
-                      🚨 신고
-                    </button>
-                  )}
-                  
-                  {/* 좋아요 수만 표시 - 비로그인 사용자 */}
-                  {!user && c.likeCount > 0 && (
-                    <span className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400">
-                      🤍 {c.likeCount}
-                    </span>
-                  )}
-                  
-                  {/* 수정/삭제 버튼 - 작성자만 */}
-                  {user?.nickname === c.writer && (
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEdit(c)}
-                        className="px-3 py-1.5 bg-blue-600/30 text-blue-300 hover:bg-blue-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-blue-600/30"
-                      >
-                        수정
-                      </button>
-                      <button
-                        onClick={() => handleDelete(c.id)}
-                        className="px-3 py-1.5 bg-red-600/30 text-red-300 hover:bg-red-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-red-600/30"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {reportingId === c.id && (
-                <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-orange-500/30">
-                  <h4 className="text-sm font-medium text-orange-300 mb-2">댓글 신고</h4>
-                  <select
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    className="w-full p-2 mb-2 bg-gray-700 text-white rounded text-sm"
-                  >
-                    <option value="">신고 사유 선택</option>
-                    <option value="스팸">스팸</option>
-                    <option value="욕설">욕설/비방</option>
-                    <option value="음란물">음란물</option>
-                    <option value="기타">기타</option>
-                  </select>
-                  <textarea
-                    value={reportDescription}
-                    onChange={(e) => setReportDescription(e.target.value)}
-                    placeholder="상세 내용 (선택사항)"
-                    className="w-full p-2 mb-2 bg-gray-700 text-white rounded text-sm h-16 resize-none"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleReport(c.id)}
-                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-sm"
-                    >
-                      신고하기
-                    </button>
-                    <button
-                      onClick={() => {
-                        setReportingId(null);
-                        setReportReason('');
-                        setReportDescription('');
-                      }}
-                      className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm"
-                    >
-                      취소
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
           )}
-      </li>
-    );
+        </>
+      )}
+    </>
+  );
+
+  // TOP3 댓글과 일반 댓글 분리
+  const topComments = comments.filter(c => c.isPopular).slice(0, 3);
+  const regularComments = comments.filter(c => !c.isPopular);
+
+  return (
+    <div className="space-y-6">
+      {/* TOP3 인기 댓글 */}
+      {topComments.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
+            🏆 TOP3 인기 댓글
+          </h3>
+          <ul className="space-y-4">
+            {topComments.map((c, index) => (
+              <li key={c.id} className="p-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-xl shadow-sm text-white border border-yellow-500/30 relative">
+                <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full">
+                  #{index + 1}
+                </div>
+                {renderComment(c)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {/* 일반 댓글 */}
+      <ul className="space-y-4">
+        {regularComments.map((c) => (
+        <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
+          {renderComment(c)}
+        </li>
+      )}
+    </div>
+  );
   }
 }
 }

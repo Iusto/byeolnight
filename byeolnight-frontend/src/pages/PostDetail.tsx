@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import ClickableNickname from '../components/ClickableNickname';
 import UserIconDisplay from '../components/UserIconDisplay';
+import CommentList from '../components/CommentList';
 
 interface Post {
   id: number;
@@ -42,6 +43,8 @@ interface Comment {
   parentWriter?: string;
   writerIcon?: string;
   writerCertificates?: string[];
+  likeCount?: number;
+  likedByMe?: boolean;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -187,6 +190,7 @@ export default function PostDetail() {
   const [editingComment, setEditingComment] = useState<{id: number, content: string} | null>(null);
   const [editContent, setEditContent] = useState('');
   const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
+  const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
 
   const fetchPost = async () => {
     try {
@@ -456,6 +460,43 @@ export default function PostDetail() {
       console.error('댓글 블라인드 해제 실패:', error);
       const errorMessage = error.response?.data?.message || '블라인드 해제에 실패했습니다.';
       alert(errorMessage);
+    }
+  };
+
+  const handleCommentLike = async (commentId: number) => {
+    try {
+      const response = await axios.post(`/member/comments/${commentId}/like`);
+      const liked = response.data.data;
+      
+      if (liked) {
+        setLikedComments(prev => new Set([...prev, commentId]));
+      } else {
+        setLikedComments(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(commentId);
+          return newSet;
+        });
+      }
+      fetchComments();
+    } catch {
+      alert('좋아요 처리 실패');
+    }
+  };
+
+  const handleCommentReport = async (commentId: number) => {
+    const reason = prompt('신고 사유를 입력해주세요.');
+    if (!reason?.trim()) return;
+    
+    try {
+      await axios.post(`/member/comments/${commentId}/report`, null, {
+        params: {
+          reason: reason,
+          description: ''
+        }
+      });
+      alert('신고가 접수되었습니다.');
+    } catch (error: any) {
+      alert(error.response?.data?.message || '신고 실패');
     }
   };
 
@@ -817,216 +858,21 @@ export default function PostDetail() {
           </form>
         )}
 
-        {comments.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
-            <p className="text-gray-400 text-lg">첫 댓글을 남겨보세요!</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {comments.map((c) => (
-              <div key={c.id} className={`relative ${
-                c.parentId ? 'ml-12 pl-4 border-l-2 border-purple-500/30' : ''
-              }`}>
-                {/* 답글 표시 */}
-                {c.parentId && (
-                  <div className="flex items-center gap-2 mb-3 text-xs text-purple-300">
-                    <span className="text-purple-400">↳</span>
-                    <span>{c.parentWriter}님에게 답글</span>
-                  </div>
-                )}
-                
-                <div className="bg-[#2a2e45]/60 backdrop-blur-sm rounded-xl p-4 border border-purple-500/10 hover:border-purple-500/20 transition-all duration-200">
-                  {/* 사용자 정보 */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
-                      <UserIconDisplay iconName={c.writerIcon} size="medium" className="text-lg" />
-                    </div>
-                    <div className="flex items-center gap-2 flex-1">
-                      <ClickableNickname 
-                        userId={c.writerId} 
-                        nickname={c.writer}
-                        className="font-semibold text-white hover:text-purple-300 transition-colors"
-                      />
-                      {c.writerCertificates && c.writerCertificates.length > 0 && (
-                        <div className="flex gap-1">
-                          {c.writerCertificates.slice(0, 2).map((cert, idx) => {
-                            const certIcons = {
-                              '별빛 탐험가': '🌠',
-                              '우주인 등록증': '🌍',
-                              '은하 통신병': '📡',
-                              '별 관측 매니아': '🔭',
-                              '별빛 채팅사': '🗨️',
-                              '별 헤는 밤 시민증': '🏅',
-                              '별빛 수호자': '🛡️',
-                              '우주 실험자': '⚙️',
-                              '건의왕': '💡',
-                              '은하 관리자 훈장': '🏆'
-                            };
-                            const icon = certIcons[cert] || '🏆';
-                            
-                            return (
-                              <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30 animate-pulse" title={cert}>
-                                {icon} {cert}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleString()}</span>
-                  </div>
-                  
-                  {/* 댓글 내용 */}
-                  {editingComment?.id === c.id ? (
-                    <div className="mb-3">
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-[#1a1d2e] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 border border-purple-500/20"
-                        rows={3}
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => handleCommentEdit(c.id)}
-                          className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded-lg transition"
-                        >
-                          저장
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingComment(null);
-                            setEditContent('');
-                          }}
-                          className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 rounded-lg transition"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`mb-3 leading-relaxed ${
-                      c.deleted ? 'text-gray-500 italic' : c.blinded ? 'text-gray-500 italic' : 'text-gray-100'
-                    }`}>
-                      {c.deleted ? '이 댓글은 삭제되었습니다.' : c.content}
-                      {c.blinded && <span className="text-red-400 ml-2">(블라인드)</span>}
-                    </div>
-                  )}
-                  
-                  {/* 액션 버튼 */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {user && !c.deleted && (
-                        <>
-                          <button
-                            onClick={() => {
-                              if (replyTo?.id === c.id) {
-                                setReplyTo(null);
-                              } else {
-                                setReplyTo({id: c.id, writer: c.writer});
-                              }
-                            }}
-                            className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition ${
-                              replyTo?.id === c.id 
-                                ? 'text-red-300 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30'
-                                : 'text-blue-300 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30'
-                            }`}
-                          >
-                            {replyTo?.id === c.id ? '❌ 취소' : '💬 답글'}
-                          </button>
-                          
-                          {user.nickname === c.writer && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setEditingComment({id: c.id, content: c.content});
-                                  setEditContent(c.content);
-                                }}
-                                className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium text-green-300 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 transition"
-                              >
-                                ✏️ 수정
-                              </button>
-                              <button
-                                onClick={() => handleCommentDelete(c.id)}
-                                className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium text-red-300 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 transition"
-                              >
-                                🗑️ 삭제
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    
-                    {/* 관리자 기능 */}
-                    {user && user.role === 'ADMIN' && !c.deleted && (
-                      <div className="flex gap-2">
-                        {c.blinded ? (
-                          <button
-                            onClick={() => handleCommentUnblind(c.id)}
-                            className="px-3 py-1 rounded-full text-xs font-medium text-green-300 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 transition"
-                          >
-                            ✅ 해제
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleCommentBlind(c.id)}
-                            className="px-3 py-1 rounded-full text-xs font-medium text-orange-300 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 transition"
-                          >
-                            🚫 블라인드
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* 답글 입력창 */}
-                {replyTo?.id === c.id && (
-                  <div className="mt-4 p-4 bg-[#1a1d2e]/60 backdrop-blur-sm rounded-xl border border-purple-500/20">
-                    <div className="flex items-center gap-2 mb-3 text-sm text-purple-300">
-                      <span className="text-purple-400">↳</span>
-                      <span>{c.writer}님에게 답글 작성</span>
-                    </div>
-                    <form onSubmit={handleCommentSubmit}>
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        rows={3}
-                        placeholder={`${c.writer}님에게 답글을 입력하세요...`}
-                        className="w-full p-3 rounded-lg bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 border border-purple-500/20 resize-none"
-                        autoFocus
-                      />
-                      {error && (
-                        <div className="text-red-400 text-sm mt-2 p-2 bg-red-500/10 rounded border border-red-500/20">
-                          {error}
-                        </div>
-                      )}
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          type="submit"
-                          className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 transition"
-                        >
-                          💬 답글 등록
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReplyTo(null);
-                            setNewComment('');
-                          }}
-                          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-600 hover:bg-gray-700 transition"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <CommentList 
+          comments={comments.map(c => ({
+            id: c.id,
+            content: c.content,
+            writer: c.writer,
+            createdAt: c.createdAt,
+            likeCount: c.likeCount || 0,
+            reportCount: 0,
+            isPopular: (c.likeCount || 0) >= 3,
+            blinded: c.blinded || false,
+            deleted: c.deleted || false
+          }))}
+          postId={Number(id)}
+          onRefresh={fetchComments}
+        />
           </div>
         </div>
       </div>
