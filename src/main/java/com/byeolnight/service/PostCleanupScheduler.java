@@ -1,6 +1,7 @@
 package com.byeolnight.service;
 
 import com.byeolnight.domain.entity.post.Post;
+import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.file.FileRepository;
 import com.byeolnight.service.file.S3Service;
@@ -21,7 +22,7 @@ public class PostCleanupScheduler {
     private final PostRepository postRepository;
     private final FileRepository fileRepository;
     private final S3Service s3Service;
-    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
 
     @Scheduled(cron = "0 0 3 * * *") // 매일 새벽 3시
     @Transactional

@@ -208,6 +208,17 @@ export default function PostEdit() {
     e.preventDefault();
     setError('');
     
+    // 길이 검증
+    if (title.length > 100) {
+      setError('제목은 100자를 초과할 수 없습니다.');
+      return;
+    }
+    
+    if (content.length > 50000) {
+      setError('내용은 50,000자를 초과할 수 없습니다.');
+      return;
+    }
+    
     // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
     const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
     
@@ -295,14 +306,20 @@ export default function PostEdit() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">제목</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="제목을 입력하세요..."
-                required
-                className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={100}
+                  placeholder="제목을 입력하세요..."
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+                />
+                <div className={`text-xs mt-1 ${title.length > 90 ? 'text-red-400' : 'text-gray-400'}`}>
+                  {title.length}/100
+                </div>
+              </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-3">
@@ -337,12 +354,18 @@ export default function PostEdit() {
               <div className="rounded-xl overflow-hidden border border-slate-600/50">
                 {isMarkdownMode ? (
                   <div className="space-y-4">
-                    <textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      placeholder="마크다운으로 수정해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
-                      className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        maxLength={50000}
+                        placeholder="마크다운으로 수정해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
+                        className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
+                      />
+                      <div className={`text-xs mt-1 ${content.length > 45000 ? 'text-red-400' : 'text-gray-400'}`}>
+                        {content.length}/50,000
+                      </div>
+                    </div>
                     <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
                       <h3 className="text-sm font-medium text-gray-300 mb-3">📝 마크다운 미리보기:</h3>
                       <div 

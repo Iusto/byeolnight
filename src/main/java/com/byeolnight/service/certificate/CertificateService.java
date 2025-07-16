@@ -3,7 +3,7 @@ package com.byeolnight.service.certificate;
 import com.byeolnight.domain.entity.certificate.Certificate;
 import com.byeolnight.domain.entity.certificate.UserCertificate;
 import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.CommentRepository;
+import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.certificate.UserCertificateRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 import java.util.Set;
 
 @Slf4j

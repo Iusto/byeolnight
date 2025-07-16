@@ -4,6 +4,7 @@ import com.byeolnight.domain.entity.log.AuditSignupLog;
 import com.byeolnight.domain.entity.log.NicknameChangeHistory;
 import com.byeolnight.domain.entity.token.PasswordResetToken;
 import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
 import com.byeolnight.domain.repository.log.NicknameChangeHistoryRepository;
 import com.byeolnight.domain.repository.PasswordResetTokenRepository;
@@ -57,7 +58,7 @@ public class UserService {
     private final GmailEmailService gmailEmailService;
     private final UserSecurityService userSecurityService;
     private final com.byeolnight.domain.repository.post.PostRepository postRepository;
-    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     private final EncryptionUtil encryptionUtil;
     private final CertificateService certificateService;
     private final PostService postService;

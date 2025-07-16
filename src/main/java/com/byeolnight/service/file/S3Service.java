@@ -1,6 +1,6 @@
 package com.byeolnight.service.file;
 
-import lombok.RequiredArgsConstructor;
+import com.byeolnight.domain.repository.comment.CommentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,11 +29,11 @@ public class S3Service {
 
     private final GoogleVisionService googleVisionService;
     private final com.byeolnight.domain.repository.post.PostRepository postRepository;
-    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     
     public S3Service(GoogleVisionService googleVisionService,
                     @Lazy com.byeolnight.domain.repository.post.PostRepository postRepository,
-                    @Lazy com.byeolnight.domain.repository.CommentRepository commentRepository) {
+                    @Lazy CommentRepository commentRepository) {
         this.googleVisionService = googleVisionService;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;

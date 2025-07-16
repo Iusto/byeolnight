@@ -1,7 +1,6 @@
-package com.byeolnight.domain.repository;
+package com.byeolnight.domain.repository.comment;
 
 import com.byeolnight.domain.entity.comment.Comment;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +14,12 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      */
     @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.writer WHERE c.post.id = :postId ORDER BY c.createdAt ASC")
     List<Comment> findAllByPostId(@Param("postId") Long postId);
+    
+    /**
+     * 게시글 ID로 인기 댓글 TOP3 조회 (좋아요 5개 이상)
+     */
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.writer WHERE c.post.id = :postId AND c.likeCount >= 5 AND c.deleted = false AND c.blinded = false ORDER BY c.likeCount DESC LIMIT 3")
+    List<Comment> findTop3PopularCommentsByPostId(@Param("postId") Long postId);
     
     /**
      * 게시글 ID로 댓글 수 조회

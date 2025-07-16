@@ -5,6 +5,7 @@ import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.post.Post.Category;
 import com.byeolnight.domain.entity.post.PostLike;
 import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.file.FileRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
@@ -39,7 +40,7 @@ public class PostService {
     private final S3Service s3Service;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
     private final PointService pointService;
-    private final com.byeolnight.domain.repository.CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     private final com.byeolnight.service.notification.NotificationService notificationService;
     private final DeleteLogService deleteLogService;
 

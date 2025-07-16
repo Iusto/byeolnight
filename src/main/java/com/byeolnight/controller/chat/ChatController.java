@@ -3,6 +3,7 @@ package com.byeolnight.controller.chat;
 
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.chat.ChatMessageDto;
+import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.ChatService;
 import com.byeolnight.service.chat.AdminChatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +34,25 @@ public class ChatController {
     private final AdminChatService adminChatService;
 
     @MessageMapping("/chat.send")
-    public void sendMessage(@Payload ChatMessageDto chatMessage, Principal principal) {
+    public void sendMessage(@Payload ChatMessageDto chatMessage, Principal principal, 
+                           org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
+        // IP 주소 추출
+        String clientIp = "unknown";
+        try {
+            Object nativeHeaders = headerAccessor.getSessionAttributes().get("clientIp");
+            if (nativeHeaders != null) {
+                clientIp = nativeHeaders.toString();
+            }
+        } catch (Exception e) {
+            log.debug("IP 추출 실패, 기본값 사용: {}", e.getMessage());
+        }
+        
+        // IP 차단 확인
+        if (adminChatService.isIpBlocked(clientIp)) {
+            log.warn("차단된 IP에서 채팅 시도: {}", clientIp);
+            return;
+        }
+        
         if (principal instanceof Authentication auth && auth.getPrincipal() instanceof User user) {
             chatMessage.setSender(user.getNickname());  // ✅ 이메일 대신 닉네임 사용
             
@@ -46,7 +65,7 @@ public class ChatController {
             log.warn("⚠️ principal is null or invalid. fallback to sender from payload: {}", chatMessage.getSender());
         }
 
-        chatService.save(chatMessage);
+        chatService.save(chatMessage, clientIp);
         messagingTemplate.convertAndSend("/topic/public", chatMessage);
     }
 

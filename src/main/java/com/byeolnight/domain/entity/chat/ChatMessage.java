@@ -32,6 +32,9 @@ public class ChatMessage {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Column(length = 45) // IPv4: 15자, IPv6: 45자
+    private String ipAddress;
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean isBlinded = false;

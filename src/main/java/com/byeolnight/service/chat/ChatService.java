@@ -48,6 +48,7 @@ public class ChatService {
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
                         .message(entity.getMessage()) // 원본 메시지 유지
+                        .ipAddress(entity.getIpAddress())
                         .timestamp(entity.getTimestamp())
                         .isBlinded(entity.getIsBlinded()) // 블라인드 상태 포함
                         .build())
@@ -63,6 +64,7 @@ public class ChatService {
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
                         .message(entity.getMessage())
+                        .ipAddress(entity.getIpAddress())
                         .timestamp(entity.getTimestamp())
                         .isBlinded(entity.getIsBlinded())
                         .build())
@@ -79,6 +81,7 @@ public class ChatService {
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
                         .message(entity.getMessage())
+                        .ipAddress(entity.getIpAddress())
                         .timestamp(entity.getTimestamp())
                         .isBlinded(entity.getIsBlinded())
                         .build())
@@ -121,6 +124,10 @@ public class ChatService {
     }
 
     public void save(ChatMessageDto dto) {
+        save(dto, "unknown");
+    }
+    
+    public void save(ChatMessageDto dto, String ipAddress) {
         if (dto.getMessage() == null || dto.getMessage().trim().isEmpty()) {
             log.warn("❌ 저장 거부: message가 null 또는 빈 문자열입니다. dto: {}", dto);
             return;
@@ -130,6 +137,7 @@ public class ChatService {
                 .roomId(dto.getRoomId())
                 .sender(dto.getSender())
                 .message(dto.getMessage())
+                .ipAddress(ipAddress)
                 .build();
         
         ChatMessage saved = chatMessageRepository.save(entity);

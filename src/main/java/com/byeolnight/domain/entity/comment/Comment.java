@@ -32,11 +32,11 @@ public class Comment {
     private Comment parent;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
     
     @Lob
-    @Column(name = "original_content")
+    @Column(name = "original_content", columnDefinition = "TEXT")
     private String originalContent;
 
     @Builder.Default
@@ -46,6 +46,14 @@ public class Comment {
     @Builder.Default
     @Column(nullable = false)
     private Boolean deleted = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private int likeCount = 0;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private int reportCount = 0;
 
     private LocalDateTime createdAt;
     private LocalDateTime deletedAt;
@@ -116,6 +124,35 @@ public class Comment {
     // 원본 내용 조회 (관리자용)
     public String getOriginalContent() {
         return this.originalContent != null ? this.originalContent : this.content;
+    }
+
+    // 좋아요 수 증가
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    // 좋아요 수 감소
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
+
+    // 신고 수 증가
+    public void increaseReportCount() {
+        this.reportCount++;
+    }
+
+    // 신고 수 감소
+    public void decreaseReportCount() {
+        if (this.reportCount > 0) {
+            this.reportCount--;
+        }
+    }
+
+    // 인기 댓글 여부 (5개 이상 좋아요)
+    public boolean isPopular() {
+        return this.likeCount >= 5;
     }
 }
 

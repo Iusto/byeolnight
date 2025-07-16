@@ -7,6 +7,7 @@ import com.byeolnight.dto.auth.*;
 import com.byeolnight.dto.user.*;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
+import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.auth.AuthService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
@@ -171,7 +172,7 @@ public class AuthController {
                     .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
 
             // 로그 기록
-            String ip = request.getRemoteAddr();
+            String ip = IpUtil.getClientIp(request);
             String userAgent = request.getHeader("User-Agent");
             AuditRefreshTokenLog logEntry = AuditRefreshTokenLog.of(email, ip, userAgent);
             auditRefreshTokenLogRepository.save(logEntry);
@@ -252,7 +253,7 @@ public class AuthController {
     })
     public ResponseEntity<CommonResponse<String>> register(@RequestBody @Valid UserSignUpRequestDto dto, HttpServletRequest request) {
         try {
-            String ip = request.getRemoteAddr();
+            String ip = IpUtil.getClientIp(request);
             Long userId = userService.register(dto, ip);
             
             // 회원가입 완료 인증서 발급
