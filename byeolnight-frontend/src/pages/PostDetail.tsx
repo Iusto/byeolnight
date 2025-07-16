@@ -185,6 +185,8 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [error, setError] = useState('');
+  
+  const COMMENT_MAX_LENGTH = 500;
 
   const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null);
   const [editingComment, setEditingComment] = useState<{id: number, content: string} | null>(null);
@@ -831,14 +833,24 @@ export default function PostDetail() {
         {/* 일반 댓글 입력창 (답글 모드가 아닐 때만 표시) */}
         {!replyTo && (
           <form onSubmit={handleCommentSubmit} className="mb-6">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              rows={3}
-              placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
-              className="w-full p-3 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
-              disabled={!user}
-            />
+            <div className="relative">
+              <textarea
+                value={newComment}
+                onChange={(e) => {
+                  if (e.target.value.length <= COMMENT_MAX_LENGTH) {
+                    setNewComment(e.target.value);
+                  }
+                }}
+                rows={3}
+                placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
+                className="w-full p-3 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
+                disabled={!user}
+                maxLength={COMMENT_MAX_LENGTH}
+              />
+              <div className="text-xs text-gray-400 mb-2 text-right">
+                {newComment.length}/{COMMENT_MAX_LENGTH}
+              </div>
+            </div>
             {error && (
               <div className="text-red-400 text-sm mb-2">
                 {error}

@@ -28,6 +28,9 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
   const [reportingId, setReportingId] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
+  const [newComment, setNewComment] = useState('');
+  
+  const COMMENT_MAX_LENGTH = 500;
 
   const handleEdit = (comment: Comment) => {
     setEditingId(comment.id);
@@ -103,11 +106,21 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     <>
       {editingId === c.id ? (
         <div className="space-y-2">
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className="w-full p-2 rounded bg-[#1f2336] text-white text-sm"
-          />
+          <div className="relative">
+            <textarea
+              value={editContent}
+              onChange={(e) => {
+                if (e.target.value.length <= COMMENT_MAX_LENGTH) {
+                  setEditContent(e.target.value);
+                }
+              }}
+              className="w-full p-2 rounded bg-[#1f2336] text-white text-sm"
+              maxLength={COMMENT_MAX_LENGTH}
+            />
+            <div className="text-xs text-gray-400 mt-1 text-right">
+              {editContent.length}/{COMMENT_MAX_LENGTH}
+            </div>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => handleUpdate(c.id)}
@@ -263,12 +276,11 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       {/* 일반 댓글 */}
       <ul className="space-y-4">
         {regularComments.map((c) => (
-        <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
-          {renderComment(c)}
-        </li>
-      )}
+          <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
+            {renderComment(c)}
+          </li>
+        ))}
+      </ul>
     </div>
   );
-  }
-}
 }

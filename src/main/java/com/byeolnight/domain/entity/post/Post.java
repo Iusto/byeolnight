@@ -32,8 +32,7 @@ public class Post {
     @Column(nullable = false, length = 100)
     private String title;
 
-    @Lob
-    @Column(nullable = false, columnDefinition = "LONGTEXT")
+    @Column(nullable = false, length = 10000)
     private String content;
 
     @Enumerated(EnumType.STRING)

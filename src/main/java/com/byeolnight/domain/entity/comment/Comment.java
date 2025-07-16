@@ -31,8 +31,7 @@ public class Comment {
     @JoinColumn(name = "parent_id", nullable = true)
     private Comment parent;
 
-    @Lob
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, length = 500)
     private String content;
     
     @Lob
