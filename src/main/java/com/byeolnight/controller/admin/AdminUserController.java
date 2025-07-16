@@ -34,7 +34,6 @@ public class AdminUserController {
 
     private final UserService userService;
     private final StringRedisTemplate redisTemplate;
-    private final PostService postService;
     private final com.byeolnight.service.user.PointService pointService;
     private final com.byeolnight.service.user.WithdrawnUserCleanupService withdrawnUserCleanupService;
 

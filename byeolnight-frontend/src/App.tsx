@@ -1,6 +1,7 @@
 // App.tsx
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
@@ -14,6 +15,7 @@ import PasswordReset from './pages/PasswordReset';
 import ProfileEdit from './pages/ProfileEdit';
 import AdminUserPage from './pages/AdminUserPage';
 import AdminReportedPostsPage from './pages/AdminReportedPostsPage';
+import Unauthorized from './pages/Unauthorized';
 
 
 import Certificates from './pages/Certificates';
@@ -48,9 +50,21 @@ function App() {
         <Route path="/posts/:id/edit" element={<PostEdit />} />
         <Route path="/posts/:id/report" element={<PostReport />} />
         <Route path="/posts/:id" element={<PostDetail />} />
-        <Route path="/admin/users" element={<AdminUserPage />} />
-        <Route path="/admin/reports" element={<AdminReportedPostsPage />} />
-        <Route path="/admin/report-management" element={<AdminReportsPage />} />
+        <Route path="/admin/users" element={
+          <ProtectedRoute requireAdmin>
+            <AdminUserPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/reports" element={
+          <ProtectedRoute requireAdmin>
+            <AdminReportedPostsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/report-management" element={
+          <ProtectedRoute requireAdmin>
+            <AdminReportsPage />
+          </ProtectedRoute>
+        } />
 
 
         <Route path="/certificates" element={<Certificates />} />
@@ -62,6 +76,7 @@ function App() {
         <Route path="/suggestions/:id/edit" element={<SuggestionEdit />} />
         <Route path="/suggestions/:id" element={<SuggestionDetail />} />
         <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
       </Route>
     </Routes>
   )
