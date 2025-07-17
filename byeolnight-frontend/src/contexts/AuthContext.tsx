@@ -111,7 +111,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         await fetchMyInfo();
-        navigate('/');
+        // user 상태가 갱신된 후에 이동
+        setTimeout(() => {
+          navigate('/');
+        }, 0);
       } else {
         throw new Error('토큰을 받지 못했습니다.');
       }
