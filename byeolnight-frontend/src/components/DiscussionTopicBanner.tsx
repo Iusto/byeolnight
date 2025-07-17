@@ -52,7 +52,7 @@ export default function DiscussionTopicBanner() {
           <p>오늘의 토론 주제가 준비 중입니다.</p>
           <div className="mt-3 p-3 bg-blue-900/20 rounded-lg border border-blue-500/20">
             <p className="text-blue-300 font-medium mb-1">🤖 자동 토론 주제 선정</p>
-            <p className="text-sm text-blue-200">AI가 매일 오전 8시에 흥미로운 토론 주제를 자동 선정합니다.</p>
+            <p className="text-sm text-blue-200">AI가 매일 오전 8시 5분에 흥미로운 토론 주제를 자동 선정합니다.</p>
           </div>
         </div>
       </div>

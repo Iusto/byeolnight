@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
+/**
+ * 승인 거부되어 잠시 보류
+ */
 //@Service
 @RequiredArgsConstructor
 public class SendGridEmailService {

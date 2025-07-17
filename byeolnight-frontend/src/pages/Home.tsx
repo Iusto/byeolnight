@@ -128,8 +128,18 @@ export default function Home() {
   }, []);
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
-    return `${date.getFullYear()}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    // 한국 시간대로 변환
+    return date.toLocaleString('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(/\. /g, '.').replace(/\.$/, '');
   };
 
   // 게시글 내용에서 첫 번째 이미지 URL 추출
@@ -542,7 +552,7 @@ export default function Home() {
             <div className="mb-3 p-2 bg-green-800/30 rounded-lg border border-green-600/30">
                 <p className="text-green-200 text-xs flex items-center gap-2">
                   <span className="text-green-400">🤖</span>
-                  <span>AI가 매일 오전 8시에 흥미로운 토론 주제를 자동 선정합니다.</span>
+                  <span>AI가 매일 오전 8시 5분에 흥미로운 토론 주제를 자동 선정합니다.</span>
                 </p>
               </div>
               <div className="space-y-3">
