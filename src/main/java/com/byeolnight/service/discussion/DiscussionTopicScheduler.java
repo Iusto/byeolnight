@@ -29,7 +29,7 @@ public class DiscussionTopicScheduler {
     @Value("${system.password.system}")
     private String systemRawPassword;
 
-    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Seoul") // 매일 오전 8시 (한국 시간)
+    @Scheduled(cron = "0 5 8 * * *", zone = "Asia/Seoul") // 매일 오전 8시 (한국 시간)
     @Transactional
     public void generateDailyDiscussionTopic() {
         log.info("일일 토론 주제 생성 시작 - {}", java.time.LocalDateTime.now());
