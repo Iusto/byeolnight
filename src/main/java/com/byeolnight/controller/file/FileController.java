@@ -66,8 +66,35 @@ public class FileController {
             @RequestParam(value = "file", required = false) MultipartFile file,
             HttpServletRequest request) {
         
-        if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().body(CommonResponse.error("파일이 필요합니다. multipart/form-data 형식으로 'file' 필드에 파일을 첨부해주세요."));
+        // 요청 정보 로깅
+        String contentType = request.getContentType();
+        log.info("업로드 요청 Content-Type: {}", contentType);
+        // 요청 헤더 로깅
+        StringBuilder headers = new StringBuilder();
+        java.util.Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            headers.append(headerName).append("=").append(request.getHeader(headerName)).append(", ");
+        }
+        log.info("요청 헤더: {}", headers.toString());
+        
+        try {
+            // multipart/form-data 형식 확인
+            if (contentType == null || !contentType.startsWith("multipart/form-data")) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("multipart/form-data 형식으로 요청해주세요. 현재 Content-Type: " + contentType));
+            }
+            
+            if (file == null || file.isEmpty()) {
+                log.warn("파일이 비어있거나 없습니다. file={}", file);
+                return ResponseEntity.badRequest().body(CommonResponse.error("파일이 필요합니다. multipart/form-data 형식으로 'file' 필드에 파일을 첨부해주세요."));
+            }
+            
+            // 파일 정보 로깅
+            log.info("파일 정보: 이름={}, 크기={}, 형식={}", 
+                    file.getOriginalFilename(), file.getSize(), file.getContentType());
+        } catch (Exception e) {
+            log.error("파일 정보 처리 중 오류", e);
+            return ResponseEntity.badRequest().body(CommonResponse.error("파일 정보를 처리하는 중 오류가 발생했습니다."));
         }
         
         // 파일 크기 제한 (5MB)
@@ -87,11 +114,35 @@ public class FileController {
         rateLimitService.startUpload(clientIp);
         
         try {
+            // 파일 확장자 검사
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isEmpty()) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("파일명이 없습니다."));
+            }
+            
+            // 파일 확장자 추출
+            String extension = "";
+            int lastDotIndex = originalFilename.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                extension = originalFilename.substring(lastDotIndex + 1).toLowerCase();
+            }
+            
+            // 이미지 파일 확장자 검사
+            if (!extension.matches("jpg|jpeg|png|gif|bmp|webp|svg")) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("지원되지 않는 이미지 형식입니다. 지원 형식: jpg, jpeg, png, gif, bmp, webp, svg"));
+            }
+            
+            log.info("이미지 업로드 시도: 파일명={}, 크기={}, 형식={}", 
+                    originalFilename, file.getSize(), file.getContentType());
+            
             Map<String, String> result = s3Service.uploadImageWithValidation(file);
+            log.info("이미지 업로드 성공: {}", result.get("url"));
             return ResponseEntity.ok(CommonResponse.success(result));
         } catch (IllegalArgumentException e) {
+            log.warn("이미지 업로드 유효성 오류: {}", e.getMessage());
             return ResponseEntity.badRequest().body(CommonResponse.error(e.getMessage()));
         } catch (Exception e) {
+            log.error("이미지 업로드 오류", e);
             return ResponseEntity.internalServerError().body(CommonResponse.error("이미지 업로드 중 오류가 발생했습니다."));
         } finally {
             // 동시 업로드 완료
