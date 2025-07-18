@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "comment_reports",
        uniqueConstraints = @UniqueConstraint(columnNames = {"comment_id", "reporter_id"}))
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
 @AllArgsConstructor
 @Builder
 public class CommentReport {

@@ -79,6 +79,19 @@ public class PublicPostController {
     @Parameter(name = "size", description = "조회할 게시글 수", example = "6")
     public ResponseEntity<CommonResponse<List<PostResponseDto>>> getTopHotPosts(@RequestParam(defaultValue = "6") int size) {
         List<PostResponseDto> hotPosts = postService.getTopHotPostsAcrossAllCategories(size);
+        
+        // 날짜 디버그
+        if (!hotPosts.isEmpty()) {
+            PostResponseDto firstPost = hotPosts.get(0);
+            System.out.println("\n=== 인기 게시글 날짜 디버그 ===");
+            System.out.println("ID: " + firstPost.getId());
+            System.out.println("Title: " + firstPost.getTitle());
+            System.out.println("CreatedAt: " + firstPost.getCreatedAt());
+            System.out.println("UpdatedAt: " + firstPost.getUpdatedAt());
+            System.out.println("TimeZone: " + java.util.TimeZone.getDefault().getID());
+            System.out.println("=== 디버그 종료 ===\n");
+        }
+        
         return ResponseEntity.ok(CommonResponse.success(hotPosts));
     }
 }
