@@ -92,10 +92,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         baseURL: axios.defaults.baseURL
       });
       
-      const res = await axios.post('/auth/login', {
-        email,
-        password,
-      });
+      // 객체 형태로 명확하게 지정하여 배열 형태로 전송되는 문제 방지
+      const loginData = {
+        email: email,
+        password: password
+      };
+      
+      console.log('로그인 요청 데이터:', JSON.stringify(loginData));
+      
+      const res = await axios.post('/auth/login', loginData);
       
       console.log('로그인 응답:', res.data);
 

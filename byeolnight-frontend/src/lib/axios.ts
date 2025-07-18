@@ -59,6 +59,24 @@ instance.interceptors.request.use(
     const isAuthEndpoint = config.url?.includes('/auth/login') || 
                           config.url?.includes('/auth/signup') ||
                           config.url?.includes('/auth/token/refresh');
+    
+    // 로그인 요청인 경우 데이터 형식 확인 및 로깅
+    if (config.url?.includes('/auth/login') && config.data) {
+      console.log('로그인 요청 인터셉터:', {
+        contentType: config.headers['Content-Type'],
+        dataType: typeof config.data,
+        isArray: Array.isArray(config.data),
+        data: config.data
+      });
+      
+      // 배열 형태로 전송되는 문제 방지
+      if (Array.isArray(config.data)) {
+        console.warn('로그인 데이터가 배열 형태로 전송되었습니다. 객체로 변환합니다.');
+        const email = config.data[0]?.email || '';
+        const password = config.data[0]?.password || '';
+        config.data = { email, password };
+      }
+    }
 
     // 인증이 필요한 경우만 Authorization 헤더 설정
     if (token && !isAuthEndpoint && !isPublicEndpoint) {
