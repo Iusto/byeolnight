@@ -78,8 +78,15 @@ public class CommentController {
         if (user == null) {
             return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
-        System.out.println("댓글 신고 - commentId: " + commentId + ", reporter: " + user.getId() + ", reason: " + reason);
-        commentService.reportComment(commentId, user, reason, description);
-        return ResponseEntity.ok(CommonResponse.success());
+        
+        try {
+            System.out.println("댓글 신고 - commentId: " + commentId + ", reporter: " + user.getId() + ", reason: " + reason);
+            commentService.reportComment(commentId, user, reason, description);
+            return ResponseEntity.ok(CommonResponse.success());
+        } catch (Exception e) {
+            System.err.println("댓글 신고 처리 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(CommonResponse.error("댓글 신고 처리 중 오류가 발생했습니다. 다시 시도해주세요."));
+        }
     }
 }

@@ -63,11 +63,11 @@ public class FileController {
     @Operation(summary = "이미지 직접 업로드 및 검열", description = "이미지를 직접 업로드하고 Google Vision API로 검열합니다.")
     @PostMapping("/upload-image")
     public ResponseEntity<CommonResponse<Map<String, String>>> uploadImage(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             HttpServletRequest request) {
         
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().body(CommonResponse.error("파일이 필요합니다."));
+            return ResponseEntity.badRequest().body(CommonResponse.error("파일이 필요합니다. multipart/form-data 형식으로 'file' 필드에 파일을 첨부해주세요."));
         }
         
         // 파일 크기 제한 (5MB)

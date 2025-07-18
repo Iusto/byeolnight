@@ -121,6 +121,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 멀티파트 요청 예외 처리
+     */
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    public ResponseEntity<CommonResponse<?>> handleMultipartException(org.springframework.web.multipart.MultipartException ex) {
+        log.warn("[멀티파트 요청 오류]", ex);
+        return ResponseEntity.badRequest()
+                .body(CommonResponse.fail("파일 업로드 요청이 올바르지 않습니다. multipart/form-data 형식으로 요청해주세요."));
+    }
+
+    /**
      * 그 외 알 수 없는 서버 에러
      */
     @ExceptionHandler(Exception.class)

@@ -316,14 +316,15 @@ public class CommentService {
             System.out.println("- 신고자 닉네임: " + freshReporter.getNickname());
             System.out.println("- 신고 사유: " + reason);
             
-            // 신고 객체 생성 - 생성자 사용
-            com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
-            report.setComment(comment);
-            report.setReporter(freshReporter);
-            report.setReason(reason);
-            report.setDescription(description);
-            report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
-            report.setCreatedAt(java.time.LocalDateTime.now());
+            // 신고 객체 생성 - Builder 패턴 사용
+            com.byeolnight.domain.entity.comment.CommentReport report = com.byeolnight.domain.entity.comment.CommentReport.builder()
+                .comment(comment)
+                .reporter(freshReporter) // 반드시 freshReporter 사용
+                .reason(reason)
+                .description(description)
+                .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
             
             // 저장 전 객체 확인
             System.out.println("저장 전 신고 객체 확인:");

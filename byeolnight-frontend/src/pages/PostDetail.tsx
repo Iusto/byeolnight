@@ -880,7 +880,9 @@ export default function PostDetail() {
             reportCount: 0,
             isPopular: (c.likeCount || 0) >= 3,
             blinded: c.blinded || false,
-            deleted: c.deleted || false
+            deleted: c.deleted || false,
+            writerIcon: c.writerIcon,
+            writerCertificates: c.writerCertificates
           }))}
           postId={Number(id)}
           onRefresh={fetchComments}
