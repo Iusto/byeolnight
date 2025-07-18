@@ -31,14 +31,19 @@ export default function PostCreate() {
   
   // 클립보드 이미지 업로드 함수 (검열 포함)
   const uploadClipboardImage = async (file: File) => {
+    // 파일 크기 체크 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.');
+      return Promise.reject(new Error('파일 크기 초과'));
+    }
+    
     setIsImageChecking(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post('/files/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // 명시적으로 Content-Type 설정 안함 (브라우저가 자동으로 설정)
+      const response = await axios.post('/files/upload-image', formData);
       
       const imageData = response.data.data;
       setUploadedImages(prev => [...prev, imageData]);
@@ -89,23 +94,43 @@ export default function PostCreate() {
     };
   }, []);
   
+  // 모바일 환경 감지 함수
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
   const handleImageUpload = () => {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
+    
+    // 모바일 환경에서 카메라 접근 허용
+    if (isMobile()) {
+      input.setAttribute('capture', 'environment');
+    }
+    
+    // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
+    document.body.appendChild(input);
+    input.style.display = 'none';
     input.click();
     
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        // 파일 크기 체크 (10MB 제한)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('파일 크기는 10MB를 초과할 수 없습니다.');
+          document.body.removeChild(input);
+          return;
+        }
+        
         setIsImageChecking(true);
         try {
           const formData = new FormData();
           formData.append('file', file);
           
-          const response = await axios.post('/files/upload-image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
+          // 명시적으로 Content-Type 설정 안함 (브라우저가 자동으로 설정)
+          const response = await axios.post('/files/upload-image', formData);
           
           const imageData = response.data.data;
           setUploadedImages(prev => [...prev, imageData]);
@@ -118,7 +143,12 @@ export default function PostCreate() {
           alert(errorMsg);
         } finally {
           setIsImageChecking(false);
+          // DOM에서 제거
+          document.body.removeChild(input);
         }
+      } else {
+        // 파일 선택 취소 시 DOM에서 제거
+        document.body.removeChild(input);
       }
     };
   };

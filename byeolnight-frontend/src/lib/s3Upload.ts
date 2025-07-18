@@ -46,14 +46,16 @@ export const uploadImageToS3 = async (file: File): Promise<string> => {
 
 export const uploadImageWithValidation = async (file: File): Promise<string> => {
   try {
+    // 파일 크기 체크 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('파일 크기는 10MB를 초과할 수 없습니다.');
+    }
+    
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axios.post('/files/upload-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    // Content-Type 헤더를 명시적으로 설정하지 않음 (브라우저가 자동으로 설정)
+    const response = await axios.post('/files/upload-image', formData);
 
     return response.data.data.url;
   } catch (error: any) {
