@@ -6,7 +6,6 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
-import RichTextEditor from '../components/RichTextEditor';
 
 interface FileDto {
   originalName: string;
@@ -396,9 +395,37 @@ export default function PostEdit() {
                     </div>
                   </div>
                 ) : (
-                  <RichTextEditor
+                  <ReactQuill
+                    ref={editorRef}
                     value={content}
                     onChange={setContent}
+                    theme="snow"
+                    style={{ height: '400px', marginBottom: '50px' }}
+                    modules={{
+                      toolbar: {
+                        container: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'color': [] }, { 'background': [] }],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'align': [] }],
+                          ['link', 'image', 'video'],
+                          ['clean']
+                        ],
+                        handlers: {
+                          // 이미지 버튼 클릭 시 사용자 정의 함수 실행
+                          image: handleImageUpload
+                        }
+                      },
+                      clipboard: {
+                        matchVisual: false
+                      }
+                    }}
+                    formats={[
+                      'header', 'bold', 'italic', 'underline', 'strike',
+                      'color', 'background', 'list', 'bullet', 'align',
+                      'link', 'image', 'video', 'iframe'
+                    ]}
                     placeholder="내용을 입력하세요..."
                   />
                 )}
