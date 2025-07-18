@@ -773,65 +773,148 @@ export default function PostList() {
             <h3 className="text-2xl font-semibold mb-4 text-white">
               {sort === 'popular' ? '📄 게시글 (추천순)' : '📄 일반 게시글'}
             </h3>
-            <ul className="space-y-4">
-              {normalPosts.map((post) => (
-                <li
-                  key={post.id}
-                  className={`rounded-lg p-4 transition-all duration-200 ${
-                    post.blinded 
-                      ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
-                      : 'bg-[#1f2336]/80 border border-gray-600/50 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {isAdmin && (
-                      <input
-                        type="checkbox"
-                        checked={selectedPosts.includes(post.id)}
-                        onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-                        className="w-4 h-4 mt-1"
-                      />
-                    )}
-                    <div className="flex-1">
-                  <Link to={`/posts/${post.id}`} className="block">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-base font-semibold text-white flex-1 mr-4">
-                        {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">[{post.dDay}]</span>}
-                        {post.blinded ? (
-                          post.blindType === 'ADMIN_BLIND' 
-                            ? '관리자가 직접 블라인드 처리한 게시글입니다'
-                            : '다수의 신고로 블라인드 처리된 게시글입니다'
-                        ) : post.title}
-                        {post.blinded && (
-                          <span className={`text-xs ml-2 px-2 py-1 rounded ${
-                            post.blindType === 'ADMIN_BLIND' 
-                              ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
-                              : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
-                          }`}>
-                            {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
-                          </span>
+            
+            {/* 사진 갤러리 형식 (IMAGE 카테고리일 때) */}
+            {category === 'IMAGE' ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {normalPosts.map((post) => (
+                  <div 
+                    key={post.id} 
+                    className={`rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-[1.03] ${post.blinded ? 'opacity-70' : ''}`}
+                  >
+                    <Link to={`/posts/${post.id}`} className="block h-full">
+                      <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
+                        {/* 게시글 내용에서 첫 번째 이미지 URL 추출 */}
+                        {(() => {
+                          if (post.blinded) return null;
+                          const imgRegex = /<img[^>]+src="([^"]+)"/i;
+                          const match = post.content.match(imgRegex);
+                          const imgSrc = match ? match[1] : null;
+                          
+                          return imgSrc ? (
+                            <img 
+                              src={imgSrc} 
+                              alt={post.title} 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://via.placeholder.com/300x300?text=이미지+없음';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
+                              <span className="text-4xl">🌌</span>
+                            </div>
+                          );
+                        })()} 
+                        
+                        {/* 관리자 체크박스 */}
+                        {isAdmin && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <input
+                              type="checkbox"
+                              checked={selectedPosts.includes(post.id)}
+                              onChange={(e) => handlePostSelect(post.id, e.target.checked)}
+                              className="w-4 h-4"
+                            />
+                          </div>
                         )}
-                      </h4>
-                      <div className="flex gap-3 text-sm text-gray-400 flex-shrink-0">
-                        <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
-                        <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
+                        
+                        {/* 블라인드 표시 */}
+                        {post.blinded && (
+                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                            <span className="text-4xl">🔒</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-3 bg-slate-800/80">
+                        <h4 className="text-sm font-medium text-white line-clamp-1">
+                          {post.blinded ? (
+                            post.blindType === 'ADMIN_BLIND' 
+                              ? '관리자 블라인드 처리됨'
+                              : '신고로 블라인드 처리됨'
+                          ) : post.title}
+                        </h4>
+                        
+                        <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <span className="bg-slate-700/50 rounded px-1 py-0.5 border border-slate-600/30">
+                              {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                            </span>
+                            <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
+                          </span>
+                          <div className="flex gap-2">
+                            <span className="flex items-center">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
+                            <span className="flex items-center">❤️ {post.blinded ? '*' : post.likeCount}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* 일반 리스트 형식 (다른 카테고리) */
+              <ul className="space-y-4">
+                {normalPosts.map((post) => (
+                  <li
+                    key={post.id}
+                    className={`rounded-lg p-4 transition-all duration-200 ${
+                      post.blinded 
+                        ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
+                        : 'bg-[#1f2336]/80 border border-gray-600/50 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {isAdmin && (
+                        <input
+                          type="checkbox"
+                          checked={selectedPosts.includes(post.id)}
+                          onChange={(e) => handlePostSelect(post.id, e.target.checked)}
+                          className="w-4 h-4 mt-1"
+                        />
+                      )}
+                      <div className="flex-1">
+                    <Link to={`/posts/${post.id}`} className="block">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-base font-semibold text-white flex-1 mr-4">
+                          {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">[{post.dDay}]</span>}
+                          {post.blinded ? (
+                            post.blindType === 'ADMIN_BLIND' 
+                              ? '관리자가 직접 블라인드 처리한 게시글입니다'
+                              : '다수의 신고로 블라인드 처리된 게시글입니다'
+                          ) : post.title}
+                          {post.blinded && (
+                            <span className={`text-xs ml-2 px-2 py-1 rounded ${
+                              post.blindType === 'ADMIN_BLIND' 
+                                ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
+                                : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
+                            }`}>
+                              {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+                            </span>
+                          )}
+                        </h4>
+                        <div className="flex gap-3 text-sm text-gray-400 flex-shrink-0">
+                          <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
+                          <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-sm text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                            {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                          </span>
+                          {post.blinded ? '***' : post.writer}
+                        </span>
+                        <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </Link>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center text-sm text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                          {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
-                        </span>
-                        {post.blinded ? '***' : post.writer}
-                      </span>
-                      <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </Link>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             {/* 페이지네이션 */}
             <div className="mt-10 flex justify-center gap-2">

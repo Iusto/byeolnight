@@ -16,37 +16,43 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
+    
+    // 모바일에서 갤러리 접근을 위해 capture 속성 제거
+    input.removeAttribute('capture');
+    
+    // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
+    document.body.appendChild(input);
+    input.style.display = 'none';
     input.click();
 
     input.onchange = async () => {
       const file = input.files?.[0];
-      if (!file) return;
+      if (!file) {
+        document.body.removeChild(input);
+        return;
+      }
 
-      // 파일 크기 체크 (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('파일 크기는 10MB 이하만 업로드 가능합니다.');
+      // 파일 크기 체크 (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('파일 크기는 5MB 이하만 업로드 가능합니다.');
+        document.body.removeChild(input);
         return;
       }
 
       try {
-        // S3 Presigned URL 요청
-        const presignedRes = await axios.post('/member/files/presigned-url', {
-          filename: file.name
-        });
-
-        const { url: presignedUrl } = presignedRes.data;
-
-        // S3에 파일 업로드
-        await fetch(presignedUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
-        });
-
-        // 업로드된 이미지 URL 생성
-        const imageUrl = presignedUrl.split('?')[0];
+        // 이미지 검열을 위해 /files/upload-image 엔드포인트 사용
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // 검열 API 호출
+        const response = await axios.post('/files/upload-image', formData);
+        
+        if (!response.data || !response.data.data) {
+          throw new Error('이미지 업로드 응답이 올바르지 않습니다.');
+        }
+        
+        const imageData = response.data.data;
+        const imageUrl = imageData.url;
 
         // Quill 에디터에 이미지 삽입
         const quill = quillRef.current?.getEditor();
@@ -55,9 +61,13 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
           quill.insertEmbed(range?.index || 0, 'image', imageUrl);
         }
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('이미지 업로드 실패:', error);
-        alert('이미지 업로드에 실패했습니다.');
+        const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
+        alert(errorMsg);
+      } finally {
+        // DOM에서 제거
+        document.body.removeChild(input);
       }
     };
   };

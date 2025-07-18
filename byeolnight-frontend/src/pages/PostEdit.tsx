@@ -103,14 +103,8 @@ export default function PostEdit() {
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
     
-    // 모바일에서 갤러리 접근을 위해 capture 속성 제거 및 camera 접근 방지
-    input.removeAttribute('capture');
-    
-    // 모바일 환경에서 카메라 대신 갤러리만 사용하도록 설정
-    if (isMobile()) {
-      // 명시적으로 카메라 접근을 방지하는 설정
-      input.setAttribute('capture', 'none');
-    }
+    // 모바일에서 갤러리 접근을 위해 capture 속성을 설정하지 않음
+    // capture 속성이 있으면 카메라가 열리므로 완전히 제거
     
     // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
     document.body.appendChild(input);
