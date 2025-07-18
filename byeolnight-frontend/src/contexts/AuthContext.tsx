@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // 로컬 상태 정리
       localStorage.removeItem('accessToken');
       setUser(null);
-      navigate('/login');
+      navigate('/');
     }
   };
 

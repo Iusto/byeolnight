@@ -75,7 +75,8 @@ public class CommentController {
         }
         
         try {
-            commentService.reportComment(commentId, user, reason, description);
+            // User 객체 대신 ID만 전달
+            commentService.reportCommentById(commentId, user.getId(), reason, description);
             return ResponseEntity.ok(CommonResponse.success());
         } catch (Exception e) {
             return ResponseEntity.status(500).body(CommonResponse.error("댓글 신고 처리 중 오류가 발생했습니다. 다시 시도해주세요."));
