@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import ReactQuill from 'react-quill';
-// 중복 import 제거 (main.tsx에서 이미 import 함)
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
+import { uploadImage } from '../lib/s3Upload';
 
 interface FileDto {
   originalName: string;
@@ -16,7 +16,7 @@ interface FileDto {
 export default function PostEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshToken } = useAuth();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -46,25 +46,12 @@ export default function PostEdit() {
     setIsImageChecking(true);
     
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      console.log('이미지 업로드 요청 시작');
       
-      // 모바일용 헤더 설정
-      const isMobileDevice = isMobile();
-      const config = {
-        headers: {
-          'Accept': 'application/json',
-          'X-Mobile-Upload': isMobileDevice ? 'true' : 'false'
-        },
-        timeout: isMobileDevice ? 60000 : 30000 // 모바일은 타임아웃 증가
-      };
+      // 통합된 s3Upload 유틸리티 사용
+      const imageData = await uploadImage(file);
       
-      console.log('서버로 이미지 업로드 요청 시작');
-      const response = await axios.post('/files/upload-image', formData, config);
-      console.log('서버 응답 받음:', response.status);
-      
-      const imageData = response.data.data;
-      console.log('이미지 데이터 받음:', imageData?.url ? '성공' : '실패');
+      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
       setImages(prev => [...prev, imageData]);
       
       return imageData.url;
@@ -193,24 +180,12 @@ export default function PostEdit() {
         
         setIsImageChecking(true);
         try {
-          const formData = new FormData();
-          formData.append('file', file);
+          console.log('이미지 업로드 요청 시작');
           
-          // 모바일용 헤더 설정
-          const config = {
-            headers: {
-              'Accept': 'application/json',
-              'X-Mobile-Upload': isMobileDevice ? 'true' : 'false'
-            },
-            timeout: isMobileDevice ? 60000 : 30000 // 모바일은 타임아웃 증가
-          };
+          // 통합된 s3Upload 유틸리티 사용
+          const imageData = await uploadImage(file);
           
-          console.log('서버로 이미지 업로드 요청 시작');
-          const response = await axios.post('/files/upload-image', formData, config);
-          console.log('서버 응답 받음:', response.status);
-          
-          const imageData = response.data.data;
-          console.log('이미지 데이터 받음:', imageData?.url ? '성공' : '실패');
+          console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
           setImages(prev => [...prev, imageData]);
           
           // 이미지 URL 삽입 전 유효성 검사
@@ -264,6 +239,36 @@ export default function PostEdit() {
 
   useEffect(() => {
     const fetchPost = async () => {
+      // 사용자 정보가 없는 경우 토큰 갱신 시도
+      if (!user) {
+        const token = localStorage.getItem('accessToken');
+        const rememberMe = localStorage.getItem('rememberMe');
+        
+        // 토큰이 있고 로그인 유지 옵션이 활성화된 경우 토큰 갱신 시도
+        if (token && rememberMe === 'true') {
+          try {
+            console.log('토큰 갱신 시도 중...');
+            const refreshSuccess = await refreshToken();
+            if (!refreshSuccess) {
+              setError('로그인이 필요합니다.');
+              setLoading(false);
+              return;
+            }
+            // 토큰 갱신 성공 시 사용자 정보가 업데이트되었으므로 계속 진행
+          } catch (err) {
+            console.error('토큰 갱신 실패:', err);
+            setError('로그인이 필요합니다.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          setError('로그인이 필요합니다.');
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // 여기서 user가 여전히 null일 수 있으므로 다시 확인
       if (!user) {
         setError('로그인이 필요합니다.');
         setLoading(false);
@@ -309,7 +314,7 @@ export default function PostEdit() {
     };
 
     fetchPost();
-  }, [id, user]);
+  }, [id, user, refreshToken]);
   
   // 컴포넌트 마운트 시 이벤트 리스너 등록
   useEffect(() => {
