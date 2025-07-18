@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import ReactQuill from 'react-quill';
+import QuillEditor from '../components/QuillEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
@@ -435,58 +435,12 @@ export default function PostCreate() {
                     </div>
                   </div>
                 ) : (
-                  <ReactQuill
+                  <QuillEditor
                     ref={editorRef}
                     value={content}
                     onChange={setContent}
-                    theme="snow"
-                    className="quill-editor"
-                    style={{ 
-                      flex: '1',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      width: '100%',
-                      border: 'none'
-                    }}
-                    modules={{
-                      toolbar: {
-                        container: [
-                          [{ 'header': [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          [{ 'color': [] }, { 'background': [] }],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          [{ 'align': [] }],
-                          ['link', 'image', 'video'],
-                          ['clean']
-                        ],
-                        handlers: {
-                          // 이미지 버튼 클릭 시 사용자 정의 함수 실행 (검열 과정 포함)
-                          image: handleImageUpload,
-                          // 비디오 버튼 클릭 시 기본 동작 유지
-                          video: function() {
-                            const range = this.quill.getSelection();
-                            const url = prompt('YouTube 임베드 URL을 입력하세요 (예: https://www.youtube.com/embed/VIDEO_ID)');
-                            if (url) {
-                              // YouTube 임베드 URL 형식 검증
-                              if (url.includes('youtube.com/embed/')) {
-                                this.quill.insertEmbed(range.index, 'video', url);
-                              } else {
-                                alert('올바른 YouTube 임베드 URL을 입력해주세요 (https://www.youtube.com/embed/VIDEO_ID 형식)');
-                              }
-                            }
-                          }
-                        }
-                      },
-                      clipboard: {
-                        matchVisual: false
-                      }
-                    }}
-                    formats={[
-                      'header', 'bold', 'italic', 'underline', 'strike',
-                      'color', 'background', 'list', 'bullet', 'align',
-                      'link', 'image', 'video', 'iframe'
-                    ]}
                     placeholder="내용을 입력하세요..."
+                    handleImageUpload={handleImageUpload}
                   />
                 )}
               </div>
