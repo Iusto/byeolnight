@@ -225,41 +225,35 @@ public class CommentService {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
         
-        // 신고자 ID 유효성 검증
-        if (!userRepository.existsById(reporter.getId())) {
-            throw new NotFoundException("신고자 정보가 유효하지 않습니다.");
-        }
+        // 영속성 컨텍스트에서 신고자 다시 조회 (중요: ID만 사용)
+        Long reporterId = reporter.getId();
+        User freshReporter = userRepository.findById(reporterId)
+                .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
         
-        // 신고자 새로 조회 (영속성 컨텍스트에서 완전한 엔티티 가져오기)
-        User freshReporter = userRepository.findById(reporter.getId()).orElseThrow();
-        
+        // 댓글 조회
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
         
-        // 중복 신고 방지
+        // 중복 신고 방지 (ID 기반 조회)
         if (commentReportRepository.existsByCommentAndReporter(comment, freshReporter)) {
             throw new IllegalArgumentException("이미 신고한 댓글입니다.");
         }
         
-        try {
-            // 신고 객체 생성
-            com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
-            report.setComment(comment);
-            report.setReporter(freshReporter);
-            report.setReason(reason);
-            report.setDescription(description);
-            report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
-            report.setCreatedAt(java.time.LocalDateTime.now());
-            
-            commentReportRepository.save(report);
-            comment.increaseReportCount();
-            
-            // 신고 수가 5개 이상이면 자동 블라인드
-            if (comment.getReportCount() >= 5) {
-                comment.blind();
-            }
-        } catch (Exception e) {
-            throw e;
+        // 신고 객체 생성 및 저장 (setter 사용)
+        com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
+        report.setComment(comment);
+        report.setReporter(freshReporter); // 반드시 새로 조회한 엔티티 사용
+        report.setReason(reason);
+        report.setDescription(description);
+        report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
+        report.setCreatedAt(java.time.LocalDateTime.now());
+        
+        commentReportRepository.save(report);
+        comment.increaseReportCount();
+        
+        // 신고 수가 5개 이상이면 자동 블라인드
+        if (comment.getReportCount() >= 5) {
+            comment.blind();
         }
     }
     
