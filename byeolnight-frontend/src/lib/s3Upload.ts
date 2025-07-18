@@ -51,11 +51,31 @@ export const uploadImageWithValidation = async (file: File): Promise<string> => 
       throw new Error('파일 크기는 10MB를 초과할 수 없습니다.');
     }
     
+    // 파일 유효성 추가 검사
+    if (!file || !(file instanceof File)) {
+      throw new Error('유효한 파일이 아닙니다.');
+    }
+    
+    console.log('업로드 파일 정보:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+    
     const formData = new FormData();
     formData.append('file', file);
+    
+    // FormData 내용 확인 (디버깅용)
+    console.log('FormData 파일 포함 여부:', formData.has('file'));
 
-    // Axios는 FormData를 사용할 때 자동으로 Content-Type을 설정하므로 명시적으로 설정하지 않음
-    const response = await axios.post('/files/upload-image', formData);
+    // 멀티파트 요청 직접 설정
+    const response = await axios.post('/files/upload-image', formData, {
+      headers: {
+        // Content-Type 헤더를 삭제하여 브라우저가 자동으로 boundary 설정하도록 함
+        'Content-Type': undefined
+      }
+    });
 
     return response.data.data.url;
   } catch (error: any) {

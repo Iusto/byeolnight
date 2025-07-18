@@ -8,6 +8,17 @@ const instance = axios.create({
   withCredentials: true, // 쿠키 포함 (Refresh Token용)
 });
 
+// FormData를 사용할 때 Content-Type 헤더를 자동으로 설정하도록 함
+instance.defaults.transformRequest = [
+  function(data, headers) {
+    // FormData인 경우 Content-Type 헤더 삭제 (브라우저가 자동으로 설정)
+    if (data instanceof FormData) {
+      delete headers['Content-Type'];
+    }
+    return data;
+  }
+];
+
 console.log('Axios baseURL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
 
 // 클라이언트 IP 추출 함수 (모바일 호환성 개선)
