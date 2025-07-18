@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import ReactQuill from 'react-quill';
-// 중복 import 제거 (main.tsx에서 이미 import 함)
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
+import { uploadImage } from '../lib/s3Upload';
 
 interface FileDto {
   originalName: string;
@@ -43,21 +43,12 @@ export default function PostCreate() {
       const formData = new FormData();
       formData.append('file', file);
       
-      // 모바일용 헤더 설정
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json'
-        },
-        timeout: 30000 // 30초 타임아웃 설정
-      };
+      console.log('이미지 업로드 요청 시작');
       
-      console.log('서버로 이미지 업로드 요청 시작');
-      const response = await axios.post('/files/upload-image', formData, config);
-      console.log('서버 응답 받음:', response.status);
+      // 통합된 s3Upload 유틸리티 사용
+      const imageData = await uploadImage(file);
       
-      const imageData = response.data.data;
-      console.log('이미지 데이터 받음:', imageData?.url ? '성공' : '실패');
+      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
       setUploadedImages(prev => [...prev, imageData]);
       
       return imageData.url;
@@ -202,24 +193,12 @@ export default function PostCreate() {
         
         setIsImageChecking(true);
         try {
-          const formData = new FormData();
-          formData.append('file', file);
+          console.log('이미지 업로드 요청 시작');
           
-          // 모바일용 헤더 설정
-          const config = {
-            headers: {
-              'Accept': 'application/json',
-              'X-Mobile-Upload': isMobileDevice ? 'true' : 'false'
-            },
-            timeout: isMobileDevice ? 60000 : 30000 // 모바일은 타임아웃 증가
-          };
+          // 통합된 s3Upload 유틸리티 사용
+          const imageData = await uploadImage(file);
           
-          console.log('서버로 이미지 업로드 요청 시작');
-          const response = await axios.post('/files/upload-image', formData, config);
-          console.log('서버 응답 받음:', response.status);
-          
-          const imageData = response.data.data;
-          console.log('이미지 데이터 받음:', imageData?.url ? '성공' : '실패');
+          console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
           setUploadedImages(prev => [...prev, imageData]);
           
           // 이미지 URL 삽입 전 유효성 검사

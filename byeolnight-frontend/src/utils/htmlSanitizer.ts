@@ -1,67 +1,108 @@
-// HTML 콘텐츠 보안 정책: 허용 태그만 렌더링
-export const sanitizeHtml = (html: string): string => {
-  // 허용된 태그만 유지하고 나머지는 제거
-  const allowedTags = ['img', 'iframe'];
-  const dangerousTags = ['script', 'style', 'object', 'embed', 'form', 'input'];
+/**
+ * HTML 콘텐츠를 안전하게 정화하는 함수
+ * XSS 공격을 방지하기 위해 허용된 태그와 속성만 남기고 제거합니다.
+ * 
+ * @param html 정화할 HTML 문자열
+ * @returns 정화된 HTML 문자열
+ */
+export function sanitizeHtml(html: string): string {
+  if (!html) return '';
   
-  let sanitized = html;
+  // 이미 안전한 HTML이라고 판단되는 경우 (ReactQuill에서 생성된 HTML)
+  if (html.includes('quill-editor') || html.includes('ql-editor')) {
+    return html;
+  }
   
-  // 위험한 태그 완전 제거
-  dangerousTags.forEach(tag => {
-    const regex = new RegExp(`<${tag}[^>]*>.*?<\/${tag}>`, 'gis');
-    sanitized = sanitized.replace(regex, '');
-    const selfClosingRegex = new RegExp(`<${tag}[^>]*\/?>`, 'gis');
-    sanitized = sanitized.replace(selfClosingRegex, '');
-  });
+  // DOMParser를 사용하여 HTML 파싱
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
   
-  // img 태그 검증 및 정리
-  sanitized = sanitized.replace(/<img([^>]*)>/gi, (match, attrs) => {
-    // src 속성만 허용하고 나머지 위험한 속성 제거
-    const srcMatch = attrs.match(/src\s*=\s*["']([^"']+)["']/i);
-    const altMatch = attrs.match(/alt\s*=\s*["']([^"']+)["']/i);
-    const styleMatch = attrs.match(/style\s*=\s*["']([^"']*max-width[^"']*)["']/i);
-    
-    if (srcMatch) {
-      const src = srcMatch[1];
-      const alt = altMatch ? altMatch[1] : '';
-      const style = styleMatch ? styleMatch[1] : 'max-width: 100%; height: auto;';
-      
-      // 안전한 URL인지 확인 (http/https만 허용)
-      if (src.startsWith('http://') || src.startsWith('https://')) {
-        return `<img src="${src}" alt="${alt}" style="${style}" />`;
-      }
+  // 허용된 태그 목록
+  const allowedTags = [
+    'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'strong', 'em', 'u', 's', 'blockquote', 'pre', 'code',
+    'ul', 'ol', 'li', 'br', 'hr',
+    'a', 'img', 'iframe', 'video', 'audio', 'source',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td'
+  ];
+  
+  // 허용된 속성 목록
+  const allowedAttributes = {
+    'all': ['class', 'id', 'style'],
+    'a': ['href', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height', 'style'],
+    'iframe': ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
+    'video': ['src', 'controls', 'width', 'height'],
+    'audio': ['src', 'controls'],
+    'source': ['src', 'type']
+  };
+  
+  // 위험한 스크립트 및 이벤트 핸들러 속성 제거
+  const dangerousAttributes = [
+    'onclick', 'ondblclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmousemove', 'onmouseout',
+    'onkeydown', 'onkeypress', 'onkeyup', 'onload', 'onunload', 'onabort', 'onerror', 'onresize',
+    'onscroll', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'javascript:'
+  ];
+  
+  // 모든 요소 순회
+  const sanitizeNode = (node: Element) => {
+    // 태그 이름이 허용 목록에 없으면 내용만 유지
+    if (!allowedTags.includes(node.tagName.toLowerCase())) {
+      const content = node.textContent;
+      const span = document.createElement('span');
+      span.textContent = content;
+      node.parentNode?.replaceChild(span, node);
+      return;
     }
-    return '';
-  });
-  
-  // iframe 태그 검증 (YouTube, Vimeo만 허용)
-  sanitized = sanitized.replace(/<iframe([^>]*)>.*?<\/iframe>/gi, (match, attrs) => {
-    const srcMatch = attrs.match(/src\s*=\s*["']([^"']+)["']/i);
-    const titleMatch = attrs.match(/title\s*=\s*["']([^"']+)["']/i);
-    const styleMatch = attrs.match(/style\s*=\s*["']([^"']+)["']/i);
-    const allowMatch = attrs.match(/allow\s*=\s*["']([^"']+)["']/i);
     
-    if (srcMatch) {
-      const src = srcMatch[1];
+    // 속성 정화
+    Array.from(node.attributes).forEach(attr => {
+      const attrName = attr.name.toLowerCase();
       
-      // YouTube 또는 Vimeo 임베드만 허용
-      if (src.includes('youtube.com/embed/') || src.includes('youtu.be/') || src.includes('vimeo.com/video/')) {
-        // YouTube URL 정규화
-        let embedUrl = src;
-        if (src.includes('youtu.be/')) {
-          const videoId = src.split('youtu.be/')[1].split('?')[0];
-          embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      // 위험한 속성 제거
+      if (dangerousAttributes.some(dangerous => attrName.includes(dangerous))) {
+        node.removeAttribute(attr.name);
+        return;
+      }
+      
+      // 태그별 허용 속성 확인
+      const tagAllowedAttrs = allowedAttributes[node.tagName.toLowerCase() as keyof typeof allowedAttributes] || [];
+      const globalAllowedAttrs = allowedAttributes['all'];
+      
+      if (!tagAllowedAttrs.includes(attrName) && !globalAllowedAttrs.includes(attrName)) {
+        node.removeAttribute(attr.name);
+      }
+      
+      // href 속성 정화 (javascript: 프로토콜 제거)
+      if (attrName === 'href' && attr.value.toLowerCase().startsWith('javascript:')) {
+        node.setAttribute('href', '#');
+      }
+      
+      // src 속성 정화 (javascript: 프로토콜 제거)
+      if (attrName === 'src' && attr.value.toLowerCase().startsWith('javascript:')) {
+        node.removeAttribute('src');
+      }
+      
+      // style 속성 정화 (expression, behavior 등 제거)
+      if (attrName === 'style') {
+        const dangerousStyles = ['expression', 'behavior', 'javascript', 'vbscript'];
+        if (dangerousStyles.some(style => attr.value.toLowerCase().includes(style))) {
+          node.removeAttribute('style');
         }
-        
-        const title = titleMatch ? titleMatch[1] : 'YouTube 영상';
-        const style = styleMatch ? styleMatch[1] : 'width: 100%; height: 500px;';
-        const allowAttrs = allowMatch ? allowMatch[1] : 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-        
-        return `<iframe src="${embedUrl}" title="${title}" style="${style}" frameborder="0" allowfullscreen allow="${allowAttrs}"></iframe>`;
       }
-    }
-    return '';
+    });
+    
+    // 자식 요소 정화
+    Array.from(node.children).forEach(child => {
+      sanitizeNode(child as Element);
+    });
+  };
+  
+  // body의 모든 자식 요소 정화
+  Array.from(doc.body.children).forEach(child => {
+    sanitizeNode(child as Element);
   });
   
-  return sanitized;
-};
+  // 정화된 HTML 반환
+  return doc.body.innerHTML;
+}
