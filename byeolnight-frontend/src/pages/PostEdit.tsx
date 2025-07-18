@@ -29,30 +29,28 @@ export default function PostEdit() {
   
   const [isImageChecking, setIsImageChecking] = useState(false);
   
+  // 모바일 환경 감지 함수
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
   // 클립보드 이미지 업로드 함수
   const uploadClipboardImage = async (file: File) => {
+    // 파일 크기 체크 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.');
+      return Promise.reject(new Error('파일 크기 초과'));
+    }
+    
     setIsImageChecking(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post('/files/presigned-url', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // 직접 서버로 업로드하는 방식 사용 (모바일 환경에서 더 안정적)
+      const response = await axios.post('/files/upload-image', formData);
       
-      const imageData = response.data.data || response.data;
-      
-      // S3에 실제 파일 업로드
-      if (imageData.uploadUrl) {
-        await fetch(imageData.uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': imageData.contentType || file.type
-          }
-        });
-      }
-      
+      const imageData = response.data.data;
       setImages(prev => [...prev, imageData]);
       
       return imageData.url;
@@ -90,47 +88,56 @@ export default function PostEdit() {
     }
   };
   
-  const handleImageUpload = async () => {
+  const handleImageUpload = () => {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
+    
+    // 모바일 환경에서 카메라 접근 허용
+    if (isMobile()) {
+      input.setAttribute('capture', 'environment');
+    }
+    
+    // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
+    document.body.appendChild(input);
+    input.style.display = 'none';
     input.click();
     
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        // 파일 크기 체크 (10MB 제한)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('파일 크기는 10MB를 초과할 수 없습니다.');
+          document.body.removeChild(input);
+          return;
+        }
+        
         setIsImageChecking(true);
         try {
           const formData = new FormData();
           formData.append('file', file);
           
-          const response = await axios.post('/files/presigned-url', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
+          // 직접 서버로 업로드하는 방식 사용 (모바일 환경에서 더 안정적)
+          const response = await axios.post('/files/upload-image', formData);
           
-          const imageData = response.data.data || response.data;
-          
-          // S3에 실제 파일 업로드
-          if (imageData.uploadUrl) {
-            await fetch(imageData.uploadUrl, {
-              method: 'PUT',
-              body: file,
-              headers: {
-                'Content-Type': imageData.contentType || file.type
-              }
-            });
-          }
-          
+          const imageData = response.data.data;
           setImages(prev => [...prev, imageData]);
           
-          // ReactQuill에 이미지 삽입 (영구 URL 사용)
+          // ReactQuill에 이미지 삽입
           setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
-        } catch (error) {
+        } catch (error: any) {
           console.error('이미지 업로드 실패:', error);
-          alert('이미지 업로드에 실패했습니다.');
+          const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
+          alert(errorMsg);
         } finally {
           setIsImageChecking(false);
+          // DOM에서 제거
+          document.body.removeChild(input);
         }
+      } else {
+        // 파일 선택 취소 시 DOM에서 제거
+        document.body.removeChild(input);
       }
     };
   };
