@@ -6,6 +6,7 @@ const instance = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // 쿠키 포함 (Refresh Token용)
+  timeout: 30000, // 기본 타임아웃 30초로 설정 (모바일 환경 대응)
 });
 
 // FormData를 사용할 때 Content-Type 헤더를 자동으로 설정하도록 함
@@ -13,7 +14,16 @@ instance.defaults.transformRequest = [
   function(data, headers) {
     // FormData인 경우 Content-Type 헤더 삭제 (브라우저가 자동으로 설정)
     if (data instanceof FormData) {
+      console.log('파일 업로드 요청 감지 - FormData 사용');
       delete headers['Content-Type'];
+      
+      // 모바일 환경에서 타임아웃 증가
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        console.log('모바일 환경 감지 - 타임아웃 증가');
+        headers['X-Mobile-Upload'] = 'true';
+      }
+      
       return data;
     }
     // 이미 문자열이면 그대로 반환
