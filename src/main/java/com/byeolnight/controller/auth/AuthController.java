@@ -60,7 +60,6 @@ public class AuthController {
             @Valid @RequestBody LoginRequestDto dto,
             HttpServletRequest request
     ) {
-        // 요청 body의 raw 데이터를 로그로 남겨 디버깅
         try {
             StringBuilder rawBody = new StringBuilder();
             request.getReader().lines().forEach(rawBody::append);
