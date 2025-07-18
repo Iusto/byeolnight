@@ -233,34 +233,54 @@ public class CinemaService {
             return false;
         }
         
-        // 음악/가사 관련 제외
-        if (titleLower.contains("가사") || titleLower.contains("lyrics") || 
-            titleLower.contains("music video") || titleLower.contains("뮤직비디오") ||
-            titleLower.contains("노래") || titleLower.contains("song")) {
-            return false;
+        // 생활용품/제품 관련 키워드 필터링 (2개 이상 발견 시 제외)
+        int productKeywordCount = 0;
+        for (String keyword : KEYWORDS.get("nonSpace")) {
+            if (titleLower.contains(keyword)) {
+                productKeywordCount++;
+                if (productKeywordCount >= 2) {
+                    return false;
+                }
+            }
+        }
+        
+        // 음악/가사 관련 제외 (1개만 있어도 제외)
+        for (String keyword : KEYWORDS.get("music")) {
+            if (titleLower.contains(keyword)) {
+                return false;
+            }
         }
         
         // AI/기술 관련 키워드 제외 (우주 관련이 아닌 경우)
-        if ((titleLower.contains("ai") || titleLower.contains("인공지능") || 
-             titleLower.contains("특이점") || titleLower.contains("singularity") ||
-             titleLower.contains("머신러닝") || titleLower.contains("딥러닝") ||
-             titleLower.contains("chatgpt") || titleLower.contains("gpt")) &&
-            !hasSpaceContext(titleLower, descLower)) {
-            return false;
+        for (String keyword : KEYWORDS.get("tech")) {
+            if (titleLower.contains(keyword) && !hasSpaceContext(titleLower, descLower)) {
+                return false;
+            }
         }
         
         // 캐시된 우주 키워드 사용 (뉴스와 동일한 200개 키워드)
         String[] cachedKeywords = newsDataService.getAllSpaceKeywordsCached();
         
         boolean hasSpaceKeyword = false;
+        boolean hasSpaceKeywordInTitle = false;
+        
         for (String keyword : cachedKeywords) {
-            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
+            if (titleLower.contains(keyword)) {
+                hasSpaceKeywordInTitle = true;
                 hasSpaceKeyword = true;
                 break;
+            } else if (descLower.contains(keyword)) {
+                hasSpaceKeyword = true;
             }
         }
         
-        if (!hasSpaceKeyword) {
+        // 제목에 우주 키워드가 없는 경우 더 엄격한 검증 필요
+        if (!hasSpaceKeywordInTitle && hasSpaceKeyword) {
+            // 제목에 우주 키워드가 없는 경우, 설명에 있는 키워드가 우주 맥락인지 추가 검증
+            if (!hasStrongSpaceContext(titleLower, descLower)) {
+                return false;
+            }
+        } else if (!hasSpaceKeyword) {
             return false;
         }
         
@@ -281,22 +301,114 @@ public class CinemaService {
         return false;
     }
     
-    private boolean hasSpaceContext(String titleLower, String descLower) {
-        // 우주 관련 핵심 키워드 체크
-        String[] spaceKeywords = {
-            "우주", "space", "은하", "galaxy", "별", "star", "행성", "planet",
-            "태양계", "solar", "nasa", "spacex", "블랙홀", "blackhole",
-            "화성", "mars", "달", "moon", "지구", "earth", "우주선", "spacecraft",
-            "로켓", "rocket", "인공위성", "satellite", "천문", "astronomy"
-        };
+    // 모든 키워드를 하나의 정적 맵으로 통합
+    private static final Map<String, String[]> KEYWORDS = Map.ofEntries(
+        // 우주 관련 명확한 키워드
+        Map.entry("space", new String[] {
+            "우주", "space", "은하", "galaxy", "별자리", "행성", "planet",
+            "태양계", "solar system", "nasa", "spacex", "블랙홀", "blackhole",
+            "화성", "mars", "달탐사", "moon mission", "지구과학", "우주선", "spacecraft",
+            "로켓발사", "rocket launch", "인공위성", "satellite", "천문학", "astronomy",
+            "천문", "태양", "sun", "관측", "observation", "탐사", "exploration",
+            "망원경", "telescope", "궤도", "orbit", "탐사선", "probe", "우주관측", "observatory"
+        }),
         
-        for (String keyword : spaceKeywords) {
+        // 맥락이 필요한 키워드
+        Map.entry("ambiguous", new String[] {
+            "수성", "금성", "별", "달", "지구", "star", "moon", "earth"
+        }),
+        
+        // 비우주 관련 키워드
+        Map.entry("nonSpace", new String[] {
+            "세제", "세정", "청소", "패널", "세척", "용액", "제품", "판매", "구매", "할인",
+            "cleaner", "cleaning", "detergent", "wash", "panel", "product", "sale", "buy", "discount",
+            "주방", "kitchen", "실내", "indoor", "실외", "outdoor", "생활", "lifestyle",
+            "장바구니", "cart", "가격", "price", "상품", "item", "주문", "order",
+            "코박고", "냉장고", "세탁기", "세탁", "냉장", "냉동", "사용법", "사용후기", "후기", "리뷰", 
+            "review", "unboxing", "언박싱"
+        }),
+        
+        // 음악 관련 키워드
+        Map.entry("music", new String[] {
+            "가사", "lyrics", "music video", "뮤직비디오", "노래", "song"
+        }),
+        
+        // 기술 관련 키워드
+        Map.entry("tech", new String[] {
+            "ai", "인공지능", "특이점", "singularity", "머신러닝", "딥러닝", "chatgpt", "gpt", 
+            "코딩", "프로그래밍", "coding", "programming"
+        })
+    );
+    
+    private boolean hasSpaceContext(String titleLower, String descLower) {
+        // 명확한 우주 키워드 체크
+        for (String keyword : KEYWORDS.get("space")) {
             if (titleLower.contains(keyword) || descLower.contains(keyword)) {
                 return true;
             }
         }
         
+        // 맥락이 필요한 키워드는 추가 검증 필요
+        for (String keyword : KEYWORDS.get("ambiguous")) {
+            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
+                // 해당 키워드가 있을 경우 우주 관련 맥락이 있는지 확인
+                return hasAstronomyContext(titleLower, descLower);
+            }
+        }
+        
         return false;
+    }
+    
+    private boolean hasAstronomyContext(String titleLower, String descLower) {
+        // 비우주 맥락이 있으면 우선 제외
+        for (String nonContext : KEYWORDS.get("nonSpace")) {
+            if (titleLower.contains(nonContext) || descLower.contains(nonContext)) {
+                return false;
+            }
+        }
+        
+        // 우주 맥락이 있는지 확인
+        for (String context : KEYWORDS.get("space")) {
+            if (titleLower.contains(context) || descLower.contains(context)) {
+                return true;
+            }
+        }
+        
+        // 기본적으로 맥락이 불분명하면 제외
+        return false;
+    }
+    
+    /**
+     * 제목에 우주 키워드가 없는 경우 더 엄격한 검증을 위한 메서드
+     */
+    private boolean hasStrongSpaceContext(String titleLower, String descLower) {
+        // 제목에 비우주 키워드가 있으면 바로 제외
+        for (String nonKeyword : KEYWORDS.get("nonSpace")) {
+            if (titleLower.contains(nonKeyword)) {
+                return false;
+            }
+        }
+        
+        // 설명에 우주 핵심 키워드 개수 확인
+        int spaceKeywordCount = 0;
+        for (String keyword : KEYWORDS.get("space")) {
+            if (descLower.contains(keyword)) {
+                spaceKeywordCount++;
+                if (spaceKeywordCount >= 2) { // 2개 이상 핵심 키워드가 있으면 우주 관련으로 판단
+                    return true;
+                }
+            }
+        }
+        
+        // 설명에 비우주 키워드가 있으면 제외
+        for (String nonKeyword : KEYWORDS.get("nonSpace")) {
+            if (descLower.contains(nonKeyword)) {
+                return false;
+            }
+        }
+        
+        // 설명에 하나의 핵심 키워드가 있고 비우주 키워드가 없으면 허용
+        return spaceKeywordCount > 0;
     }
     
     private String getPublishedAfterDate() {

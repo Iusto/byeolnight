@@ -283,28 +283,66 @@ public class CommentService {
     // 댓글 신고
     @Transactional
     public void reportComment(Long commentId, User reporter, String reason, String description) {
+        System.out.println("=== 댓글 신고 시작 ===");
+        System.out.println("commentId: " + commentId);
+        System.out.println("reporter: " + (reporter != null ? reporter.getId() + ", " + reporter.getNickname() : "null"));
+        System.out.println("reason: " + reason);
+        
+        if (reporter == null) {
+            System.err.println("신고자가 null입니다!");
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+        
+        // 신고자 새로 조회
+        User freshReporter = userRepository.findById(reporter.getId())
+                .orElseThrow(() -> {
+                    System.err.println("신고자 ID가 데이터베이스에 존재하지 않습니다: " + reporter.getId());
+                    return new NotFoundException("신고자 정보가 유효하지 않습니다.");
+                });
+        
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
         
         // 중복 신고 방지
-        if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
+        if (commentReportRepository.existsByCommentAndReporter(comment, freshReporter)) {
             throw new IllegalArgumentException("이미 신고한 댓글입니다.");
         }
         
-        com.byeolnight.domain.entity.comment.CommentReport report = 
-            com.byeolnight.domain.entity.comment.CommentReport.builder()
-                .comment(comment)
-                .reporter(reporter)
-                .reason(reason)
-                .description(description)
-                .build();
-        
-        commentReportRepository.save(report);
-        comment.increaseReportCount();
-        
-        // 신고 수가 5개 이상이면 자동 블라인드
-        if (comment.getReportCount() >= 5) {
-            comment.blind();
+        try {
+            // 신고 객체 생성 전 데이터 출력
+            System.out.println("신고 객체 생성 전 데이터 확인:");
+            System.out.println("- 댓글 ID: " + comment.getId());
+            System.out.println("- 신고자 ID: " + freshReporter.getId());
+            System.out.println("- 신고자 닉네임: " + freshReporter.getNickname());
+            System.out.println("- 신고 사유: " + reason);
+            
+            // 신고 객체 생성 - 생성자 사용
+            com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
+            report.setComment(comment);
+            report.setReporter(freshReporter);
+            report.setReason(reason);
+            report.setDescription(description);
+            report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
+            report.setCreatedAt(java.time.LocalDateTime.now());
+            
+            // 저장 전 객체 확인
+            System.out.println("저장 전 신고 객체 확인:");
+            System.out.println("- 댓글: " + report.getComment().getId());
+            System.out.println("- 신고자: " + report.getReporter().getId());
+            
+            commentReportRepository.save(report);
+            comment.increaseReportCount();
+            
+            // 신고 수가 5개 이상이면 자동 블라인드
+            if (comment.getReportCount() >= 5) {
+                comment.blind();
+            }
+            
+            System.out.println("댓글 신고 성공 - reportId: " + report.getId());
+        } catch (Exception e) {
+            System.err.println("댓글 신고 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
     

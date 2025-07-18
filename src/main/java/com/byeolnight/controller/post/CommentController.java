@@ -75,6 +75,10 @@ public class CommentController {
                                                        @RequestParam String reason,
                                                        @RequestParam(required = false) String description,
                                                        @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        if (user == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
+        System.out.println("댓글 신고 - commentId: " + commentId + ", reporter: " + user.getId() + ", reason: " + reason);
         commentService.reportComment(commentId, user, reason, description);
         return ResponseEntity.ok(CommonResponse.success());
     }
