@@ -86,8 +86,17 @@ export default function PostEdit() {
         if (file) {
           try {
             const imageUrl = await uploadClipboardImage(file);
-            // ReactQuill에 이미지 삽입
-            setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+            
+            // ReactQuill에 이미지 삽입 (에디터 참조 사용)
+            if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
+              const editor = editorRef.current.getEditor();
+              const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
+              editor.insertEmbed(range.index, 'image', imageUrl);
+              editor.setSelection(range.index + 1, 0);
+            } else {
+              // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
+              setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+            }
           } catch (error) {
             console.error('클립보드 이미지 업로드 실패:', error);
             alert('이미지 업로드에 실패했습니다.');
@@ -137,8 +146,16 @@ export default function PostEdit() {
           const imageData = response.data.data;
           setImages(prev => [...prev, imageData]);
           
-          // ReactQuill에 이미지 삽입
-          setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
+          // ReactQuill에 이미지 삽입 (에디터 참조 사용)
+          if (editorRef.current && editorRef.current.getEditor) {
+            const editor = editorRef.current.getEditor();
+            const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
+            editor.insertEmbed(range.index, 'image', imageData.url);
+            editor.setSelection(range.index + 1, 0);
+          } else {
+            // 폴백: 에디터 참조를 사용할 수 없는 경우 기존 방식 사용
+            setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
+          }
         } catch (error: any) {
           console.error('이미지 업로드 실패:', error);
           const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';

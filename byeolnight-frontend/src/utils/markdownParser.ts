@@ -1,4 +1,4 @@
-// 마크다운을 HTML로 변환하는 유틸리티
+// 마크다운을 HTML로 변환하는 통합 유틸리티
 export function parseMarkdown(text: string): string {
   if (!text) return '';
   
@@ -26,23 +26,26 @@ export function parseMarkdown(text: string): string {
   // 5. 링크 [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #60a5fa; text-decoration: underline;" target="_blank">$1</a>');
   
-  // 6. 리스트 (- item)
+  // 6. 이미지: ![alt](url)
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; margin: 16px 0; border-radius: 8px;" />');
+  
+  // 7. 리스트 (- item)
   html = html.replace(/^- (.+)$/gm, '<li style="color: #e5e7eb; margin: 4px 0; padding-left: 8px;">$1</li>');
   
-  // 7. 이모지가 포함된 리스트 특별 처리
+  // 8. 이모지가 포함된 리스트 특별 처리
   html = html.replace(/^(🔥|🌠|🗞|💬|🎬|🪐|🧑‍🚀|🛠|📲|🌌|🔭|🌐|💌) (.+)$/gm, 
     '<div style="color: #e5e7eb; margin: 8px 0; padding: 8px 12px; background: rgba(139, 92, 246, 0.1); border-left: 3px solid #8b5cf6; border-radius: 4px;"><span style="margin-right: 8px;">$1</span>$2</div>');
   
-  // 8. 줄바꿈 처리
+  // 9. 줄바꿈 처리
   html = html.replace(/\n\n/g, '</p><p style="margin: 12px 0; line-height: 1.6;">');
   html = html.replace(/\n/g, '<br>');
   
-  // 9. 전체를 p 태그로 감싸기
+  // 10. 전체를 p 태그로 감싸기
   if (!html.startsWith('<')) {
     html = '<p style="margin: 12px 0; line-height: 1.6;">' + html + '</p>';
   }
   
-  // 10. 빈 p 태그 제거
+  // 11. 빈 p 태그 제거
   html = html.replace(/<p[^>]*><\/p>/g, '');
   
   return html;
