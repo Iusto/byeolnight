@@ -30,6 +30,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,58 +57,23 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     public ResponseEntity<CommonResponse<TokenResponseDto>> login(
-            @RequestBody(required = true) @Valid Object loginRequest,
+            @Valid @RequestBody LoginRequestDto dto,
             HttpServletRequest request
     ) {
         try {
-            // 로그인 요청 데이터 로깅
-            log.info("로그인 요청 데이터 형식: {}", loginRequest.getClass().getName());
-            
-            // 배열 형태로 전송된 경우 처리
-            LoginRequestDto dto;
-            if (loginRequest instanceof LoginRequestDto) {
-                dto = (LoginRequestDto) loginRequest;
-            } else if (loginRequest instanceof java.util.List) {
-                java.util.List<?> list = (java.util.List<?>) loginRequest;
-                if (!list.isEmpty() && list.get(0) instanceof java.util.Map) {
-                    java.util.Map<?, ?> map = (java.util.Map<?, ?>) list.get(0);
-                    String email = (String) map.get("email");
-                    String password = (String) map.get("password");
-                    dto = new LoginRequestDto(email, password);
-                    log.info("배열 형태의 로그인 요청을 객체로 변환했습니다.");
-                } else {
-                    return ResponseEntity.badRequest()
-                            .body(CommonResponse.fail("잘못된 로그인 요청 형식입니다."));
-                }
-            } else if (loginRequest instanceof java.util.Map) {
-                java.util.Map<?, ?> map = (java.util.Map<?, ?>) loginRequest;
-                String email = (String) map.get("email");
-                String password = (String) map.get("password");
-                dto = new LoginRequestDto(email, password);
-                log.info("Map 형태의 로그인 요청을 객체로 변환했습니다.");
-            } else {
-                return ResponseEntity.badRequest()
-                        .body(CommonResponse.fail("잘못된 로그인 요청 형식입니다."));
-            }
-            
-            // 인증 처리를 AuthService에 위임
             AuthService.LoginResult result = authService.authenticate(dto, request);
-            
-            // HttpOnly 쿠키로 RefreshToken 설정
+
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
-            
+
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                     .body(CommonResponse.success(new TokenResponseDto(result.getAccessToken())));
-                    
         } catch (SecurityException e) {
             log.info("로그인 차단: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(CommonResponse.fail(e.getMessage()));
-        } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(CommonResponse.fail(e.getMessage()));
+        } catch (BadCredentialsException e) {
             log.info("로그인 인증 실패: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(CommonResponse.fail(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail(e.getMessage()));
         } catch (Exception e) {
             log.error("로그인 처리 중 예상치 못한 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
