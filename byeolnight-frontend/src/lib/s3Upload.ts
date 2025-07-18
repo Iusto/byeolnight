@@ -54,8 +54,12 @@ export const uploadImageWithValidation = async (file: File): Promise<string> => 
     const formData = new FormData();
     formData.append('file', file);
 
-    // Content-Type 헤더를 명시적으로 설정하지 않음 (브라우저가 자동으로 설정)
-    const response = await axios.post('/files/upload-image', formData);
+    // Content-Type 헤더를 명시적으로 설정
+    const response = await axios.post('/files/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
 
     return response.data.data.url;
   } catch (error: any) {

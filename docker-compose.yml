@@ -44,11 +44,13 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: byeolnight
+      TZ: Asia/Seoul
     command: >
       --innodb-buffer-pool-size=512M
       --innodb-log-file-size=128M
       --max-connections=50
       --innodb-flush-log-at-trx-commit=2
+      --default-time-zone='+09:00'
     ports:
       - "3306:3306"  # 외부 접근을 위해 포트 노출
     volumes:
