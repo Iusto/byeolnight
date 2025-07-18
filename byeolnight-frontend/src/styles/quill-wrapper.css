@@ -1,0 +1,29 @@
+/* ReactQuill 래퍼 스타일 */
+.quill-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+}
+
+/* 에디터 내부 스타일 */
+.quill {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  flex: 1 !important;
+}
+
+/* 에디터 컨테이너 */
+.ql-container {
+  flex: 1 !important;
+  overflow: auto !important;
+}
+
+/* 에디터 내용 영역 */
+.ql-editor {
+  min-height: 300px !important;
+}

@@ -371,7 +371,7 @@ export default function PostEdit() {
                   </button>
                 </div>
               </div>
-              <div className="rounded-xl overflow-hidden border border-slate-600/50" style={{ minHeight: '450px' }}>
+              <div className="rounded-xl overflow-hidden border border-slate-600/50 quill-wrapper">
                 {isMarkdownMode ? (
                   <div className="space-y-4">
                     <div className="relative">
@@ -400,13 +400,13 @@ export default function PostEdit() {
                     value={content}
                     onChange={setContent}
                     theme="snow"
+                    className="quill-editor"
                     style={{ 
-                      height: '400px', 
-                      marginBottom: '50px',
-                      display: 'block',
+                      flex: '1',
+                      display: 'flex',
+                      flexDirection: 'column',
                       width: '100%',
-                      backgroundColor: '#1f2336',
-                      color: '#e2e8f0'
+                      border: 'none'
                     }}
                     modules={{
                       toolbar: {
