@@ -51,7 +51,7 @@ export default function Home() {
       });
 
     // 별 사진 게시판
-    axios.get('/public/posts', { params: { category: 'IMAGE', sort: 'popular', size: 4 } })
+    axios.get('/public/posts', { params: { category: 'IMAGE', sort: 'recent', size: 4 } })
       .then(res => {
         console.log('별 사진 응답:', res.data);
         const content = res.data?.success ? res.data.data?.content || [] : [];
@@ -223,7 +223,23 @@ export default function Home() {
         return `${year}. ${month}. ${day}. ${hour}:${minute}`;
       } catch (error) {
         console.error('날짜 변환 오류:', error, dateStr);
-        return dateStr; // 오류 시 원본 문자열 반환
+        
+        // 오류 발생 시 Date 객체로 다시 시도
+        try {
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hour = String(date.getHours()).padStart(2, '0');
+            const minute = String(date.getMinutes()).padStart(2, '0');
+            return `${year}. ${month}. ${day}. ${hour}:${minute}`;
+          }
+        } catch (e) {
+          console.error('Date 객체 변환 실패:', e);
+        }
+        
+        return dateStr; // 모든 방법 실패 시 원본 문자열 반환
       }
     };
 
@@ -715,7 +731,7 @@ export default function Home() {
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
-                      <div className="text-purple-200/70 text-sm mt-1">🤖 {post.writer} • 📅 2025. 07. 15. 20:00</div>
+                      <div className="text-purple-200/70 text-sm mt-1">🤖 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}

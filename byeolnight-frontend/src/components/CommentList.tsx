@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import UserIconDisplay from './UserIconDisplay';
 
 interface Comment {
   id: number;
@@ -12,6 +13,8 @@ interface Comment {
   isPopular: boolean;
   blinded: boolean;
   deleted: boolean;
+  writerIcon?: string;
+  writerCertificates?: string[];
 }
 
 interface Props {
@@ -147,8 +150,42 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-4 text-xs text-gray-400">
-              <span>✍ {c.writer}</span>
+              <div className="flex items-center gap-2">
+                {c.writerIcon && (
+                  <div className="w-6 h-6 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                    <UserIconDisplay iconName={c.writerIcon} size="small" />
+                  </div>
+                )}
+                <span>✍ {c.writer}</span>
+              </div>
               <span>{new Date(c.createdAt).toLocaleString()}</span>
+              
+              {/* 작성자 인증서 표시 */}
+              {c.writerCertificates && c.writerCertificates.length > 0 && (
+                <div className="flex gap-1 ml-2">
+                  {c.writerCertificates.slice(0, 2).map((cert, idx) => {
+                    const certIcons = {
+                      '별빛 탐험가': '🌠',
+                      '우주인 등록증': '🌍',
+                      '은하 통신병': '📡',
+                      '별 관측 매니아': '🔭',
+                      '별빛 채팅사': '🗨️',
+                      '별 헤는 밤 시민증': '🏅',
+                      '별빛 수호자': '🛡️',
+                      '우주 실험자': '⚙️',
+                      '건의왕': '💡',
+                      '은하 관리자 훈장': '🏆'
+                    };
+                    const icon = certIcons[cert] || '🏆';
+                    
+                    return (
+                      <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30" title={cert}>
+                        {icon}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
