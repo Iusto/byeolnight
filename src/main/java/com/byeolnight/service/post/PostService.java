@@ -157,14 +157,6 @@ public class PostService {
             throw new NotFoundException("삭제되었거나 블라인드 처리된 게시글입니다.");
         }
 
-        // 날짜 디버깅
-        System.out.println("\n=== 게시글 날짜 디버그 ===\npostId: " + postId);
-        System.out.println("createdAt: " + post.getCreatedAt());
-        System.out.println("updatedAt: " + post.getUpdatedAt());
-        System.out.println("createdAt class: " + post.getCreatedAt().getClass().getName());
-        System.out.println("updatedAt timezone: " + java.util.TimeZone.getDefault().getID());
-        System.out.println("=== 디버그 종료 ===\n");
-
         post.increaseViewCount();
 
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
@@ -172,12 +164,6 @@ public class PostService {
         long commentCount = commentRepository.countByPostId(postId);
 
         PostResponseDto responseDto = PostResponseDto.of(post, likedByMe, likeCount, false, commentCount);
-        
-        // DTO 날짜 디버그
-        System.out.println("\n=== DTO 날짜 디버그 ===");
-        System.out.println("DTO createdAt: " + responseDto.getCreatedAt());
-        System.out.println("DTO updatedAt: " + responseDto.getUpdatedAt());
-        System.out.println("=== 디버그 종료 ===\n");
         
         return responseDto;
     }

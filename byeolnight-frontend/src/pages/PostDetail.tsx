@@ -593,6 +593,7 @@ export default function PostDetail() {
   if (!post) return <div className="text-red-400 p-8">{error}</div>;
 
   const isOwnerOrAdmin = user && (user.nickname === post.writer || user.role === 'ADMIN');
+  // createdAt 사용 (업데이트 시간이 아닌 작성 시간 표시)
   const formattedDate = new Date(post.createdAt).toLocaleString();
   const categoryName = categoryLabels[post.category] || post.category;
 
