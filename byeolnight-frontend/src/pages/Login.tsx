@@ -15,15 +15,20 @@ export default function Login() {
   
   // 이미 로그인된 사용자 리다이렉트
   useEffect(() => {
-    // 로그인 성공으로 인한 리다이렉트가 아닌 경우에만 alert 표시
-    if (user && !loginSuccess) {
-      alert('이미 로그인되었습니다.');
-      navigate('/', { replace: true });
-    } else if (user && loginSuccess) {
-      // 로그인 성공 후에는 alert 없이 리다이렉트
-      navigate('/', { replace: true });
+    // 인앱브라우저 호환성을 위해 수정
+    if (user) {
+      if (!loginSuccess) {
+        // 이미 로그인된 상태에서 페이지 접근 시
+        console.log('이미 로그인된 상태 - 홈으로 리다이렉트');
+        // alert 제거 - 인앱브라우저에서 문제 발생 가능
+        window.location.href = '/';
+      } else {
+        // 로그인 성공 후
+        console.log('로그인 성공 - 홈으로 리다이렉트');
+        window.location.href = '/';
+      }
     }
-  }, [user, loginSuccess, navigate]);
+  }, [user, loginSuccess]);
 
   // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
@@ -66,9 +71,12 @@ export default function Login() {
     setError('')
 
     try {
+      console.log('로그인 시도 - 인앱브라우저 호환성 개선');
       await login(email, password, rememberMe)
+      console.log('로그인 성공 - 인앱브라우저 호환성 개선');
       setLoginSuccess(true) // 로그인 성공 플래그 설정
     } catch (err: any) {
+      console.error('로그인 실패 - 인앱브라우저 호환성 개선:', err);
       // 서버에서 온 구체적인 에러 메시지를 사용자 친화적으로 변환
       const errorMessage = getErrorMessage(err.message || '로그인에 실패했습니다.')
       setError(errorMessage)

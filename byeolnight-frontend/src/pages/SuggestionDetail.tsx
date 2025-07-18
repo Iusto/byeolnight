@@ -244,7 +244,7 @@ export default function SuggestionDetail() {
             <div className="flex items-center gap-6 text-sm text-gray-400">
               <div className="flex items-center gap-2">
                 <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-lg" />
-                <span>{suggestion.authorNickname}</span>
+                <span className="whitespace-nowrap">{suggestion.authorNickname}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>📅</span>

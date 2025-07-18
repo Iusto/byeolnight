@@ -550,7 +550,53 @@ instance.interceptors.response.use(
 ```
 **성과**: 게시글 작성 중 토큰 만료되어도 자동 갱신 후 원래 요청 재실행, 사용자 데이터 손실 95% 감소
 
+#### 16. **인앱브라우저 로그인 실패 문제 → ContentCachingFilter 도입**
+**문제**: 카카오톡 등 인앱브라우저에서 로그인 시 `getInputStream() has already been called for this request` 오류 발생
+```java
+// 오류 로그
+2025-07-18 16:00:54 [http-nio-8080-exec-2] WARN c.b.controller.auth.AuthController - [로그인 요청 RAW BODY 읽기 실패] getInputStream() has already been called for this request
+```
+**해결**: HTTP 요청 본문을 캐싱하는 필터 추가
+```java
+@Component
+public class ContentCachingFilter implements Filter {
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        if (request instanceof HttpServletRequest) {
+            HttpServletRequest httpRequest = (HttpServletRequest) request;
+            if ("POST".equalsIgnoreCase(httpRequest.getMethod()) && 
+                httpRequest.getContentType() != null && 
+                httpRequest.getContentType().contains("application/json")) {
+                ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(httpRequest);
+                chain.doFilter(wrappedRequest, response);
+                return;
+            }
+        }
+        chain.doFilter(request, response);
+    }
+}
+```
+**성과**: 인앱브라우저에서도 로그인 정상 작동, 요청 본문 여러 번 읽기 가능
 
+#### 17. **모바일 이미지 업로드 문제 → capture 속성 제거**
+**문제**: 모바일에서 이미지 업로드 버튼 클릭 시 갤러리가 아닌 카메라가 열림
+```javascript
+// 문제 코드
+if (isMobile()) {
+  input.setAttribute('capture', 'environment');
+}
+```
+**해결**: capture 속성 제거 및 명시적 비활성화
+```javascript
+// 해결 코드
+const input = document.createElement('input');
+input.setAttribute('type', 'file');
+input.setAttribute('accept', 'image/*');
+// 명시적으로 카메라 접근을 방지하고 갤러리만 사용하도록 설정
+input.removeAttribute('capture');
+```
+**성과**: 모바일에서 이미지 업로드 시 갤러리 선택 가능, 사용자 경험 개선
 
 ### 💡 **삽질을 통해 얻은 교훈**
 - **"일단 돌아가게 만들고 최적화"** → 초기 설계의 중요성 깨달음
