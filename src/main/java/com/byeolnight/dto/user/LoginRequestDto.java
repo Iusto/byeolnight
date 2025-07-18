@@ -1,5 +1,7 @@
 package com.byeolnight.dto.user;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -20,7 +22,10 @@ public class LoginRequestDto {
     private final String password;
 
     @Builder
-    public LoginRequestDto(String email, String password) {
+    @JsonCreator
+    public LoginRequestDto(
+            @JsonProperty("email") String email, 
+            @JsonProperty("password") String password) {
         this.email = email;
         this.password = password;
     }

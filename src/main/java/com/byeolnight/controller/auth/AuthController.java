@@ -56,9 +56,39 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     public ResponseEntity<CommonResponse<TokenResponseDto>> login(
-            @RequestBody(required = true) @Valid LoginRequestDto dto,
+            @RequestBody(required = true) @Valid Object loginRequest,
             HttpServletRequest request
     ) {
+        try {
+            // 로그인 요청 데이터 로깅
+            log.info("로그인 요청 데이터 형식: {}", loginRequest.getClass().getName());
+            
+            // 배열 형태로 전송된 경우 처리
+            LoginRequestDto dto;
+            if (loginRequest instanceof LoginRequestDto) {
+                dto = (LoginRequestDto) loginRequest;
+            } else if (loginRequest instanceof java.util.List) {
+                java.util.List<?> list = (java.util.List<?>) loginRequest;
+                if (!list.isEmpty() && list.get(0) instanceof java.util.Map) {
+                    java.util.Map<?, ?> map = (java.util.Map<?, ?>) list.get(0);
+                    String email = (String) map.get("email");
+                    String password = (String) map.get("password");
+                    dto = new LoginRequestDto(email, password);
+                    log.info("배열 형태의 로그인 요청을 객체로 변환했습니다.");
+                } else {
+                    return ResponseEntity.badRequest()
+                            .body(CommonResponse.fail("잘못된 로그인 요청 형식입니다."));
+                }
+            } else if (loginRequest instanceof java.util.Map) {
+                java.util.Map<?, ?> map = (java.util.Map<?, ?>) loginRequest;
+                String email = (String) map.get("email");
+                String password = (String) map.get("password");
+                dto = new LoginRequestDto(email, password);
+                log.info("Map 형태의 로그인 요청을 객체로 변환했습니다.");
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(CommonResponse.fail("잘못된 로그인 요청 형식입니다."));
+            }
         try {
             // 인증 처리를 AuthService에 위임
             AuthService.LoginResult result = authService.authenticate(dto, request);
