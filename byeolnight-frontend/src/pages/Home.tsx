@@ -19,6 +19,7 @@ interface Post {
   viewCount: number;
   commentCount: number;
   updatedAt: string;
+  createdAt?: string; // createdAt 필드 추가
   blinded: boolean;
   thumbnailUrl?: string;
   dDay?: string;
@@ -68,6 +69,10 @@ export default function Home() {
     axios.get('/public/posts', { params: { category: 'NEWS', sort: 'recent', size: 5 } })
       .then(res => {
         const content = res.data?.success ? res.data.data?.content || [] : [];
+        // API 응답에 createdAt 필드가 있는지 확인
+        if (content.length > 0) {
+          console.log('뉴스 게시글 첫 번째 항목 데이터:', content[0]);
+        }
         setNewsPosts(Array.isArray(content) ? content : []);
       })
       .catch(err => {
@@ -284,7 +289,7 @@ export default function Home() {
           </span>
           <div className="flex items-center text-[13px] text-gray-400 gap-2 mt-1">
             🖊 {post.writer}
-            <span>📅 {formatDate(post.updatedAt)}</span>
+            <span>📅 {formatDate(post.createdAt || post.updatedAt)}</span>
             <span>👁 {post.viewCount}</span>
             <span>💬 {post.commentCount || 0}</span>
             {showLike && <span>❤️ {post.likeCount}</span>}
@@ -439,7 +444,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="text-emerald-200/70 text-sm">
-                        🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}
+                        🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
                       </div>
                     </Link>
                   </div>
@@ -569,7 +574,7 @@ export default function Home() {
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
-                      <div className="text-blue-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                      <div className="text-blue-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}
@@ -596,7 +601,7 @@ export default function Home() {
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
-                      <div className="text-purple-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                      <div className="text-purple-200/70 text-sm mt-1">🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}
@@ -629,7 +634,7 @@ export default function Home() {
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
-                      <div className="text-green-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                      <div className="text-green-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}
@@ -656,7 +661,7 @@ export default function Home() {
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
-                      <div className="text-pink-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                      <div className="text-pink-200/70 text-sm mt-1">🖊️ {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}
@@ -692,7 +697,7 @@ export default function Home() {
                           <span>👁 {post.viewCount}</span>
                         </div>
                       </div>
-                      <div className="text-purple-200/70 text-sm mt-1">🤖 {post.writer} • 📅 {formatDate(post.updatedAt)}</div>
+                      <div className="text-purple-200/70 text-sm mt-1">🤖 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}</div>
                     </Link>
                   </div>
                 ))}
