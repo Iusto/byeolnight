@@ -116,10 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         await fetchMyInfo();
-        // user 상태가 갱신된 후에 이동
-        setTimeout(() => {
-          navigate('/');
-        }, 0);
+        // 인앱브라우저 호환성을 위해 setTimeout 제거
+        // 로그인 성공 후 리다이렉션은 Login 컴포넌트에서 처리
       } else {
         throw new Error('토큰을 받지 못했습니다.');
       }

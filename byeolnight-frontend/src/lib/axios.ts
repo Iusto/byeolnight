@@ -73,8 +73,22 @@ instance.interceptors.request.use(
         contentType: config.headers['Content-Type'],
         dataType: typeof config.data,
         isArray: Array.isArray(config.data),
-        data: config.data
+        userAgent: navigator.userAgent,
+        isInApp: /KAKAOTALK|Instagram|NAVER|Snapchat|Line/i.test(navigator.userAgent)
       });
+      
+      // 인앱브라우저 호환성 개선
+      if (typeof config.data === 'string') {
+        try {
+          // 문자열로 전송된 경우 파싱 시도
+          const parsedData = JSON.parse(config.data);
+          if (parsedData && typeof parsedData === 'object') {
+            config.data = parsedData;
+          }
+        } catch (e) {
+          console.warn('로그인 데이터 파싱 실패:', e);
+        }
+      }
       
       // 배열 형태로 전송되는 문제 방지
       if (Array.isArray(config.data)) {
@@ -173,11 +187,19 @@ instance.interceptors.response.use(
           throw new Error('로그인 유지 옵션이 비활성화됨');
         }
 
+        // 인앱브라우저 호환성 개선
+        const isInApp = /KAKAOTALK|Instagram|NAVER|Snapchat|Line/i.test(navigator.userAgent);
+        console.log('토큰 갱신 시도 - 인앱브라우저 감지:', isInApp);
+        
         // Refresh Token으로 새 Access Token 요청
         const refreshResponse = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL || 'https://byeolnight.com/api'}/auth/token/refresh`,
           {},
-          { withCredentials: true }
+          { 
+            withCredentials: true,
+            // 인앱브라우저에서 타임아웃 증가
+            timeout: isInApp ? 10000 : 5000 
+          }
         );
 
         const newToken = refreshResponse.data.data?.accessToken;

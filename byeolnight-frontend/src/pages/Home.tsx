@@ -181,11 +181,6 @@ export default function Home() {
     };
 
     const formatDate = (dateStr: string) => {
-      // 별빛 시네마 게시글의 경우 고정된 시간 반환
-      if (dateStr && dateStr.includes('2025-07-15T20:00')) {
-        return '2025. 07. 15. 20:00';
-      }
-      
       if (!dateStr) return '';
       
       // 디버그 정보 출력 (처음 한 번만)
@@ -195,55 +190,17 @@ export default function Home() {
       }
       
       try {
-        // ISO 문자열을 Date 객체로 변환 (시간대 고려)
+        // 원본 날짜 문자열을 그대로 Date 객체로 변환
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) {
           throw new Error('유효하지 않은 날짜');
         }
         
-        // 한국 시간대로 변환 (UTC+9)
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hour = String(date.getHours()).padStart(2, '0');
-        const minute = String(date.getMinutes()).padStart(2, '0');
-        
-        // 한국 형식으로 포맷팅 (yyyy. MM. dd. HH:mm)
-        return `${year}. ${month}. ${day}. ${hour}:${minute}`;
+        // 단순히 toLocaleString 사용 (PostDetail.tsx와 동일하게)
+        return date.toLocaleString();
       } catch (error) {
         console.error('날짜 변환 오류:', error, dateStr);
-        
-        // 오류 발생 시 직접 파싱 시도
-        try {
-          // ISO 문자열을 직접 파싱 (yyyy-MM-dd'T'HH:mm:ss)
-          const parts = dateStr.split('T');
-          if (parts.length !== 2) {
-            throw new Error('잘못된 날짜 형식');
-          }
-          
-          // 날짜 부분 추출 (yyyy-MM-dd)
-          const datePart = parts[0].split('-');
-          if (datePart.length !== 3) {
-            throw new Error('잘못된 날짜 형식');
-          }
-          
-          // 시간 부분 추출 (HH:mm:ss.SSS)
-          const timePart = parts[1].split(':');
-          if (timePart.length < 2) {
-            throw new Error('잘못된 시간 형식');
-          }
-          
-          const year = datePart[0];
-          const month = datePart[1];
-          const day = datePart[2];
-          const hour = timePart[0];
-          const minute = timePart[1].split('.')[0]; // 초 부분을 제거
-          
-          return `${year}. ${month}. ${day}. ${hour}:${minute}`;
-        } catch (e) {
-          console.error('직접 파싱 실패:', e);
-          return dateStr; // 모든 방법 실패 시 원본 문자열 반환
-        }
+        return dateStr; // 오류 시 원본 문자열 반환
       }
     };
 
