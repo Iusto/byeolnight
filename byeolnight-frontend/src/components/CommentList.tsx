@@ -179,7 +179,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                     const icon = certIcons[cert] || '🏆';
                     
                     return (
-                      <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30" title={cert}>
+                      <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30 animate-pulse" title={cert}>
                         {icon} {cert}
                       </span>
                     );

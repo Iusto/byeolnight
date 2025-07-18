@@ -131,6 +131,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * JSON 파싱 오류 처리
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<CommonResponse<?>> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        log.warn("[JSON 파싱 오류]", ex);
+        return ResponseEntity.badRequest()
+                .body(CommonResponse.fail("요청 형식이 올바르지 않습니다. JSON 형식을 확인해주세요."));
+    }
+
+    /**
      * 그 외 알 수 없는 서버 에러
      */
     @ExceptionHandler(Exception.class)
