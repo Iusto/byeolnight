@@ -37,20 +37,35 @@ export default function PostCreate() {
       return Promise.reject(new Error('파일 크기 초과'));
     }
     
+    console.log('이미지 업로드 시작:', file.name, file.type, file.size);
     setIsImageChecking(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      // 명시적으로 Content-Type 설정 안함 (브라우저가 자동으로 설정)
-      const response = await axios.post('/files/upload-image', formData);
+      // 모바일용 헤더 설정
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
+        },
+        timeout: 30000 // 30초 타임아웃 설정
+      };
+      
+      console.log('서버로 이미지 업로드 요청 시작');
+      const response = await axios.post('/files/upload-image', formData, config);
+      console.log('서버 응답 받음:', response.status);
       
       const imageData = response.data.data;
+      console.log('이미지 데이터 받음:', imageData?.url ? '성공' : '실패');
       setUploadedImages(prev => [...prev, imageData]);
       
       return imageData.url;
     } catch (error: any) {
       console.error('클립보드 이미지 업로드 실패:', error);
+      console.error('오류 상세:', error.response?.status, error.response?.data);
+      console.error('오류 메시지:', error.message);
+      
       const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
       alert(errorMsg);
       throw error;
@@ -66,6 +81,7 @@ export default function PostCreate() {
     
     // 모바일 환경 감지
     const isMobileDevice = isMobile();
+    console.log('클립보드 붙여넣기 - 모바일 환경:', isMobileDevice);
     
     // 모바일에서 클립보드 접근 제한 있을 수 있음
     if (isMobileDevice && items.length === 0) {
@@ -73,25 +89,47 @@ export default function PostCreate() {
       return;
     }
     
+    console.log('클립보드 데이터 감지:', items.length, '개 항목');
+    
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      console.log('클립보드 항목 형식:', item.type);
       
       // 이미지 파일인지 확인
       if (item.type.indexOf('image') !== -1) {
         event.preventDefault();
         const file = item.getAsFile();
         if (file) {
+          console.log('클립보드에서 이미지 감지:', file.name, file.type, file.size);
+          
+          // 파일 크기 체크 (5MB 제한 - 백엔드와 동일하게 맞춤)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('파일 크기는 5MB를 초과할 수 없습니다.');
+            return;
+          }
+          
           try {
+            // 모바일에서는 클립보드 붙여넣기 제한
+            if (isMobileDevice) {
+              alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+              return;
+            }
+            
             const imageUrl = await uploadClipboardImage(file);
+            if (!imageUrl) {
+              throw new Error('이미지 URL을 받지 못했습니다.');
+            }
             
             // ReactQuill에 이미지 삽입 (에디터 참조 사용)
             if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
+              console.log('에디터 참조를 통한 이미지 삽입');
               const editor = editorRef.current.getEditor();
               const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
               editor.insertEmbed(range.index, 'image', imageUrl);
               editor.setSelection(range.index + 1, 0);
             } else {
               // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
+              console.log('상태 업데이트를 통한 이미지 삽입');
               setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
             }
           } catch (error) {
@@ -118,6 +156,12 @@ export default function PostCreate() {
   };
 
   const handleImageUpload = () => {
+    console.log('이미지 업로드 버튼 클릭');
+    
+    // 모바일 환경 감지
+    const isMobileDevice = isMobile();
+    console.log('모바일 환경 감지:', isMobileDevice);
+    
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
@@ -132,15 +176,26 @@ export default function PostCreate() {
     
     // iOS Safari에서 클릭 이벤트가 제대로 작동하지 않는 문제 해결
     setTimeout(() => {
+      console.log('파일 선택 대화상자 열기');
       input.click();
     }, 100);
     
     input.onchange = async () => {
+      console.log('파일 선택 완료');
       const file = input.files?.[0];
       if (file) {
-        // 파일 크기 체크 (10MB 제한)
-        if (file.size > 10 * 1024 * 1024) {
-          alert('파일 크기는 10MB를 초과할 수 없습니다.');
+        console.log('선택된 파일:', file.name, file.type, file.size);
+        // 파일 크기 체크 (5MB 제한 - 백엔드와 동일하게 맞춤)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('파일 크기는 5MB를 초과할 수 없습니다.');
+          document.body.removeChild(input);
+          return;
+        }
+        
+        // 파일 형식 검사
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validImageTypes.includes(file.type)) {
+          alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
           document.body.removeChild(input);
           return;
         }
@@ -150,24 +205,45 @@ export default function PostCreate() {
           const formData = new FormData();
           formData.append('file', file);
           
-          // 명시적으로 Content-Type 설정 안함 (브라우저가 자동으로 설정)
-          const response = await axios.post('/files/upload-image', formData);
+          // 모바일용 헤더 설정
+          const config = {
+            headers: {
+              'Accept': 'application/json',
+              'X-Mobile-Upload': isMobileDevice ? 'true' : 'false'
+            },
+            timeout: isMobileDevice ? 60000 : 30000 // 모바일은 타임아웃 증가
+          };
+          
+          console.log('서버로 이미지 업로드 요청 시작');
+          const response = await axios.post('/files/upload-image', formData, config);
+          console.log('서버 응답 받음:', response.status);
           
           const imageData = response.data.data;
+          console.log('이미지 데이터 받음:', imageData?.url ? '성공' : '실패');
           setUploadedImages(prev => [...prev, imageData]);
           
-          // ReactQuill에 이미지 삽입 (에디터 참조 사용)
-          if (editorRef.current && editorRef.current.getEditor) {
+          // 이미지 URL 삽입 전 유효성 검사
+          if (!imageData || !imageData.url) {
+            throw new Error('이미지 URL을 받지 못했습니다.');
+          }
+          
+          // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
+          if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getEditor) {
+            console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
+            setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
+          } else {
+            // PC에서는 에디터 참조 사용
+            console.log('에디터 참조를 통한 이미지 삽입');
             const editor = editorRef.current.getEditor();
             const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
             editor.insertEmbed(range.index, 'image', imageData.url);
             editor.setSelection(range.index + 1, 0);
-          } else {
-            // 폴백: 에디터 참조를 사용할 수 없는 경우 기존 방식 사용
-            setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName}" style="max-width: 100%; height: auto;" /><br/>`);
           }
         } catch (error: any) {
           console.error('이미지 업로드 실패:', error);
+          console.error('오류 상세:', error.response?.status, error.response?.data);
+          console.error('오류 메시지:', error.message);
+          
           const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
           alert(errorMsg);
         } finally {
@@ -177,6 +253,7 @@ export default function PostCreate() {
         }
       } else {
         // 파일 선택 취소 시 DOM에서 제거
+        console.log('파일 선택 취소');
         document.body.removeChild(input);
       }
     };

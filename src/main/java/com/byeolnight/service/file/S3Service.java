@@ -51,10 +51,10 @@ public class S3Service {
     @Value("${cloud.aws.region.static}")
     private String region;
 
-    public Map<String, String> generatePresignedUrl(String originalFilename) {
+    public Map<String, String> generatePresignedUrl(String originalFilename, String contentTypeParam) {
         ensureBucketPublicReadAccess();
         if (!isValidImageFile(originalFilename)) {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, png, gif, webp만 허용)");
+            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
         }
         try {
             AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
@@ -64,7 +64,7 @@ public class S3Service {
                     .build();
 
             String s3Key = generateS3Key(originalFilename);
-            String contentType = getContentType(originalFilename);
+            String contentType = contentTypeParam != null ? contentTypeParam : getContentType(originalFilename);
 
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                     .signatureDuration(Duration.ofMinutes(10))
@@ -95,6 +95,13 @@ public class S3Service {
             log.error("Presigned URL 생성 실패: {}", e.getMessage(), e);
             throw new RuntimeException("파일 업로드 URL 생성에 실패했습니다.", e);
         }
+    }
+    
+    /**
+     * 이전 버전과의 호환성을 위한 메서드
+     */
+    public Map<String, String> generatePresignedUrl(String originalFilename) {
+        return generatePresignedUrl(originalFilename, null);
     }
 
     private String generateS3Key(String originalFilename) {
@@ -136,6 +143,8 @@ public class S3Service {
         if (extension.endsWith(".png")) return "image/png";
         if (extension.endsWith(".gif")) return "image/gif";
         if (extension.endsWith(".webp")) return "image/webp";
+        if (extension.endsWith(".svg")) return "image/svg+xml";
+        if (extension.endsWith(".bmp")) return "image/bmp";
         return "application/octet-stream";
     }
 
@@ -157,7 +166,7 @@ public class S3Service {
         try {
             // 1. 파일 유효성 검사
             if (!isValidImageFile(file.getOriginalFilename())) {
-                throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, png, gif, webp만 허용)");
+                throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
             }
             
             // 2. 파일 크기 검사 (10MB 제한)
@@ -211,7 +220,9 @@ public class S3Service {
     }
     
     /**
-     * URL로 이미지를 다운로드하여 검증
+     * URL로 이미지를 다운로드하여 검증하고, 부적절한 경우 자동 삭제
+     * @param imageUrl 검증할 이미지 URL
+     * @return 이미지가 안전한지 여부
      */
     public boolean validateImageByUrl(String imageUrl) {
         try {
@@ -219,13 +230,29 @@ public class S3Service {
                 throw new IllegalArgumentException("유효하지 않은 이미지 URL입니다.");
             }
             
+            // URL에서 S3 키 추출
+            String s3Key = extractS3KeyFromUrl(imageUrl);
+            if (s3Key == null) {
+                log.warn("이미지 URL에서 S3 키를 추출할 수 없습니다: {}", imageUrl);
+                return false;
+            }
+            
+            // 이미지 다운로드
             java.net.URL url = new java.net.URL(imageUrl);
             java.io.InputStream inputStream = url.openStream();
             byte[] imageBytes = inputStream.readAllBytes();
             inputStream.close();
             
+            // Google Vision API로 검증
             boolean isSafe = googleVisionService.isImageSafe(imageBytes);
             log.info("URL 이미지 검증 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
+            
+            // 부적절한 이미지인 경우 자동 삭제
+            if (!isSafe) {
+                log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
+                deleteObject(s3Key);
+                log.info("부적절한 이미지 삭제 완료: {}", s3Key);
+            }
             
             return isSafe;
             
@@ -234,13 +261,34 @@ public class S3Service {
             return false;
         }
     }
+    
+    /**
+     * 이미지 URL에서 S3 키 추출
+     */
+    private String extractS3KeyFromUrl(String imageUrl) {
+        try {
+            // https://bucket-name.s3.region.amazonaws.com/uploads/filename.jpg 형식에서 추출
+            String pattern = "https://.*\\.amazonaws\\.com/(.*)";
+            java.util.regex.Pattern r = java.util.regex.Pattern.compile(pattern);
+            java.util.regex.Matcher m = r.matcher(imageUrl);
+            
+            if (m.find()) {
+                return m.group(1); // uploads/filename.jpg 부분 반환
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("S3 키 추출 실패: {}", imageUrl, e);
+            return null;
+        }
+    }
 
     private boolean isValidImageFile(String filename) {
         if (filename == null || filename.trim().isEmpty()) return false;
         String extension = filename.toLowerCase();
         return extension.endsWith(".jpg") || extension.endsWith(".jpeg") ||
                 extension.endsWith(".png") || extension.endsWith(".gif") ||
-                extension.endsWith(".webp");
+                extension.endsWith(".webp") || extension.endsWith(".svg") ||
+                extension.endsWith(".bmp");
     }
 
     public void ensureBucketPublicReadAccess() {

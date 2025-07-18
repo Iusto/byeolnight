@@ -250,6 +250,47 @@ src/
 
 > **"기획부터 배포까지 단독 구축하며 겪은 실전 이슈들"**
 
+### 🚀 최근 개선사항 (2024년 7월)
+
+#### 1. **파일 업로드 시스템 개선 - Presigned URL 방식으로 통일**
+- **문제**: 서버를 통한 직접 업로드 방식과 Presigned URL 방식이 혼재되어 있어 유지보수가 어려움
+- **해결**: 모든 파일 업로드를 S3 Presigned URL 방식으로 통일
+  ```java
+  // 개선된 파일 업로드 워크플로우
+  1. 클라이언트가 파일명으로 Presigned URL 요청
+  2. 서버가 Presigned URL 생성하여 반환
+  3. 클라이언트가 직접 S3에 업로드
+  4. 업로드 후 Google Vision API로 이미지 검증
+  ```
+- **성과**: 서버 부하 감소, 대용량 파일 처리 가능, 코드 일관성 향상
+
+#### 2. **부적절한 이미지 자동 삭제 시스템 구축**
+- **문제**: 부적절한 이미지가 업로드된 후 검증 실패 시에도 S3에 남아있는 문제
+- **해결**: 이미지 검증 후 부적절한 콘텐츠 감지 시 자동으로 S3에서 삭제하는 기능 추가
+  ```java
+  // 부적절한 이미지 자동 삭제 로직
+  if (!isSafe) {
+      log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
+      deleteObject(s3Key);
+      log.info("부적절한 이미지 삭제 완료: {}", s3Key);
+  }
+  ```
+- **성과**: 안전한 콘텐츠 환경 유지, 스토리지 비용 절약, 관리자 개입 최소화
+
+#### 3. **지원 이미지 형식 확장**
+- **문제**: 제한된 이미지 형식만 지원하여 사용자 불편 초래
+- **해결**: SVG와 BMP 형식 추가 지원
+  ```java
+  // 확장된 이미지 형식 지원
+  private boolean isValidImageFile(String filename) {
+      return extension.endsWith(".jpg") || extension.endsWith(".jpeg") ||
+             extension.endsWith(".png") || extension.endsWith(".gif") ||
+             extension.endsWith(".webp") || extension.endsWith(".svg") ||
+             extension.endsWith(".bmp");
+  }
+  ```
+- **성과**: 사용자 경험 개선, 다양한 이미지 형식 지원
+
 ### 🚨 주요 기술적 도전과 해결 과정
 
 #### 1. **뉴스 시스템 대규모 리팩토링 → 성능 및 유지보수성 향상**
