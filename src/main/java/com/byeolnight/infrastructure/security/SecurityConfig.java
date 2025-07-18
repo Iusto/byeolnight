@@ -11,6 +11,7 @@ package com.byeolnight.infrastructure.security;
  * - 비밀번호 인코더 및 인증 매니저 빈 등록
  */
 
+import com.byeolnight.infrastructure.filter.ContentCachingFilter;
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.user.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,6 +45,7 @@ public class SecurityConfig {
     private final TokenService tokenService;
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final ContentCachingFilter contentCachingFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -53,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(AuthWhitelist.PATHS).permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(contentCachingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
