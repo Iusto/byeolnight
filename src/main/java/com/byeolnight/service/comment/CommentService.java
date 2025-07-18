@@ -34,17 +34,10 @@ public class CommentService {
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
-        System.out.println("=== 댓글 등록 시작 ===");
-        System.out.println("postId: " + dto.getPostId());
-        System.out.println("content: " + dto.getContent());
-        System.out.println("user: " + user);
-        if (user != null) {
-            System.out.println("user ID: " + user.getId());
-            System.out.println("user nickname: " + user.getNickname());
-        } else {
-            System.err.println("사용자가 null입니다!");
+        if (user == null) {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
+        
         Post post = postRepository.findById(dto.getPostId())
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
 
@@ -53,7 +46,6 @@ public class CommentService {
         if (dto.getParentId() != null) {
             parentComment = commentRepository.findById(dto.getParentId())
                     .orElseThrow(() -> new NotFoundException("부모 댓글이 존재하지 않습니다."));
-            System.out.println("답글 등록 - 부모 댓글 ID: " + dto.getParentId());
         }
 
         Comment comment = Comment.builder()
@@ -66,30 +58,18 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         Long commentId = savedComment.getId();
         
-        // 저장된 댓글 확인
-        System.out.println("댓글 저장 완료 - ID: " + commentId);
-        System.out.println("입력된 user: " + (user != null ? user.getNickname() : "null"));
-        System.out.println("저장된 댓글 writer: " + (savedComment.getWriter() != null ? savedComment.getWriter().getNickname() : "null"));
-        
-        // 다시 조회해서 확인
-        Comment reloadedComment = commentRepository.findById(commentId).orElse(null);
-        if (reloadedComment != null) {
-            System.out.println("다시 조회한 댓글 writer: " + (reloadedComment.getWriter() != null ? reloadedComment.getWriter().getNickname() : "null"));
-        }
-        
         // 댓글 작성 인증서 발급 체크
         try {
             certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.COMMENT_WRITE);
         } catch (Exception e) {
-            System.err.println("인증서 발급 실패: " + e.getMessage());
+            // 인증서 발급 실패 무시 - 주요 기능 아님
         }
         
         // 댓글 작성 포인트 지급
         try {
             pointService.awardCommentWritePoints(user, commentId);
-            System.out.println("포인트 지급 완료");
         } catch (Exception e) {
-            System.err.println("포인트 지급 실패: " + e.getMessage());
+            // 포인트 지급 실패 무시 - 주요 기능 아님
         }
         
         // 알림 생성
@@ -120,62 +100,26 @@ public class CommentService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("알림 생성 실패: " + e.getMessage());
+            // 알림 생성 실패 무시 - 주요 기능 아님
         }
         
-        System.out.println("댓글 등록 완전 완료 - commentId: " + commentId);
         return commentId;
     }
 
     public List<CommentResponseDto> getByPostId(Long postId) {
-        System.out.println("=== 댓글 조회 API 호출 시작 ===");
-        System.out.println("요청된 postId: " + postId);
-        
         if (postId == null || postId <= 0) {
-            System.out.println("잘못된 postId: " + postId);
             throw new IllegalArgumentException("유효하지 않은 게시글 ID입니다.");
         }
         
         // 게시글 존재 여부 확인
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
-        System.out.println("게시글 확인 완료 - postId: " + postId + ", title: " + post.getTitle());
-        
-        // 데이터베이스에서 직접 댓글 수 확인
-        long totalCommentCount = commentRepository.count();
-        long postCommentCount = commentRepository.countByPostId(postId);
-        System.out.println("전체 댓글 수: " + totalCommentCount);
-        System.out.println("postId " + postId + "의 댓글 수: " + postCommentCount);
         
         List<Comment> comments = commentRepository.findAllByPostId(postId);
-        System.out.println("조회된 댓글 수: " + comments.size());
         
-        // 각 댓글 정보 상세 출력
-        for (Comment comment : comments) {
-            System.out.println("=== 댓글 상세 정보 ===");
-            System.out.println("댓글 ID: " + comment.getId());
-            System.out.println("내용: " + comment.getContent());
-            System.out.println("Writer 객체: " + comment.getWriter());
-            if (comment.getWriter() != null) {
-                System.out.println("Writer ID: " + comment.getWriter().getId());
-                System.out.println("Writer 닉네임: " + comment.getWriter().getNickname());
-            } else {
-                System.out.println("Writer가 null입니다!");
-            }
-            System.out.println("========================");
-        }
-        
-        // 임시로 모든 댓글 반환 (필터링 비활성화)
-        System.out.println("전체 댓글 수: " + comments.size());
-        
-        List<CommentResponseDto> result = comments.stream()
+        return comments.stream()
                 .map(CommentResponseDto::from)
                 .collect(Collectors.toList());
-        
-        System.out.println("최종 반환 댓글 수: " + result.size());
-        System.out.println("=== 댓글 조회 API 완료 ===");
-        
-        return result;
     }
 
     @Transactional
@@ -227,16 +171,10 @@ public class CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         
-        System.out.println("내 댓글 조회 - userId: " + userId + ", nickname: " + user.getNickname());
-        
         Page<Comment> comments = commentRepository.findByWriterOrderByCreatedAtDesc(user, pageable);
-        System.out.println("조회된 댓글 수: " + comments.getContent().size());
         
         return comments.getContent().stream()
-                .map(comment -> {
-                    System.out.println("댓글 변환: " + comment.getContent().substring(0, Math.min(20, comment.getContent().length())) + "...");
-                    return CommentDto.Response.from(comment);
-                })
+                .map(CommentDto.Response::from)
                 .toList();
     }
 
@@ -283,22 +221,17 @@ public class CommentService {
     // 댓글 신고
     @Transactional
     public void reportComment(Long commentId, User reporter, String reason, String description) {
-        System.out.println("=== 댓글 신고 시작 ===");
-        System.out.println("commentId: " + commentId);
-        System.out.println("reporter: " + (reporter != null ? reporter.getId() + ", " + reporter.getNickname() : "null"));
-        System.out.println("reason: " + reason);
-        
         if (reporter == null) {
-            System.err.println("신고자가 null입니다!");
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
         
-        // 신고자 새로 조회
-        User freshReporter = userRepository.findById(reporter.getId())
-                .orElseThrow(() -> {
-                    System.err.println("신고자 ID가 데이터베이스에 존재하지 않습니다: " + reporter.getId());
-                    return new NotFoundException("신고자 정보가 유효하지 않습니다.");
-                });
+        // 신고자 ID 유효성 검증
+        if (!userRepository.existsById(reporter.getId())) {
+            throw new NotFoundException("신고자 정보가 유효하지 않습니다.");
+        }
+        
+        // 신고자 새로 조회 (영속성 컨텍스트에서 완전한 엔티티 가져오기)
+        User freshReporter = userRepository.findById(reporter.getId()).orElseThrow();
         
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
@@ -309,27 +242,14 @@ public class CommentService {
         }
         
         try {
-            // 신고 객체 생성 전 데이터 출력
-            System.out.println("신고 객체 생성 전 데이터 확인:");
-            System.out.println("- 댓글 ID: " + comment.getId());
-            System.out.println("- 신고자 ID: " + freshReporter.getId());
-            System.out.println("- 신고자 닉네임: " + freshReporter.getNickname());
-            System.out.println("- 신고 사유: " + reason);
-            
-            // 신고 객체 생성 - Builder 패턴 사용
-            com.byeolnight.domain.entity.comment.CommentReport report = com.byeolnight.domain.entity.comment.CommentReport.builder()
-                .comment(comment)
-                .reporter(freshReporter) // 반드시 freshReporter 사용
-                .reason(reason)
-                .description(description)
-                .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)
-                .createdAt(java.time.LocalDateTime.now())
-                .build();
-            
-            // 저장 전 객체 확인
-            System.out.println("저장 전 신고 객체 확인:");
-            System.out.println("- 댓글: " + report.getComment().getId());
-            System.out.println("- 신고자: " + report.getReporter().getId());
+            // 신고 객체 생성
+            com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
+            report.setComment(comment);
+            report.setReporter(freshReporter);
+            report.setReason(reason);
+            report.setDescription(description);
+            report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
+            report.setCreatedAt(java.time.LocalDateTime.now());
             
             commentReportRepository.save(report);
             comment.increaseReportCount();
@@ -338,11 +258,7 @@ public class CommentService {
             if (comment.getReportCount() >= 5) {
                 comment.blind();
             }
-            
-            System.out.println("댓글 신고 성공 - reportId: " + report.getId());
         } catch (Exception e) {
-            System.err.println("댓글 신고 오류: " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
     }
