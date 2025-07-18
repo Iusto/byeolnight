@@ -72,12 +72,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     };
   };
   
-  // Quill 에디터의 이미지 핸들러 오버라이드 - 이미지 URL 직접 삽입 방지
-  const handleImageDrop = (imageUrl: string) => {
-    // 이미지 URL이 직접 삽입되는 것을 방지하고 항상 검열 API를 통과하도록 함
-    alert('이미지는 이미지 업로드 버튼을 통해서만 삽입할 수 있습니다.');
-    return false;
-  };
+  // 이미지 URL 직접 삽입 방지 함수 (사용하지 않음)
+  // 이 함수는 현재 사용되지 않지만, 향후 확장성을 위해 남겨둠
 
   const modules = useMemo(() => ({
     toolbar: {
@@ -190,16 +186,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         modules={modules}
         formats={formats}
         placeholder={placeholder}
-        onPaste={(e) => {
-          // 이미지 파일이 아닌 경우에만 기본 붙여넣기 허용
-          const hasImageFile = Array.from(e.clipboardData.items).some(
-            item => item.type.indexOf('image') !== -1
-          );
-          if (hasImageFile) {
-            // 이미지 파일은 기본 처리를 통해 처리
-            return;
-          }
-        }}
+
       />
     </div>
   );
