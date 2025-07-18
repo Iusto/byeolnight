@@ -217,32 +217,33 @@ public class CommentService {
             return true;
         }
     }
-    
-    // 댓글 신고
+
+    /**
+     * 댓글 신고 - ID 기반 메서드 (새로운 방식)
+     */
     @Transactional
-    public void reportComment(Long commentId, User reporter, String reason, String description) {
-        if (reporter == null) {
+    public void reportCommentById(Long commentId, Long reporterId, String reason, String description) {
+        if (reporterId == null) {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
         
-        // 영속성 컨텍스트에서 신고자 다시 조회 (중요: ID만 사용)
-        Long reporterId = reporter.getId();
-        User freshReporter = userRepository.findById(reporterId)
+        // 신고자 조회
+        User reporter = userRepository.findById(reporterId)
                 .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
         
         // 댓글 조회
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
         
-        // 중복 신고 방지 (ID 기반 조회)
-        if (commentReportRepository.existsByCommentAndReporter(comment, freshReporter)) {
+        // 중복 신고 방지
+        if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
             throw new IllegalArgumentException("이미 신고한 댓글입니다.");
         }
         
-        // 신고 객체 생성 및 저장 (setter 사용)
+        // 신고 객체 생성 및 저장
         com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
         report.setComment(comment);
-        report.setReporter(freshReporter); // 반드시 새로 조회한 엔티티 사용
+        report.setReporter(reporter);
         report.setReason(reason);
         report.setDescription(description);
         report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
@@ -255,6 +256,19 @@ public class CommentService {
         if (comment.getReportCount() >= 5) {
             comment.blind();
         }
+    }
+    
+    /**
+     * 댓글 신고 - 기존 메서드 (하위 호환성 유지)
+     */
+    @Transactional
+    public void reportComment(Long commentId, User reporter, String reason, String description) {
+        if (reporter == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+        
+        // ID 기반 메서드 호출
+        reportCommentById(commentId, reporter.getId(), reason, description);
     }
     
     // 관리자: 댓글 신고 처리
