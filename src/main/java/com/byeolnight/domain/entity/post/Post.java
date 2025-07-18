@@ -1,6 +1,7 @@
 package com.byeolnight.domain.entity.post;
 
 import com.byeolnight.domain.entity.user.User;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -76,10 +77,12 @@ public class Post {
 
     @CreationTimestamp  // 생성 시 자동으로 현재 시간 설정
     @Column(name = "created_at", nullable = false, updatable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp    // 수정 시 자동으로 현재 시간 설정
     @Column(name = "updated_at", nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")
