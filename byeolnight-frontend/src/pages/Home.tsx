@@ -129,17 +129,18 @@ export default function Home() {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
+    
+    // ISO 문자열에서 시간대 정보가 포함된 Date 객체 생성
     const date = new Date(dateStr);
-    // 한국 시간대로 변환
-    return date.toLocaleString('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).replace(/\. /g, '.').replace(/\.$/, '');
+    
+    // 서버에서 이미 UTC로 보내주므로 클라이언트 시간대로 표시
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}.${month}.${day} ${hours}:${minutes}`;
   };
 
   // 게시글 내용에서 첫 번째 이미지 URL 추출
