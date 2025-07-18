@@ -14,6 +14,13 @@ instance.defaults.transformRequest = [
     // FormData인 경우 Content-Type 헤더 삭제 (브라우저가 자동으로 설정)
     if (data instanceof FormData) {
       delete headers['Content-Type'];
+      return data;
+    }
+    // 이미 문자열이면 그대로 반환
+    if (typeof data === 'string') return data;
+    // 객체면 JSON.stringify로 변환
+    if (typeof data === 'object' && data !== null) {
+      return JSON.stringify(data);
     }
     return data;
   }
