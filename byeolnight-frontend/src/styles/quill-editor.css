@@ -115,3 +115,16 @@
   height: 100% !important;
   flex: 1 !important;
 }
+
+/* 에디터 로딩 상태 스타일 */
+.quill-editor-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  background-color: #1f2336;
+  border-radius: 0.75rem;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  font-style: italic;
+}

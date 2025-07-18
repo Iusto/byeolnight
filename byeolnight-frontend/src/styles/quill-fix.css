@@ -36,3 +36,26 @@
   height: auto !important;
   min-height: 300px !important;
 }
+
+/* DOMNodeInserted 경고 해결을 위한 추가 스타일 */
+.quill-container {
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 에디터 로딩 상태 스타일 */
+.quill-editor-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(31, 35, 54, 0.9);
+  z-index: 10;
+  border-radius: 0.75rem;
+}

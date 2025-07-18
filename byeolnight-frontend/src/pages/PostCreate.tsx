@@ -435,13 +435,15 @@ export default function PostCreate() {
                     </div>
                   </div>
                 ) : (
-                  <QuillEditor
-                    ref={editorRef}
-                    value={content}
-                    onChange={setContent}
-                    placeholder="내용을 입력하세요..."
-                    handleImageUpload={handleImageUpload}
-                  />
+                  <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+                    <QuillEditor
+                      ref={editorRef}
+                      value={content}
+                      onChange={setContent}
+                      placeholder="내용을 입력하세요..."
+                      handleImageUpload={handleImageUpload}
+                    />
+                  </div>
                 )}
               </div>
               
