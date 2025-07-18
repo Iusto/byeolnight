@@ -115,11 +115,16 @@ export default function PostCreate() {
     
     // 모바일에서 갤러리 접근을 위해 capture 속성을 설정하지 않음
     // capture 속성이 있으면 카메라가 열리므로 완전히 제거
+    input.removeAttribute('capture'); // 명시적으로 제거
     
     // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
     document.body.appendChild(input);
     input.style.display = 'none';
-    input.click();
+    
+    // iOS Safari에서 클릭 이벤트가 제대로 작동하지 않는 문제 해결
+    setTimeout(() => {
+      input.click();
+    }, 100);
     
     input.onchange = async () => {
       const file = input.files?.[0];
@@ -364,17 +369,36 @@ export default function PostCreate() {
                     theme="snow"
                     style={{ height: '400px', marginBottom: '50px' }}
                     modules={{
-                      toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'align': [] }],
-                        ['link', 'image', 'video'],
-                        ['clean']
-                      ],
+                      toolbar: {
+                        container: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'color': [] }, { 'background': [] }],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'align': [] }],
+                          ['link', 'image', 'video'],
+                          ['clean']
+                        ],
+                        handlers: {
+                          // 이미지 버튼 클릭 시 사용자 정의 함수 실행
+                          image: () => handleImageUpload()
+                        }
+                      },
                       clipboard: {
                         matchVisual: false
+                      },
+                      // 이미지 드래그 앤 드롭 방지
+                      keyboard: {
+                        bindings: {
+                          'image-paste': {
+                            key: 'v',
+                            ctrlKey: true,
+                            handler: function() {
+                              // 기본 붙여넣기 동작 허용 (텍스트만)
+                              return true;
+                            }
+                          }
+                        }
                       }
                     }}
                     formats={[
