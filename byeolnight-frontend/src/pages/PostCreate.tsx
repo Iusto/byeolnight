@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+// 중복 import 제거 (main.tsx에서 이미 import 함)
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 
@@ -338,7 +338,7 @@ export default function PostCreate() {
                   </button>
                 </div>
               </div>
-              <div className="rounded-xl overflow-hidden border border-slate-600/50">
+              <div className="rounded-xl overflow-hidden border border-slate-600/50" style={{ minHeight: '450px' }}>
                 {isMarkdownMode ? (
                   <div className="space-y-4">
                     <div className="relative">
@@ -367,7 +367,14 @@ export default function PostCreate() {
                     value={content}
                     onChange={setContent}
                     theme="snow"
-                    style={{ height: '400px', marginBottom: '50px' }}
+                    style={{ 
+                      height: '400px', 
+                      marginBottom: '50px',
+                      display: 'block',
+                      width: '100%',
+                      backgroundColor: '#1f2336',
+                      color: '#e2e8f0'
+                    }}
                     modules={{
                       toolbar: {
                         container: [
@@ -380,8 +387,21 @@ export default function PostCreate() {
                           ['clean']
                         ],
                         handlers: {
-                          // 이미지 버튼 클릭 시 사용자 정의 함수 실행
-                          image: handleImageUpload
+                          // 이미지 버튼 클릭 시 사용자 정의 함수 실행 (검열 과정 포함)
+                          image: handleImageUpload,
+                          // 비디오 버튼 클릭 시 기본 동작 유지
+                          video: function() {
+                            const range = this.quill.getSelection();
+                            const url = prompt('YouTube 임베드 URL을 입력하세요 (예: https://www.youtube.com/embed/VIDEO_ID)');
+                            if (url) {
+                              // YouTube 임베드 URL 형식 검증
+                              if (url.includes('youtube.com/embed/')) {
+                                this.quill.insertEmbed(range.index, 'video', url);
+                              } else {
+                                alert('올바른 YouTube 임베드 URL을 입력해주세요 (https://www.youtube.com/embed/VIDEO_ID 형식)');
+                              }
+                            }
+                          }
                         }
                       },
                       clipboard: {

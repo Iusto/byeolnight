@@ -325,6 +325,9 @@ button:focus-visible {
   background-color: #2a2e45 !important;
   border: 1px solid #4a5568 !important;
   border-radius: 8px 8px 0 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  padding: 8px !important;
 }
 
 .ql-toolbar .ql-stroke {
@@ -356,11 +359,16 @@ button:focus-visible {
   border: 1px solid #4a5568 !important;
   border-radius: 0 0 8px 8px !important;
   color: #e2e8f0 !important;
+  display: block !important;
+  height: 350px !important;
 }
 
 .ql-editor {
   color: #e2e8f0 !important;
-  min-height: 200px;
+  min-height: 300px !important;
+  height: 100% !important;
+  display: block !important;
+  overflow-y: auto !important;
 }
 
 .ql-editor.ql-blank::before {
@@ -378,6 +386,21 @@ button:focus-visible {
 
 .ql-editor a {
   color: #9f7aea !important;
+}
+
+/* ReactQuill 강제 표시 */
+.quill {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 400px !important;
+}
+
+/* 툴바 버튼 강제 표시 */
+.ql-formats {
+  display: inline-flex !important;
+  margin-right: 8px !important;
+  margin-bottom: 4px !important;
 }
 
 /* 밝은 테마 대응 */
