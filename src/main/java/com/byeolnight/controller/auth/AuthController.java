@@ -61,13 +61,7 @@ public class AuthController {
             HttpServletRequest request
     ) {
         try {
-            StringBuilder rawBody = new StringBuilder();
-            request.getReader().lines().forEach(rawBody::append);
-            log.warn("[로그인 요청 RAW BODY] {}", rawBody.toString());
-        } catch (Exception ex) {
-            log.warn("[로그인 요청 RAW BODY 읽기 실패] {}", ex.getMessage());
-        }
-        try {
+            // 요청 본문 로깅 제거 (ContentCachingFilter에서 처리)
             AuthService.LoginResult result = authService.authenticate(dto, request);
 
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
@@ -444,4 +438,3 @@ public class AuthController {
         return null;
     }
 }
-

@@ -67,6 +67,15 @@ export default function PostEdit() {
     const items = event.clipboardData?.items;
     if (!items) return;
     
+    // 모바일 환경 감지
+    const isMobileDevice = isMobile();
+    
+    // 모바일에서 클립보드 접근 제한 있을 수 있음
+    if (isMobileDevice && items.length === 0) {
+      console.log('모바일에서 클립보드 접근 제한 감지');
+      return;
+    }
+    
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       
@@ -80,6 +89,7 @@ export default function PostEdit() {
             // ReactQuill에 이미지 삽입
             setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
           } catch (error) {
+            console.error('클립보드 이미지 업로드 실패:', error);
             alert('이미지 업로드에 실패했습니다.');
           }
         }
@@ -93,10 +103,8 @@ export default function PostEdit() {
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
     
-    // 모바일 환경에서 카메라 접근 허용
-    if (isMobile()) {
-      input.setAttribute('capture', 'environment');
-    }
+    // 모바일에서 갤러리 접근을 위해 capture 속성 명시적으로 비활성화
+    input.removeAttribute('capture');
     
     // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
     document.body.appendChild(input);
