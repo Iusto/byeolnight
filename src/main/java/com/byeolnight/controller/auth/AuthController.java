@@ -89,7 +89,7 @@ public class AuthController {
                 return ResponseEntity.badRequest()
                         .body(CommonResponse.fail("잘못된 로그인 요청 형식입니다."));
             }
-        try {
+            
             // 인증 처리를 AuthService에 위임
             AuthService.LoginResult result = authService.authenticate(dto, request);
             
