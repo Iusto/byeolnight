@@ -60,6 +60,14 @@ public class AuthController {
             @Valid @RequestBody LoginRequestDto dto,
             HttpServletRequest request
     ) {
+        // 요청 body의 raw 데이터를 로그로 남겨 디버깅
+        try {
+            StringBuilder rawBody = new StringBuilder();
+            request.getReader().lines().forEach(rawBody::append);
+            log.warn("[로그인 요청 RAW BODY] {}", rawBody.toString());
+        } catch (Exception ex) {
+            log.warn("[로그인 요청 RAW BODY 읽기 실패] {}", ex.getMessage());
+        }
         try {
             AuthService.LoginResult result = authService.authenticate(dto, request);
 
@@ -437,3 +445,4 @@ public class AuthController {
         return null;
     }
 }
+
