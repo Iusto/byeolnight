@@ -67,69 +67,97 @@ export default function PostCreate() {
   
   // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = async (event: ClipboardEvent) => {
-    const items = event.clipboardData?.items;
-    if (!items) return;
-    
-    // 모바일 환경 감지
-    const isMobileDevice = isMobile();
-    console.log('클립보드 붙여넣기 - 모바일 환경:', isMobileDevice);
-    
-    // 모바일에서 클립보드 접근 제한 있을 수 있음
-    if (isMobileDevice && items.length === 0) {
-      console.log('모바일에서 클립보드 접근 제한 감지');
-      return;
-    }
-    
-    console.log('클립보드 데이터 감지:', items.length, '개 항목');
-    
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log('클립보드 항목 형식:', item.type);
+    try {
+      const items = event.clipboardData?.items;
+      if (!items) return;
       
-      // 이미지 파일인지 확인
-      if (item.type.indexOf('image') !== -1) {
-        event.preventDefault();
-        const file = item.getAsFile();
-        if (file) {
-          console.log('클립보드에서 이미지 감지:', file.name, file.type, file.size);
-          
-          // 파일 크기 체크 (5MB 제한 - 백엔드와 동일하게 맞춤)
-          if (file.size > 5 * 1024 * 1024) {
-            alert('파일 크기는 5MB를 초과할 수 없습니다.');
-            return;
-          }
-          
-          try {
-            // 모바일에서는 클립보드 붙여넣기 제한
-            if (isMobileDevice) {
-              alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+      // 모바일 환경 감지
+      const isMobileDevice = isMobile();
+      console.log('클립보드 붙여넣기 - 모바일 환경:', isMobileDevice);
+      
+      // 모바일에서 클립보드 접근 제한 있을 수 있음
+      if (isMobileDevice && items.length === 0) {
+        console.log('모바일에서 클립보드 접근 제한 감지');
+        return;
+      }
+      
+      console.log('클립보드 데이터 감지:', items.length, '개 항목');
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        console.log('클립보드 항목 형식:', item.type);
+        
+        // 이미지 파일인지 확인
+        if (item.type.indexOf('image') !== -1) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            console.log('클립보드에서 이미지 감지:', file.name, file.type, file.size);
+            
+            // 파일 크기 체크 (5MB 제한 - 백엔드와 동일하게 맞춤)
+            if (file.size > 5 * 1024 * 1024) {
+              alert('파일 크기는 5MB를 초과할 수 없습니다.');
               return;
             }
             
-            const imageUrl = await uploadClipboardImage(file);
-            if (!imageUrl) {
-              throw new Error('이미지 URL을 받지 못했습니다.');
+            try {
+              // 모바일에서는 클립보드 붙여넣기 제한
+              if (isMobileDevice) {
+                alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+                return;
+              }
+              
+              setIsImageChecking(true); // 이미지 검사 상태 설정
+              
+              const imageUrl = await uploadClipboardImage(file);
+              if (!imageUrl) {
+                throw new Error('이미지 URL을 받지 못했습니다.');
+              }
+              
+              // 업로드된 이미지 목록에 추가 (상태 업데이트)
+              setUploadedImages(prev => [...prev, {
+                originalName: file.name || '클립보드 이미지',
+                s3Key: imageUrl.split('/').pop() || '',
+                url: imageUrl
+              }]);
+              
+              // ReactQuill에 이미지 삽입 (에디터 참조 사용)
+              if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
+                console.log('에디터 참조를 통한 이미지 삽입');
+                try {
+                  const editor = editorRef.current.getEditor();
+                  if (editor) {
+                    const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
+                    editor.insertEmbed(range.index, 'image', imageUrl);
+                    editor.setSelection(range.index + 1, 0);
+                  } else {
+                    // 에디터가 없는 경우 폴백으로 상태 업데이트 사용
+                    console.log('에디터 참조 없음, 상태 업데이트로 폴백');
+                    setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+                  }
+                } catch (editorError) {
+                  console.error('에디터 참조 오류:', editorError);
+                  // 에디터 참조 오류 발생 시 폴백으로 상태 업데이트 사용
+                  setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+                }
+              } else {
+                // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
+                console.log('상태 업데이트를 통한 이미지 삽입');
+                setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+              }
+            } catch (error) {
+              console.error('클립보드 이미지 업로드 실패:', error);
+              alert('이미지 업로드에 실패했습니다.');
+            } finally {
+              setIsImageChecking(false); // 이미지 검사 상태 해제
             }
-            
-            // ReactQuill에 이미지 삽입 (에디터 참조 사용)
-            if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
-              console.log('에디터 참조를 통한 이미지 삽입');
-              const editor = editorRef.current.getEditor();
-              const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-              editor.insertEmbed(range.index, 'image', imageUrl);
-              editor.setSelection(range.index + 1, 0);
-            } else {
-              // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
-              console.log('상태 업데이트를 통한 이미지 삽입');
-              setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
-            }
-          } catch (error) {
-            console.error('클립보드 이미지 업로드 실패:', error);
-            alert('이미지 업로드에 실패했습니다.');
           }
+          break;
         }
-        break;
       }
+    } catch (error) {
+      console.error('클립보드 처리 중 오류:', error);
+      setIsImageChecking(false);
     }
   };
   
@@ -199,12 +227,14 @@ export default function PostCreate() {
           const imageData = await uploadImage(file);
           
           console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
-          setUploadedImages(prev => [...prev, imageData]);
           
           // 이미지 URL 삽입 전 유효성 검사
           if (!imageData || !imageData.url) {
             throw new Error('이미지 URL을 받지 못했습니다.');
           }
+          
+          // 업로드된 이미지 목록에 추가 (상태 업데이트)
+          setUploadedImages(prev => [...prev, imageData]);
           
           // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
           if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getEditor) {
@@ -213,10 +243,23 @@ export default function PostCreate() {
           } else {
             // PC에서는 에디터 참조 사용
             console.log('에디터 참조를 통한 이미지 삽입');
-            const editor = editorRef.current.getEditor();
-            const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-            editor.insertEmbed(range.index, 'image', imageData.url);
-            editor.setSelection(range.index + 1, 0);
+            // 에디터 참조가 유효한지 다시 확인
+            if (editorRef.current && editorRef.current.getEditor) {
+              const editor = editorRef.current.getEditor();
+              if (editor) {
+                const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
+                editor.insertEmbed(range.index, 'image', imageData.url);
+                editor.setSelection(range.index + 1, 0);
+              } else {
+                // 에디터가 없는 경우 폴백으로 상태 업데이트 사용
+                console.log('에디터 참조 없음, 상태 업데이트로 폴백');
+                setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
+              }
+            } else {
+              // 에디터 참조가 없는 경우 폴백으로 상태 업데이트 사용
+              console.log('에디터 참조 없음, 상태 업데이트로 폴백');
+              setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
+            }
           }
         } catch (error: any) {
           console.error('이미지 업로드 실패:', error);
@@ -228,12 +271,16 @@ export default function PostCreate() {
         } finally {
           setIsImageChecking(false);
           // DOM에서 제거
-          document.body.removeChild(input);
+          if (document.body.contains(input)) {
+            document.body.removeChild(input);
+          }
         }
       } else {
         // 파일 선택 취소 시 DOM에서 제거
         console.log('파일 선택 취소');
-        document.body.removeChild(input);
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
       }
     };
   };
@@ -436,7 +483,9 @@ export default function PostCreate() {
                   </div>
                 ) : (
                   <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+                    {/* key 속성 추가로 이미지 업로드 후에도 에디터가 유지되도록 함 */}
                     <QuillEditor
+                      key={`editor-${uploadedImages.length}`}
                       ref={editorRef}
                       value={content}
                       onChange={setContent}
