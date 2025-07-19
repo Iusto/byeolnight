@@ -24,7 +24,7 @@ export interface ValidatedUploadResponse {
  */
 export const uploadImageToS3 = async (file: File): Promise<PresignedUrlResponse> => {
   try {
-    // 파일 크기 체크 (10MB 제한)
+    // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
     if (file.size > 10 * 1024 * 1024) {
       throw new Error('파일 크기는 10MB를 초과할 수 없습니다.');
     }
