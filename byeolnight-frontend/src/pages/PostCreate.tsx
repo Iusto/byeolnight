@@ -94,9 +94,9 @@ export default function PostCreate() {
           if (file) {
             console.log('클립보드에서 이미지 감지:', file.name, file.type, file.size);
             
-            // 파일 크기 체크 (5MB 제한 - 백엔드와 동일하게 맞춤)
-            if (file.size > 5 * 1024 * 1024) {
-              alert('파일 크기는 5MB를 초과할 수 없습니다.');
+            // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
+            if (file.size > 10 * 1024 * 1024) {
+              alert('파일 크기는 10MB를 초과할 수 없습니다.');
               return;
             }
             
@@ -204,9 +204,9 @@ export default function PostCreate() {
       const file = input.files?.[0];
       if (file) {
         console.log('선택된 파일:', file.name, file.type, file.size);
-        // 파일 크기 체크 (5MB 제한 - 백엔드와 동일하게 맞춤)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('파일 크기는 5MB를 초과할 수 없습니다.');
+        // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('파일 크기는 10MB를 초과할 수 없습니다.');
           document.body.removeChild(input);
           return;
         }
@@ -288,12 +288,25 @@ export default function PostCreate() {
   const removeImage = (index: number) => {
     const imageToRemove = uploadedImages[index];
     if (imageToRemove) {
-      // 게시글 내용에서도 해당 이미지 제거
-      setContent(prev => {
-        const imgRegex = new RegExp(`<img[^>]*src="${imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`, 'gi');
-        return prev.replace(imgRegex, '');
-      });
+      try {
+        // 게시글 내용에서도 해당 이미지 제거 - 모바일 환경 고려하여 안전하게 처리
+        setContent(prev => {
+          // 이미지 URL을 안전하게 이스케이프
+          const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // 이미지 태그만 정확히 타겟팅하는 정규식
+          const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+          
+          // 이미지 태그 제거 후 내용 반환
+          const newContent = prev.replace(imgRegex, '');
+          console.log('이미지 제거 후 콘텐츠 길이:', newContent.length);
+          return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
+        });
+      } catch (error) {
+        console.error('이미지 제거 중 오류 발생:', error);
+        // 오류 발생 시 이미지만 제거하고 내용은 유지
+      }
     }
+    // 이미지 배열에서 해당 이미지 제거
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
