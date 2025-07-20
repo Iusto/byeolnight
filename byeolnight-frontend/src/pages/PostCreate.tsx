@@ -6,7 +6,6 @@ import QuillEditor from '../components/QuillEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
-import sseClient from '../lib/sseClient';
 
 interface FileDto {
   originalName: string;
@@ -31,67 +30,15 @@ export default function PostCreate() {
   // URL 파라미터에서 originTopic 추출
   const originTopicId = searchParams.get('originTopic');
   
-  // 클립보드 이미지 업로드 함수 (검열 포함)
+  // 클립보드 이미지 업로드 함수 (간소화 버전)
   const uploadClipboardImage = async (file: File) => {
-    // 파일 크기 체크 (10MB 제한)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('파일 크기는 10MB를 초과할 수 없습니다.');
-      return Promise.reject(new Error('파일 크기 초과'));
-    }
-    
-    console.log('이미지 업로드 시작:', file.name, file.type, file.size);
     setIsImageChecking(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      console.log('이미지 업로드 요청 시작');
-      
-      // 통합된 s3Upload 유틸리티 사용
-      const imageData = await uploadImage(file);
-      
-      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
+      const imageData = await uploadImage(file, false);
       setUploadedImages(prev => [...prev, imageData]);
-      
-      // 검열 결과 처리 (비동기)
-      if (imageData.validationPromise) {
-        imageData.validationPromise
-          .then(result => {
-            if (result.isValid) {
-              // 성공 알림 (선택적)
-              // setValidationAlert({
-              //   message: '이미지 검열 통과',
-              //   type: 'success',
-              //   imageUrl: imageData.url
-              // });
-              // setTimeout(() => setValidationAlert(null), 3000);
-            }
-          })
-          .catch(error => {
-            console.error('이미지 검열 실패:', error);
-            
-            // 부적절한 이미지 감지 시 에디터에서 제거
-            removeImageByUrl(imageData.url);
-            
-            // 사용자에게 알림 표시
-            setValidationAlert({
-              message: '부적절한 이미지가 감지되어 자동으로 삭제되었습니다.',
-              type: 'error',
-              imageUrl: imageData.url
-            });
-            
-            // 5초 후 알림 자동 삭제
-            setTimeout(() => setValidationAlert(null), 5000);
-          });
-      }
-      
       return imageData.url;
     } catch (error: any) {
-      console.error('클립보드 이미지 업로드 실패:', error);
-      console.error('오류 상세:', error.response?.status, error.response?.data);
-      console.error('오류 메시지:', error.message);
-      
-      const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
+      const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
       alert(errorMsg);
       throw error;
     } finally {
@@ -142,7 +89,7 @@ export default function PostCreate() {
     }
   };
   
-  // 클립보드 붙여넣기 이벤트 핸들러
+  // 클립보드 붙여넣기 이벤트 핸들러 (간소화 버전)
   const handlePaste = async (event: ClipboardEvent) => {
     try {
       const items = event.clipboardData?.items;
@@ -150,84 +97,33 @@ export default function PostCreate() {
       
       // 모바일 환경 감지
       const isMobileDevice = isMobile();
-      console.log('클립보드 붙여넣기 - 모바일 환경:', isMobileDevice);
       
       // 모바일에서 클립보드 접근 제한 있을 수 있음
-      if (isMobileDevice && items.length === 0) {
-        console.log('모바일에서 클립보드 접근 제한 감지');
-        return;
-      }
-      
-      console.log('클립보드 데이터 감지:', items.length, '개 항목');
+      if (isMobileDevice && items.length === 0) return;
       
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        console.log('클립보드 항목 형식:', item.type);
         
         // 이미지 파일인지 확인
         if (item.type.indexOf('image') !== -1) {
           event.preventDefault();
           const file = item.getAsFile();
-          if (file) {
-            console.log('클립보드에서 이미지 감지:', file.name, file.type, file.size);
+          if (!file) continue;
+          
+          // 모바일에서는 클립보드 붙여넣기 제한
+          if (isMobileDevice) {
+            alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+            return;
+          }
+          
+          try {
+            const imageUrl = await uploadClipboardImage(file);
+            if (!imageUrl) throw new Error('이미지 URL을 받지 못했습니다.');
             
-            // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
-            if (file.size > 10 * 1024 * 1024) {
-              alert('파일 크기는 10MB를 초과할 수 없습니다.');
-              return;
-            }
-            
-            try {
-              // 모바일에서는 클립보드 붙여넣기 제한
-              if (isMobileDevice) {
-                alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
-                return;
-              }
-              
-              setIsImageChecking(true); // 이미지 검사 상태 설정
-              
-              const imageUrl = await uploadClipboardImage(file);
-              if (!imageUrl) {
-                throw new Error('이미지 URL을 받지 못했습니다.');
-              }
-              
-              // 업로드된 이미지 목록에 추가 (상태 업데이트)
-              setUploadedImages(prev => [...prev, {
-                originalName: file.name || '클립보드 이미지',
-                s3Key: imageUrl.split('/').pop() || '',
-                url: imageUrl
-              }]);
-              
-              // ReactQuill에 이미지 삽입 (에디터 참조 사용)
-              if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
-                console.log('에디터 참조를 통한 이미지 삽입');
-                try {
-                  const editor = editorRef.current.getEditor();
-                  if (editor) {
-                    const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-                    editor.insertEmbed(range.index, 'image', imageUrl);
-                    editor.setSelection(range.index + 1, 0);
-                  } else {
-                    // 에디터가 없는 경우 폴백으로 상태 업데이트 사용
-                    console.log('에디터 참조 없음, 상태 업데이트로 폴백');
-                    setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
-                  }
-                } catch (editorError) {
-                  console.error('에디터 참조 오류:', editorError);
-                  // 에디터 참조 오류 발생 시 폴백으로 상태 업데이트 사용
-                  setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
-                }
-              } else {
-                // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
-                console.log('상태 업데이트를 통한 이미지 삽입');
-                setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
-              }
-            } catch (error) {
-              console.error('클립보드 이미지 업로드 실패:', error);
-              alert('이미지 업로드에 실패했습니다.');
-            } finally {
-              setIsImageChecking(false); // 이미지 검사 상태 해제
-            }
+            // 에디터에 이미지 삽입
+            insertImageToEditor(imageUrl, '클립보드 이미지');
+          } catch (error) {
+            console.error('클립보드 이미지 업로드 실패:', error);
           }
           break;
         }
@@ -238,19 +134,32 @@ export default function PostCreate() {
     }
   };
   
+  // 에디터에 이미지 삽입 함수 (중복 코드 제거)
+  const insertImageToEditor = (imageUrl: string, altText: string) => {
+    if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
+      try {
+        const editor = editorRef.current.getEditor();
+        if (editor) {
+          const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
+          editor.insertEmbed(range.index, 'image', imageUrl);
+          editor.setSelection(range.index + 1, 0);
+          return;
+        }
+      } catch (editorError) {
+        console.error('에디터 참조 오류:', editorError);
+      }
+    }
+    
+    // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우
+    setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
+  };
+  
   // 컴포넌트 마운트 시 이벤트 리스너 등록
   useEffect(() => {
     document.addEventListener('paste', handlePaste);
     
-    // SSE 연결 초기화
-    sseClient.connect().catch(error => {
-      console.error('SSE 연결 실패:', error);
-    });
-    
     return () => {
       document.removeEventListener('paste', handlePaste);
-      // 컴포넌트 언마운트 시 SSE 연결 해제
-      sseClient.disconnect();
     };
   }, []);
   
@@ -260,141 +169,66 @@ export default function PostCreate() {
   };
 
   const handleImageUpload = () => {
-    console.log('이미지 업로드 버튼 클릭');
-    
-    // 모바일 환경 감지
-    const isMobileDevice = isMobile();
-    console.log('모바일 환경 감지:', isMobileDevice);
-    
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
-    
-    // 모바일에서 갤러리 접근을 위해 capture 속성을 설정하지 않음
-    // capture 속성이 있으면 카메라가 열리므로 완전히 제거
     input.removeAttribute('capture'); // 명시적으로 제거
     
-    // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
     document.body.appendChild(input);
     input.style.display = 'none';
     
     // iOS Safari에서 클릭 이벤트가 제대로 작동하지 않는 문제 해결
-    setTimeout(() => {
-      console.log('파일 선택 대화상자 열기');
-      input.click();
-    }, 100);
+    setTimeout(() => input.click(), 100);
     
     input.onchange = async () => {
-      console.log('파일 선택 완료');
       const file = input.files?.[0];
-      if (file) {
-        console.log('선택된 파일:', file.name, file.type, file.size);
-        // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
-        if (file.size > 10 * 1024 * 1024) {
-          alert('파일 크기는 10MB를 초과할 수 없습니다.');
-          document.body.removeChild(input);
-          return;
+      if (!file) {
+        document.body.removeChild(input);
+        return;
+      }
+      
+      // 파일 형식 검사
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validImageTypes.includes(file.type)) {
+        alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
+        document.body.removeChild(input);
+        return;
+      }
+      
+      setIsImageChecking(true);
+      try {
+        const imageData = await uploadImage(file);
+        
+        if (!imageData || !imageData.url) {
+          throw new Error('이미지 URL을 받지 못했습니다.');
         }
         
-        // 파일 형식 검사
-        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!validImageTypes.includes(file.type)) {
-          alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
-          document.body.removeChild(input);
-          return;
-        }
+        // 업로드된 이미지 목록에 추가
+        setUploadedImages(prev => [...prev, imageData]);
         
-        setIsImageChecking(true);
-        try {
-          console.log('이미지 업로드 요청 시작');
-          
-          // 통합된 s3Upload 유틸리티 사용
-          const imageData = await uploadImage(file);
-          
-          console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
-          
-          // 이미지 URL 삽입 전 유효성 검사
-          if (!imageData || !imageData.url) {
-            throw new Error('이미지 URL을 받지 못했습니다.');
-          }
-          
-          // 업로드된 이미지 목록에 추가 (상태 업데이트)
-          setUploadedImages(prev => [...prev, imageData]);
-          
-          // 검열 결과 처리 (비동기)
-          if (imageData.validationPromise) {
-            imageData.validationPromise
-              .then(result => {
-                if (result.isValid) {
-                  // 성공 알림 (선택적)
-                  // setValidationAlert({
-                  //   message: '이미지 검열 통과',
-                  //   type: 'success',
-                  //   imageUrl: imageData.url
-                  // });
-                  // setTimeout(() => setValidationAlert(null), 3000);
-                }
-              })
-              .catch(error => {
-                console.error('이미지 검열 실패:', error);
-                
-                // 부적절한 이미지 감지 시 에디터에서 제거
-                removeImageByUrl(imageData.url);
-                
-                // 사용자에게 알림 표시
-                setValidationAlert({
-                  message: '부적절한 이미지가 감지되어 자동으로 삭제되었습니다.',
-                  type: 'error',
-                  imageUrl: imageData.url
-                });
-                
-                // 5초 후 알림 자동 삭제
-                setTimeout(() => setValidationAlert(null), 5000);
+        // 검열 결과 처리 (비동기)
+        if (imageData.validationPromise) {
+          imageData.validationPromise
+            .catch(error => {
+              console.error('이미지 검열 실패:', error);
+              removeImageByUrl(imageData.url);
+              setValidationAlert({
+                message: '부적절한 이미지가 감지되어 자동으로 삭제되었습니다.',
+                type: 'error',
+                imageUrl: imageData.url
               });
-          }
-          
-          // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
-          if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getEditor) {
-            console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
-            setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
-          } else {
-            // PC에서는 에디터 참조 사용
-            console.log('에디터 참조를 통한 이미지 삽입');
-            // 에디터 참조가 유효한지 다시 확인
-            if (editorRef.current && editorRef.current.getEditor) {
-              const editor = editorRef.current.getEditor();
-              if (editor) {
-                const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-                editor.insertEmbed(range.index, 'image', imageData.url);
-                editor.setSelection(range.index + 1, 0);
-              } else {
-                // 에디터가 없는 경우 폴백으로 상태 업데이트 사용
-                console.log('에디터 참조 없음, 상태 업데이트로 폴백');
-                setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
-              }
-            } else {
-              // 에디터 참조가 없는 경우 폴백으로 상태 업데이트 사용
-              console.log('에디터 참조 없음, 상태 업데이트로 폴백');
-              setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
-            }
-          }
-        } catch (error: any) {
-          console.error('이미지 업로드 실패:', error);
-          console.error('오류 상세:', error.response?.status, error.response?.data);
-          console.error('오류 메시지:', error.message);
-          
-          const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
-          alert(errorMsg);
-        } finally {
-          setIsImageChecking(false);
-          // DOM에서 제거
-          if (document.body.contains(input)) {
-            document.body.removeChild(input);
-          }
+              setTimeout(() => setValidationAlert(null), 5000);
+            });
         }
-      } else {
-        // 파일 선택 취소 시 DOM에서 제거
-        console.log('파일 선택 취소');
+        
+        // 이미지를 에디터에 삽입
+        insertImageToEditor(imageData.url, imageData.originalName || '이미지');
+        
+      } catch (error: any) {
+        const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+        alert(errorMsg);
+      } finally {
+        setIsImageChecking(false);
         if (document.body.contains(input)) {
           document.body.removeChild(input);
         }
@@ -405,58 +239,11 @@ export default function PostCreate() {
   const removeImage = (index: number) => {
     const imageToRemove = uploadedImages[index];
     if (imageToRemove) {
-      try {
-        // 에디터 참조가 있는 경우 에디터를 통해 이미지 제거
-        if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
-          try {
-            const editor = editorRef.current.getEditor();
-            if (editor) {
-              // 이미지 URL을 안전하게 이스케이프
-              const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              // 이미지 태그만 정확히 타겟팅하는 정규식
-              const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
-              
-              // 현재 에디터 내용 가져오기
-              const currentContent = editor.root.innerHTML;
-              // 이미지 태그 제거 후 내용 설정
-              const newContent = currentContent.replace(imgRegex, '');
-              
-              // 에디터 내용 업데이트 (에디터 상태 유지)
-              setContent(newContent);
-              console.log('에디터 참조를 통해 이미지 제거 완료');
-            }
-          } catch (editorError) {
-            console.error('에디터 참조 오류:', editorError);
-            // 에디터 참조 오류 발생 시 폴백으로 상태 업데이트 사용
-            fallbackRemoveImage(imageToRemove);
-          }
-        } else {
-          // 마크다운 모드이거나 에디터 참조가 없는 경우 폴백 사용
-          fallbackRemoveImage(imageToRemove);
-        }
-      } catch (error) {
-        console.error('이미지 제거 중 오류 발생:', error);
-        // 오류 발생 시 폴백 사용
-        fallbackRemoveImage(imageToRemove);
-      }
+      // 이미 구현된 removeImageByUrl 함수 활용
+      removeImageByUrl(imageToRemove.url);
     }
     // 이미지 배열에서 해당 이미지 제거
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
-  };
-  
-  // 이미지 제거 폴백 함수 (에디터 참조 사용 불가능한 경우)
-  const fallbackRemoveImage = (imageToRemove: FileDto) => {
-    setContent(prev => {
-      // 이미지 URL을 안전하게 이스케이프
-      const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // 이미지 태그만 정확히 타겟팅하는 정규식
-      const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
-      
-      // 이미지 태그 제거 후 내용 반환
-      const newContent = prev.replace(imgRegex, '');
-      console.log('폴백 방식으로 이미지 제거 완료');
-      return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
-    });
   };
 
   // URL 파라미터에서 고정 카테고리 설정

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,9 @@ public class S3Service {
     private final GoogleVisionService googleVisionService;
     private final com.byeolnight.domain.repository.post.PostRepository postRepository;
     private final CommentRepository commentRepository;
+    
+    // 간단한 스레드 풀 (3개 스레드로 제한)
+    private final ExecutorService executorService = Executors.newFixedThreadPool(3);
     
     public S3Service(GoogleVisionService googleVisionService,
                     @Lazy com.byeolnight.domain.repository.post.PostRepository postRepository,
@@ -581,6 +586,42 @@ public class S3Service {
             log.warn("고아 파일 검증 중 오류: {}", s3Object.key(), e);
             return false; // 오류 시 안전하게 삭제하지 않음
         }
+    }
+    
+    /**
+     * 백그라운드에서 이미지 검사 (결과 무시)
+     * @param imageUrl 검사할 이미지 URL
+     */
+    public void checkImageInBackground(String imageUrl) {
+        executorService.submit(() -> {
+            try {
+                // URL에서 S3 키 추출
+                String s3Key = extractS3KeyFromUrl(imageUrl);
+                if (s3Key == null) {
+                    log.warn("이미지 URL에서 S3 키를 추출할 수 없습니다: {}", imageUrl);
+                    return;
+                }
+                
+                // 이미지 다운로드
+                java.net.URL url = new java.net.URL(imageUrl);
+                java.io.InputStream inputStream = url.openStream();
+                byte[] imageBytes = inputStream.readAllBytes();
+                inputStream.close();
+                
+                // 검사
+                boolean isSafe = googleVisionService.isImageSafe(imageBytes);
+                log.info("이미지 검사 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
+                
+                // 부적절한 경우 삭제
+                if (!isSafe) {
+                    log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
+                    deleteObject(s3Key);
+                    log.info("부적절한 이미지 삭제 완료: {}", s3Key);
+                }
+            } catch (Exception e) {
+                log.error("이미지 검사 실패: {}", imageUrl, e);
+            }
+        });
     }
     
     /**
