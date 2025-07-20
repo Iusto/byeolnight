@@ -21,7 +21,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import org.springframework.scheduling.annotation.Async;
 
 @Slf4j
 @Service
@@ -220,46 +224,99 @@ public class S3Service {
     }
     
     /**
-     * URL로 이미지를 다운로드하여 검증하고, 부적절한 경우 자동 삭제
+     * 스레드 풀을 사용하여 URL로 이미지를 다운로드하여 검증하고, 부적절한 경우 자동 삭제
      * @param imageUrl 검증할 이미지 URL
-     * @return 이미지가 안전한지 여부
+     * @return 검증 결과를 포함한 CompletableFuture
      */
-    public boolean validateImageByUrl(String imageUrl) {
+    @Async("imageValidationExecutor")
+    public CompletableFuture<Map<String, Object>> validateImageByUrlAsync(String imageUrl) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("imageUrl", imageUrl);
+        
         try {
             if (!imageUrl.contains(bucketName)) {
-                throw new IllegalArgumentException("유효하지 않은 이미지 URL입니다.");
+                result.put("isValid", false);
+                result.put("message", "유효하지 않은 이미지 URL입니다.");
+                return CompletableFuture.completedFuture(result);
             }
             
             // URL에서 S3 키 추출
             String s3Key = extractS3KeyFromUrl(imageUrl);
             if (s3Key == null) {
                 log.warn("이미지 URL에서 S3 키를 추출할 수 없습니다: {}", imageUrl);
-                return false;
+                result.put("isValid", false);
+                result.put("message", "이미지 URL에서 S3 키를 추출할 수 없습니다.");
+                return CompletableFuture.completedFuture(result);
             }
             
-            // 이미지 다운로드
-            java.net.URL url = new java.net.URL(imageUrl);
-            java.io.InputStream inputStream = url.openStream();
-            byte[] imageBytes = inputStream.readAllBytes();
-            inputStream.close();
+            result.put("s3Key", s3Key);
             
-            // Google Vision API로 검증
-            boolean isSafe = googleVisionService.isImageSafe(imageBytes);
-            log.info("URL 이미지 검증 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
-            
-            // 부적절한 이미지인 경우 자동 삭제
-            if (!isSafe) {
-                log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
-                deleteObject(s3Key);
-                log.info("부적절한 이미지 삭제 완료: {}", s3Key);
+            try {
+                // 이미지 다운로드
+                java.net.URL url = new java.net.URL(imageUrl);
+                java.io.InputStream inputStream = url.openStream();
+                byte[] imageBytes = inputStream.readAllBytes();
+                inputStream.close();
+                
+                // Google Vision API로 검증
+                boolean isSafe = googleVisionService.isImageSafe(imageBytes);
+                log.info("URL 이미지 검증 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
+                
+                // 부적절한 이미지인 경우 자동 삭제
+                if (!isSafe) {
+                    log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
+                    deleteObject(s3Key);
+                    log.info("부적절한 이미지 삭제 완료: {}", s3Key);
+                    
+                    result.put("isValid", false);
+                    result.put("message", "부적절한 이미지가 감지되어 자동으로 삭제되었습니다.");
+                } else {
+                    // 안전한 이미지인 경우
+                    result.put("isValid", true);
+                    result.put("message", "이미지 검증이 완료되었습니다.");
+                }
+                
+            } catch (Exception e) {
+                log.error("이미지 검증 실패: {}", imageUrl, e);
+                result.put("isValid", false);
+                result.put("message", "이미지 검증 중 오류가 발생했습니다.");
+                result.put("error", e.getMessage());
             }
-            
-            return isSafe;
             
         } catch (Exception e) {
             log.error("URL 이미지 검증 실패: {}", imageUrl, e);
-            return false;
+            result.put("isValid", false);
+            result.put("message", "이미지 검증 중 오류가 발생했습니다.");
+            result.put("error", e.getMessage());
         }
+        
+        return CompletableFuture.completedFuture(result);
+    }
+    
+    /**
+     * URL로 이미지를 다운로드하여 검증하고, 부적절한 경우 자동 삭제
+     * @param imageUrl 검증할 이미지 URL
+     * @param validationCallback 검증 결과를 받을 콜백 함수 (null이면 무시)
+     * @return 이미지가 안전한지 여부 (기본값 true로 반환하여 UI 블로킹 방지)
+     */
+    public boolean validateImageByUrl(String imageUrl, Consumer<Map<String, Object>> validationCallback) {
+        // 비동기 검증 시작
+        validateImageByUrlAsync(imageUrl).thenAccept(result -> {
+            // 검증 결과가 있고 콜백이 있는 경우 콜백 호출
+            if (validationCallback != null) {
+                validationCallback.accept(result);
+            }
+        });
+        
+        // 즉시 true 반환하여 UI 블로킹 방지 (검증은 백그라운드에서 진행)
+        return true;
+    }
+    
+    /**
+     * 이전 버전과의 호환성을 위한 메서드
+     */
+    public boolean validateImageByUrl(String imageUrl) {
+        return validateImageByUrl(imageUrl, null);
     }
     
     /**

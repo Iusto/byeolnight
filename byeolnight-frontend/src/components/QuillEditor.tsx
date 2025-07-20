@@ -13,13 +13,21 @@ interface QuillEditorProps {
 const QuillEditor = forwardRef(({ value, onChange, placeholder = "내용을 입력하세요...", handleImageUpload }: QuillEditorProps, ref) => {
   const editorRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
-  const [key, setKey] = useState(Date.now()); // 에디터 강제 리렌더링을 위한 키
+  // 에디터 강제 리렌더링을 위한 키 제거 (에디터 상태 유지를 위해)
 
   // 외부에서 ref를 통해 에디터에 접근할 수 있도록 설정
   useImperativeHandle(ref, () => ({
     getEditor: () => editorRef.current?.getEditor(),
     focus: () => editorRef.current?.focus(),
-    resetEditor: () => setKey(Date.now()) // 에디터 리셋 함수 추가
+    resetEditor: () => {
+      // 에디터 리셋 함수 수정 (에디터 상태 유지하면서 내용만 초기화)
+      if (editorRef.current?.getEditor) {
+        const editor = editorRef.current.getEditor();
+        if (editor) {
+          editor.setText('');
+        }
+      }
+    }
   }));
 
   // 컴포넌트가 마운트된 후 에디터 초기화
@@ -49,7 +57,7 @@ const QuillEditor = forwardRef(({ value, onChange, placeholder = "내용을 입�
     }, 200); // 지연 시간 증가
     
     return () => clearTimeout(timer);
-  }, [key]); // key가 변경될 때마다 에디터 재초기화
+  }, []); // 의존성 배열 비움 (에디터 재초기화 방지)
 
   // 값이 변경될 때 에디터 참조 유지 확인
   useEffect(() => {
@@ -123,7 +131,6 @@ const QuillEditor = forwardRef(({ value, onChange, placeholder = "내용을 입�
 
   return (
     <ReactQuill
-      key={key} // 강제 리렌더링을 위한 키 추가
       ref={editorRef}
       value={value}
       onChange={onChange}

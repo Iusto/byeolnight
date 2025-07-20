@@ -6,6 +6,7 @@ import QuillEditor from '../components/QuillEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
+import sseClient from '../lib/sseClient';
 
 interface FileDto {
   originalName: string;
@@ -24,6 +25,7 @@ export default function PostCreate() {
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
   const [isImageChecking, setIsImageChecking] = useState(false);
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
   const editorRef = useRef<any>(null);
   
   // URL 파라미터에서 originTopic 추출
@@ -51,6 +53,38 @@ export default function PostCreate() {
       console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
       setUploadedImages(prev => [...prev, imageData]);
       
+      // 검열 결과 처리 (비동기)
+      if (imageData.validationPromise) {
+        imageData.validationPromise
+          .then(result => {
+            if (result.isValid) {
+              // 성공 알림 (선택적)
+              // setValidationAlert({
+              //   message: '이미지 검열 통과',
+              //   type: 'success',
+              //   imageUrl: imageData.url
+              // });
+              // setTimeout(() => setValidationAlert(null), 3000);
+            }
+          })
+          .catch(error => {
+            console.error('이미지 검열 실패:', error);
+            
+            // 부적절한 이미지 감지 시 에디터에서 제거
+            removeImageByUrl(imageData.url);
+            
+            // 사용자에게 알림 표시
+            setValidationAlert({
+              message: '부적절한 이미지가 감지되어 자동으로 삭제되었습니다.',
+              type: 'error',
+              imageUrl: imageData.url
+            });
+            
+            // 5초 후 알림 자동 삭제
+            setTimeout(() => setValidationAlert(null), 5000);
+          });
+      }
+      
       return imageData.url;
     } catch (error: any) {
       console.error('클립보드 이미지 업로드 실패:', error);
@@ -62,6 +96,49 @@ export default function PostCreate() {
       throw error;
     } finally {
       setIsImageChecking(false);
+    }
+  };
+  
+  // URL로 이미지 제거
+  const removeImageByUrl = (imageUrl: string) => {
+    // 업로드된 이미지 목록에서 제거
+    setUploadedImages(prev => prev.filter(img => img.url !== imageUrl));
+    
+    // 에디터에서 이미지 제거
+    if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
+      try {
+        const editor = editorRef.current.getEditor();
+        if (editor) {
+          // 이미지 URL을 안전하게 이스케이프
+          const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // 이미지 태그만 정확히 타겟팅하는 정규식
+          const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+          
+          // 현재 에디터 내용 가져오기
+          const currentContent = editor.root.innerHTML;
+          // 이미지 태그 제거 후 내용 설정
+          const newContent = currentContent.replace(imgRegex, '');
+          
+          // 에디터 내용 업데이트 (에디터 상태 유지)
+          setContent(newContent);
+          console.log('에디터에서 이미지 제거 완료:', imageUrl);
+        }
+      } catch (error) {
+        console.error('에디터에서 이미지 제거 중 오류:', error);
+        // 오류 발생 시 폴백으로 상태 업데이트 사용
+        setContent(prev => {
+          const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+          return prev.replace(imgRegex, '');
+        });
+      }
+    } else if (isMarkdownMode) {
+      // 마크다운 모드에서 이미지 제거
+      setContent(prev => {
+        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const imgRegex = new RegExp(`!\[[^\]]*\]\(${escapedUrl}\)|<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+        return prev.replace(imgRegex, '');
+      });
     }
   };
   
@@ -164,8 +241,16 @@ export default function PostCreate() {
   // 컴포넌트 마운트 시 이벤트 리스너 등록
   useEffect(() => {
     document.addEventListener('paste', handlePaste);
+    
+    // SSE 연결 초기화
+    sseClient.connect().catch(error => {
+      console.error('SSE 연결 실패:', error);
+    });
+    
     return () => {
       document.removeEventListener('paste', handlePaste);
+      // 컴포넌트 언마운트 시 SSE 연결 해제
+      sseClient.disconnect();
     };
   }, []);
   
@@ -236,6 +321,38 @@ export default function PostCreate() {
           // 업로드된 이미지 목록에 추가 (상태 업데이트)
           setUploadedImages(prev => [...prev, imageData]);
           
+          // 검열 결과 처리 (비동기)
+          if (imageData.validationPromise) {
+            imageData.validationPromise
+              .then(result => {
+                if (result.isValid) {
+                  // 성공 알림 (선택적)
+                  // setValidationAlert({
+                  //   message: '이미지 검열 통과',
+                  //   type: 'success',
+                  //   imageUrl: imageData.url
+                  // });
+                  // setTimeout(() => setValidationAlert(null), 3000);
+                }
+              })
+              .catch(error => {
+                console.error('이미지 검열 실패:', error);
+                
+                // 부적절한 이미지 감지 시 에디터에서 제거
+                removeImageByUrl(imageData.url);
+                
+                // 사용자에게 알림 표시
+                setValidationAlert({
+                  message: '부적절한 이미지가 감지되어 자동으로 삭제되었습니다.',
+                  type: 'error',
+                  imageUrl: imageData.url
+                });
+                
+                // 5초 후 알림 자동 삭제
+                setTimeout(() => setValidationAlert(null), 5000);
+              });
+          }
+          
           // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
           if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getEditor) {
             console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
@@ -289,25 +406,57 @@ export default function PostCreate() {
     const imageToRemove = uploadedImages[index];
     if (imageToRemove) {
       try {
-        // 게시글 내용에서도 해당 이미지 제거 - 모바일 환경 고려하여 안전하게 처리
-        setContent(prev => {
-          // 이미지 URL을 안전하게 이스케이프
-          const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          // 이미지 태그만 정확히 타겟팅하는 정규식
-          const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
-          
-          // 이미지 태그 제거 후 내용 반환
-          const newContent = prev.replace(imgRegex, '');
-          console.log('이미지 제거 후 콘텐츠 길이:', newContent.length);
-          return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
-        });
+        // 에디터 참조가 있는 경우 에디터를 통해 이미지 제거
+        if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
+          try {
+            const editor = editorRef.current.getEditor();
+            if (editor) {
+              // 이미지 URL을 안전하게 이스케이프
+              const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // 이미지 태그만 정확히 타겟팅하는 정규식
+              const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+              
+              // 현재 에디터 내용 가져오기
+              const currentContent = editor.root.innerHTML;
+              // 이미지 태그 제거 후 내용 설정
+              const newContent = currentContent.replace(imgRegex, '');
+              
+              // 에디터 내용 업데이트 (에디터 상태 유지)
+              setContent(newContent);
+              console.log('에디터 참조를 통해 이미지 제거 완료');
+            }
+          } catch (editorError) {
+            console.error('에디터 참조 오류:', editorError);
+            // 에디터 참조 오류 발생 시 폴백으로 상태 업데이트 사용
+            fallbackRemoveImage(imageToRemove);
+          }
+        } else {
+          // 마크다운 모드이거나 에디터 참조가 없는 경우 폴백 사용
+          fallbackRemoveImage(imageToRemove);
+        }
       } catch (error) {
         console.error('이미지 제거 중 오류 발생:', error);
-        // 오류 발생 시 이미지만 제거하고 내용은 유지
+        // 오류 발생 시 폴백 사용
+        fallbackRemoveImage(imageToRemove);
       }
     }
     // 이미지 배열에서 해당 이미지 제거
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  // 이미지 제거 폴백 함수 (에디터 참조 사용 불가능한 경우)
+  const fallbackRemoveImage = (imageToRemove: FileDto) => {
+    setContent(prev => {
+      // 이미지 URL을 안전하게 이스케이프
+      const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // 이미지 태그만 정확히 타겟팅하는 정규식
+      const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+      
+      // 이미지 태그 제거 후 내용 반환
+      const newContent = prev.replace(imgRegex, '');
+      console.log('폴백 방식으로 이미지 제거 완료');
+      return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
+    });
   };
 
   // URL 파라미터에서 고정 카테고리 설정
@@ -496,9 +645,8 @@ export default function PostCreate() {
                   </div>
                 ) : (
                   <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
-                    {/* key 속성 추가로 이미지 업로드 후에도 에디터가 유지되도록 함 */}
+                    {/* key 속성 제거하여 이미지 업로드 후에도 에디터가 유지되도록 함 */}
                     <QuillEditor
-                      key={`editor-${uploadedImages.length}`}
                       ref={editorRef}
                       value={content}
                       onChange={setContent}
@@ -573,6 +721,29 @@ export default function PostCreate() {
                 <div className="font-medium">🛡️ 이미지 검열 중...</div>
                 <div className="text-xs text-blue-300 mt-1">안전한 콘텐츠를 위해 이미지를 검사하고 있습니다. 잠시만 기다려주세요.</div>
               </div>
+            </div>
+          )}
+          
+          {/* 검열 결과 알림 */}
+          {validationAlert && (
+            <div className={`p-4 ${validationAlert.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : validationAlert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : 'bg-green-500/10 border-green-500/20 text-green-400'} border rounded-xl text-sm flex items-center gap-3 animate-fadeIn`}>
+              <div className={`${validationAlert.type === 'error' ? 'text-red-400' : validationAlert.type === 'warning' ? 'text-yellow-400' : 'text-green-400'} text-xl`}>
+                {validationAlert.type === 'error' ? '⚠️' : validationAlert.type === 'warning' ? '⚠️' : '✅'}
+              </div>
+              <div>
+                <div className="font-medium">{validationAlert.message}</div>
+                {validationAlert.type === 'error' && (
+                  <div className="text-xs mt-1">
+                    이미지가 자동으로 삭제되었습니다. 다른 이미지를 사용해주세요.
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={() => setValidationAlert(null)} 
+                className="ml-auto text-sm hover:text-white transition-colors"
+              >
+                ×
+              </button>
             </div>
           )}
 

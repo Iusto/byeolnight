@@ -22,6 +22,7 @@ module.exports = {
         'love': 'love 1.5s ease-in-out infinite',
         'sparkle': 'sparkle 1s ease-in-out infinite',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'fadeIn': 'fadeIn 0.3s ease-in-out',
       },
       keyframes: {
         glow: {
@@ -31,6 +32,10 @@ module.exports = {
         fade: {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(-10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         glitch: {
           '0%': { transform: 'translate(0)' },
