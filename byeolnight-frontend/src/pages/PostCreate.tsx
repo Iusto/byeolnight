@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import QuillEditor from '../components/QuillEditor';
+import TuiEditor from '../components/TuiEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
@@ -122,7 +122,7 @@ export default function PostCreate() {
     }
   };
   
-  // 에디터에 이미지 삽입 함수
+  // 에디터에 이미지 삽입 함수 (TUI Editor용으로 수정)
   const insertImageToEditor = (imageUrl: string, altText: string) => {
     // 마크다운 모드일 경우 문자열로 추가
     if (isMarkdownMode) {
@@ -130,22 +130,20 @@ export default function PostCreate() {
       return;
     }
     
-    // 일반 에디터 모드에서는 상태 업데이트로 처리
-    setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
-    
-    // 에디터 참조 유지 확인
-    setTimeout(() => {
-      if (editorRef.current && editorRef.current.getEditor) {
-        try {
-          const editor = editorRef.current.getEditor();
-          if (!editor) {
-            console.log('에디터 참조 손실 감지, 재초기화 필요');
-          }
-        } catch (error) {
-          console.error('에디터 참조 확인 중 오류:', error);
-        }
+    // TUI Editor에 이미지 삽입
+    try {
+      if (editorRef.current && editorRef.current.insertContent) {
+        // TUI Editor API 사용
+        editorRef.current.insertContent(`<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" />`);
+      } else {
+        // 에디터 참조가 없는 경우 상태 업데이트
+        setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
       }
-    }, 100);
+    } catch (error) {
+      console.error('이미지 삽입 중 오류:', error);
+      // 오류 발생 시 상태 업데이트로 폴백
+      setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
+    }
   };
   
   // 컴포넌트 마운트 시 이벤트 리스너 등록
@@ -411,17 +409,15 @@ export default function PostCreate() {
                   </div>
                 ) : (
                   <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
-                    {/* 에디터 상태 유지를 위한 추가 안전장치 */}
-                    <QuillEditor
+                    {/* TUI 에디터로 교체 */}
+                    <TuiEditor
                       ref={editorRef}
                       value={content}
                       onChange={(newContent) => {
-                        // 에디터 참조 유지 확인
-                        if (editorRef.current) {
-                          setContent(newContent);
-                        }
+                        setContent(newContent);
                       }}
                       placeholder="내용을 입력하세요..."
+                      height="500px"
                       handleImageUpload={handleImageUpload}
                     />
                   </div>
@@ -475,10 +471,10 @@ export default function PostCreate() {
                   </>
                 ) : (
                   <>
-                    🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
+                    🎨 Toast UI Editor: 한국에서 개발한 강력한 에디터, 한글 지원 완벽!<br/>
                     🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
                     🛡️ 이미지 검열: 업로드된 모든 이미지는 자동으로 검열되어 안전한 콘텐츠만 허용됩니다<br/>
-                    🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
+                    🎬 마크다운/WYSIWYG 모드: 두 가지 모드를 지원하여 편리한 편집 가능
                   </>
                 )}
               </div>
@@ -599,6 +595,23 @@ export default function PostCreate() {
               type="submit"
               disabled={isImageChecking}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
+            >
+              {isImageChecking ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  이미지 검열 중... 잠시만 기다려주세요
+                </div>
+              ) : (
+                '🚀 게시글 등록'
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+ll duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
               {isImageChecking ? (
                 <div className="flex items-center justify-center gap-2">
