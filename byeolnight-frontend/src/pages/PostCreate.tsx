@@ -57,8 +57,8 @@ export default function PostCreate() {
     // 에디터에서 이미지 제거 - 마크다운 모드일 경우
     if (isMarkdownMode) {
       setContent(prev => {
-        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const imgRegex = new RegExp(`!\[[^\]]*\]\(${escapedUrl}\)|<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+        const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)|<img[^>]*src=\"${escapedUrl}\"[^>]*>(<br>)?`, 'gi');
         return prev.replace(imgRegex, '');
       });
       return;
@@ -68,8 +68,8 @@ export default function PostCreate() {
     try {
       // 현재 콘텐츠를 문자열로 처리
       setContent(prev => {
-        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
+        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+        const imgRegex = new RegExp(`<img[^>]*src=\"${escapedUrl}\"[^>]*>(<br>)?`, 'gi');
         return prev.replace(imgRegex, '');
       });
     } catch (error) {
@@ -595,23 +595,6 @@ export default function PostCreate() {
               type="submit"
               disabled={isImageChecking}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
-            >
-              {isImageChecking ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  이미지 검열 중... 잠시만 기다려주세요
-                </div>
-              ) : (
-                '🚀 게시글 등록'
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
-ll duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
               {isImageChecking ? (
                 <div className="flex items-center justify-center gap-2">
