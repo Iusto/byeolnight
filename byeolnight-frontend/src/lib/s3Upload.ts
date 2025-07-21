@@ -73,10 +73,14 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
     if (needsModeration) {
       try {
         console.log('이미지 검열 시작...');
-        const moderationResponse = await axios.post('/files/check-image', null, {
-          params: { 
-            imageUrl: presignedData.url,
-            needsModeration: true
+        // 검열 API 호출 - 직접 업로드 방식으로 변경
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('needsModeration', 'true');
+        
+        const moderationResponse = await axios.post('/files/moderate-image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
           }
         });
         
@@ -86,14 +90,34 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         
         // 부적절한 이미지인 경우 예외 발생
         if (moderationResult.data && moderationResult.data.isSafe === false) {
+          // S3에서 이미지 삭제 요청
+          try {
+            await axios.delete('/files/delete', {
+              params: { s3Key: presignedData.s3Key }
+            });
+            console.log('부적절한 이미지 삭제 요청:', presignedData.s3Key);
+          } catch (deleteErr) {
+            console.error('이미지 삭제 실패:', deleteErr);
+          }
+          
           throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
       } catch (err: any) {
         console.error('이미지 검사 요청 실패:', err);
+        // S3에서 이미지 삭제 요청
+        try {
+          await axios.delete('/files/delete', {
+            params: { s3Key: presignedData.s3Key }
+          });
+          console.log('검열 실패한 이미지 삭제 요청:', presignedData.s3Key);
+        } catch (deleteErr) {
+          console.error('이미지 삭제 실패:', deleteErr);
+        }
+        
         if (err.response?.data?.message) {
           throw new Error(err.response.data.message);
         }
-        throw err;
+        throw new Error('이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
       }
     }
     

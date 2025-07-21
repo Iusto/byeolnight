@@ -85,7 +85,32 @@ const TuiEditor = forwardRef(({
         
         try {
           // 이미지 업로드 처리 (검열 과정 적용)
-          const imageData = await uploadImage(file, true);
+          console.log('클립보드 이미지 검열 시작...');
+          
+          // 직접 서버로 이미지 전송하여 검열 처리
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('needsModeration', 'true');
+          
+          const moderationResponse = await fetch('/api/files/moderate-direct', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!moderationResponse.ok) {
+            throw new Error('이미지 검열 실패: ' + moderationResponse.statusText);
+          }
+          
+          const moderationResult = await moderationResponse.json();
+          console.log('클립보드 이미지 검열 결과:', moderationResult);
+          
+          // 부적절한 이미지인 경우 예외 발생
+          if (moderationResult.data && moderationResult.data.isSafe === false) {
+            throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+          }
+          
+          // 검열 통과한 이미지 정보 추출
+          const imageData = moderationResult.data;
           if (imageData && imageData.url) {
             // URL에 붙어있는 불필요한 텍스트 제거
             let cleanUrl = imageData.url;
@@ -105,14 +130,16 @@ const TuiEditor = forwardRef(({
               throw new Error('유효하지 않은 이미지 URL입니다.');
             }
             
-            // 콜백으로 URL 전달 - 마크다운 형식으로 삽입
-            callback(cleanUrl, '클립보드 이미지');
-            console.log('이미지 업로드 성공:', cleanUrl);
+            // 콜백으로 URL 전달 - 이미지 삽입
+            callback(cleanUrl, '검열 통과된 이미지');
+            console.log('이미지 업로드 및 검열 성공:', cleanUrl);
             return true;
+          } else {
+            throw new Error('이미지 URL을 받지 못했습니다.');
           }
-        } catch (error) {
-          console.error('클립보드 이미지 업로드 오류:', error);
-          alert('이미지 업로드 중 오류가 발생했습니다.');
+        } catch (error: any) {
+          console.error('클립보드 이미지 업로드 및 검열 오류:', error);
+          alert(error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
         }
       }
       
@@ -120,9 +147,9 @@ const TuiEditor = forwardRef(({
       if (handleImageUpload) {
         handleImageUpload();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('이미지 업로드 오류:', error);
-      alert('이미지 업로드 중 오류가 발생했습니다.');
+      alert(error.message || '이미지 업로드 중 오류가 발생했습니다.');
     } finally {
       // 이미지 업로드 처리 완료 표시
       setTimeout(() => {

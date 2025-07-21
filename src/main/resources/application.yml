@@ -26,6 +26,10 @@ spring:
         jdbc:
           lob:
             non_contextual_creation: true
+        # 세션 관리 개선
+        current_session_context_class: thread
+        # 영속성 컨텍스트 관리 개선
+        enable_lazy_load_no_trans: true
     open-in-view: false
 
   web:

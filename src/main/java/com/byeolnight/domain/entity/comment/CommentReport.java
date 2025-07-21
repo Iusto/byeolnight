@@ -24,7 +24,7 @@ public class CommentReport {
     @JoinColumn(name = "comment_id", nullable = false)
     private Comment comment;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // EAGER로 변경하여 항상 로드되도록 함
     @JoinColumn(name = "reporter_id", nullable = false)
     private User reporter;
 

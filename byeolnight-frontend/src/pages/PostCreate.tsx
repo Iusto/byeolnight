@@ -47,18 +47,44 @@ export default function PostCreate() {
   const uploadClipboardImage = async (file: File) => {
     setIsImageValidating(true);
     try {
-      console.log('클립보드 이미지 업로드 시작...');
-      // 검열 과정 적용 (needsModeration = true)
-      const imageData = await uploadImage(file, true);
-      console.log('클립보드 이미지 업로드 성공:', imageData);
+      console.log('클립보드 이미지 업로드 및 검열 시작...');
+      
+      // 직접 서버로 이미지 전송하여 검열 처리
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('needsModeration', 'true');
+      
+      const response = await fetch('/api/files/moderate-direct', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('이미지 검열 실패: ' + response.statusText);
+      }
+      
+      const result = await response.json();
+      console.log('클립보드 이미지 검열 결과:', result);
+      
+      // 부적절한 이미지인 경우 예외 발생
+      if (result.data && result.data.isSafe === false) {
+        throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+      }
+      
+      // 검열 통과한 이미지 정보 추출
+      const imageData = result.data;
+      if (!imageData || !imageData.url) {
+        throw new Error('이미지 URL을 받지 못했습니다.');
+      }
       
       // 검열 통과한 이미지만 목록에 추가
       setUploadedImages(prev => [...prev, imageData]);
+      console.log('검열 통과된 클립보드 이미지 추가');
       
       return imageData.url;
     } catch (error: any) {
       console.error('클립보드 이미지 업로드 오류:', error);
-      const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+      const errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
       
       // 오류 메시지 표시
       setValidationAlert({
@@ -277,10 +303,31 @@ export default function PostCreate() {
     setIsImageValidating(true);
     try {
       console.log('이미지 업로드 및 검열 시작...');
-      // 검열 과정 적용 (needsModeration = true)
-      const imageData = await uploadImage(file, true);
-      console.log('이미지 업로드 및 검열 성공:', imageData);
       
+      // 직접 서버로 이미지 전송하여 검열 처리
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('needsModeration', 'true');
+      
+      const response = await fetch('/api/files/moderate-direct', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('이미지 검열 실패: ' + response.statusText);
+      }
+      
+      const result = await response.json();
+      console.log('이미지 검열 결과:', result);
+      
+      // 부적절한 이미지인 경우 예외 발생
+      if (result.data && result.data.isSafe === false) {
+        throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+      }
+      
+      // 검열 통과한 이미지 정보 추출
+      const imageData = result.data;
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
@@ -295,7 +342,7 @@ export default function PostCreate() {
       console.log('검열 통과된 이미지 목록 업데이트');
 
       // 이미지를 에디터에 삽입
-      insertImageToEditor(imageData.url, imageData.originalName || '이미지');
+      insertImageToEditor(imageData.url, imageData.originalName || '검열 통과된 이미지');
       
       // 성공 메시지 표시 제거 - 검열완료 표시가 있으므로 불필요
       
@@ -662,7 +709,7 @@ export default function PostCreate() {
               <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
                 업로드된 이미지:
                 <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
-                  ✓ 검열 통과된 이미지만 표시됨
+                  ✓ 안전한 이미지만 표시됨
                 </span>
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -688,7 +735,7 @@ export default function PostCreate() {
                       {image.originalName}
                     </div>
                     <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
-                      ✓ 검열통과
+                      ✓ 안전한 이미지
                     </div>
                   </div>
                 ))}
