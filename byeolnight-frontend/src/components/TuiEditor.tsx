@@ -56,7 +56,8 @@ const TuiEditor = forwardRef(({
   const handleChange = () => {
     const instance = editorRef.current?.getInstance();
     if (instance) {
-      const newContent = instance.getHTML();
+      // HTML 대신 마크다운 형식으로 저장하여 이미지가 정상적으로 표시되도록 함
+      const newContent = instance.getMarkdown();
       onChange(newContent);
     }
   };

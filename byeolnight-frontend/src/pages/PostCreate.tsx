@@ -22,11 +22,13 @@ export default function PostCreate() {
   const [searchParams] = useSearchParams();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [contentLength, setContentLength] = useState(0);
   const [category, setCategory] = useState('DISCUSSION');
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
   const [isImageValidating, setIsImageValidating] = useState(false);
-  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  // 마크다운 모드 사용하지 않음
+  const isMarkdownMode = false;
   const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
   const editorRef = useRef<any>(null);
   
@@ -165,6 +167,14 @@ export default function PostCreate() {
   useEffect(() => {
     document.addEventListener('paste', handlePaste);
     
+    // 초기 로드 시 텍스트 길이 계산
+    if (content) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = content;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      setContentLength(textContent.length);
+    }
+    
     return () => {
       document.removeEventListener('paste', handlePaste);
     };
@@ -279,8 +289,8 @@ export default function PostCreate() {
       return;
     }
     
-    if (content.length > 50000) {
-      setError('내용은 50,000자를 초과할 수 없습니다.');
+    if (content.length > 10000) {
+      setError('내용은 10,000자를 초과할 수 없습니다.');
       return;
     }
 
@@ -428,12 +438,18 @@ export default function PostCreate() {
                       <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        maxLength={50000}
+                        maxLength={10000}
                         placeholder="마크다운으로 작성해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
                         className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
                       />
-                      <div className={`text-xs mt-1 ${content.length > 45000 ? 'text-red-400' : 'text-gray-400'}`}>
-                        {content.length}/50,000
+                      <div className={`text-xs mt-1 ${content.length > 9000 ? (content.length > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
+                        {content.length}/10,000자
+                        {content.length > 9000 && content.length <= 10000 && (
+                          <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
+                        )}
+                        {content.length > 10000 && (
+                          <span className="text-red-400 ml-1">(제한 초과)</span>
+                        )}
                       </div>
                     </div>
                     <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
@@ -452,11 +468,27 @@ export default function PostCreate() {
                       value={content}
                       onChange={(newContent) => {
                         setContent(newContent);
+                        // HTML 태그를 제외한 순수 텍스트 길이 계산
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = newContent;
+                        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                        setContentLength(textContent.length);
                       }}
                       placeholder="내용을 입력하세요..."
                       height="500px"
                       handleImageUpload={handleImageUpload}
                     />
+                    <div className="text-right text-sm mt-1">
+                      <span className={`${contentLength > 9000 ? (contentLength > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
+                        {contentLength}/10,000자
+                        {contentLength > 9000 && contentLength <= 10000 && (
+                          <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
+                        )}
+                        {contentLength > 10000 && (
+                          <span className="text-red-400 ml-1">(제한 초과)</span>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
