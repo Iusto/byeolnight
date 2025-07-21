@@ -227,34 +227,40 @@ public class CommentService {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
         
-        // 신고자 조회
-        User reporter = userRepository.findById(reporterId)
-                .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
-        
-        // 댓글 조회
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-        
-        // 중복 신고 방지
-        if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
-            throw new IllegalArgumentException("이미 신고한 댓글입니다.");
-        }
-        
-        // 신고 객체 생성 및 저장
-        com.byeolnight.domain.entity.comment.CommentReport report = new com.byeolnight.domain.entity.comment.CommentReport();
-        report.setComment(comment);
-        report.setReporter(reporter);
-        report.setReason(reason);
-        report.setDescription(description);
-        report.setStatus(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING);
-        report.setCreatedAt(java.time.LocalDateTime.now());
-        
-        commentReportRepository.save(report);
-        comment.increaseReportCount();
-        
-        // 신고 수가 5개 이상이면 자동 블라인드
-        if (comment.getReportCount() >= 5) {
-            comment.blind();
+        try {
+            // 신고자 조회
+            User reporter = userRepository.findById(reporterId)
+                    .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
+            
+            // 댓글 조회
+            Comment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+            
+            // 중복 신고 방지
+            if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
+                throw new IllegalArgumentException("이미 신고한 댓글입니다.");
+            }
+            
+            // 신고 객체 생성 및 저장
+            com.byeolnight.domain.entity.comment.CommentReport report = 
+                com.byeolnight.domain.entity.comment.CommentReport.builder()
+                    .comment(comment)
+                    .reporter(reporter)
+                    .reason(reason)
+                    .description(description)
+                    .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)
+                    .createdAt(java.time.LocalDateTime.now())
+                    .build();
+            
+            commentReportRepository.save(report);
+            comment.increaseReportCount();
+            
+            // 신고 수가 5개 이상이면 자동 블라인드
+            if (comment.getReportCount() >= 5) {
+                comment.blind();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("댓글 신고 처리 중 오류 발생: " + e.getMessage(), e);
         }
     }
     
@@ -267,8 +273,37 @@ public class CommentService {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
         
-        // ID 기반 메서드 호출
-        reportCommentById(commentId, reporter.getId(), reason, description);
+        try {
+            // 댓글 조회
+            Comment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+            
+            // 중복 신고 방지
+            if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
+                throw new IllegalArgumentException("이미 신고한 댓글입니다.");
+            }
+            
+            // 신고 객체 생성 및 저장
+            com.byeolnight.domain.entity.comment.CommentReport report = 
+                com.byeolnight.domain.entity.comment.CommentReport.builder()
+                    .comment(comment)
+                    .reporter(reporter)
+                    .reason(reason)
+                    .description(description)
+                    .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)
+                    .createdAt(java.time.LocalDateTime.now())
+                    .build();
+            
+            commentReportRepository.save(report);
+            comment.increaseReportCount();
+            
+            // 신고 수가 5개 이상이면 자동 블라인드
+            if (comment.getReportCount() >= 5) {
+                comment.blind();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("댓글 신고 처리 중 오류 발생: " + e.getMessage(), e);
+        }
     }
     
     // 관리자: 댓글 신고 처리
