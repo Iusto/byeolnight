@@ -75,9 +75,18 @@ public class CommentController {
         }
         
         try {
+            // 사용자 정보 로깅
+            System.out.println("Controller - User ID: " + user.getId() + ", Email: " + user.getEmail() + ", Nickname: " + user.getNickname());
+            
             // 사용자 ID를 전달하는 방식으로 변경
             commentService.reportCommentById(commentId, user.getId(), reason, description);
             return ResponseEntity.ok(CommonResponse.success());
+        } catch (com.byeolnight.infrastructure.exception.NotFoundException e) {
+            // 사용자 또는 댓글을 찾을 수 없는 경우
+            return ResponseEntity.status(404).body(CommonResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            // 중복 신고 등 유효성 검사 실패
+            return ResponseEntity.status(400).body(CommonResponse.error(e.getMessage()));
         } catch (Exception e) {
             // 예외 정보를 더 자세히 로깅
             e.printStackTrace();
