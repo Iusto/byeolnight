@@ -22,6 +22,8 @@ export interface UploadedImageResponse {
  * @returns 업로드된 이미지 정보
  */
 export const uploadImage = async (file: File, needsModeration = false): Promise<UploadedImageResponse> => {
+  // 개발 환경에서 API 경로 로깅
+  console.log('이미지 업로드 API 경로:', import.meta.env.VITE_API_BASE_URL || '/api');
   try {
     // 파일 유효성 검사
     if (!file || !(file instanceof File)) {
@@ -41,7 +43,7 @@ export const uploadImage = async (file: File, needsModeration = false): Promise<
     });
     
     // 1. Presigned URL 요청
-    const response = await axios.post('/api/files/presigned-url', null, {
+    const response = await axios.post('/files/presigned-url', null, {
       params: { 
         filename: file.name,
         contentType: file.type
@@ -69,7 +71,7 @@ export const uploadImage = async (file: File, needsModeration = false): Promise<
     
     // 3. 검열이 필요한 경우에만 검사 요청 (결과 기다리지 않음)
     if (needsModeration) {
-      axios.post('/api/files/check-image', null, {
+      axios.post('/files/check-image', null, {
         params: { 
           imageUrl: presignedData.url,
           needsModeration: true

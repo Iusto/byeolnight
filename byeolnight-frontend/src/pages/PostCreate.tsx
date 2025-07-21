@@ -7,6 +7,9 @@ import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
 
+// 개발 환경에서 API 경로 로깅
+console.log('API 기본 URL:', import.meta.env.VITE_API_BASE_URL || '/api');
+
 interface FileDto {
   originalName: string;
   s3Key: string;
