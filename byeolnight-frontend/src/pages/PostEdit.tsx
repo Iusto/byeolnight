@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import TuiEditor from '../components/TuiEditor';
+import TuiEditor, { isHandlingImageUpload } from '../components/TuiEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
@@ -27,7 +27,7 @@ export default function PostEdit() {
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const editorRef = useRef<any>(null);
   
-  const [isImageChecking, setIsImageChecking] = useState(false);
+  const [isImageValidating, setIsImageValidating] = useState(false);
   
   // 모바일 환경 감지 함수
   const isMobile = () => {
@@ -43,7 +43,7 @@ export default function PostEdit() {
     }
     
     console.log('이미지 업로드 시작:', file.name, file.type, file.size);
-    setIsImageChecking(true);
+    setIsImageValidating(true);
     
     try {
       console.log('이미지 업로드 요청 시작');
@@ -61,12 +61,24 @@ export default function PostEdit() {
       console.error('오류 메시지:', error.message);
       throw error;
     } finally {
-      setIsImageChecking(false);
+      setIsImageValidating(false);
     }
   };
   
   // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = async (event: ClipboardEvent) => {
+    // TUI Editor가 활성화된 상태에서는 기본 처리 허용
+    if (!isMarkdownMode && document.activeElement?.closest('.toastui-editor-ww-container')) {
+      console.log('TUI Editor가 활성화된 상태 - 기본 처리 허용');
+      return;
+    }
+    
+    // TUI Editor에서 이미지 업로드를 처리 중이면 중복 처리 방지
+    if (isHandlingImageUpload.current) {
+      console.log('TUI Editor에서 이미지 업로드 처리 중 - 중복 처리 방지');
+      return;
+    }
+    
     const items = event.clipboardData?.items;
     if (!items) return;
     
@@ -119,9 +131,9 @@ export default function PostEdit() {
                 instance.insertText(`![클립보드 이미지](${imageUrl})`);
               }
             } else {
-              // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
+              // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 마크다운 형식 사용
               console.log('상태 업데이트를 통한 이미지 삽입');
-              setContent(prev => prev + `<img src="${imageUrl}" alt="클립보드 이미지" style="max-width: 100%; height: auto;" /><br/>`);
+              setContent(prev => prev + `![클립보드 이미지](${imageUrl})\n`);
             }
           } catch (error) {
             console.error('클립보드 이미지 업로드 실패:', error);
@@ -133,6 +145,9 @@ export default function PostEdit() {
     }
   };
   
+  // 파일 선택 입력 요소를 참조하기 위한 ref 추가
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const handleImageUpload = () => {
     console.log('이미지 업로드 버튼 클릭');
     
@@ -140,27 +155,16 @@ export default function PostEdit() {
     const isMobileDevice = isMobile();
     console.log('모바일 환경 감지:', isMobileDevice);
     
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    
-    // 모바일에서 갤러리 접근을 위해 capture 속성을 설정하지 않음
-    // capture 속성이 있으면 카메라가 열리므로 완전히 제거
-    input.removeAttribute('capture'); // 명시적으로 제거
-    
-    // 실제 DOM에 추가하여 모바일에서도 작동하도록 함
-    document.body.appendChild(input);
-    input.style.display = 'none';
-    
-    // iOS Safari에서 클릭 이벤트가 제대로 작동하지 않는 문제 해결
-    setTimeout(() => {
-      console.log('파일 선택 대화상자 열기');
-      input.click();
-    }, 100);
-    
-    input.onchange = async () => {
+    // 기존 ref를 통해 파일 선택 대화상자 열기
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // 파일 선택 시 호출되는 함수
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       console.log('파일 선택 완료');
-      const file = input.files?.[0];
+      const file = e.target.files?.[0];
       if (file) {
         console.log('선택된 파일:', file.name, file.type, file.size);
         // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
@@ -174,11 +178,13 @@ export default function PostEdit() {
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validImageTypes.includes(file.type)) {
           alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
-          document.body.removeChild(input);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
           return;
         }
         
-        setIsImageChecking(true);
+        setIsImageValidating(true);
         try {
           console.log('이미지 업로드 요청 시작');
           
@@ -196,7 +202,7 @@ export default function PostEdit() {
           // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
           if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getInstance) {
             console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
-            setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
+            setContent(prev => prev + `![${imageData.originalName || '이미지'}](${imageData.url})\n`);
           } else {
             // PC에서는 에디터 참조 사용
             console.log('에디터 참조를 통한 이미지 삽입');
@@ -213,14 +219,18 @@ export default function PostEdit() {
           const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
           alert(errorMsg);
         } finally {
-          setIsImageChecking(false);
-          // DOM에서 제거
-          document.body.removeChild(input);
+          setIsImageValidating(false);
+          // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }
       } else {
-        // 파일 선택 취소 시 DOM에서 제거
+        // 파일 선택 취소 시 초기화
         console.log('파일 선택 취소');
-        document.body.removeChild(input);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     };
   };
@@ -228,22 +238,38 @@ export default function PostEdit() {
   const removeImage = (index: number) => {
     const imageToRemove = images[index];
     if (imageToRemove) {
-      try {
-        // 게시글 내용에서도 해당 이미지 제거 - 모바일 환경 고려하여 안전하게 처리
-        setContent(prev => {
-          // 이미지 URL을 안전하게 이스케이프
+      if (!isMarkdownMode && editorRef.current?.getInstance) {
+        // TUI Editor의 인스턴스를 통해 현재 콘텐츠 가져오기
+        const instance = editorRef.current.getInstance();
+        if (instance) {
+          const currentContent = instance.getMarkdown();
+          // 마크다운 형식의 이미지 제거
           const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          // 이미지 태그만 정확히 타겟팅하는 정규식
-          const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?`, 'gi');
-          
-          // 이미지 태그 제거 후 내용 반환
-          const newContent = prev.replace(imgRegex, '');
-          console.log('이미지 제거 후 콘텐츠 길이:', newContent.length);
-          return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
-        });
-      } catch (error) {
-        console.error('이미지 제거 중 오류 발생:', error);
-        // 오류 발생 시 이미지만 제거하고 내용은 유지
+          const imgRegex = new RegExp(`!\[[^\]]*\]\(${escapedUrl}\)`, 'gi');
+          const newContent = currentContent.replace(imgRegex, '');
+          // 업데이트된 콘텐츠 적용
+          instance.setMarkdown(newContent);
+          console.log('TUI Editor 인스턴스를 통해 이미지 제거 완료');
+        }
+      } else {
+        try {
+          // 게시글 내용에서도 해당 이미지 제거 - 모바일 환경 고려하여 안전하게 처리
+          setContent(prev => {
+            // 이미지 URL을 안전하게 이스케이프
+            const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            
+            // HTML 태그와 마크다운 형식 모두 처리하는 정규식
+            const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?|!\[[^\]]*\]\(${escapedUrl}\)`, 'gi');
+            
+            // 이미지 태그 제거 후 내용 반환
+            const newContent = prev.replace(imgRegex, '');
+            console.log('이미지 제거 후 콘텐츠 길이:', newContent.length);
+            return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
+          });
+        } catch (error) {
+          console.error('이미지 제거 중 오류 발생:', error);
+          // 오류 발생 시 이미지만 제거하고 내용은 유지
+        }
       }
     }
     // 이미지 배열에서 해당 이미지 제거
@@ -357,10 +383,19 @@ export default function PostEdit() {
     
     // 콘텐츠에서 실제 사용된 이미지 URL 추출
     const usedImageUrls = new Set<string>();
-    const imgRegex = /<img[^>]+src="([^"]+)"/gi;
-    let match;
-    while ((match = imgRegex.exec(finalContent)) !== null) {
-      usedImageUrls.add(match[1]);
+    
+    // HTML 태그 형식 이미지 추출
+    const htmlImgRegex = /<img[^>]+src="([^"]+)"/gi;
+    let htmlMatch;
+    while ((htmlMatch = htmlImgRegex.exec(finalContent)) !== null) {
+      usedImageUrls.add(htmlMatch[1]);
+    }
+    
+    // 마크다운 형식 이미지 추출
+    const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/gi;
+    let mdMatch;
+    while ((mdMatch = mdImgRegex.exec(finalContent)) !== null) {
+      usedImageUrls.add(mdMatch[1]);
     }
     
     // 실제 사용된 이미지만 필터링
@@ -417,6 +452,14 @@ export default function PostEdit() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      {/* 파일 선택 입력 요소 - 화면에 보이지 않지만 React에서 관리 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
       {/* 헤더 섹션 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
@@ -468,10 +511,10 @@ export default function PostEdit() {
                   <button
                     type="button"
                     onClick={handleImageUpload}
-                    disabled={isImageChecking}
+                    disabled={isImageValidating}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
                   >
-                    {isImageChecking ? (
+                    {isImageValidating ? (
                       <>
                         <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                         검열 중...
@@ -589,7 +632,7 @@ export default function PostEdit() {
             </div>
 
             {/* 이미지 검열 중 알림 */}
-            {isImageChecking && (
+            {isImageValidating && (
               <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm flex items-center gap-3">
                 <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
                 <div>
@@ -647,10 +690,10 @@ export default function PostEdit() {
             
             <button
               type="submit"
-              disabled={isImageChecking}
+              disabled={isImageValidating}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
-              {isImageChecking ? (
+              {isImageValidating ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
                   이미지 검열 중... 잠시만 기다려주세요

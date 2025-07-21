@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import TuiEditor from '../components/TuiEditor';
+import TuiEditor, { isHandlingImageUpload } from '../components/TuiEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
@@ -25,7 +25,7 @@ export default function PostCreate() {
   const [category, setCategory] = useState('DISCUSSION');
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
-  const [isImageChecking, setIsImageChecking] = useState(false);
+  const [isImageValidating, setIsImageValidating] = useState(false);
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
   const editorRef = useRef<any>(null);
@@ -35,7 +35,7 @@ export default function PostCreate() {
   
   // 클립보드 이미지 업로드 함수 (간소화 버전)
   const uploadClipboardImage = async (file: File) => {
-    setIsImageChecking(true);
+    setIsImageValidating(true);
     try {
       const imageData = await uploadImage(file, false);
       setUploadedImages(prev => [...prev, imageData]);
@@ -45,7 +45,7 @@ export default function PostCreate() {
       alert(errorMsg);
       throw error;
     } finally {
-      setIsImageChecking(false);
+      setIsImageValidating(false);
     }
   };
   
@@ -77,8 +77,19 @@ export default function PostCreate() {
     }
   };
   
-  // 클립보드 붙여넣기 이벤트 핸들러 (간소화 버전)
+  // 클립보드 붙여넣기 이벤트 핸들러 (개선된 버전)
   const handlePaste = async (event: ClipboardEvent) => {
+    // TUI Editor가 자체적으로 클립보드 이벤트를 처리하도록 허용
+    if (!isMarkdownMode && document.activeElement?.closest('.toastui-editor-ww-container')) {
+      // TUI Editor가 활성화된 상태에서는 기본 처리 허용
+      return;
+    }
+    
+    // TUI Editor에서 이미지 업로드를 처리 중이면 중복 처리 방지
+    if (isHandlingImageUpload.current) {
+      return;
+    }
+    
     try {
       const items = event.clipboardData?.items;
       if (!items) return;
@@ -105,11 +116,11 @@ export default function PostCreate() {
           }
           
           try {
-            const imageUrl = await uploadClipboardImage(file);
-            if (!imageUrl) throw new Error('이미지 URL을 받지 못했습니다.');
+            const imageData = await uploadClipboardImage(file);
+            if (!imageData || !imageData.url) throw new Error('이미지 URL을 받지 못했습니다.');
             
             // 에디터에 이미지 삽입
-            insertImageToEditor(imageUrl, '클립보드 이미지');
+            insertImageToEditor(imageData.url, '클립보드 이미지');
           } catch (error) {
             console.error('클립보드 이미지 업로드 실패:', error);
           }
@@ -118,31 +129,35 @@ export default function PostCreate() {
       }
     } catch (error) {
       console.error('클립보드 처리 중 오류:', error);
-      setIsImageChecking(false);
+      setIsImageValidating(false);
     }
   };
   
   // 에디터에 이미지 삽입 함수 (TUI Editor용으로 수정)
   const insertImageToEditor = (imageUrl: string, altText: string) => {
-    // 마크다운 모드일 경우 문자열로 추가
+    // 마크다운 모드일 경우 마크다운 형식으로 추가
     if (isMarkdownMode) {
-      setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
+      setContent(prev => prev + `![${altText}](${imageUrl})\n`);
       return;
     }
     
     // TUI Editor에 이미지 삽입
     try {
-      if (editorRef.current && editorRef.current.insertContent) {
-        // TUI Editor API 사용
-        editorRef.current.insertContent(`<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" />`);
+      if (editorRef.current && editorRef.current.getInstance) {
+        // TUI Editor API 사용 - 마크다운 형식으로 삽입
+        const instance = editorRef.current.getInstance();
+        if (instance) {
+          // 마크다운 형식으로 이미지 삽입
+          instance.insertText(`![${altText}](${imageUrl})`);
+        }
       } else {
         // 에디터 참조가 없는 경우 상태 업데이트
-        setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
+        setContent(prev => prev + `![${altText}](${imageUrl})\n`);
       }
     } catch (error) {
       console.error('이미지 삽입 중 오류:', error);
       // 오류 발생 시 상태 업데이트로 폴백
-      setContent(prev => prev + `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%; height: auto;" /><br/>`);
+      setContent(prev => prev + `![${altText}](${imageUrl})\n`);
     }
   };
   
@@ -160,24 +175,22 @@ export default function PostCreate() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
 
+  // 파일 선택 입력 요소를 참조하기 위한 ref 추가
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const handleImageUpload = () => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.removeAttribute('capture');
-    
-    document.body.appendChild(input);
-    input.style.display = 'none';
-    
-    // iOS Safari에서 클릭 이벤트가 제대로 작동하지 않는 문제 해결
-    setTimeout(() => input.click(), 100);
-    
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) {
-        document.body.removeChild(input);
-        return;
-      }
+    // 기존 ref를 통해 파일 선택 대화상자 열기
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // 파일 선택 시 호출되는 함수
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
       
       // 파일 형식 검사
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -187,7 +200,7 @@ export default function PostCreate() {
         return;
       }
       
-      setIsImageChecking(true);
+      setIsImageValidating(true);
       try {
         const imageData = await uploadImage(file);
         
@@ -205,9 +218,10 @@ export default function PostCreate() {
         const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
         alert(errorMsg);
       } finally {
-        setIsImageChecking(false);
-        if (document.body.contains(input)) {
-          document.body.removeChild(input);
+        setIsImageValidating(false);
+        // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
         }
       }
     };
@@ -216,8 +230,22 @@ export default function PostCreate() {
   const removeImage = (index: number) => {
     const imageToRemove = uploadedImages[index];
     if (imageToRemove) {
-      // 이미 구현된 removeImageByUrl 함수 활용
-      removeImageByUrl(imageToRemove.url);
+      if (!isMarkdownMode && editorRef.current?.getInstance) {
+        // TUI Editor의 인스턴스를 통해 현재 콘텐츠 가져오기
+        const instance = editorRef.current.getInstance();
+        if (instance) {
+          const currentContent = instance.getMarkdown();
+          // 마크다운 형식의 이미지 제거
+          const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+          const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'gi');
+          const newContent = currentContent.replace(imgRegex, '');
+          // 업데이트된 콘텐츠 적용
+          instance.setMarkdown(newContent);
+        }
+      } else {
+        // 마크다운 모드일 경우 기존 방식 사용
+        removeImageByUrl(imageToRemove.url);
+      }
     }
     // 이미지 배열에서 해당 이미지 제거
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
@@ -313,6 +341,14 @@ export default function PostCreate() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      {/* 파일 선택 입력 요소 - 화면에 보이지 않지만 React에서 관리 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
       {/* 헤더 섹션 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
@@ -368,10 +404,10 @@ export default function PostCreate() {
                   <button
                     type="button"
                     onClick={handleImageUpload}
-                    disabled={isImageChecking}
+                    disabled={isImageValidating}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
                   >
-                    {isImageChecking ? (
+                    {isImageValidating ? (
                       <>
                         <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                         검열 중...
@@ -481,7 +517,7 @@ export default function PostCreate() {
             </div>
           
           {/* 이미지 검열 중 알림 */}
-          {isImageChecking && (
+          {isImageValidating && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm flex items-center gap-3">
               <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
               <div>
@@ -593,10 +629,10 @@ export default function PostCreate() {
             
             <button
               type="submit"
-              disabled={isImageChecking}
+              disabled={isImageValidating}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
-              {isImageChecking ? (
+              {isImageValidating ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
                   이미지 검열 중... 잠시만 기다려주세요
