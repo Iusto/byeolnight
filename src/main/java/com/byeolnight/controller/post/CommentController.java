@@ -80,7 +80,7 @@ public class CommentController {
             
             // 사용자 ID를 전달하는 방식으로 변경
             commentService.reportCommentById(commentId, user.getId(), reason, description);
-            return ResponseEntity.ok(CommonResponse.success());
+            return ResponseEntity.ok(CommonResponse.success("댓글이 신고되었습니다."));
         } catch (com.byeolnight.infrastructure.exception.NotFoundException e) {
             // 사용자 또는 댓글을 찾을 수 없는 경우
             return ResponseEntity.status(404).body(CommonResponse.error(e.getMessage()));

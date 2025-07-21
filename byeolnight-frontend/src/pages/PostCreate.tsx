@@ -54,8 +54,14 @@ export default function PostCreate() {
       formData.append('file', file);
       formData.append('needsModeration', 'true');
       
-      const response = await fetch('/api/files/moderate-direct', {
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch('/files/moderate-direct', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
       
@@ -309,8 +315,14 @@ export default function PostCreate() {
       formData.append('file', file);
       formData.append('needsModeration', 'true');
       
-      const response = await fetch('/api/files/moderate-direct', {
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch('/files/moderate-direct', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
       
