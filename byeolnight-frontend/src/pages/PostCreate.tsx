@@ -192,39 +192,40 @@ export default function PostCreate() {
       return;
     }
       
-      // 파일 형식 검사
-      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validImageTypes.includes(file.type)) {
-        alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
-        document.body.removeChild(input);
-        return;
+    // 파일 형식 검사
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validImageTypes.includes(file.type)) {
+      alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+      
+    setIsImageValidating(true);
+    try {
+      const imageData = await uploadImage(file);
+      
+      if (!imageData || !imageData.url) {
+        throw new Error('이미지 URL을 받지 못했습니다.');
       }
       
-      setIsImageValidating(true);
-      try {
-        const imageData = await uploadImage(file);
-        
-        if (!imageData || !imageData.url) {
-          throw new Error('이미지 URL을 받지 못했습니다.');
-        }
-        
-        // 업로드된 이미지 목록에 추가
-        setUploadedImages(prev => [...prev, imageData]);
+      // 업로드된 이미지 목록에 추가
+      setUploadedImages(prev => [...prev, imageData]);
 
-        // 이미지를 에디터에 삽입
-        insertImageToEditor(imageData.url, imageData.originalName || '이미지');
-        
-      } catch (error: any) {
-        const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
-        alert(errorMsg);
-      } finally {
-        setIsImageValidating(false);
-        // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+      // 이미지를 에디터에 삽입
+      insertImageToEditor(imageData.url, imageData.originalName || '이미지');
+      
+    } catch (error: any) {
+      const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+      alert(errorMsg);
+    } finally {
+      setIsImageValidating(false);
+      // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    };
+    }
   };
   
   const removeImage = (index: number) => {
