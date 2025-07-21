@@ -92,8 +92,14 @@ const TuiEditor = forwardRef(({
           formData.append('file', file);
           formData.append('needsModeration', 'true');
           
-          const moderationResponse = await fetch('/api/files/moderate-direct', {
+          // JWT 토큰 가져오기
+          const token = localStorage.getItem('accessToken');
+          
+          const moderationResponse = await fetch('/files/moderate-direct', {
             method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
             body: formData
           });
           
