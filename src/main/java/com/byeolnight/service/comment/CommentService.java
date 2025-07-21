@@ -228,7 +228,7 @@ public class CommentService {
         }
         
         try {
-            // 신고자 조회
+            // 신고자 조회 - 트랜잭션 내에서 새로 조회하여 최신 상태 확보
             User reporter = userRepository.findById(reporterId)
                     .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
             
@@ -245,12 +245,15 @@ public class CommentService {
             com.byeolnight.domain.entity.comment.CommentReport report = 
                 com.byeolnight.domain.entity.comment.CommentReport.builder()
                     .comment(comment)
-                    .reporter(reporter)
+                    .reporter(reporter) // 데이터베이스에서 새로 조회한 사용자 객체 사용
                     .reason(reason)
                     .description(description)
                     .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)
                     .createdAt(java.time.LocalDateTime.now())
                     .build();
+            
+            // 저장 전 신고자 정보 로깅
+            System.out.println("Reporter ID: " + reporter.getId() + ", Reporter exists: " + userRepository.existsById(reporter.getId()));
             
             commentReportRepository.save(report);
             comment.increaseReportCount();
@@ -274,12 +277,16 @@ public class CommentService {
         }
         
         try {
+            // 신고자 정보를 데이터베이스에서 다시 조회하여 최신 상태 확보
+            User freshReporter = userRepository.findById(reporter.getId())
+                    .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
+            
             // 댓글 조회
             Comment comment = commentRepository.findById(commentId)
                     .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
             
             // 중복 신고 방지
-            if (commentReportRepository.existsByCommentAndReporter(comment, reporter)) {
+            if (commentReportRepository.existsByCommentAndReporter(comment, freshReporter)) {
                 throw new IllegalArgumentException("이미 신고한 댓글입니다.");
             }
             
@@ -287,7 +294,7 @@ public class CommentService {
             com.byeolnight.domain.entity.comment.CommentReport report = 
                 com.byeolnight.domain.entity.comment.CommentReport.builder()
                     .comment(comment)
-                    .reporter(reporter)
+                    .reporter(freshReporter) // 데이터베이스에서 새로 조회한 사용자 객체 사용
                     .reason(reason)
                     .description(description)
                     .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)

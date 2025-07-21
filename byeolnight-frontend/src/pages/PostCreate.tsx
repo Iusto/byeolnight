@@ -7,6 +7,14 @@ import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
 
+// 이미지 URL 정규식
+const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+
+// 이미지 URL 검증 함수
+const isValidImageUrl = (url: string): boolean => {
+  return IMAGE_URL_REGEX.test(url);
+};
+
 // 개발 환경에서 API 경로 로깅
 console.log('API 기본 URL:', import.meta.env.VITE_API_BASE_URL || '/api');
 
@@ -44,10 +52,8 @@ export default function PostCreate() {
       const imageData = await uploadImage(file, true);
       console.log('클립보드 이미지 업로드 성공:', imageData);
       
-      // 업로드된 이미지 목록에 추가
+      // 검열 통과한 이미지만 목록에 추가
       setUploadedImages(prev => [...prev, imageData]);
-      
-      // 성공 메시지 표시 제거 - 검열완료 표시가 있으므로 불필요
       
       return imageData.url;
     } catch (error: any) {
@@ -134,13 +140,20 @@ export default function PostCreate() {
           }
           
           try {
+            // 이미지 업로드 및 검열 시작
             const imageData = await uploadClipboardImage(file);
             if (!imageData || !imageData.url) throw new Error('이미지 URL을 받지 못했습니다.');
             
-            // 에디터에 이미지 삽입
+            // URL 검증
+            if (!isValidImageUrl(imageData.url)) {
+              throw new Error('유효하지 않은 이미지 URL입니다.');
+            }
+            
+            // 검열 통과한 이미지만 에디터에 삽입
             insertImageToEditor(imageData.url, '클립보드 이미지');
-          } catch (error) {
+          } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', error);
+            alert(error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
           }
           break;
         }
@@ -167,6 +180,13 @@ export default function PostCreate() {
       }
     }
     
+    // URL 검증
+    if (!isValidImageUrl(imageUrl)) {
+      console.error('유효하지 않은 이미지 URL:', imageUrl);
+      alert('유효하지 않은 이미지 URL입니다.');
+      return;
+    }
+    
     // 마크다운 모드일 경우 마크다운 형식으로 추가
     if (isMarkdownMode) {
       setContent(prev => prev + `![${altText}](${imageUrl})\n`);
@@ -176,13 +196,12 @@ export default function PostCreate() {
     // TUI Editor에 이미지 삽입
     try {
       if (editorRef.current && editorRef.current.getInstance) {
-        // TUI Editor API 사용 - 마크다운 형식으로 삽입
+        // TUI Editor API 사용
         const instance = editorRef.current.getInstance();
         if (instance) {
-          // HTML 형식으로 이미지 삽입 (링크만 나타나는 문제 해결)
-          const imgHtml = `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%;" />`;
-          instance.insertText(imgHtml);
-          console.log('이미지 삽입 성공 (TUI Editor - HTML 형식)');
+          // 이미지 태그 삽입 - 이미지가 정상적으로 표시되도록 수정
+          instance.exec('addImage', { imageUrl, altText });
+          console.log('이미지 삽입 성공 (TUI Editor - addImage 메서드)');
           
           // 에디터 내용 갱신
           setTimeout(() => {
@@ -193,15 +212,13 @@ export default function PostCreate() {
         }
       } else {
         // 에디터 참조가 없는 경우 상태 업데이트
-        const imgHtml = `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%;" />`;
-        setContent(prev => prev + imgHtml);
-        console.log('이미지 삽입 성공 (상태 업데이트 - HTML 형식)');
+        setContent(prev => prev + `![${altText}](${imageUrl})\n`);
+        console.log('이미지 삽입 성공 (상태 업데이트)');
       }
     } catch (error) {
       console.error('이미지 삽입 중 오류:', error);
       // 오류 발생 시 상태 업데이트로 폴백
-      const imgHtml = `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%;" />`;
-      setContent(prev => prev + imgHtml);
+      setContent(prev => prev + `![${altText}](${imageUrl})\n`);
       alert('이미지 삽입 중 오류가 발생했습니다.');
     }
   };
@@ -259,18 +276,23 @@ export default function PostCreate() {
       
     setIsImageValidating(true);
     try {
-      console.log('이미지 업로드 시작...');
+      console.log('이미지 업로드 및 검열 시작...');
       // 검열 과정 적용 (needsModeration = true)
       const imageData = await uploadImage(file, true);
-      console.log('이미지 업로드 성공:', imageData);
+      console.log('이미지 업로드 및 검열 성공:', imageData);
       
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
       
-      // 업로드된 이미지 목록에 추가
+      // URL 검증
+      if (!isValidImageUrl(imageData.url)) {
+        throw new Error('유효하지 않은 이미지 URL입니다.');
+      }
+      
+      // 검열 통과한 이미지만 목록에 추가
       setUploadedImages(prev => [...prev, imageData]);
-      console.log('업로드된 이미지 목록 업데이트');
+      console.log('검열 통과된 이미지 목록 업데이트');
 
       // 이미지를 에디터에 삽입
       insertImageToEditor(imageData.url, imageData.originalName || '이미지');
@@ -640,7 +662,7 @@ export default function PostCreate() {
               <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
                 업로드된 이미지:
                 <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
-                  ✓ 검열 완료
+                  ✓ 검열 통과된 이미지만 표시됨
                 </span>
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -651,7 +673,7 @@ export default function PostCreate() {
                       alt={image.originalName}
                       className="w-full h-24 object-cover rounded-lg shadow-md"
                       onError={(e) => {
-                        console.error('이미진 로드 실패:', image.url);
+                        console.error('이미지 로드 실패:', image.url);
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo=';
                       }}
                     />
@@ -666,7 +688,7 @@ export default function PostCreate() {
                       {image.originalName}
                     </div>
                     <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
-                      ✓ 검열완료
+                      ✓ 검열통과
                     </div>
                   </div>
                 ))}
