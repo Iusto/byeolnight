@@ -137,6 +137,8 @@ export default function PostCreate() {
   
   // 에디터에 이미지 삽입 함수 (TUI Editor용으로 수정)
   const insertImageToEditor = (imageUrl: string, altText: string) => {
+    console.log('이미지 삽입 시도:', imageUrl);
+    
     // 마크다운 모드일 경우 마크다운 형식으로 추가
     if (isMarkdownMode) {
       setContent(prev => prev + `![${altText}](${imageUrl})\n`);
@@ -150,16 +152,26 @@ export default function PostCreate() {
         const instance = editorRef.current.getInstance();
         if (instance) {
           // 마크다운 형식으로 이미지 삽입
-          instance.insertText(`![${altText}](${imageUrl})`);
+          instance.insertText(`\n![${altText}](${imageUrl})\n`);
+          console.log('이미지 삽입 성공 (TUI Editor)');
+          
+          // 에디터 내용 갱신
+          setTimeout(() => {
+            const newContent = instance.getMarkdown();
+            setContent(newContent);
+            console.log('에디터 내용 갱신');
+          }, 100);
         }
       } else {
         // 에디터 참조가 없는 경우 상태 업데이트
-        setContent(prev => prev + `![${altText}](${imageUrl})\n`);
+        setContent(prev => prev + `\n![${altText}](${imageUrl})\n`);
+        console.log('이미지 삽입 성공 (상태 업데이트)');
       }
     } catch (error) {
       console.error('이미지 삽입 중 오류:', error);
       // 오류 발생 시 상태 업데이트로 폴백
-      setContent(prev => prev + `![${altText}](${imageUrl})\n`);
+      setContent(prev => prev + `\n![${altText}](${imageUrl})\n`);
+      alert('이미지 삽입 중 오류가 발생했습니다.');
     }
   };
   
@@ -201,6 +213,8 @@ export default function PostCreate() {
     if (!file) {
       return;
     }
+    
+    console.log('파일 선택됨:', file.name, file.type);
       
     // 파일 형식 검사
     const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -214,7 +228,9 @@ export default function PostCreate() {
       
     setIsImageValidating(true);
     try {
+      console.log('이미지 업로드 시작...');
       const imageData = await uploadImage(file);
+      console.log('이미지 업로드 성공:', imageData);
       
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
@@ -222,13 +238,28 @@ export default function PostCreate() {
       
       // 업로드된 이미지 목록에 추가
       setUploadedImages(prev => [...prev, imageData]);
+      console.log('업로드된 이미지 목록 업데이트');
 
       // 이미지를 에디터에 삽입
       insertImageToEditor(imageData.url, imageData.originalName || '이미지');
       
+      // 성공 메시지 표시
+      setValidationAlert({
+        message: '이미지가 성공적으로 업로드되었습니다.',
+        type: 'success',
+        imageUrl: imageData.url
+      });
+      
     } catch (error: any) {
+      console.error('이미지 업로드 오류:', error);
       const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
       alert(errorMsg);
+      
+      // 오류 메시지 표시
+      setValidationAlert({
+        message: errorMsg,
+        type: 'error'
+      });
     } finally {
       setIsImageValidating(false);
       // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
@@ -280,7 +311,7 @@ export default function PostCreate() {
 
     if (!user) {
       setError('로그인이 필요합니다.');
-      return;
+      return;turn;
     }
     
     // 길이 검증
@@ -407,13 +438,6 @@ export default function PostCreate() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsMarkdownMode(!isMarkdownMode)}
-                    className={`flex items-center gap-2 px-4 py-2 ${isMarkdownMode ? 'bg-green-600/80 hover:bg-green-600' : 'bg-gray-600/80 hover:bg-gray-600'} text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg transform hover:scale-105`}
-                  >
-                    📝 {isMarkdownMode ? '마크다운 ON' : '마크다운 OFF'}
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleImageUpload}
                     disabled={isImageValidating}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
@@ -425,7 +449,7 @@ export default function PostCreate() {
                       </>
                     ) : (
                       <>
-                        🖼️ 이미지
+                        🖼️ 이미지 추가
                       </>
                     )}
                   </button>

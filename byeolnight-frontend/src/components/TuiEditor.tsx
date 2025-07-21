@@ -81,10 +81,12 @@ const TuiEditor = forwardRef(({
           if (imageData && imageData.url) {
             // 콜백으로 URL 전달 - 마크다운 형식으로 삽입
             callback(imageData.url, '클립보드 이미지');
+            console.log('이미지 업로드 성공:', imageData.url);
             return true;
           }
         } catch (error) {
           console.error('클립보드 이미지 업로드 오류:', error);
+          alert('이미지 업로드 중 오류가 발생했습니다.');
         }
       }
       
@@ -94,6 +96,7 @@ const TuiEditor = forwardRef(({
       }
     } catch (error) {
       console.error('이미지 업로드 오류:', error);
+      alert('이미지 업로드 중 오류가 발생했습니다.');
     } finally {
       // 이미지 업로드 처리 완료 표시
       setTimeout(() => {
