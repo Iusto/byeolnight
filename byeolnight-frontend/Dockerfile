@@ -3,7 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+# package-lock.json 삭제 후 의존성 설치 (rollup 관련 오류 해결)
+RUN rm -f package-lock.json && npm install --legacy-peer-deps
 
 COPY . .
 
