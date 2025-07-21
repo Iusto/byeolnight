@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import QuillEditor from '../components/QuillEditor';
+import TuiEditor from '../components/TuiEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
 import { parseMarkdown } from '../utils/markdownParser';
 import { uploadImage } from '../lib/s3Upload';
@@ -111,13 +111,13 @@ export default function PostEdit() {
               throw new Error('이미지 URL을 받지 못했습니다.');
             }
             
-            // ReactQuill에 이미지 삽입 (에디터 참조 사용)
-            if (editorRef.current && editorRef.current.getEditor && !isMarkdownMode) {
-              console.log('에디터 참조를 통한 이미지 삽입');
-              const editor = editorRef.current.getEditor();
-              const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-              editor.insertEmbed(range.index, 'image', imageUrl);
-              editor.setSelection(range.index + 1, 0);
+            // TUI Editor에 이미지 삽입
+            if (editorRef.current && editorRef.current.getInstance && !isMarkdownMode) {
+              console.log('TUI 에디터를 통한 이미지 삽입');
+              const instance = editorRef.current.getInstance();
+              if (instance) {
+                instance.insertText(`![클립보드 이미지](${imageUrl})`);
+              }
             } else {
               // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 기존 방식 사용
               console.log('상태 업데이트를 통한 이미지 삽입');
@@ -194,16 +194,16 @@ export default function PostEdit() {
           }
           
           // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
-          if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getEditor) {
+          if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getInstance) {
             console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
             setContent(prev => prev + `<img src="${imageData.url}" alt="${imageData.originalName || '이미지'}" style="max-width: 100%; height: auto;" /><br/>`);
           } else {
             // PC에서는 에디터 참조 사용
             console.log('에디터 참조를 통한 이미지 삽입');
-            const editor = editorRef.current.getEditor();
-            const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-            editor.insertEmbed(range.index, 'image', imageData.url);
-            editor.setSelection(range.index + 1, 0);
+            const instance = editorRef.current.getInstance();
+            if (instance) {
+              instance.insertText(`![${imageData.originalName || '이미지'}](${imageData.url})`);
+            }
           }
         } catch (error: any) {
           console.error('이미지 업로드 실패:', error);
@@ -508,11 +508,12 @@ export default function PostEdit() {
                     </div>
                   </div>
                 ) : (
-                  <QuillEditor
+                  <TuiEditor
                     ref={editorRef}
                     value={content}
                     onChange={setContent}
                     placeholder="내용을 입력하세요..."
+                    height="500px"
                     handleImageUpload={handleImageUpload}
                   />
                 )}
@@ -565,9 +566,9 @@ export default function PostEdit() {
                   </>
                 ) : (
                   <>
-                    🎨 ReactQuill Editor: 강력한 리치 텍스트 에디터, 한글 지원 완벽!<br/>
+                    🎨 Toast UI Editor: 한국에서 개발한 강력한 에디터, 한글 지원 완벽!<br/>
                     🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
-                    🎬 YouTube 임베드: 비디오 버튼으로 YouTube 임베드 URL 삽입 가능 (width="100%" height="500")
+                    🎬 마크다운/WYSIWYG 모드: 두 가지 모드를 지원하여 편리한 편집 가능
                   </>
                 )}
               </div>
