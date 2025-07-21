@@ -35,15 +35,31 @@ export default function PostCreate() {
   // URL 파라미터에서 originTopic 추출
   const originTopicId = searchParams.get('originTopic');
   
-  // 클립보드 이미지 업로드 함수 (간소화 버전)
+  // 클립보드 이미지 업로드 함수 (검열 과정 추가)
   const uploadClipboardImage = async (file: File) => {
     setIsImageValidating(true);
     try {
-      const imageData = await uploadImage(file, false);
+      console.log('클립보드 이미지 업로드 시작...');
+      // 검열 과정 적용 (needsModeration = true)
+      const imageData = await uploadImage(file, true);
+      console.log('클립보드 이미지 업로드 성공:', imageData);
+      
+      // 업로드된 이미지 목록에 추가
       setUploadedImages(prev => [...prev, imageData]);
+      
+      // 성공 메시지 표시 제거 - 검열완료 표시가 있으므로 불필요
+      
       return imageData.url;
     } catch (error: any) {
+      console.error('클립보드 이미지 업로드 오류:', error);
       const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+      
+      // 오류 메시지 표시
+      setValidationAlert({
+        message: errorMsg,
+        type: 'error'
+      });
+      
       alert(errorMsg);
       throw error;
     } finally {
@@ -163,9 +179,10 @@ export default function PostCreate() {
         // TUI Editor API 사용 - 마크다운 형식으로 삽입
         const instance = editorRef.current.getInstance();
         if (instance) {
-          // 마크다운 형식으로 이미지 삽입
-          instance.insertText(`\n![${altText}](${imageUrl})\n`);
-          console.log('이미지 삽입 성공 (TUI Editor)');
+          // HTML 형식으로 이미지 삽입 (링크만 나타나는 문제 해결)
+          const imgHtml = `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%;" />`;
+          instance.insertText(imgHtml);
+          console.log('이미지 삽입 성공 (TUI Editor - HTML 형식)');
           
           // 에디터 내용 갱신
           setTimeout(() => {
@@ -176,13 +193,15 @@ export default function PostCreate() {
         }
       } else {
         // 에디터 참조가 없는 경우 상태 업데이트
-        setContent(prev => prev + `\n![${altText}](${imageUrl})\n`);
-        console.log('이미지 삽입 성공 (상태 업데이트)');
+        const imgHtml = `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%;" />`;
+        setContent(prev => prev + imgHtml);
+        console.log('이미지 삽입 성공 (상태 업데이트 - HTML 형식)');
       }
     } catch (error) {
       console.error('이미지 삽입 중 오류:', error);
       // 오류 발생 시 상태 업데이트로 폴백
-      setContent(prev => prev + `\n![${altText}](${imageUrl})\n`);
+      const imgHtml = `<img src="${imageUrl}" alt="${altText}" style="max-width: 100%;" />`;
+      setContent(prev => prev + imgHtml);
       alert('이미지 삽입 중 오류가 발생했습니다.');
     }
   };
@@ -241,7 +260,8 @@ export default function PostCreate() {
     setIsImageValidating(true);
     try {
       console.log('이미지 업로드 시작...');
-      const imageData = await uploadImage(file);
+      // 검열 과정 적용 (needsModeration = true)
+      const imageData = await uploadImage(file, true);
       console.log('이미지 업로드 성공:', imageData);
       
       if (!imageData || !imageData.url) {
@@ -318,7 +338,7 @@ export default function PostCreate() {
 
     if (!user) {
       setError('로그인이 필요합니다.');
-      return;turn;
+      return;
     }
     
     // 길이 검증

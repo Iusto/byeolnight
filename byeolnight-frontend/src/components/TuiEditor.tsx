@@ -76,8 +76,8 @@ const TuiEditor = forwardRef(({
         });
         
         try {
-          // 이미지 업로드 처리
-          const imageData = await uploadImage(file, false);
+          // 이미지 업로드 처리 (검열 과정 적용)
+          const imageData = await uploadImage(file, true);
           if (imageData && imageData.url) {
             // URL에 붙어있는 불필요한 텍스트 제거
             let cleanUrl = imageData.url;

@@ -21,7 +21,7 @@ export interface UploadedImageResponse {
  * @param needsModeration 검열이 필요한지 여부 (기본값: false)
  * @returns 업로드된 이미지 정보
  */
-export const uploadImage = async (file: File, needsModeration = false): Promise<UploadedImageResponse> => {
+export const uploadImage = async (file: File, needsModeration = true): Promise<UploadedImageResponse> => {
   // 개발 환경에서 API 경로 로깅
   console.log('이미지 업로드 API 경로:', import.meta.env.VITE_API_BASE_URL || '/api');
   try {
@@ -69,14 +69,32 @@ export const uploadImage = async (file: File, needsModeration = false): Promise<
       throw new Error(`업로드 실패: ${uploadResponse.status}`);
     }
     
-    // 3. 검열이 필요한 경우에만 검사 요청 (결과 기다리지 않음)
+    // 3. 검열이 필요한 경우 검사 요청 (결과 기다림)
     if (needsModeration) {
-      axios.post('/files/check-image', null, {
-        params: { 
-          imageUrl: presignedData.url,
-          needsModeration: true
+      try {
+        console.log('이미지 검열 시작...');
+        const moderationResponse = await axios.post('/files/check-image', null, {
+          params: { 
+            imageUrl: presignedData.url,
+            needsModeration: true
+          }
+        });
+        
+        // 검열 결과 확인
+        const moderationResult = moderationResponse.data;
+        console.log('이미지 검열 결과:', moderationResult);
+        
+        // 부적절한 이미지인 경우 예외 발생
+        if (moderationResult.data && moderationResult.data.isSafe === false) {
+          throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
-      }).catch(err => console.error('이미지 검사 요청 실패:', err));
+      } catch (err: any) {
+        console.error('이미지 검사 요청 실패:', err);
+        if (err.response?.data?.message) {
+          throw new Error(err.response.data.message);
+        }
+        throw err;
+      }
     }
     
     // 4. 업로드된 이미지 정보 반환
