@@ -62,7 +62,17 @@ const QuillEditor = forwardRef(({ value, onChange, placeholder = "내용을 입�
   // 값이 변경될 때 에디터 참조 유지 확인
   useEffect(() => {
     if (editorRef.current && value !== undefined) {
-      console.log('에디터 값 업데이트 확인');
+      // 에디터가 존재하는지 확인하고, 에디터가 없으면 재초기화
+      try {
+        const editor = editorRef.current.getEditor();
+        if (!editor) {
+          console.log('에디터 참조 손실, 재초기화 시도');
+          setIsReady(false);
+          setTimeout(() => setIsReady(true), 100);
+        }
+      } catch (error) {
+        console.error('에디터 참조 확인 중 오류:', error);
+      }
     }
   }, [value]);
 
@@ -129,26 +139,60 @@ const QuillEditor = forwardRef(({ value, onChange, placeholder = "내용을 입�
     );
   }
 
-  return (
-    <ReactQuill
-      ref={editorRef}
-      value={value}
-      onChange={onChange}
-      theme="snow"
-      className="quill-editor"
-      style={{ 
-        flex: '1',
+  // 에디터 렌더링 중 오류 방지를 위한 오류 처리
+  try {
+    return (
+      <ReactQuill
+        ref={editorRef}
+        value={value}
+        onChange={onChange}
+        theme="snow"
+        className="quill-editor"
+        style={{ 
+          flex: '1',
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          border: 'none'
+        }}
+        modules={modules}
+        formats={formats}
+        placeholder={placeholder}
+        preserveWhitespace={true}
+      />
+    );
+  } catch (error) {
+    console.error('에디터 렌더링 오류:', error);
+    // 오류 발생 시 대체 UI 렌더링
+    return (
+      <div className="quill-editor-error" style={{
+        height: '300px',
         display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1f2336',
+        borderRadius: '0.75rem',
+        border: '1px solid #4a5568',
         flexDirection: 'column',
-        width: '100%',
-        border: 'none'
-      }}
-      modules={modules}
-      formats={formats}
-      placeholder={placeholder}
-      preserveWhitespace={true}
-    />
-  );
+        padding: '20px'
+      }}>
+        <div style={{ color: '#e53e3e', marginBottom: '10px' }}>에디터 로드 중 오류가 발생했습니다</div>
+        <button 
+          onClick={() => setIsReady(false)}
+          style={{
+            backgroundColor: '#4299e1',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          에디터 재로드
+        </button>
+      </div>
+    );
+  }
 });
 
 export default QuillEditor;
