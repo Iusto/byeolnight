@@ -139,6 +139,18 @@ export default function PostCreate() {
   const insertImageToEditor = (imageUrl: string, altText: string) => {
     console.log('이미지 삽입 시도:', imageUrl);
     
+    // URL에 마지막 부분에 붙어있는 텍스트 제거 (예: .jpg링크그대로만뜨고 이미지가 안뜨)
+    if (imageUrl.includes('링크그대로만뜨고') || imageUrl.includes('이미지가 안뜨')) {
+      const urlParts = imageUrl.split('.');
+      const extension = urlParts[urlParts.length - 1].toLowerCase();
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension.startsWith(ext))) {
+        // 확장자 뒤에 붙어있는 텍스트 제거
+        const extensionEndIndex = imageUrl.lastIndexOf('.' + extension) + extension.length + 1;
+        imageUrl = imageUrl.substring(0, extensionEndIndex);
+        console.log('수정된 URL:', imageUrl);
+      }
+    }
+    
     // 마크다운 모드일 경우 마크다운 형식으로 추가
     if (isMarkdownMode) {
       setContent(prev => prev + `![${altText}](${imageUrl})\n`);
@@ -243,12 +255,7 @@ export default function PostCreate() {
       // 이미지를 에디터에 삽입
       insertImageToEditor(imageData.url, imageData.originalName || '이미지');
       
-      // 성공 메시지 표시
-      setValidationAlert({
-        message: '이미지가 성공적으로 업로드되었습니다.',
-        type: 'success',
-        imageUrl: imageData.url
-      });
+      // 성공 메시지 표시 제거 - 검열완료 표시가 있으므로 불필요
       
     } catch (error: any) {
       console.error('이미지 업로드 오류:', error);

@@ -79,9 +79,21 @@ const TuiEditor = forwardRef(({
           // 이미지 업로드 처리
           const imageData = await uploadImage(file, false);
           if (imageData && imageData.url) {
+            // URL에 붙어있는 불필요한 텍스트 제거
+            let cleanUrl = imageData.url;
+            if (cleanUrl.includes('링크그대로만뜨고') || cleanUrl.includes('이미지가 안뜨')) {
+              const urlParts = cleanUrl.split('.');
+              const extension = urlParts[urlParts.length - 1].toLowerCase();
+              if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension.startsWith(ext))) {
+                const extensionEndIndex = cleanUrl.lastIndexOf('.' + extension) + extension.length + 1;
+                cleanUrl = cleanUrl.substring(0, extensionEndIndex);
+                console.log('수정된 URL:', cleanUrl);
+              }
+            }
+            
             // 콜백으로 URL 전달 - 마크다운 형식으로 삽입
-            callback(imageData.url, '클립보드 이미지');
-            console.log('이미지 업로드 성공:', imageData.url);
+            callback(cleanUrl, '클립보드 이미지');
+            console.log('이미지 업로드 성공:', cleanUrl);
             return true;
           }
         } catch (error) {
