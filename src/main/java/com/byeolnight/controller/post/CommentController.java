@@ -75,10 +75,12 @@ public class CommentController {
         }
         
         try {
-            // User 객체 직접 전달 (ID 대신)
-            commentService.reportComment(commentId, user, reason, description);
+            // 사용자 ID를 전달하는 방식으로 변경
+            commentService.reportCommentById(commentId, user.getId(), reason, description);
             return ResponseEntity.ok(CommonResponse.success());
         } catch (Exception e) {
+            // 예외 정보를 더 자세히 로깅
+            e.printStackTrace();
             return ResponseEntity.status(500).body(CommonResponse.error("댓글 신고 처리 중 오류가 발생했습니다: " + e.getMessage()));
         }
     }

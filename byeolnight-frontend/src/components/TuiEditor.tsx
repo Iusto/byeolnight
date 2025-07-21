@@ -5,6 +5,14 @@ import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../styles/tui-editor.css';
 import { uploadImage } from '../lib/s3Upload';
 
+// 이미지 URL 정규식
+const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+
+// 이미지 URL 검증 함수
+const isValidImageUrl = (url: string): boolean => {
+  return IMAGE_URL_REGEX.test(url);
+};
+
 // 이미지 업로드 이벤트 처리 여부를 확인하기 위한 전역 플래그
 export const isHandlingImageUpload = { current: false };
 
@@ -89,6 +97,12 @@ const TuiEditor = forwardRef(({
                 cleanUrl = cleanUrl.substring(0, extensionEndIndex);
                 console.log('수정된 URL:', cleanUrl);
               }
+            }
+            
+            // URL 검증
+            if (!isValidImageUrl(cleanUrl)) {
+              console.error('유효하지 않은 이미지 URL:', cleanUrl);
+              throw new Error('유효하지 않은 이미지 URL입니다.');
             }
             
             // 콜백으로 URL 전달 - 마크다운 형식으로 삽입
