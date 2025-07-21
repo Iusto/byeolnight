@@ -170,7 +170,9 @@ export default function PostEdit() {
         // 파일 크기 체크 (10MB 제한 - 백엔드와 동일하게 맞춤)
         if (file.size > 10 * 1024 * 1024) {
           alert('파일 크기는 10MB를 초과할 수 없습니다.');
-          document.body.removeChild(input);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
           return;
         }
         
@@ -232,7 +234,6 @@ export default function PostEdit() {
           fileInputRef.current.value = '';
         }
       }
-    };
   };
   
   const removeImage = (index: number) => {
