@@ -123,33 +123,29 @@ const TuiEditor = forwardRef(({
             alert('이미지 URL을 받지 못했습니다.');
             throw new Error('이미지 URL을 받지 못했습니다.');
           }
-            // URL에 붙어있는 불필요한 텍스트 제거
-            let cleanUrl = imageData.url;
-            if (cleanUrl.includes('링크그대로만뜨고') || cleanUrl.includes('이미지가 안뜨')) {
-              const urlParts = cleanUrl.split('.');
-              const extension = urlParts[urlParts.length - 1].toLowerCase();
-              if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension.startsWith(ext))) {
-                const extensionEndIndex = cleanUrl.lastIndexOf('.' + extension) + extension.length + 1;
-                cleanUrl = cleanUrl.substring(0, extensionEndIndex);
-                console.log('수정된 URL:', cleanUrl);
-              }
+          
+          // URL에 붙어있는 불필요한 텍스트 제거
+          let cleanUrl = imageData.url;
+          if (cleanUrl.includes('링크그대로만뜨고') || cleanUrl.includes('이미지가 안뜨')) {
+            const urlParts = cleanUrl.split('.');
+            const extension = urlParts[urlParts.length - 1].toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension.startsWith(ext))) {
+              const extensionEndIndex = cleanUrl.lastIndexOf('.' + extension) + extension.length + 1;
+              cleanUrl = cleanUrl.substring(0, extensionEndIndex);
+              console.log('수정된 URL:', cleanUrl);
             }
-            
-            // URL 검증
-            if (!isValidImageUrl(cleanUrl)) {
-              console.error('유효하지 않은 이미지 URL:', cleanUrl);
-              throw new Error('유효하지 않은 이미지 URL입니다.');
-            }
-            
-            // 콜백으로 URL 전달 - 이미지 삽입
-            callback(cleanUrl, '검열 통과된 이미지');
-            console.log('이미지 업로드 및 검열 성공:', cleanUrl);
-            return true;
           }
           
-          // 이미지 URL이 없는 경우
-          throw new Error('이미지 URL을 받지 못했습니다.');
+          // URL 검증
+          if (!isValidImageUrl(cleanUrl)) {
+            console.error('유효하지 않은 이미지 URL:', cleanUrl);
+            throw new Error('유효하지 않은 이미지 URL입니다.');
           }
+          
+          // 콜백으로 URL 전달 - 이미지 삽입
+          callback(cleanUrl, '검열 통과된 이미지');
+          console.log('이미지 업로드 및 검열 성공:', cleanUrl);
+          return true;
         } catch (error: any) {
           console.error('클립보드 이미지 업로드 및 검열 오류:', error);
           alert(error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
