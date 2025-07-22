@@ -191,7 +191,8 @@ public class AdminReportService {
      * 신고된 댓글 목록 조회
      */
     public Page<ReportedCommentDetailDto> getReportedComments(int page, int size) {
-        List<CommentReport> commentReports = commentReportRepository.findPendingReports();
+        // 모든 신고를 가져와서 처리 상태를 명확히 표시하도록 수정
+        List<CommentReport> commentReports = commentReportRepository.findAll();
         
         // 댓글별로 그룹화
         Map<Comment, List<CommentReport>> groupedReports = commentReports.stream()
@@ -219,6 +220,9 @@ public class AdminReportService {
                             .map(CommentReport::getReason)
                             .collect(Collectors.toList());
                     
+                    // 모든 신고가 이미 처리되었는지 확인
+                    boolean allProcessed = reports.stream().allMatch(CommentReport::isReviewed);
+                    
                     return ReportedCommentDetailDto.builder()
                             .commentId(comment.getId())
                             .content(comment.getContent())
@@ -230,9 +234,16 @@ public class AdminReportService {
                             .reportCount(reports.size())
                             .reportReasons(reasons)
                             .reportDetails(reportDetails)
+                            .allProcessed(allProcessed) // 모든 신고가 처리되었는지 여부 추가
                             .build();
                 })
-                .sorted((a, b) -> b.getReportCount() - a.getReportCount()) // 신고 수 많은 순
+                .sorted((a, b) -> {
+                    // 처리되지 않은 신고를 먼저 보여주고, 그 다음 신고 수 많은 순
+                    if (a.isAllProcessed() != b.isAllProcessed()) {
+                        return a.isAllProcessed() ? 1 : -1;
+                    }
+                    return b.getReportCount() - a.getReportCount();
+                })
                 .collect(Collectors.toList());
         
         // 페이징 처리

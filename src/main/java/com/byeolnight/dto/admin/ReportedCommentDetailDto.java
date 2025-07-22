@@ -19,6 +19,7 @@ public class ReportedCommentDetailDto {
     private int reportCount; // 신고 개수
     private List<String> reportReasons; // 신고 사유 목록
     private List<ReportDetail> reportDetails;
+    private boolean allProcessed; // 모든 신고가 처리되었는지 여부
 
     @Getter
     @Builder

@@ -89,6 +89,13 @@ public class CommentController {
         } catch (IllegalArgumentException e) {
             // 중복 신고 등 유효성 검사 실패
             return ResponseEntity.status(400).body(CommonResponse.error(e.getMessage()));
+        } catch (RuntimeException e) {
+            // RuntimeException 처리 추가
+            if (e.getMessage() != null && e.getMessage().contains("이미 신고한")) {
+                return ResponseEntity.status(400).body(CommonResponse.error(e.getMessage()));
+            }
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(CommonResponse.error("댓글 신고 처리 중 오류가 발생했습니다: " + e.getMessage()));
         } catch (Exception e) {
             // 예외 정보를 더 자세히 로깅
             e.printStackTrace();
