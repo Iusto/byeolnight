@@ -297,20 +297,15 @@ export default function PostList() {
                         <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖</span>
                       </div>
                     )}
-                    <div className="text-3xl mb-2 select-none pointer-events-none bg-slate-800/50 rounded-lg p-2 border border-slate-600/30">
+                    <div className="relative text-3xl bg-slate-800/50 p-2 rounded-lg border border-slate-600/30">
                       <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
                         {icons[cat as keyof typeof icons]}
                       </span>
-                    </div>
-                    <div className="relative text-center">
-                      <div className="text-3xl bg-slate-800/50 p-2 rounded-lg relative z-10">
-                        🚀
-                        {isActive && (
-                          <span className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-xs px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-lg border border-white/30">
-                            {CATEGORY_LABELS[cat]}
-                          </span>
-                        )}
-                      </div>
+                      {isActive && (
+                        <span className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs px-2 py-1 bg-white/10 backdrop-blur-sm text-white rounded-lg border border-white/20">
+                          {CATEGORY_LABELS[cat]}
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
