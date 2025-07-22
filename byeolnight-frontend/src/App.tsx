@@ -14,16 +14,12 @@ import PostEdit from './pages/PostEdit';
 import PasswordReset from './pages/PasswordReset';
 import ProfileEdit from './pages/ProfileEdit';
 import AdminUserPage from './pages/AdminUserPage';
-import AdminReportedPostsPage from './pages/AdminReportedPostsPage';
 import Unauthorized from './pages/Unauthorized';
-
-
 import Certificates from './pages/Certificates';
 import PasswordChange from './pages/PasswordChange';
 import StellaShop from './pages/StellaShop';
 import PostReport from './pages/PostReport';
 import PointHistory from './pages/PointHistory';
-import AdminReportsPage from './pages/AdminReportsPage';
 import SuggestionList from './pages/SuggestionList';
 import SuggestionCreate from './pages/SuggestionCreate';
 import SuggestionDetail from './pages/SuggestionDetail';
@@ -53,16 +49,6 @@ function App() {
         <Route path="/admin/users" element={
           <ProtectedRoute requireAdmin>
             <AdminUserPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/reports" element={
-          <ProtectedRoute requireAdmin>
-            <AdminReportedPostsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/report-management" element={
-          <ProtectedRoute requireAdmin>
-            <AdminReportsPage />
           </ProtectedRoute>
         } />
 
