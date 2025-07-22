@@ -16,6 +16,15 @@
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
+.category-label-active {
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-weight: bold;
+  text-shadow: none;
+}
+
 .category-label-news {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.7));
   color: white;
