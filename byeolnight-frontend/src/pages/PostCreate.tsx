@@ -49,9 +49,9 @@ export default function PostCreate() {
     try {
       console.log('클립보드 이미지 업로드 및 검열 시작...');
       
-      // 파일 크기 체크 (2MB 제한으로 변경)
-      if (file.size > 2 * 1024 * 1024) {
-        throw new Error('이미지 크기는 2MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
+      // 파일 크기 체크 (10MB 제한으로 변경)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('이미지 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
       }
       
       // 통합된 s3Upload 유틸리티 사용 (검열 과정 포함)
@@ -289,9 +289,9 @@ export default function PostCreate() {
     try {
       console.log('이미지 업로드 및 검열 시작...');
       
-      // 파일 크기 체크 (2MB 제한으로 변경)
-      if (file.size > 2 * 1024 * 1024) {
-        throw new Error('이미지 크기는 2MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
+      // 파일 크기 체크 (10MB 제한으로 변경)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('이미지 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
       }
       
       // 통합된 s3Upload 유틸리티 사용 (검열 과정 포함)
