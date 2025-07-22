@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.io.InputStream;
+import java.net.URL;
 
 @RestController
 @RequestMapping("/api/files")
@@ -116,15 +118,54 @@ public class FileController {
                 return ResponseEntity.badRequest().body(CommonResponse.error("S3 키가 필요합니다."));
             }
             
-            // 이미지 검증 (백그라운드에서 처리)
-            s3Service.checkImageInBackground(imageUrl);
-            
-            // 항상 성공 응답 (실제 검열은 백그라운드에서 진행)
-            return ResponseEntity.ok(CommonResponse.success(Map.of(
-                "status", "processing",
-                "isSafe", true,
-                "message", "이미지 검열이 백그라운드에서 진행 중입니다."
-            )));
+            // 이미지 즉시 검증 (비동기적으로 처리하지 않고 즉시 결과 반환)
+            try {
+                // 이미지 다운로드
+                java.net.URL url = new java.net.URL(imageUrl);
+                java.io.InputStream inputStream = url.openStream();
+                byte[] imageBytes = inputStream.readAllBytes();
+                inputStream.close();
+                
+                // 검사
+                boolean isSafe = s3Service.validateUploadedImage(imageBytes);
+                log.info("이미지 검사 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
+                
+                // 부적절한 경우 삭제
+                if (!isSafe) {
+                    log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
+                    s3Service.deleteObject(s3Key);
+                    log.info("부적절한 이미지 삭제 완료: {}", s3Key);
+                    
+                    return ResponseEntity.ok(CommonResponse.success(Map.of(
+                        "status", "completed",
+                        "isSafe", false,
+                        "message", "부적절한 이미지가 감지되어 삭제되었습니다."
+                    )));
+                }
+                
+                // 안전한 이미지인 경우
+                return ResponseEntity.ok(CommonResponse.success(Map.of(
+                    "status", "completed",
+                    "isSafe", true,
+                    "message", "이미지 검증이 완료되었습니다."
+                )));
+                
+            } catch (Exception e) {
+                log.error("이미지 검증 실패: {}", imageUrl, e);
+                // 오류 발생 시 S3에서 이미지 삭제
+                try {
+                    s3Service.deleteObject(s3Key);
+                    log.info("검증 실패한 이미지 삭제 완료: {}", s3Key);
+                } catch (Exception ex) {
+                    log.error("이미지 삭제 실패: {}", s3Key, ex);
+                }
+                
+                return ResponseEntity.ok(CommonResponse.success(Map.of(
+                    "status", "error",
+                    "isSafe", false,
+                    "message", "이미지 검증 중 오류가 발생했습니다."
+                )));
+            }
         } catch (Exception e) {
             log.error("URL 기반 이미지 검열 오류", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(

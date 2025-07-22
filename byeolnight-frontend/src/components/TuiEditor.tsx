@@ -104,6 +104,7 @@ const TuiEditor = forwardRef(({
           });
           
           if (!moderationResponse.ok) {
+            alert('이미지 검열 실패: ' + moderationResponse.statusText);
             throw new Error('이미지 검열 실패: ' + moderationResponse.statusText);
           }
           
@@ -112,12 +113,16 @@ const TuiEditor = forwardRef(({
           
           // 부적절한 이미지인 경우 예외 발생
           if (moderationResult.data && moderationResult.data.isSafe === false) {
+            alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
             throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
           }
           
           // 검열 통과한 이미지 정보 추출
           const imageData = moderationResult.data;
-          if (imageData && imageData.url) {
+          if (!imageData || !imageData.url) {
+            alert('이미지 URL을 받지 못했습니다.');
+            throw new Error('이미지 URL을 받지 못했습니다.');
+          }
             // URL에 붙어있는 불필요한 텍스트 제거
             let cleanUrl = imageData.url;
             if (cleanUrl.includes('링크그대로만뜨고') || cleanUrl.includes('이미지가 안뜨')) {
