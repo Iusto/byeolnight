@@ -85,10 +85,9 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         const moderationResult = moderationResponse.data;
         console.log('이미지 검열 결과:', moderationResult);
         
-        // 부적절한 이미지인 경우 삭제 및 알림 처리
+        // 부적절한 이미지인 경우 삭제 및 오류 처리 (alert 제거)
         if (moderationResult.data && moderationResult.data.isSafe === false) {
-          // 사용자에게 부적절한 이미지임을 알림
-          alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+          // alert 제거하고 오류만 발생시킴 (호출하는 쪽에서 alert 처리)
           throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
       } catch (err: any) {

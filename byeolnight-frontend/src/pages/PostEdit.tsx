@@ -135,9 +135,13 @@ export default function PostEdit() {
               console.log('상태 업데이트를 통한 이미지 삽입');
               setContent(prev => prev + `![클립보드 이미지](${imageUrl})\n`);
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', error);
-            alert('이미지 업로드에 실패했습니다.');
+            // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+            alert(error.message || '이미지 업로드에 실패했습니다.');
           }
         }
         break;
@@ -218,7 +222,7 @@ export default function PostEdit() {
           console.error('오류 상세:', error.response?.status, error.response?.data);
           console.error('오류 메시지:', error.message);
           
-          const errorMsg = error.response?.data?.message || '이미지 업로드에 실패했습니다.';
+          const errorMsg = error.response?.data?.message || error.message || '이미지 업로드에 실패했습니다.';
           alert(errorMsg);
         } finally {
           setIsImageValidating(false);

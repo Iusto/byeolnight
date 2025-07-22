@@ -364,9 +364,48 @@ export default function PostList() {
     // 게시글 내용에서 첫 번째 이미지 URL 추출
     const extractFirstImageUrl = (content: string) => {
       if (!content) return null;
-      const imgRegex = /<img[^>]+src="([^"]+)"/i;
-      const match = content.match(imgRegex);
-      return match ? match[1] : null;
+      
+      // 다양한 형태의 이미지 태그 처리 (큰따옴표, 작은따옴표 모두 지원)
+      const imgRegexes = [
+        /<img[^>]+src="([^"]+)"/i,  // 큰따옴표
+        /<img[^>]+src='([^']+)'/i,   // 작은따옴표
+        /<img[^>]+src=([^\s>]+)/i    // 따옴표 없는 경우
+      ];
+      
+      // 이미지 태그 처리
+      for (const regex of imgRegexes) {
+        const match = content.match(regex);
+        if (match && match[1]) {
+          // 따옴표 제거 처리
+          let url = match[1];
+          if (url.startsWith('"') && url.endsWith('"')) {
+            url = url.substring(1, url.length - 1);
+          }
+          return url;
+        }
+      }
+      
+      // 이미지 URL이 직접 포함되어 있는 경우 처리
+      const urlRegexes = [
+        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp))/i,
+        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)[^\s]*)/i
+      ];
+      
+      for (const regex of urlRegexes) {
+        const match = content.match(regex);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+      
+      // S3 URL 형태 처리
+      const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
+      const s3Match = content.match(s3Regex);
+      if (s3Match) {
+        return s3Match[0];
+      }
+      
+      return null;
     };
     
     const imgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
@@ -384,11 +423,14 @@ export default function PostList() {
                 alt={post.title} 
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://via.placeholder.com/300x300?text=이미지+없음';
+                  // 이미지 로드 오류 시 기본 이미지로 대체
+                  console.log('이미지 로드 오류:', imgSrc);
+                  e.currentTarget.onerror = null; // 무한 루프 방지
+                  e.currentTarget.src = 'https://via.placeholder.com/300x300?text=우주+이미지';
                 }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700/50 to-purple-900/30">
                 <span className="text-4xl">🌌</span>
               </div>
             )}
@@ -503,74 +545,102 @@ export default function PostList() {
       <div className="max-w-6xl mx-auto px-6 py-8">
 
         {/* 카테고리 선택 */}
-      <div className="text-center mb-7">
+      <div className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-3 flex items-center justify-center gap-2">
-            <span className="text-white text-3xl">🚀</span>
-            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="text-white text-3xl animate-pulse">🚀</span>
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
               게시판 둘러보기
             </span>
           </h2>
-          <p className="text-gray-400 text-sm">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
+          <p className="text-gray-300 text-sm mb-6">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
+          <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
           <Link to="/posts?category=NEWS&sort=recent" className="group">
-            <div className="relative p-4 bg-gradient-to-br from-blue-600/20 to-cyan-600/20 hover:from-blue-600/40 hover:to-cyan-600/40 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-blue-500/25">
+            <div className="relative p-6 bg-gradient-to-br from-blue-600/20 to-cyan-600/20 hover:from-blue-600/40 hover:to-cyan-600/40 rounded-2xl border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 rounded-full"></div>
               <div className="absolute top-2 right-2">
-                <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
+                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">🤖 AI</span>
               </div>
-              <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
-              <div className="text-sm font-medium text-blue-100">우주 뉴스</div>
-              <div className="text-xs text-blue-300 mt-1">자동 수집</div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
+              </div>
+              <div className="text-base font-bold text-blue-100 mb-1">우주 뉴스</div>
+              <div className="text-xs text-blue-300 bg-blue-500/10 rounded-full py-1 px-3 inline-block">자동 수집</div>
             </div>
           </Link>
           <Link to="/posts?category=DISCUSSION&sort=recent" className="group">
-            <div className="relative p-4 bg-gradient-to-br from-green-600/20 to-emerald-600/20 hover:from-green-600/40 hover:to-emerald-600/40 rounded-xl border border-green-500/30 hover:border-green-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-green-500/25">
+            <div className="relative p-6 bg-gradient-to-br from-green-600/20 to-emerald-600/20 hover:from-green-600/40 hover:to-emerald-600/40 rounded-2xl border border-green-500/30 hover:border-green-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-green-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-green-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 rounded-full"></div>
               <div className="absolute top-2 right-2">
-                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
+                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">🤖 AI</span>
               </div>
-              <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
-              <div className="text-sm font-medium text-green-100">토론</div>
-              <div className="text-xs text-green-300 mt-1">주제 생성</div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
+              </div>
+              <div className="text-base font-bold text-green-100 mb-1">토론</div>
+              <div className="text-xs text-green-300 bg-green-500/10 rounded-full py-1 px-3 inline-block">주제 생성</div>
             </div>
           </Link>
           <Link to="/posts?category=IMAGE&sort=recent" className="group">
-            <div className="p-4 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25">
-              <div className="text-3xl mb-2 group-hover:animate-spin" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
-              <div className="text-sm font-medium text-purple-100">별 사진</div>
-              <div className="text-xs text-purple-300 mt-1">갤러리</div>
+            <div className="relative p-6 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-indigo-500/10 rounded-full"></div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-spin">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
+              </div>
+              <div className="text-base font-bold text-purple-100 mb-1">별 사진</div>
+              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">갤러리</div>
             </div>
           </Link>
 
           <Link to="/posts?category=REVIEW&sort=recent" className="group">
-            <div className="p-4 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 hover:from-yellow-600/40 hover:to-orange-600/40 rounded-xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25">
-              <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
-              <div className="text-sm font-medium text-yellow-100">후기</div>
-              <div className="text-xs text-yellow-300 mt-1">리뷰 공유</div>
+            <div className="relative p-6 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 hover:from-yellow-600/40 hover:to-orange-600/40 rounded-2xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-yellow-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-orange-500/10 rounded-full"></div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
+              </div>
+              <div className="text-base font-bold text-yellow-100 mb-1">후기</div>
+              <div className="text-xs text-yellow-300 bg-yellow-500/10 rounded-full py-1 px-3 inline-block">리뷰 공유</div>
             </div>
           </Link>
           <Link to="/posts?category=FREE&sort=recent" className="group">
-            <div className="p-4 bg-gradient-to-br from-pink-600/20 to-rose-600/20 hover:from-pink-600/40 hover:to-rose-600/40 rounded-xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-pink-500/25">
-              <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
-              <div className="text-sm font-medium text-pink-100">자유</div>
-              <div className="text-xs text-pink-300 mt-1">자유 소통</div>
+            <div className="relative p-6 bg-gradient-to-br from-pink-600/20 to-rose-600/20 hover:from-pink-600/40 hover:to-rose-600/40 rounded-2xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-pink-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-pink-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-rose-500/10 rounded-full"></div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-bounce">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
+              </div>
+              <div className="text-base font-bold text-pink-100 mb-1">자유</div>
+              <div className="text-xs text-pink-300 bg-pink-500/10 rounded-full py-1 px-3 inline-block">자유 소통</div>
             </div>
           </Link>
           <Link to="/posts?category=NOTICE&sort=recent" className="group">
-            <div className="p-4 bg-gradient-to-br from-red-600/20 to-orange-600/20 hover:from-red-600/40 hover:to-orange-600/40 rounded-xl border border-red-500/30 hover:border-red-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-red-500/25">
-              <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
-              <div className="text-sm font-medium text-red-100">공지</div>
-              <div className="text-xs text-red-300 mt-1">중요 안내</div>
+            <div className="relative p-6 bg-gradient-to-br from-red-600/20 to-orange-600/20 hover:from-red-600/40 hover:to-orange-600/40 rounded-2xl border border-red-500/30 hover:border-red-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-red-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-red-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-orange-500/10 rounded-full"></div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-red-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
+              </div>
+              <div className="text-base font-bold text-red-100 mb-1">공지</div>
+              <div className="text-xs text-red-300 bg-red-500/10 rounded-full py-1 px-3 inline-block">중요 안내</div>
             </div>
           </Link>
           <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group">
-            <div className="relative p-4 bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative p-6 bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden h-full">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/10 rounded-full"></div>
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 rounded-full"></div>
               <div className="absolute top-2 right-2">
-                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
+                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">🤖 AI</span>
               </div>
-              <div className="text-3xl mb-2 relative z-10 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
-              <div className="text-sm font-medium relative z-10 text-purple-100">별빛 시네마</div>
-              <div className="text-xs text-purple-300 mt-1 relative z-10">영상 큐레이션</div>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
+                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
+              </div>
+              <div className="text-base font-bold text-purple-100 mb-1">별빛 시네마</div>
+              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">영상 큐레이션</div>
             </div>
           </Link>
         </div>

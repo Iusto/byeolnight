@@ -164,6 +164,10 @@ export default function PostCreate() {
             insertImageToEditor(imageData.url, '클립보드 이미지');
           } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', error);
+            // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
             alert(error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
           }
           break;
@@ -319,13 +323,13 @@ export default function PostCreate() {
     } catch (error: any) {
       console.error('이미지 업로드 오류:', error);
       const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
-      alert(errorMsg);
       
-      // 오류 메시지 표시
+      // 오류 메시지 표시 - alert는 한 번만 호출
       setValidationAlert({
         message: errorMsg,
         type: 'error'
       });
+      alert(errorMsg);
     } finally {
       setIsImageValidating(false);
       // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
