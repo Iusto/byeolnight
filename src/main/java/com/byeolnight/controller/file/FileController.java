@@ -95,40 +95,37 @@ public class FileController {
             )));
         }
     }
-    
-    @Operation(summary = "이미지 직접 검열", description = "업로드된 이미지를 직접 검열합니다. 부적절한 이미지는 자동으로 삭제됩니다.")
-    @PostMapping("/moderate-image")
-    public ResponseEntity<CommonResponse<Map<String, Object>>> moderateImage(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestParam(value = "needsModeration", defaultValue = "true") boolean needsModeration) {
+
+    @Operation(summary = "URL 기반 이미지 검열", description = "업로드된 이미지의 URL을 기반으로 검열합니다. 부적절한 이미지는 자동으로 삭제됩니다.")
+    @PostMapping("/moderate-url")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> moderateUrl(
+            @RequestParam("imageUrl") String imageUrl,
+            @RequestParam("s3Key") String s3Key) {
         
         try {
-            if (!needsModeration) {
-                return ResponseEntity.ok(CommonResponse.success(Map.of(
-                    "status", "skipped",
-                    "isSafe", true,
-                    "message", "검열이 요청되지 않았습니다."
-                )));
+            log.info("URL 기반 이미지 검열 시작: {}", s3Key);
+            
+            // URL 유효성 검사
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("이미지 URL이 필요합니다."));
             }
             
-            // 파일 유효성 검사
-            if (file == null || file.isEmpty()) {
-                return ResponseEntity.badRequest().body(CommonResponse.error("파일이 없습니다."));
+            // S3 키 유효성 검사
+            if (s3Key == null || s3Key.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("S3 키가 필요합니다."));
             }
             
-            // 이미지 검증
-            byte[] imageBytes = file.getBytes();
-            boolean isSafe = s3Service.validateUploadedImage(imageBytes);
+            // 이미지 검증 (백그라운드에서 처리)
+            s3Service.checkImageInBackground(imageUrl);
             
-            log.info("이미지 직접 검열 결과: {} -> {}", file.getOriginalFilename(), isSafe ? "안전" : "부적절");
-            
+            // 항상 성공 응답 (실제 검열은 백그라운드에서 진행)
             return ResponseEntity.ok(CommonResponse.success(Map.of(
-                "status", "completed",
-                "isSafe", isSafe,
-                "message", isSafe ? "이미지가 안전합니다." : "부적절한 이미지가 감지되었습니다."
+                "status", "processing",
+                "isSafe", true,
+                "message", "이미지 검열이 백그라운드에서 진행 중입니다."
             )));
         } catch (Exception e) {
-            log.error("이미지 직접 검열 오류", e);
+            log.error("URL 기반 이미지 검열 오류", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
                 "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
             ));
