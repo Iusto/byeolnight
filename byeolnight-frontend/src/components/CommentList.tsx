@@ -104,6 +104,19 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     }
   };
 
+  // 관리자용 댓글 블라인드 처리/해제 함수
+  const handleBlindToggle = async (id: number, currentBlindStatus: boolean) => {
+    try {
+      await axios.patch(`/admin/comments/${id}/blind`, null, {
+        params: { blind: !currentBlindStatus }
+      });
+      alert(currentBlindStatus ? '블라인드가 해제되었습니다.' : '블라인드 처리되었습니다.');
+      onRefresh();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '블라인드 처리 실패');
+    }
+  };
+
   // 댓글 렌더링 함수
   const renderComment = (c: Comment) => (
     <>
@@ -236,6 +249,20 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                     삭제
                   </button>
                 </div>
+              )}
+              
+              {/* 블라인드 처리/해제 버튼 - 관리자만 */}
+              {user?.role === 'ADMIN' && (
+                <button
+                  onClick={() => handleBlindToggle(c.id, c.blinded)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                    c.blinded
+                      ? 'bg-green-600/30 text-green-300 hover:bg-green-600/50 border border-green-600/30'
+                      : 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/50 border border-purple-600/30'
+                  }`}
+                >
+                  {c.blinded ? '해제' : '블라인드'}
+                </button>
               )}
             </div>
           </div>
