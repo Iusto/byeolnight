@@ -11,7 +11,13 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_messages")
+@Table(
+    name = "chat_messages",
+    indexes = {
+        @Index(name = "idx_chat_room_timestamp", columnList = "roomId, timestamp"),
+        @Index(name = "idx_chat_timestamp", columnList = "timestamp")
+    }
+)
 @Getter
 @Builder
 @NoArgsConstructor
