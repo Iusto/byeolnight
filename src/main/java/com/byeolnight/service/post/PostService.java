@@ -353,25 +353,6 @@ public class PostService {
     }
 
     @Transactional
-    public void blindPost(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
-        
-        // 블라인드 로그 기록
-        deleteLogService.logDeletion(
-            postId,
-            DeleteLog.TargetType.POST,
-            DeleteLog.ActionType.BLIND,
-            null, // 시스템 블라인드
-            "신고로 인한 블라인드",
-            post.getTitle() + ": " + post.getContent()
-        );
-        
-        post.blind();
-        pointService.applyPenalty(post.getWriter(), "게시글 블라인드 처리", postId.toString());
-    }
-
-    @Transactional
     public void blindPostByAdmin(Long postId, Long adminId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
@@ -399,58 +380,11 @@ public class PostService {
         post.unblind();
     }
 
-    @Transactional
-    public void deletePostPermanently(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
-        
-        // 영구 삭제 로그 기록
-        deleteLogService.logDeletion(
-            postId,
-            DeleteLog.TargetType.POST,
-            DeleteLog.ActionType.PERMANENT_DELETE,
-            null, // 시스템 삭제
-            "영구 삭제",
-            post.getTitle() + ": " + post.getContent()
-        );
-        
-        pointService.applyPenalty(post.getWriter(), "게시글 삭제", postId.toString());
-        
-        List<File> files = fileRepository.findAllByPost(post);
-        files.forEach(file -> s3Service.deleteObject(file.getS3Key()));
-        fileRepository.deleteAllByPost(post);
-        
-        postRepository.delete(post);
-    }
-
     private void validateAdminCategoryWrite(Post.Category category, User user) {
         if ((category == Post.Category.NEWS || category == Post.Category.NOTICE)
                 && user.getRole() != User.Role.ADMIN) {
             throw new IllegalArgumentException("해당 카테고리의 게시글은 관리자만 작성할 수 있습니다.");
         }
-    }
-
-    @Transactional
-    public void createNewsPost(String title, String content, Post.Category category, User writer) {
-        Post post = Post.builder()
-                .title(title)
-                .content(content)
-                .category(category)
-                .writer(writer)
-                .build();
-        postRepository.save(post);
-    }
-
-    @Transactional(readOnly = true)
-    public List<com.byeolnight.dto.admin.ReportedPostDetailDto> getReportedPosts() {
-        return postRepository.findReportedPosts().stream()
-                .map(p -> {
-                    long reportCount = postReportRepository.countByPost(p);
-                    List<String> reportReasons = postReportRepository.findReasonsByPost(p);
-                    List<com.byeolnight.domain.entity.post.PostReport> reportDetails = postReportRepository.findDetailsByPost(p);
-                    return com.byeolnight.dto.admin.ReportedPostDetailDto.of(p, reportCount, reportReasons, reportDetails);
-                })
-                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -466,24 +400,6 @@ public class PostService {
                     long commentCount = commentRepository.countByPostId(post.getId());
                     return PostDto.Response.from(post, likeCount, commentCount);
                 })
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<com.byeolnight.dto.comment.CommentAdminDto> getBlindedComments() {
-        return commentRepository.findByBlindedTrueOrderByCreatedAtDesc().stream()
-                .map(comment -> com.byeolnight.dto.comment.CommentAdminDto.builder()
-                        .id(comment.getId())
-                        .content(comment.getContent())
-                        .originalContent(comment.getOriginalContent())
-                        .writer(comment.getWriter().getNickname())
-                        .postTitle(comment.getPost().getTitle())
-                        .postId(comment.getPost().getId())
-                        .blinded(comment.isBlinded())
-                        .deleted(comment.isDeleted())
-                        .createdAt(comment.getCreatedAt())
-                        .blindedAt(comment.getBlindedAt())
-                        .build())
                 .toList();
     }
 
@@ -505,51 +421,6 @@ public class PostService {
                         .deletedAt(post.getDeletedAt())
                         .build())
                 .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<com.byeolnight.dto.comment.CommentAdminDto> getDeletedComments() {
-        return commentRepository.findByDeletedTrueOrderByCreatedAtDesc().stream()
-                .map(comment -> com.byeolnight.dto.comment.CommentAdminDto.builder()
-                        .id(comment.getId())
-                        .content(comment.getContent())
-                        .originalContent(comment.getOriginalContent())
-                        .writer(comment.getWriter().getNickname())
-                        .postTitle(comment.getPost().getTitle())
-                        .postId(comment.getPost().getId())
-                        .blinded(comment.isBlinded())
-                        .deleted(comment.isDeleted())
-                        .createdAt(comment.getCreatedAt())
-                        .deletedAt(comment.getDeletedAt())
-                        .blindedAt(comment.getBlindedAt())
-                        .build())
-                .toList();
-    }
-
-    @Transactional
-    public void blindComment(Long commentId) {
-        com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
-        
-        // 댓글 블라인드 로그 기록
-        deleteLogService.logDeletion(
-            commentId,
-            DeleteLog.TargetType.COMMENT,
-            DeleteLog.ActionType.BLIND,
-            null, // 시스템 블라인드
-            "관리자 블라인드",
-            comment.getContent()
-        );
-        
-        comment.blind();
-        pointService.applyPenalty(comment.getWriter(), "댓글 블라인드 처리", commentId.toString());
-    }
-
-    @Transactional
-    public void unblindComment(Long commentId) {
-        com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
-        comment.unblind();
     }
 
     @Transactional

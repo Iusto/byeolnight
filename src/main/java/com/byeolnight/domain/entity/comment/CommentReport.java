@@ -23,7 +23,7 @@ public class CommentReport {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
-    private User user;
+    private User user;  // 신고자
 
     @Column(nullable = false, length = 255)
     private String reason; // 사용자 입력 신고 사유

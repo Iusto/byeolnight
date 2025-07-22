@@ -168,17 +168,15 @@ public class Post {
     public void increaseReportCount() {
         this.reportCount++;
     }
-
-    public void decreaseReportCount() {
-        if (this.reportCount > 0) {
-            this.reportCount--;
-        }
+    
+    public void decreaseReportCountBy(int count) {
+        if (count <= 0) return;
+        this.reportCount = Math.max(0, this.reportCount - count);
     }
 
     public void pin() {
         this.pinned = true;
-    }
-
+    }   // TODO: 게시글 상단 고정 필요 시
     public void unpin() {
         this.pinned = false;
     }

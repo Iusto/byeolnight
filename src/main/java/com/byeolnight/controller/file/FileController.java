@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -126,6 +127,63 @@ public class FileController {
             )));
         } catch (Exception e) {
             log.error("URL 기반 이미지 검열 오류", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
+                "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+    
+    @Operation(summary = "클립보드 이미지 직접 검열", description = "클립보드에서 붙여넣은 이미지를 직접 검열하고 업로드합니다.")
+    @PostMapping("/moderate-direct")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> moderateDirect(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "needsModeration", defaultValue = "true") boolean needsModeration) {
+        
+        try {
+            if (!needsModeration) {
+                return ResponseEntity.ok(CommonResponse.success(Map.of(
+                    "status", "skipped",
+                    "isSafe", true,
+                    "message", "검열이 요청되지 않았습니다."
+                )));
+            }
+            
+            // 파일 유효성 검사
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("파일이 없습니다."));
+            }
+            
+            // 이미지 검증
+            byte[] imageBytes = file.getBytes();
+            boolean isSafe = s3Service.validateUploadedImage(imageBytes);
+            
+            if (!isSafe) {
+                log.warn("부적절한 이미지 감지: {}", file.getOriginalFilename());
+                return ResponseEntity.ok(CommonResponse.success(Map.of(
+                    "status", "completed",
+                    "isSafe", false,
+                    "message", "부적절한 이미지가 감지되었습니다."
+                )));
+            }
+            
+            // 안전한 이미지는 S3에 업로드
+            Map<String, String> uploadResult = s3Service.uploadImageWithValidation(file);
+            
+            log.info("이미지 직접 검열 및 업로드 성공: {} -> {}", file.getOriginalFilename(), uploadResult.get("url"));
+            
+            // 업로드 결과와 함께 검열 결과 반환
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "completed");
+            result.put("isSafe", true);
+            result.put("url", uploadResult.get("url"));
+            result.put("s3Key", uploadResult.get("s3Key"));
+            result.put("originalName", file.getOriginalFilename());
+            result.put("contentType", file.getContentType());
+            result.put("message", "이미지가 안전합니다.");
+            
+            return ResponseEntity.ok(CommonResponse.success(result));
+        } catch (Exception e) {
+            log.error("이미지 직접 검열 오류", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
                 "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
             ));

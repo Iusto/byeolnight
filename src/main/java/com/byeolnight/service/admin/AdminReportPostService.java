@@ -1,21 +1,17 @@
 package com.byeolnight.service.admin;
 
-import com.byeolnight.domain.entity.comment.Comment;
-import com.byeolnight.domain.entity.comment.CommentReport;
 import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.post.PostReport;
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.comment.CommentReportRepository;
 import com.byeolnight.domain.repository.post.PostReportRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
-import com.byeolnight.dto.admin.ReportedCommentDetailDto;
 import com.byeolnight.dto.admin.ReportedPostDetailDto;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +23,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AdminReportService {
+public class AdminReportPostService {
 
     private final PostReportRepository postReportRepository;
-    private final CommentReportRepository commentReportRepository;
     private final PointService pointService;
     private final UserRepository userRepository;
     private final CertificateService certificateService;
@@ -181,155 +176,9 @@ public class AdminReportService {
             }
         }
         
-        // 거부된 신고 수만큼 게시글의 신고수 감소
-        for (int i = 0; i < rejectedCount; i++) {
-            post.decreaseReportCount();
-        }
-    }
-    
-    /**
-     * 신고된 댓글 목록 조회
-     */
-    public Page<ReportedCommentDetailDto> getReportedComments(int page, int size) {
-        // 모든 신고를 가져와서 처리 상태를 명확히 표시하도록 수정
-        List<CommentReport> commentReports = commentReportRepository.findAll();
-        
-        // 댓글별로 그룹화
-        Map<Comment, List<CommentReport>> groupedReports = commentReports.stream()
-                .filter(report -> !report.getComment().isDeleted())
-                .collect(Collectors.groupingBy(CommentReport::getComment));
-        
-        List<ReportedCommentDetailDto> reportedComments = groupedReports.entrySet().stream()
-                .map(entry -> {
-                    Comment comment = entry.getKey();
-                    List<CommentReport> reports = entry.getValue();
-                    
-                    List<ReportedCommentDetailDto.ReportDetail> reportDetails = reports.stream()
-                            .map(report -> ReportedCommentDetailDto.ReportDetail.builder()
-                                    .reportId(report.getId())
-                                    .reporterNickname(report.getUser().getNickname())
-                                    .reason(report.getReason())
-                                    .description(report.getDescription())
-                                    .reviewed(report.isReviewed())
-                                    .accepted(report.isAccepted())
-                                    .reportedAt(report.getCreatedAt())
-                                    .build())
-                            .collect(Collectors.toList());
-                    
-                    List<String> reasons = reports.stream()
-                            .map(CommentReport::getReason)
-                            .collect(Collectors.toList());
-                    
-                    // 모든 신고가 이미 처리되었는지 확인
-                    boolean allProcessed = reports.stream().allMatch(CommentReport::isReviewed);
-                    
-                    return ReportedCommentDetailDto.builder()
-                            .commentId(comment.getId())
-                            .content(comment.getContent())
-                            .writer(comment.getWriter().getNickname())
-                            .postId(comment.getPost().getId())
-                            .postTitle(comment.getPost().getTitle())
-                            .createdAt(comment.getCreatedAt())
-                            .blinded(comment.isBlinded())
-                            .reportCount(reports.size())
-                            .reportReasons(reasons)
-                            .reportDetails(reportDetails)
-                            .allProcessed(allProcessed) // 모든 신고가 처리되었는지 여부 추가
-                            .build();
-                })
-                .sorted((a, b) -> {
-                    // 처리되지 않은 신고를 먼저 보여주고, 그 다음 신고 수 많은 순
-                    if (a.isAllProcessed() != b.isAllProcessed()) {
-                        return a.isAllProcessed() ? 1 : -1;
-                    }
-                    return b.getReportCount() - a.getReportCount();
-                })
-                .collect(Collectors.toList());
-        
-        // 페이징 처리
-        int start = page * size;
-        int end = Math.min(start + size, reportedComments.size());
-        
-        if (start > reportedComments.size()) {
-            start = 0;
-            end = 0;
-        }
-        
-        List<ReportedCommentDetailDto> pagedList = reportedComments.subList(start, end);
-        
-        return new PageImpl<>(pagedList, PageRequest.of(page, size), reportedComments.size());
-    }
-    
-    /**
-     * 댓글 신고 승인 - 해당 댓글의 모든 신고자에게 포인트 지급
-     */
-    @Transactional
-    public void approveCommentReport(Long reportId, Long adminId) {
-        CommentReport report = commentReportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("신고를 찾을 수 없습니다."));
-        
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
-        
-        // 해당 댓글의 모든 신고 조회
-        List<CommentReport> allReportsForComment = commentReportRepository.findByComment(report.getComment());
-        
-        // 모든 신고를 검토 완료로 처리하고 승인
-        for (CommentReport commentReport : allReportsForComment) {
-            if (!commentReport.isReviewed()) {
-                commentReport.approve(admin);
-                commentReportRepository.save(commentReport);
-                
-                // 각 신고자에게 포인트 지급
-                pointService.awardValidReportPoints(commentReport.getUser(), commentReport.getComment().getId().toString());
-                
-                // 신고자에게 인증서 발급 체크
-                try {
-                    certificateService.checkAndIssueCertificates(commentReport.getUser(), 
-                        CertificateService.CertificateCheckType.REPORT_APPROVED);
-                } catch (Exception e) {
-                    System.err.println("신고 승인 인증서 발급 실패: " + e.getMessage());
-                }
-            }
-        }
-        
-        // 댓글 블라인드 처리
-        Comment comment = report.getComment();
-        comment.blind();
-    }
-    
-    /**
-     * 댓글 신고 거부 - 해당 댓글의 모든 신고를 거부 처리
-     */
-    @Transactional
-    public void rejectCommentReport(Long reportId, Long adminId, String reason) {
-        CommentReport report = commentReportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("신고를 찾을 수 없습니다."));
-        
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
-        
-        Comment comment = report.getComment();
-        
-        // 해당 댓글의 모든 신고 조회
-        List<CommentReport> allReportsForComment = commentReportRepository.findByComment(comment);
-        
-        // 모든 신고를 검토 완료로 처리하고 거부
-        int rejectedCount = 0;
-        for (CommentReport commentReport : allReportsForComment) {
-            if (!commentReport.isReviewed()) {
-                commentReport.reject(admin, reason);
-                commentReportRepository.save(commentReport);
-                rejectedCount++;
-                
-                // 허위 신고 페널티 적용
-                pointService.applyPenalty(commentReport.getUser(), "허위 신고", commentReport.getId().toString());
-            }
-        }
-        
-        // 거부된 신고 수만큼 댓글의 신고수 감소
-        for (int i = 0; i < rejectedCount; i++) {
-            comment.decreaseReportCount();
+        // 거부된 신고 수만큼 게시글의 신고수 한 번에 감소
+        if (rejectedCount > 0) {
+            post.decreaseReportCountBy(rejectedCount);
         }
     }
 }

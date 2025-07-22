@@ -239,7 +239,12 @@ export default function AdminUserPage() {
 
   const handleApproveReport = async (reportId: number) => {
     try {
-      await axios.patch(`/admin/reports/${reportId}/approve`);
+      // 선택된 신고 타입에 따라 다른 엔드포인트 호출
+      if (selectedReportPost) {
+        await axios.post(`/admin/reports/${reportId}/approve`);
+      } else if (selectedReportComment) {
+        await axios.post(`/admin/comment-reports/${reportId}/approve`);
+      }
       alert('신고가 승인되었습니다. 신고자들에게 포인트가 지급되었습니다.');
       fetchReportedPosts();
       fetchReportedComments();
@@ -251,7 +256,12 @@ export default function AdminUserPage() {
 
   const handleRejectReport = async (reportId: number, reason: string) => {
     try {
-      await axios.patch(`/admin/reports/${reportId}/reject`, { reason });
+      // 선택된 신고 타입에 따라 다른 엔드포인트 호출
+      if (selectedReportPost) {
+        await axios.post(`/admin/reports/${reportId}/reject`, { reason });
+      } else if (selectedReportComment) {
+        await axios.post(`/admin/comment-reports/${reportId}/reject`, { reason });
+      }
       alert('신고가 거부되었습니다.');
       fetchReportedPosts();
       fetchReportedComments();

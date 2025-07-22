@@ -94,10 +94,6 @@ public class Comment {
         return this.blinded;
     }
 
-    public boolean isDeleted() {
-        return this.deleted;
-    }
-
     // ✅ 댓글 소프트 삭제 (사용자용 - 원본 내용 보존)
     public void softDelete() {
         this.deleted = true;
@@ -109,12 +105,6 @@ public class Comment {
         this.content = "이 댓글은 삭제되었습니다.";
     }
 
-    // ✅ 댓글 관리자 삭제 (내용 보존)
-    public void adminDelete() {
-        this.deleted = true;
-        this.deletedAt = LocalDateTime.now();
-        // 내용은 보존 (관리자가 확인할 수 있도록)
-    }
 
     // ✅ 댓글 복구
     public void restore() {
@@ -126,11 +116,7 @@ public class Comment {
             this.originalContent = null;
         }
     }
-    
-    // 원본 내용 조회 (관리자용)
-    public String getOriginalContent() {
-        return this.originalContent != null ? this.originalContent : this.content;
-    }
+
 
     // 좋아요 수 증가
     public void increaseLikeCount() {
@@ -149,11 +135,11 @@ public class Comment {
         this.reportCount++;
     }
 
-    // 신고 수 감소
-    public void decreaseReportCount() {
-        if (this.reportCount > 0) {
-            this.reportCount--;
-        }
+
+    // 신고 수 여러 개 감소
+    public void decreaseReportCountBy(int count) {
+        if (count <= 0) return;
+        this.reportCount = Math.max(0, this.reportCount - count);
     }
 
     // 인기 댓글 여부 (5개 이상 좋아요)

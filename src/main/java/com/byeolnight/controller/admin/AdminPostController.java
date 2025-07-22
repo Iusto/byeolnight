@@ -2,7 +2,7 @@ package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.service.post.PostService;
-import com.byeolnight.service.admin.AdminReportService;
+import com.byeolnight.service.admin.AdminReportPostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -24,7 +24,7 @@ import java.util.List;
 public class AdminPostController {
 
     private final PostService postService;
-    private final AdminReportService adminReportService;
+    private final AdminReportPostService adminReportPostService;
 
     @Operation(summary = "블라인드 게시글 전체 조회", description = "관리자가 블라인드 처리된 게시글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
@@ -72,7 +72,7 @@ public class AdminPostController {
             @RequestParam(required = false, defaultValue = "title") String searchType,
             Pageable pageable
     ) {
-        var result = adminReportService.getReportedPosts(search, searchType, pageable);
+        var result = adminReportPostService.getReportedPosts(search, searchType, pageable);
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result.getContent()));
     }
 
