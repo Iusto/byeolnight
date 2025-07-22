@@ -111,13 +111,13 @@ public class CertificateService {
         }
     }
 
-    // 🛰️ 별빛 수호자 인증서 (게시글 신고 3회 이상 + 1건 이상 관리자 승인)
+    // 🛰️ 별빛 수호자 인증서 (게시글 신고 5회 이상 + 3건 이상 관리자 승인)
     private void checkGuardian(User user) {
         if (!hasUserCertificate(user, Certificate.CertificateType.GUARDIAN)) {
             long totalReports = postReportRepository.countByUser(user);
             long approvedReports = postReportRepository.countApprovedReportsByUser(user);
             
-            if (totalReports >= 3 && approvedReports >= 1) {
+            if (totalReports >= 5 && approvedReports >= 3) {
                 issueCertificate(user, Certificate.CertificateType.GUARDIAN);
             }
         }
@@ -138,7 +138,7 @@ public class CertificateService {
     @Transactional
     public void issueCertificate(User user, Certificate.CertificateType certificateType) {
         if (user == null) {
-            log.warn("사용자가 null입니다. 인증서 발급을 건너뛁니다.");
+            log.warn("사용자가 null입니다. 인증서 발급을 건너뜁니다.");
             return;
         }
         

@@ -61,4 +61,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      * 댓글 내용에 특정 문자열이 포함된 댓글 존재 여부 확인 (S3 파일 사용 여부 체크용)
      */
     boolean existsByContentContaining(String content);
+    
+    /**
+     * 신고 수가 특정 값 이상인 댓글 조회
+     */
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.writer LEFT JOIN FETCH c.post WHERE c.reportCount > :count ORDER BY c.reportCount DESC, c.createdAt DESC")
+    List<Comment> findByReportCountGreaterThanOrderByReportCountDesc(@Param("count") int count);
 }

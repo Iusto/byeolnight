@@ -85,7 +85,7 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         const moderationResult = moderationResponse.data;
         console.log('이미지 검열 결과:', moderationResult);
         
-        // 부적절한 이미지인 경우 예외 발생
+        // 부적절한 이미지인 경우 삭제 및 알림 처리
         if (moderationResult.data && moderationResult.data.isSafe === false) {
           // S3에서 이미지 삭제 요청
           try {
@@ -97,6 +97,8 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
             console.error('이미지 삭제 실패:', deleteErr);
           }
           
+          // 사용자에게 부적절한 이미지임을 알림
+          alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
           throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
       } catch (err: any) {
