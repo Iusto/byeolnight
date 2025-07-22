@@ -260,56 +260,77 @@ export default function PostList() {
 
         {/* 카테고리 선택 */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-bold text-center mb-6">
-              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📚</span> <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">게시판 카테고리</span>
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-              {Object.keys(CATEGORY_LABELS).map((cat) => {
-                const icons = {
-                  NEWS: '🚀',
-                  DISCUSSION: '💬',
-                  IMAGE: '🌌',
-                  REVIEW: '⭐',
-                  FREE: '🎈',
-                  NOTICE: '📢',
-                  STARLIGHT_CINEMA: '🎬'
-                };
-                const isActive = category === cat;
-                const isAI = ['NEWS', 'DISCUSSION', 'STARLIGHT_CINEMA'].includes(cat);
-                return (
-                  <button
-                    key={`category-${cat}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleCategoryChange(cat);
-                    }}
-                    type="button"
-                    className={`relative p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-105 select-none ${
-                      isActive
-                        ? 'bg-gradient-to-br from-purple-600/50 to-pink-600/50 border-2 border-purple-400/50 text-white shadow-xl shadow-purple-500/25' 
-                        : 'bg-gradient-to-br from-slate-700/30 to-slate-800/30 border border-slate-600/30 text-gray-300 hover:from-slate-600/40 hover:to-slate-700/40 hover:border-slate-500/50 shadow-lg'
-                    }`}
-                  >
-                    {isAI && (
-                      <div className="absolute -top-1 -right-1">
-                        <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖</span>
-                      </div>
-                    )}
-                    <div className="h-28 w-full flex flex-col items-center justify-center relative">
-                      <div className="text-4xl pb-10">{icons[cat]}</div>
-                      {isActive && (
-                        <span className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs px-2 py-1 bg-white/10 backdrop-blur-md text-white rounded-md border border-white/20 shadow">
-                          {CATEGORY_LABELS[cat]}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+          <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold mb-3 flex items-center justify-center gap-2">
+                <span className="text-white text-3xl">🚀</span>
+                <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  게시판 둘러보기
+                </span>
+              </h2>
+              <p className="text-gray-400 text-sm">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
             </div>
-          </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+              <Link to="/posts?category=NEWS&sort=recent" className="group">
+                <div className="relative p-4 bg-gradient-to-br from-blue-600/20 to-cyan-600/20 hover:from-blue-600/40 hover:to-cyan-600/40 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-blue-500/25">
+                  <div className="absolute top-2 right-2">
+                    <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
+                  </div>
+                  <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
+                  <div className="text-sm font-medium text-blue-100">우주 뉴스</div>
+                  <div className="text-xs text-blue-300 mt-1">자동 수집</div>
+                </div>
+              </Link>
+              <Link to="/posts?category=DISCUSSION&sort=recent" className="group">
+                <div className="relative p-4 bg-gradient-to-br from-green-600/20 to-emerald-600/20 hover:from-green-600/40 hover:to-emerald-600/40 rounded-xl border border-green-500/30 hover:border-green-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-green-500/25">
+                  <div className="absolute top-2 right-2">
+                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
+                  </div>
+                  <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
+                  <div className="text-sm font-medium text-green-100">토론</div>
+                  <div className="text-xs text-green-300 mt-1">주제 생성</div>
+                </div>
+              </Link>
+              <Link to="/posts?category=IMAGE&sort=recent" className="group">
+                <div className="p-4 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25">
+                  <div className="text-3xl mb-2 group-hover:animate-spin" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
+                  <div className="text-sm font-medium text-purple-100">별 사진</div>
+                  <div className="text-xs text-purple-300 mt-1">갤러리</div>
+                </div>
+              </Link>
+
+              <Link to="/posts?category=REVIEW&sort=recent" className="group">
+                <div className="p-4 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 hover:from-yellow-600/40 hover:to-orange-600/40 rounded-xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25">
+                  <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
+                  <div className="text-sm font-medium text-yellow-100">후기</div>
+                  <div className="text-xs text-yellow-300 mt-1">리뷰 공유</div>
+                </div>
+              </Link>
+              <Link to="/posts?category=FREE&sort=recent" className="group">
+                <div className="p-4 bg-gradient-to-br from-pink-600/20 to-rose-600/20 hover:from-pink-600/40 hover:to-rose-600/40 rounded-xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-pink-500/25">
+                  <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
+                  <div className="text-sm font-medium text-pink-100">자유</div>
+                  <div className="text-xs text-pink-300 mt-1">자유 소통</div>
+                </div>
+              </Link>
+              <Link to="/posts?category=NOTICE&sort=recent" className="group">
+                <div className="p-4 bg-gradient-to-br from-red-600/20 to-orange-600/20 hover:from-red-600/40 hover:to-orange-600/40 rounded-xl border border-red-500/30 hover:border-red-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-red-500/25">
+                  <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
+                  <div className="text-sm font-medium text-red-100">공지</div>
+                  <div className="text-xs text-red-300 mt-1">중요 안내</div>
+                </div>
+              </Link>
+              <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group">
+                <div className="relative p-4 bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="absolute top-2 right-2">
+                    <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
+                  </div>
+                  <div className="text-3xl mb-2 relative z-10 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
+                  <div className="text-sm font-medium relative z-10 text-purple-100">별빛 시네마</div>
+                  <div className="text-xs text-purple-300 mt-1 relative z-10">영상 큐레이션</div>
+                </div>
+              </Link>
+            </div>
         </div>
 
         {/* 게시판별 이용안내 배너 */}
