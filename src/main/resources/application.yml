@@ -19,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -96,7 +96,7 @@ newsdata:
 # 뉴스 수집 설정
 news:
   collection:
-    max-posts: 2
+    max-posts: 1
     similarity-threshold: 0.6
     similarity-check-days: 7
   quality:

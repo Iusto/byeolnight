@@ -946,9 +946,9 @@ export default function AdminUserPage() {
                   </colgroup>
                   <thead className="bg-[#2a2e45]">
                     <tr>
-                      <th className="px-4 py-4 text-left">제목</th>
+                      <th className="px-3 py-4 text-left">제목</th>
                       <th className="px-3 py-4 text-left">작성자</th>
-                      <th className="px-3 py-4 text-left">카테고리</th>
+                      <th className="px-4 py-4 text-left">카테고리</th>
                       <th className="px-3 py-4 text-center">신고수</th>
                       <th className="px-3 py-4 text-center">상태</th>
                       <th className="px-3 py-4 text-center">작성일</th>

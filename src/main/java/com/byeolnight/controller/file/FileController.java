@@ -94,4 +94,60 @@ public class FileController {
             )));
         }
     }
+    
+    @Operation(summary = "이미지 직접 검열", description = "업로드된 이미지를 직접 검열합니다. 부적절한 이미지는 자동으로 삭제됩니다.")
+    @PostMapping("/moderate-image")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> moderateImage(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "needsModeration", defaultValue = "true") boolean needsModeration) {
+        
+        try {
+            if (!needsModeration) {
+                return ResponseEntity.ok(CommonResponse.success(Map.of(
+                    "status", "skipped",
+                    "isSafe", true,
+                    "message", "검열이 요청되지 않았습니다."
+                )));
+            }
+            
+            // 파일 유효성 검사
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body(CommonResponse.error("파일이 없습니다."));
+            }
+            
+            // 이미지 검증
+            byte[] imageBytes = file.getBytes();
+            boolean isSafe = s3Service.validateUploadedImage(imageBytes);
+            
+            log.info("이미지 직접 검열 결과: {} -> {}", file.getOriginalFilename(), isSafe ? "안전" : "부적절");
+            
+            return ResponseEntity.ok(CommonResponse.success(Map.of(
+                "status", "completed",
+                "isSafe", isSafe,
+                "message", isSafe ? "이미지가 안전합니다." : "부적절한 이미지가 감지되었습니다."
+            )));
+        } catch (Exception e) {
+            log.error("이미지 직접 검열 오류", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
+                "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+    
+    @Operation(summary = "S3 이미지 삭제", description = "S3에 업로드된 이미지를 삭제합니다.")
+    @DeleteMapping("/delete")
+    public ResponseEntity<CommonResponse<Void>> deleteImage(
+            @RequestParam("s3Key") String s3Key) {
+        
+        try {
+            log.info("S3 이미지 삭제 요청: {}", s3Key);
+            s3Service.deleteObject(s3Key);
+            return ResponseEntity.ok(CommonResponse.success(null, "이미지가 성공적으로 삭제되었습니다."));
+        } catch (Exception e) {
+            log.error("S3 이미지 삭제 오류", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
+                "이미지 삭제 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
 }
