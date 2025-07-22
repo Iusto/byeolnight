@@ -3,12 +3,16 @@ package com.byeolnight.service.comment;
 import com.byeolnight.domain.entity.comment.Comment;
 import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.domain.repository.comment.CommentLikeRepository;
 import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.dto.comment.CommentDto;
 import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.notification.NotificationService;
+import com.byeolnight.service.user.PointService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.byeolnight.infrastructure.exception.NotFoundException;
@@ -25,12 +29,11 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
-    private final com.byeolnight.service.user.PointService pointService;
+    private final CertificateService certificateService;
+    private final PointService pointService;
     private final UserRepository userRepository;
-    private final com.byeolnight.service.notification.NotificationService notificationService;
-    private final com.byeolnight.domain.repository.comment.CommentLikeRepository commentLikeRepository;
-    private final com.byeolnight.domain.repository.comment.CommentReportRepository commentReportRepository;
+    private final NotificationService notificationService;
+    private final CommentLikeRepository commentLikeRepository;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -60,7 +63,7 @@ public class CommentService {
         
         // 댓글 작성 인증서 발급 체크
         try {
-            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.COMMENT_WRITE);
+            certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.COMMENT_WRITE);
         } catch (Exception e) {
             // 인증서 발급 실패 무시 - 주요 기능 아님
         }
@@ -144,25 +147,6 @@ public class CommentService {
         comment.softDelete(); // soft delete로 변경
     }
 
-    // 관리자 기능: 댓글 블라인드 처리
-    @Transactional
-    public void blindComment(Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-        comment.blind();
-        
-        // 규정 위반 페널티 적용
-        pointService.applyPenalty(comment.getWriter(), "댓글 블라인드 처리", commentId.toString());
-    }
-
-    // 관리자 기능: 댓글 블라인드 해제
-    @Transactional
-    public void unblindComment(Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-        comment.unblind();
-    }
-
     /**
      * 내가 작성한 댓글 조회
      */
@@ -218,108 +202,22 @@ public class CommentService {
         }
     }
 
-    /**
-     * 댓글 신고 - ID 기반 메서드 (새로운 방식)
-     */
+    // 관리자 기능: 댓글 블라인드 처리
     @Transactional
-    public void reportCommentById(Long commentId, Long reporterId, String reason, String description) {
-        if (reporterId == null) {
-            throw new IllegalArgumentException("로그인이 필요합니다.");
-        }
+    public void blindComment(Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+        comment.blind();
         
-        try {
-            // 신고자 존재 여부 먼저 확인
-            if (!userRepository.existsById(reporterId)) {
-                throw new NotFoundException("신고자 정보가 유효하지 않습니다. 사용자 ID: " + reporterId);
-            }
-            
-            // 신고자 조회
-            User reporter = userRepository.findById(reporterId)
-                    .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
-            
-            // 댓글 조회
-            Comment comment = commentRepository.findById(commentId)
-                    .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-            
-            // 중복 신고 방지 - 새로운 메서드 사용
-            if (commentReportRepository.existsByCommentAndUser(comment, reporter)) {
-                throw new IllegalArgumentException("이미 신고한 댓글입니다.");
-            }
-            
-            // 신고자 정보 로깅
-            System.out.println("Reporter ID: " + reporterId + ", Comment ID: " + commentId);
-            
-            // 신고 객체 생성 및 저장
-            com.byeolnight.domain.entity.comment.CommentReport report = 
-                com.byeolnight.domain.entity.comment.CommentReport.builder()
-                    .comment(comment)
-                    .reporter(reporter)
-                    .reason(reason)
-                    .description(description)
-                    .status(com.byeolnight.domain.entity.comment.CommentReport.ReportStatus.PENDING)
-                    .createdAt(java.time.LocalDateTime.now())
-                    .build();
-            
-            // 신고 저장
-            commentReportRepository.save(report);
-            
-            // 신고 수 증가
-            comment.increaseReportCount();
-            commentRepository.save(comment);
-            
-            // 신고 수가 5개 이상이면 자동 블라인드
-            if (comment.getReportCount() >= 5) {
-                comment.blind();
-                commentRepository.save(comment);
-            }
-            
-            // 성공 로그
-            System.out.println("댓글 신고 처리 완료 - 신고 수: " + comment.getReportCount());
-        } catch (Exception e) {
-            e.printStackTrace(); // 상세 오류 로그 출력
-            throw new RuntimeException("댓글 신고 처리 중 오류 발생: " + e.getMessage(), e);
-        }
+        // 규정 위반 페널티 적용
+        pointService.applyPenalty(comment.getWriter(), "댓글 블라인드 처리", commentId.toString());
     }
-    
-    /**
-     * 댓글 신고 - 기존 메서드 (하위 호환성 유지)
-     */
+
+    // 관리자 기능: 댓글 블라인드 해제
     @Transactional
-    public void reportComment(Long commentId, User reporter, String reason, String description) {
-        if (reporter == null) {
-            throw new IllegalArgumentException("로그인이 필요합니다.");
-        }
-        
-        try {
-            // ID로 신고하는 방식으로 변경
-            reportCommentById(commentId, reporter.getId(), reason, description);
-        } catch (Exception e) {
-            e.printStackTrace(); // 상세 오류 로그 출력
-            throw new RuntimeException("댓글 신고 처리 중 오류 발생: " + e.getMessage(), e);
-        }
-    }
-    
-    // 관리자: 댓글 신고 처리
-    @Transactional
-    public void processCommentReport(Long reportId, User admin, boolean approve) {
-        com.byeolnight.domain.entity.comment.CommentReport report = 
-            commentReportRepository.findById(reportId)
-                .orElseThrow(() -> new NotFoundException("신고를 찾을 수 없습니다."));
-        
-        if (approve) {
-            report.approve(admin);
-            report.getComment().blind();
-            // 페널티 적용
-            pointService.applyPenalty(report.getComment().getWriter(), "댓글 신고 승인", reportId.toString());
-        } else {
-            report.reject(admin);
-            report.getComment().decreaseReportCount();
-        }
-    }
-    
-    // 관리자: 대기 중인 댓글 신고 목록
-    @Transactional(readOnly = true)
-    public List<com.byeolnight.domain.entity.comment.CommentReport> getPendingCommentReports() {
-        return commentReportRepository.findPendingReports();
+    public void unblindComment(Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+        comment.unblind();
     }
 }

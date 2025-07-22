@@ -1,13 +1,21 @@
 package com.byeolnight.service.admin;
 
+import com.byeolnight.domain.entity.comment.Comment;
+import com.byeolnight.domain.entity.comment.CommentReport;
 import com.byeolnight.domain.entity.post.Post;
 import com.byeolnight.domain.entity.post.PostReport;
+import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.domain.repository.comment.CommentReportRepository;
 import com.byeolnight.domain.repository.post.PostReportRepository;
+import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.dto.admin.ReportedCommentDetailDto;
 import com.byeolnight.dto.admin.ReportedPostDetailDto;
+import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +30,10 @@ import java.util.stream.Collectors;
 public class AdminReportService {
 
     private final PostReportRepository postReportRepository;
-    private final com.byeolnight.domain.repository.comment.CommentReportRepository commentReportRepository;
+    private final CommentReportRepository commentReportRepository;
     private final PointService pointService;
-    private final com.byeolnight.domain.repository.user.UserRepository userRepository;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final UserRepository userRepository;
+    private final CertificateService certificateService;
 
     /**
      * 신고된 게시글 목록 조회
@@ -90,7 +98,6 @@ public class AdminReportService {
                                 .createdAt(post.getCreatedAt())
                                 .blinded(post.isBlinded())
                                 .reportCount(postReports.size())
-                                .totalReportCount(postReports.size())
                                 .reportReasons(reasons)
                                 .reportDetails(reportDetails)
                                 .build();
@@ -100,7 +107,7 @@ public class AdminReportService {
                     }
                 })
                 .filter(dto -> dto != null) // null 제거
-                .sorted((a, b) -> b.getTotalReportCount() - a.getTotalReportCount()) // 신고 수 많은 순
+                .sorted((a, b) -> b.getReportCount() - a.getReportCount()) // 신고 수 많은 순
                 .collect(Collectors.toList());
 
         // 페이징 처리
@@ -112,15 +119,6 @@ public class AdminReportService {
     }
 
     /**
-     * 신고 사유별 통계 (추후, 개발 필요 시, 사용할 예정)
-     */
-    public Map<String, Long> getReportStatsByReason() {
-        List<PostReport> allReports = postReportRepository.findAll();
-        return allReports.stream()
-                .collect(Collectors.groupingBy(PostReport::getReason, Collectors.counting()));
-    }
-
-    /**
      * 신고 승인 (유효한 신고로 인정) - 해당 게시글의 모든 신고자에게 포인트 지급
      */
     @Transactional
@@ -128,7 +126,7 @@ public class AdminReportService {
         PostReport report = postReportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("신고를 찾을 수 없습니다."));
         
-        com.byeolnight.domain.entity.user.User admin = userRepository.findById(adminId)
+        User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
         
         // 해당 게시글의 모든 신고 조회
@@ -146,7 +144,7 @@ public class AdminReportService {
                 // 신고자에게 인증서 발급 체크
                 try {
                     certificateService.checkAndIssueCertificates(postReport.getUser(), 
-                        com.byeolnight.service.certificate.CertificateService.CertificateCheckType.REPORT_APPROVED);
+                        CertificateService.CertificateCheckType.REPORT_APPROVED);
                 } catch (Exception e) {
                     System.err.println("신고 승인 인증서 발급 실패: " + e.getMessage());
                 }
@@ -162,7 +160,7 @@ public class AdminReportService {
         PostReport report = postReportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("신고를 찾을 수 없습니다."));
         
-        com.byeolnight.domain.entity.user.User admin = userRepository.findById(adminId)
+        User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
         
         Post post = report.getPost();
@@ -188,56 +186,139 @@ public class AdminReportService {
             post.decreaseReportCount();
         }
     }
-
+    
     /**
      * 신고된 댓글 목록 조회
      */
-    public Page<com.byeolnight.dto.admin.ReportedCommentDetailDto> getReportedComments(int page, int size) {
-        var commentReports = commentReportRepository.findPendingReports();
+    public Page<ReportedCommentDetailDto> getReportedComments(int page, int size) {
+        List<CommentReport> commentReports = commentReportRepository.findPendingReports();
         
         // 댓글별로 그룹화
-        var groupedReports = commentReports.stream()
+        Map<Comment, List<CommentReport>> groupedReports = commentReports.stream()
                 .filter(report -> !report.getComment().isDeleted())
-                .collect(java.util.stream.Collectors.groupingBy(
-                    com.byeolnight.domain.entity.comment.CommentReport::getComment));
+                .collect(Collectors.groupingBy(CommentReport::getComment));
         
-        var reportedComments = groupedReports.entrySet().stream()
+        List<ReportedCommentDetailDto> reportedComments = groupedReports.entrySet().stream()
                 .map(entry -> {
-                    var comment = entry.getKey();
-                    var reports = entry.getValue();
+                    Comment comment = entry.getKey();
+                    List<CommentReport> reports = entry.getValue();
                     
-                    var reportDetails = reports.stream()
-                            .map(report -> com.byeolnight.dto.admin.ReportedCommentDetailDto.ReportDetail.builder()
+                    List<ReportedCommentDetailDto.ReportDetail> reportDetails = reports.stream()
+                            .map(report -> ReportedCommentDetailDto.ReportDetail.builder()
                                     .reportId(report.getId())
-                                    .reporterNickname(report.getReporter().getNickname())
+                                    .reporterNickname(report.getUser().getNickname())
                                     .reason(report.getReason())
                                     .description(report.getDescription())
+                                    .reviewed(report.isReviewed())
+                                    .accepted(report.isAccepted())
                                     .reportedAt(report.getCreatedAt())
                                     .build())
-                            .collect(java.util.stream.Collectors.toList());
+                            .collect(Collectors.toList());
                     
-                    return com.byeolnight.dto.admin.ReportedCommentDetailDto.builder()
+                    List<String> reasons = reports.stream()
+                            .map(CommentReport::getReason)
+                            .collect(Collectors.toList());
+                    
+                    return ReportedCommentDetailDto.builder()
                             .commentId(comment.getId())
                             .content(comment.getContent())
                             .writer(comment.getWriter().getNickname())
-                            .postTitle(comment.getPost().getTitle())
                             .postId(comment.getPost().getId())
+                            .postTitle(comment.getPost().getTitle())
                             .createdAt(comment.getCreatedAt())
                             .blinded(comment.isBlinded())
                             .reportCount(reports.size())
+                            .reportReasons(reasons)
                             .reportDetails(reportDetails)
                             .build();
                 })
-                .sorted((a, b) -> b.getReportCount() - a.getReportCount())
-                .collect(java.util.stream.Collectors.toList());
+                .sorted((a, b) -> b.getReportCount() - a.getReportCount()) // 신고 수 많은 순
+                .collect(Collectors.toList());
         
         // 페이징 처리
         int start = page * size;
         int end = Math.min(start + size, reportedComments.size());
-        var pagedList = reportedComments.subList(start, end);
         
-        return new org.springframework.data.domain.PageImpl<>(pagedList, 
-                org.springframework.data.domain.PageRequest.of(page, size), 
-                reportedComments.size());
+        if (start > reportedComments.size()) {
+            start = 0;
+            end = 0;
+        }
+        
+        List<ReportedCommentDetailDto> pagedList = reportedComments.subList(start, end);
+        
+        return new PageImpl<>(pagedList, PageRequest.of(page, size), reportedComments.size());
+    }
+    
+    /**
+     * 댓글 신고 승인 - 해당 댓글의 모든 신고자에게 포인트 지급
+     */
+    @Transactional
+    public void approveCommentReport(Long reportId, Long adminId) {
+        CommentReport report = commentReportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고를 찾을 수 없습니다."));
+        
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
+        
+        // 해당 댓글의 모든 신고 조회
+        List<CommentReport> allReportsForComment = commentReportRepository.findByComment(report.getComment());
+        
+        // 모든 신고를 검토 완료로 처리하고 승인
+        for (CommentReport commentReport : allReportsForComment) {
+            if (!commentReport.isReviewed()) {
+                commentReport.approve(admin);
+                commentReportRepository.save(commentReport);
+                
+                // 각 신고자에게 포인트 지급
+                pointService.awardValidReportPoints(commentReport.getUser(), commentReport.getComment().getId().toString());
+                
+                // 신고자에게 인증서 발급 체크
+                try {
+                    certificateService.checkAndIssueCertificates(commentReport.getUser(), 
+                        CertificateService.CertificateCheckType.REPORT_APPROVED);
+                } catch (Exception e) {
+                    System.err.println("신고 승인 인증서 발급 실패: " + e.getMessage());
+                }
+            }
+        }
+        
+        // 댓글 블라인드 처리
+        Comment comment = report.getComment();
+        comment.blind();
+    }
+    
+    /**
+     * 댓글 신고 거부 - 해당 댓글의 모든 신고를 거부 처리
+     */
+    @Transactional
+    public void rejectCommentReport(Long reportId, Long adminId, String reason) {
+        CommentReport report = commentReportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고를 찾을 수 없습니다."));
+        
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다."));
+        
+        Comment comment = report.getComment();
+        
+        // 해당 댓글의 모든 신고 조회
+        List<CommentReport> allReportsForComment = commentReportRepository.findByComment(comment);
+        
+        // 모든 신고를 검토 완료로 처리하고 거부
+        int rejectedCount = 0;
+        for (CommentReport commentReport : allReportsForComment) {
+            if (!commentReport.isReviewed()) {
+                commentReport.reject(admin, reason);
+                commentReportRepository.save(commentReport);
+                rejectedCount++;
+                
+                // 허위 신고 페널티 적용
+                pointService.applyPenalty(commentReport.getUser(), "허위 신고", commentReport.getId().toString());
+            }
+        }
+        
+        // 거부된 신고 수만큼 댓글의 신고수 감소
+        for (int i = 0; i < rejectedCount; i++) {
+            comment.decreaseReportCount();
+        }
     }
 }

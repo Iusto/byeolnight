@@ -1,6 +1,7 @@
 package com.byeolnight.controller.post;
 
 import com.byeolnight.service.comment.CommentService;
+import com.byeolnight.service.comment.CommentReportService;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.domain.entity.user.User;
@@ -24,6 +25,7 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final CommentReportService commentReportService;
 
     @Operation(summary = "댓글 생성", description = "게시글에 댓글을 작성합니다.")
     @ApiResponse(responseCode = "200", description = "생성된 댓글 ID 반환")
@@ -79,7 +81,7 @@ public class CommentController {
             System.out.println("Controller - User ID: " + user.getId() + ", Email: " + user.getEmail() + ", Nickname: " + user.getNickname());
             
             // 사용자 ID를 전달하는 방식으로 변경
-            commentService.reportCommentById(commentId, user.getId(), reason, description);
+            commentReportService.reportCommentById(commentId, user.getId(), reason, description);
             return ResponseEntity.ok(CommonResponse.success());
         } catch (com.byeolnight.infrastructure.exception.NotFoundException e) {
             // 사용자 또는 댓글을 찾을 수 없는 경우

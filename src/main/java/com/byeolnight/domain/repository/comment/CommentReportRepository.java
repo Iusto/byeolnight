@@ -13,19 +13,12 @@ import java.util.Optional;
 @Repository
 public interface CommentReportRepository extends JpaRepository<CommentReport, Long> {
     
-    Optional<CommentReport> findByCommentAndReporter(Comment comment, User reporter);
+    Optional<CommentReport> findByCommentAndUser(Comment comment, User user);
     
-    boolean existsByCommentAndReporter(Comment comment, User reporter);
+    boolean existsByCommentAndUser(Comment comment, User user);
     
-    // user_id 필드로 조회하는 메서드 추가
-    @Query("SELECT cr FROM CommentReport cr WHERE cr.comment = :comment AND cr.reporter = :reporter")
-    Optional<CommentReport> findByCommentAndUser(Comment comment, User reporter);
+    List<CommentReport> findByComment(Comment comment);
     
-    @Query("SELECT CASE WHEN COUNT(cr) > 0 THEN true ELSE false END FROM CommentReport cr WHERE cr.comment = :comment AND cr.reporter = :reporter")
-    boolean existsByCommentAndUser(Comment comment, User reporter);
-    
-    List<CommentReport> findByCommentAndStatus(Comment comment, CommentReport.ReportStatus status);
-    
-    @Query("SELECT cr FROM CommentReport cr WHERE cr.status = 'PENDING' ORDER BY cr.createdAt DESC")
+    @Query("SELECT cr FROM CommentReport cr WHERE cr.reviewed = false ORDER BY cr.createdAt DESC")
     List<CommentReport> findPendingReports();
 }
