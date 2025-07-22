@@ -12,7 +12,14 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "comments")
+@Table(
+    name = "comments",
+    indexes = {
+        @Index(name = "idx_comment_post_created", columnList = "post_id, createdAt"),
+        @Index(name = "idx_comment_parent", columnList = "parent_id"),
+        @Index(name = "idx_comment_writer", columnList = "writer_id")
+    }
+)
 public class Comment {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
