@@ -74,7 +74,7 @@ public class CommentReportService {
             System.out.println("댓글 신고 처리 완료 - 신고 수: " + comment.getReportCount());
         } catch (Exception e) {
             e.printStackTrace(); // 상세 오류 로그 출력
-            throw new RuntimeException("댓글 신고 처리 중 오류 발생: " + e.getMessage(), e);
+            throw new RuntimeException(e.getMessage());
         }
     }
     

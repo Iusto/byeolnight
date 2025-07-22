@@ -74,9 +74,11 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
       try {
         console.log('이미지 검열 시작...');
         // 검열 API 호출 - URL 기반 검열로 변경
-        const moderationResponse = await axios.post('/files/moderate-url', {
-          imageUrl: presignedData.url,
-          s3Key: presignedData.s3Key
+        const moderationResponse = await axios.post('/files/moderate-url', null, {
+          params: {
+            imageUrl: presignedData.url,
+            s3Key: presignedData.s3Key
+          }
         });
         
         // 검열 결과 확인
