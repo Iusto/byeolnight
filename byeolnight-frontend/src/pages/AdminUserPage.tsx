@@ -6,6 +6,8 @@ import AdminReasonModal from '../components/AdminReasonModal';
 import PointAwardModal from '../components/PointAwardModal';
 import ReportDetailModal from '../components/ReportDetailModal';
 import { grantNicknameChangeTicket } from '../lib/api/admin';
+import '../styles/category-labels.css';
+import { CATEGORY_LABELS } from './PostList';
 
 interface UserSummary {
   id: number;
@@ -974,7 +976,9 @@ export default function AdminUserPage() {
                           </button>
                         </td>
                         <td className="px-3 py-4 truncate">{post.writer}</td>
-                        <td className="px-3 py-4 text-xs">{post.category}</td>
+                        <td className="px-3 py-4">
+                          <span className={`category-label category-label-${post.category.toLowerCase()}`}>{CATEGORY_LABELS[post.category] || post.category}</span>
+                        </td>
                         <td className="px-3 py-4 text-center">
                           <button
                             onClick={() => {
@@ -983,14 +987,14 @@ export default function AdminUserPage() {
                               setSelectedReportPost(post);
                               setShowReportModal(true);
                             }}
-                            className={`px-2 py-1 rounded text-xs font-medium hover:scale-105 transition-all duration-200 shadow-md whitespace-nowrap ${
+                            className={`px-2 py-1 rounded text-xs font-medium hover:scale-105 transition-all duration-200 shadow-md whitespace-nowrap flex items-center gap-1 ${
                               post.reportCount >= 5 
                                 ? 'bg-red-600 hover:bg-red-700 text-white' 
                                 : 'bg-yellow-600 hover:bg-yellow-700 text-white'
                             }`}
                             title="클릭하여 신고 상세 내역 보기"
                           >
-                            🚨{post.reportCount || 0}
+                            <span>🔍</span> 🚨{post.reportCount || 0}
                           </button>
                         </td>
                         <td className="px-3 py-4 text-center">
@@ -1056,72 +1060,111 @@ export default function AdminUserPage() {
             ).length === 0 ? (
               <p className="text-center text-gray-400 py-8">신고된 댓글이 없습니다.</p>
             ) : (
-              <div className="space-y-4">
-                {reportedComments
-                  .filter(comment => 
-                    postSearchTerm === '' ||
-                    comment.content?.toLowerCase().includes(postSearchTerm.toLowerCase()) ||
-                    comment.writer?.toLowerCase().includes(postSearchTerm.toLowerCase())
-                  )
-                  .map((comment) => (
-                  <div key={comment.id} className="bg-[#2a2e45] p-4 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <p className="text-gray-300 mb-2">{comment.content}</p>
-                        <p className="text-gray-400 text-sm mb-2">
-                          작성자: {comment.writer} | 게시글: 
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col className="w-2/5" />
+                    <col className="w-20" />
+                    <col className="w-16" />
+                    <col className="w-20" />
+                    <col className="w-16" />
+                    <col className="w-20" />
+                    <col className="w-24" />
+                  </colgroup>
+                  <thead className="bg-[#2a2e45]">
+                    <tr>
+                      <th className="px-3 py-4 text-left">댓글 내용</th>
+                      <th className="px-3 py-4 text-left">작성자</th>
+                      <th className="px-3 py-4 text-left">게시글</th>
+                      <th className="px-3 py-4 text-center">신고수</th>
+                      <th className="px-3 py-4 text-center">상태</th>
+                      <th className="px-3 py-4 text-center">작성일</th>
+                      <th className="px-3 py-4 text-center">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportedComments
+                      .filter(comment => 
+                        postSearchTerm === '' ||
+                        comment.content?.toLowerCase().includes(postSearchTerm.toLowerCase()) ||
+                        comment.writer?.toLowerCase().includes(postSearchTerm.toLowerCase())
+                      )
+                      .map((comment) => (
+                      <tr key={comment.id} className="border-b border-gray-600 hover:bg-[#2a2e45]/50">
+                        <td className="px-4 py-4">
+                          <div className="text-gray-300 truncate">{comment.content}</div>
+                        </td>
+                        <td className="px-3 py-4 truncate">{comment.writer}</td>
+                        <td className="px-3 py-4 truncate">
                           <button
                             onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
-                            className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
+                            className="text-blue-400 hover:text-blue-300 hover:underline truncate block w-full text-left"
                             title="게시글로 이동"
                           >
                             {comment.postTitle}
                           </button>
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-red-400 text-sm font-medium">
-                            🚨 신고 {comment.reportCount || 0}건
-                          </span>
-                          {comment.reportReasons && comment.reportReasons.length > 0 && (
-                            <div className="flex gap-1">
-                              {comment.reportReasons.map((reason, index) => (
-                                <span key={index} className="px-2 py-1 bg-red-600/20 text-red-400 text-xs rounded">
-                                  {reason}
-                                </span>
-                              ))}
-                            </div>
+                        </td>
+                        <td className="px-3 py-4 text-center">
+                          <button
+                            onClick={() => {
+                              console.log('선택된 댓글:', comment);
+                              console.log('신고 상세 데이터:', comment.reportDetails);
+                              // 댓글에 대한 신고 상세 모달 표시 로직 추가 필요
+                              alert('신고 내역: ' + (comment.reportReasons?.join(', ') || '정보 없음'));
+                            }}
+                            className={`px-2 py-1 rounded text-xs font-medium hover:scale-105 transition-all duration-200 shadow-md whitespace-nowrap flex items-center gap-1 mx-auto ${
+                              comment.reportCount >= 5 
+                                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                            }`}
+                            title="클릭하여 신고 상세 내역 보기"
+                          >
+                            <span>🔍</span> 🚨{comment.reportCount || 0}
+                          </button>
+                        </td>
+                        <td className="px-3 py-4 text-center">
+                          {comment.blinded ? (
+                            <span className="px-2 py-1 bg-red-600 rounded text-xs whitespace-nowrap">블라인드</span>
+                          ) : (
+                            <span className="px-2 py-1 bg-green-600 rounded text-xs whitespace-nowrap">공개</span>
                           )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        {comment.reportDetails && comment.reportDetails.map((report) => (
-                          !report.reviewed && (
-                            <div key={report.reportId} className="flex gap-1">
-                              <button
-                                onClick={() => handleApproveReport(report.reportId)}
-                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-medium transition"
-                              >
-                                승인
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const reason = prompt('거부 사유를 입력하세요:');
-                                  if (reason) handleRejectReport(report.reportId, reason);
-                                }}
-                                className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition"
-                              >
-                                거부
-                              </button>
-                            </div>
-                          )
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-gray-500 text-xs">
-                      작성일: {new Date(comment.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
+                        </td>
+                        <td className="px-3 py-4 text-center text-xs text-gray-400">
+                          {new Date(comment.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-3 py-4 text-center">
+                          <div className="flex gap-1 justify-center">
+                            {comment.reportDetails && comment.reportDetails.some(report => !report.reviewed) && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    const unreviewedReport = comment.reportDetails.find(report => !report.reviewed);
+                                    if (unreviewedReport) handleApproveReport(unreviewedReport.reportId);
+                                  }}
+                                  className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs whitespace-nowrap"
+                                >
+                                  승인
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const unreviewedReport = comment.reportDetails.find(report => !report.reviewed);
+                                    if (unreviewedReport) {
+                                      const reason = prompt('거부 사유를 입력하세요:');
+                                      if (reason) handleRejectReport(unreviewedReport.reportId, reason);
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs whitespace-nowrap"
+                                >
+                                  거부
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import axios from '../lib/axios';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DiscussionTopicBanner from '../components/DiscussionTopicBanner';
+import '../styles/category-labels.css';
 
 interface Post {
   id: number;
@@ -32,6 +33,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   NOTICE: '공지',
   STARLIGHT_CINEMA: '별빛 시네마',
 };
+
+// AdminUserPage.tsx에서도 사용할 수 있도록 export
+export { CATEGORY_LABELS };
 
 // 작성자 아이콘 통일
 const renderStellaIcon = (iconName: string | null | undefined) => {
@@ -298,7 +302,7 @@ export default function PostList() {
                         {icons[cat as keyof typeof icons]}
                       </span>
                     </div>
-                    <div className="text-sm font-medium">{CATEGORY_LABELS[cat]}</div>
+                    <div className={`category-label category-label-${cat.toLowerCase()}`}>{CATEGORY_LABELS[cat]}</div>
                   </button>
                 );
               })}
