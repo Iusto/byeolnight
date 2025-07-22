@@ -49,36 +49,15 @@ export default function PostCreate() {
     try {
       console.log('클립보드 이미지 업로드 및 검열 시작...');
       
-      // 직접 서버로 이미지 전송하여 검열 처리
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('needsModeration', 'true');
-      
-      // JWT 토큰 가져오기
-      const token = localStorage.getItem('accessToken');
-      
-      const response = await fetch('/files/moderate-direct', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error('이미지 검열 실패: ' + response.statusText);
+      // 파일 크기 체크 (2MB 제한으로 변경)
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error('이미지 크기는 2MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
       }
       
-      const result = await response.json();
-      console.log('클립보드 이미지 검열 결과:', result);
+      // 통합된 s3Upload 유틸리티 사용 (검열 과정 포함)
+      const imageData = await uploadImage(file);
+      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
       
-      // 부적절한 이미지인 경우 예외 발생
-      if (result.data && result.data.isSafe === false) {
-        throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
-      }
-      
-      // 검열 통과한 이미지 정보 추출
-      const imageData = result.data;
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
@@ -310,36 +289,15 @@ export default function PostCreate() {
     try {
       console.log('이미지 업로드 및 검열 시작...');
       
-      // 직접 서버로 이미지 전송하여 검열 처리
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('needsModeration', 'true');
-      
-      // JWT 토큰 가져오기
-      const token = localStorage.getItem('accessToken');
-      
-      const response = await fetch('/files/moderate-direct', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error('이미지 검열 실패: ' + response.statusText);
+      // 파일 크기 체크 (2MB 제한으로 변경)
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error('이미지 크기는 2MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
       }
       
-      const result = await response.json();
-      console.log('이미지 검열 결과:', result);
+      // 통합된 s3Upload 유틸리티 사용 (검열 과정 포함)
+      const imageData = await uploadImage(file);
+      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
       
-      // 부적절한 이미지인 경우 예외 발생
-      if (result.data && result.data.isSafe === false) {
-        throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
-      }
-      
-      // 검열 통과한 이미지 정보 추출
-      const imageData = result.data;
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }

@@ -328,20 +328,6 @@ export default function AdminUserPage() {
     }
   };
 
-  const handleDeletePost = async (postId: number) => {
-    if (!confirm('정말 이 게시글을 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-    
-    try {
-      await axios.delete(`/admin/posts/${postId}`);
-      alert('게시글이 삭제되었습니다.');
-      fetchBlindedPosts();
-      fetchReportedPosts();
-    } catch (err) {
-      console.error('게시글 삭제 실패:', err);
-      alert('게시글 삭제에 실패했습니다.');
-    }
-  };
-
   const handleBlindPost = async (postId: number) => {
     if (!confirm('이 게시글을 블라인드 처리하시겠습니까?')) return;
     try {
@@ -1024,12 +1010,6 @@ export default function AdminUserPage() {
                                 블라인드
                               </button>
                             )}
-                            <button
-                              onClick={() => handleDeletePost(post.id)}
-                              className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs whitespace-nowrap"
-                            >
-                              삭제
-                            </button>
                           </div>
                         </td>
                       </tr>
