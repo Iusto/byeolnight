@@ -25,6 +25,20 @@ interface ReportedPost {
   reports: ReportDetail[];
 }
 
+interface ReportedComment {
+  commentId: number;
+  content: string;
+  writer: string;
+  postTitle: string;
+  postId: number;
+  createdAt: string;
+  blinded: boolean;
+  reportCount: number;
+  reportReasons: string[];
+  reportDetails: ReportDetail[];
+  allProcessed: boolean; // 모든 신고가 처리되었는지 여부
+}
+
 interface ReportStats {
   [reason: string]: number;
 }
@@ -39,7 +53,7 @@ export default function AdminReportsPage() {
   const [searchType, setSearchType] = useState('title');
   const [expandedPost, setExpandedPost] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('posts');
-  const [reportedComments, setReportedComments] = useState([]);
+  const [reportedComments, setReportedComments] = useState<ReportedComment[]>([]);
 
   useEffect(() => {
     if (user === null) {
@@ -118,14 +132,23 @@ export default function AdminReportsPage() {
           )
         })));
       } else {
-        setReportedComments(reportedComments.map((comment: any) => ({
-          ...comment,
-          reportDetails: comment.reportDetails.map((report: any) => 
+        setReportedComments(reportedComments.map(comment => {
+          // 현재 댓글의 신고 상세 내역 업데이트
+          const updatedReportDetails = comment.reportDetails.map(report => 
             report.reportId === reportId 
               ? { ...report, reviewed: true, accepted: true }
               : report
-          )
-        })));
+          );
+          
+          // 모든 신고가 처리되었는지 확인
+          const allProcessed = updatedReportDetails.every(report => report.reviewed);
+          
+          return {
+            ...comment,
+            reportDetails: updatedReportDetails,
+            allProcessed: allProcessed
+          };
+        }));
       }
     } catch {
       alert('신고 승인에 실패했습니다.');
@@ -155,17 +178,28 @@ export default function AdminReportsPage() {
             post.totalReportCount - 1 : post.totalReportCount
         })));
       } else {
-        setReportedComments(reportedComments.map((comment: any) => ({
-          ...comment,
-          reportDetails: comment.reportDetails.map((report: any) => 
+        setReportedComments(reportedComments.map(comment => {
+          // 현재 댓글의 신고 상세 내역 업데이트
+          const updatedReportDetails = comment.reportDetails.map(report => 
             report.reportId === reportId 
               ? { ...report, reviewed: true, accepted: false }
               : report
-          ),
+          );
+          
+          // 모든 신고가 처리되었는지 확인
+          const allProcessed = updatedReportDetails.every(report => report.reviewed);
+          
           // 신고 거부 시 신고수 감소
-          reportCount: comment.reportDetails.some((r: any) => r.reportId === reportId) ? 
-            comment.reportCount - 1 : comment.reportCount
-        })));
+          const newReportCount = comment.reportDetails.some(r => r.reportId === reportId) ? 
+            comment.reportCount - 1 : comment.reportCount;
+          
+          return {
+            ...comment,
+            reportDetails: updatedReportDetails,
+            reportCount: newReportCount,
+            allProcessed: allProcessed
+          };
+        }));
       }
     } catch {
       alert('신고 거부에 실패했습니다.');
@@ -299,7 +333,7 @@ export default function AdminReportsPage() {
                           {post.blinded && (
                             <span className="px-2 py-1 bg-red-600 rounded text-xs">블라인드</span>
                           )}
-                          <span className="px-2 py-1 bg-gray-600 rounded text-xs">{post.category}</span>
+                          <span className="px-2 py-1 bg-gray-600 rounded text-xs whitespace-nowrap">{post.category}</span>
                         </div>
                         <div className="text-gray-300 text-sm mb-2">
                           작성자: {post.writer} | 작성일: {new Date(post.createdAt).toLocaleDateString()}
@@ -309,13 +343,14 @@ export default function AdminReportsPage() {
                       <div className="flex flex-col items-end gap-2">
                         <button 
                           onClick={() => toggleExpanded(post.postId)}
-                          className={`px-3 py-1 rounded text-sm font-bold cursor-pointer hover:brightness-110 ${
+                          className={`px-3 py-1 rounded text-sm font-bold cursor-pointer hover:brightness-110 flex items-center gap-1 ${
                             post.totalReportCount >= 5 ? 'bg-red-600' : 
                             post.totalReportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
                           }`}
                           title="신고 내역 보기"
                         >
-                          신고 {post.totalReportCount}건 👆
+                          <span>신고 {post.totalReportCount}건</span>
+                          <span className="bg-white bg-opacity-20 rounded-full p-1 text-xs">🔍</span>
                         </button>
                         <button
                           onClick={() => toggleExpanded(post.postId)}
@@ -406,13 +441,14 @@ export default function AdminReportsPage() {
                       <div className="flex flex-col items-end gap-2">
                         <button 
                           onClick={() => toggleExpanded(comment.commentId)}
-                          className={`px-3 py-1 rounded text-sm font-bold cursor-pointer hover:brightness-110 ${
+                          className={`px-3 py-1 rounded text-sm font-bold cursor-pointer hover:brightness-110 flex items-center gap-1 ${
                             comment.reportCount >= 5 ? 'bg-red-600' : 
                             comment.reportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
                           }`}
                           title="신고 내역 보기"
                         >
-                          신고 {comment.reportCount}건 👆
+                          <span>신고 {comment.reportCount}건</span>
+                          <span className="bg-white bg-opacity-20 rounded-full p-1 text-xs">🔍</span>
                         </button>
                         <button
                           onClick={() => toggleExpanded(comment.commentId)}
@@ -426,15 +462,28 @@ export default function AdminReportsPage() {
                     {/* 신고 상세 내역 */}
                     {expandedPost === comment.commentId && (
                       <div className="mt-4 p-4 bg-[#2a2e45]/60 rounded-lg">
-                        <h4 className="font-semibold mb-3">신고 내역</h4>
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-semibold">신고 내역</h4>
+                          {comment.allProcessed && (
+                            <span className="px-3 py-1 bg-gray-600 rounded text-xs">
+                              모든 신고 처리 완료
+                            </span>
+                          )}
+                        </div>
                         <div className="space-y-3">
                           {comment.reportDetails.map((report: any) => (
                             <div key={report.reportId} className="flex justify-between items-center p-3 bg-[#1f2336]/60 rounded">
                               <div>
-                                <div className="font-medium">{report.reporterNickname}</div>
-                                <div className="text-sm text-gray-400">{report.reason}</div>
+                                <div className="font-medium">
+                                  <span className="text-purple-400">신고자:</span> {report.reporterNickname}
+                                </div>
+                                <div className="text-sm text-gray-400">
+                                  <span className="text-yellow-400">사유:</span> {report.reason}
+                                </div>
                                 {report.description && (
-                                  <div className="text-xs text-gray-500 mt-1">{report.description}</div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    <span className="text-blue-400">상세:</span> {report.description}
+                                  </div>
                                 )}
                                 <div className="text-xs text-gray-500">
                                   {new Date(report.reportedAt).toLocaleString()}
