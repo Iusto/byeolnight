@@ -1,6 +1,7 @@
 package com.byeolnight.controller.comment;
 
 import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.comment.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,12 +20,13 @@ import java.util.List;
 public class AdminCommentController {
 
     private final PostService postService;
+    private final CommentService commentService;
 
     @Operation(summary = "블라인드 댓글 목록 조회", description = "관리자가 블라인드 처리된 댓글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/comments/blinded")
-    public ResponseEntity<List<com.byeolnight.dto.comment.CommentAdminDto>> getBlindedComments() {
-        List<com.byeolnight.dto.comment.CommentAdminDto> comments = postService.getBlindedComments();
+    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getBlindedComments() {
+        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getBlindedComments();
         return ResponseEntity.ok(comments);
     }
 
@@ -32,7 +34,7 @@ public class AdminCommentController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/comments/{commentId}/blind")
     public ResponseEntity<Void> blindComment(@PathVariable Long commentId) {
-        postService.blindComment(commentId);
+        commentService.blindComment(commentId);
         return ResponseEntity.ok().build();
     }
 
@@ -40,15 +42,15 @@ public class AdminCommentController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/comments/{commentId}/unblind")
     public ResponseEntity<Void> unblindComment(@PathVariable Long commentId) {
-        postService.unblindComment(commentId);
+        commentService.unblindComment(commentId);
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "삭제된 댓글 목록 조회", description = "관리자가 삭제된 댓글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/comments/deleted")
-    public ResponseEntity<List<com.byeolnight.dto.comment.CommentAdminDto>> getDeletedComments() {
-        List<com.byeolnight.dto.comment.CommentAdminDto> comments = postService.getDeletedComments();
+    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getDeletedComments() {
+        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getDeletedComments();
         return ResponseEntity.ok(comments);
     }
 

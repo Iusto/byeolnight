@@ -19,42 +19,6 @@ public class PostReportService {
     private final UserRepository userRepository;
     private final PostReportRepository postReportRepository;
     private final PostBlindLogRepository postBlindLogRepository;
-    private final com.byeolnight.service.user.PointService pointService;
-
-    /**
-     * 관리자가 신고를 승인하여 포인트 지급
-     */
-    @Transactional
-    public void approveReport(Long reportId, User admin) {
-        PostReport report = postReportRepository.findById(reportId)
-                .orElseThrow(() -> new NotFoundException("신고를 찾을 수 없습니다."));
-        
-        if (report.isProcessed()) {
-            throw new IllegalStateException("이미 처리된 신고입니다.");
-        }
-        
-        // 신고 승인 처리
-        report.approve(admin);
-        
-        // 신고자에게 포인트 지급
-        pointService.awardValidReportPoints(report.getUser(), report.getPost().getId().toString());
-    }
-    
-    /**
-     * 관리자가 신고를 거부
-     */
-    @Transactional
-    public void rejectReport(Long reportId, User admin, String reason) {
-        PostReport report = postReportRepository.findById(reportId)
-                .orElseThrow(() -> new NotFoundException("신고를 찾을 수 없습니다."));
-        
-        if (report.isProcessed()) {
-            throw new IllegalStateException("이미 처리된 신고입니다.");
-        }
-        
-        // 신고 거부 처리
-        report.reject(admin, reason);
-    }
 
     @Transactional
     public void reportPost(Long userId, Long postId, String reason, String description) {

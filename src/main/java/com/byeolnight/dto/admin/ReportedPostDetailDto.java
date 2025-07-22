@@ -15,21 +15,17 @@ import java.util.List;
 public class ReportedPostDetailDto {
     
     private Long id;
+    private Long postId; // 게시글 ID
     private String title;
+    private String content;
     private String writer;
     private String category;
-    private long reportCount;
+    private int reportCount; // 신고 개수
     private boolean blinded;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
-    private List<String> reportReasons;
+    private List<String> reportReasons; // 신고 사유 목록
     private List<ReportDetail> reportDetails; // 상세 신고 정보
-    
-    // AdminReportService용 추가 필드
-    private Long postId;
-    private String content;
-    private int totalReportCount;
-    private List<ReportDetail> reports;
     
     @Getter
     @Builder
@@ -60,10 +56,12 @@ public class ReportedPostDetailDto {
         
         return ReportedPostDetailDto.builder()
                 .id(post.getId())
+                .postId(post.getId())
                 .title(post.getTitle())
+                .content(post.getContent().length() > 100 ? post.getContent().substring(0, 100) + "..." : post.getContent())
                 .writer(post.getWriter() != null ? post.getWriter().getNickname() : "알 수 없는 사용자")
                 .category(post.getCategory().name())
-                .reportCount(reportCount)
+                .reportCount((int)reportCount)
                 .blinded(post.isBlinded())
                 .createdAt(post.getCreatedAt())
                 .reportReasons(reportReasons)

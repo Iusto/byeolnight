@@ -9,14 +9,15 @@ import java.util.List;
 @Getter
 @Builder
 public class ReportedCommentDetailDto {
-    private Long commentId;
+    private Long commentId; // 댓글 ID
     private String content;
     private String writer;
     private String postTitle;
     private Long postId;
     private LocalDateTime createdAt;
     private boolean blinded;
-    private int reportCount;
+    private int reportCount; // 신고 개수
+    private List<String> reportReasons; // 신고 사유 목록
     private List<ReportDetail> reportDetails;
 
     @Getter
@@ -27,5 +28,7 @@ public class ReportedCommentDetailDto {
         private String reason;
         private String description;
         private LocalDateTime reportedAt;
+        private boolean reviewed; // 검토 여부
+        private boolean accepted; // 승인 여부
     }
 }

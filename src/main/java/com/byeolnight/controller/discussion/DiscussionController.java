@@ -40,6 +40,4 @@ public class DiscussionController {
         Page<PostResponseDto> discussions = discussionService.getDiscussionPosts(pageable);
         return ResponseEntity.ok(discussions);
     }
-
-
 }
