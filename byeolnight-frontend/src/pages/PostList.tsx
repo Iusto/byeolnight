@@ -5,6 +5,9 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DiscussionTopicBanner from '../components/DiscussionTopicBanner';
 
+// 상수 및 타입 정의
+
+// 게시글 타입 정의
 interface Post {
   id: number;
   title: string;
@@ -36,32 +39,69 @@ const CATEGORY_LABELS: Record<string, string> = {
 // AdminUserPage.tsx에서도 사용할 수 있도록 export
 export { CATEGORY_LABELS };
 
+// 카테고리 관련 상수
+const RESTRICTED_CATEGORIES = ['NEWS', 'NOTICE', 'STARLIGHT_CINEMA'];
+const USER_WRITABLE_CATEGORIES = ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'];
+
+// 카테고리별 아이콘 매핑
+const CATEGORY_ICONS: Record<string, string> = {
+  NEWS: '🚀',
+  DISCUSSION: '💬',
+  IMAGE: '🌌',
+  REVIEW: '⭐',
+  FREE: '🎈',
+  NOTICE: '📢',
+  STARLIGHT_CINEMA: '🎬'
+};
+
+// 카테고리별 설명 매핑
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  NEWS: '최신 우주 뉴스를 AI가 자동으로 수집합니다',
+  DISCUSSION: 'AI가 생성한 토론 주제로 깊이 있는 대화를 나눠보세요',
+  IMAGE: '아름다운 우주 사진을 공유하고 감상해보세요',
+  REVIEW: '우주 관련 경험과 후기를 나눠주세요',
+  FREE: '우주에 대한 자유로운 이야기를 나눠보세요',
+  NOTICE: '중요한 공지사항을 확인하세요',
+  STARLIGHT_CINEMA: 'AI가 큐레이션한 우주 영상을 감상하세요'
+};
+
 // 작성자 아이콘 통일
 const renderStellaIcon = (iconName: string | null | undefined) => {
   return '👤'; // 모든 사용자에게 동일한 아이콘 사용
 };
 
-const RESTRICTED_CATEGORIES = ['NEWS', 'NOTICE', 'STARLIGHT_CINEMA'];
-const USER_WRITABLE_CATEGORIES = ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'];
-
 export default function PostList() {
+  // 상태 관리
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // URL 파라미터 추출
   const category = searchParams.get('category') || 'NEWS';
   const sort = searchParams.get('sort') || 'recent';
   const page = Number(searchParams.get('page')) || 0;
   const searchType = searchParams.get('searchType') || 'title';
   const searchKeyword = searchParams.get('search') || '';
   
+  // 검색 관련 상태
   const [searchInput, setSearchInput] = useState(searchKeyword);
   const [searchTypeInput, setSearchTypeInput] = useState(searchType);
+  
+  // 관리자 기능 관련 상태
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
+  
+  // 게시글 분류
+  const hotPosts = posts.filter((p) => p.hot).slice(0, 4);
+  const normalPosts = sort === 'popular' ? posts.slice(0, 30) : posts.filter((p) => !p.hot).slice(0, 25);
+  
+  // 권한 관련 변수
+  const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
+  const isAdmin = user?.role === 'ADMIN';
 
+  // 게시글 데이터 가져오기
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
@@ -72,15 +112,9 @@ export default function PostList() {
           params.search = searchKeyword.trim();
         }
         
-        console.log('검색 요청 파라미터:', params);
-        console.log('URL:', '/public/posts?' + new URLSearchParams(params).toString());
         const res = await axios.get('/public/posts', { params });
-        // 응답 구조 안전하게 처리
-        console.log('전체 응답:', res.data);
         const responseData = res.data?.data || res.data;
         const content = responseData?.content || [];
-        console.log('최종 게시글 데이터:', content);
-        console.log('게시글 수:', content.length);
         setPosts(content);
       } catch (err) {
         console.error('게시글 목록 조회 실패', err);
@@ -93,24 +127,27 @@ export default function PostList() {
     fetchPosts();
   }, [category, sort, page, searchKeyword, searchType]);
 
-  const handleCategoryChange = (cat: string) => {
-    console.log('카테고리 변경 시도:', cat, '현재 카테고리:', category);
+  // URL 파라미터 생성 유틸리티 함수
+  const createUrlParams = (options: { category?: string, sort?: string, page?: string, searchType?: string, search?: string }) => {
+    const params = new URLSearchParams();
+    params.set('category', options.category || category);
+    params.set('sort', options.sort || sort);
+    params.set('page', options.page || String(page));
     
+    if (options.search || searchKeyword) {
+      params.set('searchType', options.searchType || searchType);
+      params.set('search', options.search || searchKeyword);
+    }
+    
+    return params;
+  };
+
+  // 카테고리 변경 핸들러
+  const handleCategoryChange = (cat: string) => {
     // React 상태 업데이트 배칭 문제 해결
     setTimeout(() => {
       try {
-        const params = new URLSearchParams();
-        params.set('category', cat);
-        params.set('sort', sort);
-        params.set('page', '0');
-        
-        // 카테고리 변경 시 검색 상태 유지
-        if (searchKeyword) {
-          params.set('searchType', searchType);
-          params.set('search', searchKeyword);
-        }
-        
-        console.log('설정할 파라미터:', params.toString());
+        const params = createUrlParams({ category: cat, page: '0' });
         navigate(`?${params.toString()}`, { replace: true });
       } catch (error) {
         console.error('카테고리 변경 오류:', error);
@@ -118,60 +155,39 @@ export default function PostList() {
     }, 0);
   };
 
+  // 정렬 변경 핸들러
   const handleSortChange = (s: string) => {
-    const params = new URLSearchParams();
-    params.set('category', category);
-    params.set('sort', s);
-    params.set('page', '0');
-    
-    // 정렬 변경 시 검색 상태 유지
-    if (searchKeyword) {
-      params.set('searchType', searchType);
-      params.set('search', searchKeyword);
-    }
+    const params = createUrlParams({ sort: s, page: '0' });
     navigate(`?${params.toString()}`, { replace: true });
   };
 
+  // 페이지 변경 핸들러
   const handlePageChange = (nextPage: number) => {
-    const params = new URLSearchParams();
-    params.set('category', category);
-    params.set('sort', sort);
-    params.set('page', String(nextPage));
-    
-    if (searchKeyword) {
-      params.set('searchType', searchType);
-      params.set('search', searchKeyword);
-    }
+    const params = createUrlParams({ page: String(nextPage) });
     navigate(`?${params.toString()}`, { replace: true });
   };
   
+  // 검색 핸들러
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    params.set('category', category);
-    params.set('sort', sort);
-    params.set('page', '0');
-    
     if (searchInput.trim()) {
-      params.set('searchType', searchTypeInput);
-      params.set('search', searchInput.trim());
+      const params = createUrlParams({ 
+        page: '0', 
+        searchType: searchTypeInput, 
+        search: searchInput.trim() 
+      });
+      navigate(`?${params.toString()}`, { replace: true });
     }
-    navigate(`?${params.toString()}`, { replace: true });
   };
   
+  // 검색 초기화 핸들러
   const handleSearchReset = () => {
     setSearchInput('');
-    const params = new URLSearchParams();
-    params.set('category', category);
-    params.set('sort', sort);
-    params.set('page', '0');
+    const params = createUrlParams({ page: '0', search: '' });
     navigate(`?${params.toString()}`, { replace: true });
   };
 
-  const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
-  const isAdmin = user?.role === 'ADMIN';
-  const hotPosts = posts.filter((p) => p.hot).slice(0, 4);
-  const normalPosts = sort === 'popular' ? posts.slice(0, 30) : posts.filter((p) => !p.hot).slice(0, 25);
+  // 게시글 선택 관리
 
   const handlePostSelect = (postId: number, checked: boolean) => {
     if (checked) {
@@ -190,6 +206,7 @@ export default function PostList() {
     }
   };
 
+  // 관리자 기능: 카테고리 이동
   const handleMoveCategory = async (targetCategory: string) => {
     if (selectedPosts.length === 0) {
       alert('이동할 게시글을 선택하세요.');
@@ -215,6 +232,250 @@ export default function PostList() {
     }
   };
 
+  // 게시글 목록 렌더링 함수
+  const renderPostList = () => {
+    if (loading) {
+      return <p className="text-center text-gray-400">🌠 로딩 중...</p>;
+    }
+    
+    if (posts.length === 0) {
+      return <p className="text-center text-gray-400">게시글이 없습니다.</p>;
+    }
+    
+    return (
+      <>
+        {/* 인기 게시글 */}
+        {sort === 'recent' && hotPosts.length > 0 && (
+          <>
+            <h3 className="text-2xl font-semibold mb-4 text-orange-400">🔥 인기 게시글</h3>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+              {hotPosts.map((post) => renderPostItem(post, true))}
+            </ul>
+          </>
+        )}
+
+        {/* 일반 게시글 */}
+        <h3 className="text-2xl font-semibold mb-4 text-white">
+          {sort === 'popular' ? '📄 게시글 (추천순)' : '📄 일반 게시글'}
+        </h3>
+        
+        {category === 'IMAGE' ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {normalPosts.map((post) => renderImagePostItem(post))}
+          </div>
+        ) : (
+          <ul className="space-y-4">
+            {normalPosts.map((post) => renderPostItem(post))}
+          </ul>
+        )}
+
+        {/* 페이지네이션 */}
+        <div className="mt-10 flex justify-center gap-2">
+          {page > 0 && (
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
+            >
+              이전
+            </button>
+          )}
+          <span className="px-3 py-1 bg-gray-800 rounded text-white">Page {page + 1}</span>
+          {posts.length >= 30 && (
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
+            >
+              다음
+            </button>
+          )}
+        </div>
+      </>
+    );
+  };
+  
+  // 일반 게시글 아이템 렌더링
+  const renderPostItem = (post: Post, isHot: boolean = false) => {
+    const postClasses = post.blinded 
+      ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
+      : isHot
+        ? 'from-[#1f2336]/90 to-[#252842]/90 border border-orange-500/30 hover:shadow-orange-500/50'
+        : 'bg-[#1f2336]/80 border border-gray-600/50 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg';
+    
+    return (
+      <li
+        key={post.id}
+        className={`${isHot ? 'bg-gradient-to-br' : ''} rounded-${isHot ? 'xl' : 'lg'} p-${isHot ? '6' : '4'} transition-all duration-${isHot ? '300' : '200'} transform ${isHot ? 'hover:scale-[1.02]' : ''} ${postClasses}`}
+      >
+        <div className="flex items-start gap-3">
+          {isAdmin && (
+            <input
+              type="checkbox"
+              checked={selectedPosts.includes(post.id)}
+              onChange={(e) => handlePostSelect(post.id, e.target.checked)}
+              className={`w-4 h-4 ${isHot ? 'mb-3' : 'mt-1'}`}
+            />
+          )}
+          <div className="flex-1">
+            <Link to={`/posts/${post.id}`} className="block">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className={`${isHot ? 'text-lg' : 'text-base'} font-semibold text-white flex-1 mr-4 flex items-center gap-2`}>
+                  {isHot && <span className="text-orange-400">🔥</span>}
+                  {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">[{post.dDay}]</span>}
+                  {post.blinded ? (
+                    post.blindType === 'ADMIN_BLIND' 
+                      ? '관리자가 직접 블라인드 처리한 게시글입니다'
+                      : '다수의 신고로 블라인드 처리된 게시글입니다'
+                  ) : post.title}
+                  {post.blinded && (
+                    <span className={`text-xs ml-2 px-2 py-1 rounded ${
+                      post.blindType === 'ADMIN_BLIND' 
+                        ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
+                        : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
+                    }`}>
+                      {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+                    </span>
+                  )}
+                </h4>
+                {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
+                <div className="flex gap-3 text-sm text-gray-400 flex-shrink-0">
+                  <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
+                  <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
+                </div>
+              </div>
+              {isHot && <p className="text-sm text-gray-300 mb-4 line-clamp-2 leading-relaxed">{post.content}</p>}
+              <div className="flex justify-between items-center text-sm text-gray-400">
+                <span className="flex items-center gap-1">
+                  <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                    {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                  </span>
+                  {post.blinded ? '***' : post.writer}
+                </span>
+                <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </li>
+    );
+  };
+  
+  // 이미지 게시글 아이템 렌더링
+  const renderImagePostItem = (post: Post) => {
+    // 게시글 내용에서 첫 번째 이미지 URL 추출
+    const extractFirstImageUrl = (content: string) => {
+      if (!content) return null;
+      const imgRegex = /<img[^>]+src="([^"]+)"/i;
+      const match = content.match(imgRegex);
+      return match ? match[1] : null;
+    };
+    
+    const imgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    
+    return (
+      <div 
+        key={post.id} 
+        className={`rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-[1.03] ${post.blinded ? 'opacity-70' : ''}`}
+      >
+        <Link to={`/posts/${post.id}`} className="block h-full">
+          <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
+            {imgSrc ? (
+              <img 
+                src={imgSrc} 
+                alt={post.title} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://via.placeholder.com/300x300?text=이미지+없음';
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
+                <span className="text-4xl">🌌</span>
+              </div>
+            )}
+            
+            {/* 관리자 체크박스 */}
+            {isAdmin && (
+              <div className="absolute top-2 left-2 z-10">
+                <input
+                  type="checkbox"
+                  checked={selectedPosts.includes(post.id)}
+                  onChange={(e) => handlePostSelect(post.id, e.target.checked)}
+                  className="w-4 h-4"
+                />
+              </div>
+            )}
+            
+            {/* 블라인드 표시 */}
+            {post.blinded && (
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                <span className="text-4xl">🔒</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-3 bg-slate-800/80">
+            <h4 className="text-sm font-medium text-white line-clamp-1">
+              {post.blinded ? (
+                post.blindType === 'ADMIN_BLIND' 
+                  ? '관리자 블라인드 처리됨'
+                  : '신고로 블라인드 처리됨'
+              ) : post.title}
+            </h4>
+            
+            <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+              <span className="flex items-center gap-1">
+                <span className="bg-slate-700/50 rounded px-1 py-0.5 border border-slate-600/30">
+                  {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                </span>
+                <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
+              </span>
+              <div className="flex gap-2">
+                <span className="flex items-center">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
+                <span className="flex items-center">❤️ {post.blinded ? '*' : post.likeCount}</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+  
+  // 카테고리 이동 모달 렌더링
+  const renderCategoryMoveModal = () => {
+    if (!showMoveModal) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-[#1f2336] p-6 rounded-xl max-w-md w-full mx-4">
+          <h3 className="text-lg font-semibold mb-4">카테고리 이동</h3>
+          <p className="text-gray-300 mb-4">선택한 {selectedPosts.length}개 게시글을 어느 게시판으로 이동하시겠습니까?</p>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {Object.entries(CATEGORY_LABELS)
+              .filter(([cat]) => cat !== category)
+              .map(([cat, label]) => (
+                <button
+                  key={cat}
+                  onClick={() => handleMoveCategory(cat)}
+                  className="p-3 bg-[#2a2e45] hover:bg-[#3a3e55] rounded-lg text-center transition-colors"
+                >
+                  {label}
+                </button>
+              ))
+            }
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowMoveModal(false)}
+              className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       {/* 헤더 섹션 */}
@@ -225,15 +486,7 @@ export default function PostList() {
             <div className="inline-flex items-center gap-3 mb-4">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
                 <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                  {{
-                    NEWS: '🚀',
-                    DISCUSSION: '💬',
-                    IMAGE: '🌌',
-                    REVIEW: '⭐',
-                    FREE: '🎈',
-                    NOTICE: '📢',
-                    STARLIGHT_CINEMA: '🎬'
-                  }[category]}
+                  {CATEGORY_ICONS[category]}
                 </span>
               </div>
             </div>
@@ -241,15 +494,7 @@ export default function PostList() {
               {CATEGORY_LABELS[category]} 게시판
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              {{
-                NEWS: '최신 우주 뉴스를 AI가 자동으로 수집합니다',
-                DISCUSSION: 'AI가 생성한 토론 주제로 깊이 있는 대화를 나눠보세요',
-                IMAGE: '아름다운 우주 사진을 공유하고 감상해보세요',
-                REVIEW: '우주 관련 경험과 후기를 나눠주세요',
-                FREE: '우주에 대한 자유로운 이야기를 나눠보세요',
-                NOTICE: '중요한 공지사항을 확인하세요',
-                STARLIGHT_CINEMA: 'AI가 큐레이션한 우주 영상을 감상하세요'
-              }[category]}
+              {CATEGORY_DESCRIPTIONS[category]}
             </p>
           </div>
         </div>
@@ -627,48 +872,66 @@ export default function PostList() {
 
         {/* 검색 기능 */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-6 border border-purple-500/20">
+          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-6 border border-purple-500/20 shadow-lg">
             <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+              {/* 검색 유형 선택 */}
               <select
                 value={searchTypeInput}
                 onChange={(e) => setSearchTypeInput(e.target.value)}
-                className="bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                aria-label="검색 유형 선택"
               >
                 <option value="title">제목</option>
                 <option value="content">내용</option>
                 <option value="titleAndContent">제목+내용</option>
                 <option value="writer">글작성자</option>
               </select>
+              
+              {/* 검색어 입력 */}
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="검색어를 입력하세요..."
-                className="flex-1 bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400"
+                className="flex-1 bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+                aria-label="검색어 입력"
               />
+              
+              {/* 검색 버튼 */}
               <div className="flex gap-3">
                 <button
                   type="submit"
                   className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                  aria-label="검색 실행"
                 >
                   🔍 검색
                 </button>
+                
+                {/* 초기화 버튼 (검색어가 있을 때만 표시) */}
                 {searchKeyword && (
                   <button
                     type="button"
                     onClick={handleSearchReset}
                     className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200"
+                    aria-label="검색 초기화"
                   >
                     초기화
                   </button>
                 )}
               </div>
             </form>
+            
+            {/* 현재 검색 상태 표시 */}
             {searchKeyword && (
-              <div className="mt-4 p-3 bg-purple-900/30 rounded-lg border border-purple-600/30">
-                <p className="text-sm text-purple-200">
-                  검색 결과: <span className="font-semibold text-white">"{searchKeyword}"</span> 
-                  <span className="text-purple-300">({searchType === 'titleAndContent' ? '제목+내용' : searchType === 'title' ? '제목' : searchType === 'content' ? '내용' : '글작성자'})</span>
+              <div className="mt-4 p-3 bg-purple-900/30 rounded-lg border border-purple-600/30 animate-fadeIn">
+                <p className="text-sm text-purple-200 flex items-center gap-2">
+                  <span className="text-purple-300">검색 결과:</span> 
+                  <span className="font-semibold text-white bg-purple-800/30 px-2 py-1 rounded">"{searchKeyword}"</span> 
+                  <span className="text-purple-300 text-xs bg-purple-800/20 px-2 py-1 rounded-full">
+                    {searchType === 'titleAndContent' ? '제목+내용' : 
+                     searchType === 'title' ? '제목' : 
+                     searchType === 'content' ? '내용' : '글작성자'}
+                  </span>
                 </p>
               </div>
             )}
@@ -678,17 +941,20 @@ export default function PostList() {
         {/* 정렬 및 글쓰기 */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
+            {/* 정렬 옵션 */}
             <div className="flex items-center gap-2">
               <label className="text-base text-gray-300">정렬:</label>
               <select
                 value={sort}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-[#2a2e45] text-sm rounded px-3 py-1"
+                className="bg-[#2a2e45] text-sm rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="recent">최신순</option>
                 <option value="popular">추천순</option>
               </select>
             </div>
+            
+            {/* 관리자 기능: 게시글 선택 및 카테고리 이동 */}
             {isAdmin && (
               <div className="flex items-center gap-2">
                 <input
@@ -702,7 +968,7 @@ export default function PostList() {
                 {selectedPosts.length > 0 && (
                   <button
                     onClick={() => setShowMoveModal(true)}
-                    className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                    className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
                   >
                     카테고리 이동 ({selectedPosts.length})
                   </button>
@@ -710,6 +976,8 @@ export default function PostList() {
               </div>
             )}
           </div>
+          
+          {/* 글쓰기 버튼 */}
           {canWrite && (
             <Link
               to={`/posts/write?fixedCategory=${category}`}
@@ -720,280 +988,11 @@ export default function PostList() {
           )}
         </div>
 
-        {loading ? (
-          <p className="text-center text-gray-400">🌠 로딩 중...</p>
-        ) : posts.length === 0 ? (
-          <p className="text-center text-gray-400">게시글이 없습니다.</p>
-        ) : (
-          <>
-            {/* 인기 게시글 */}
-            {sort === 'recent' && hotPosts.length > 0 && (
-              <>
-                <h3 className="text-2xl font-semibold mb-4 text-orange-400">🔥 인기 게시글</h3>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-                  {hotPosts.map((post) => (
-                    <li
-                      key={post.id}
-                      className={`bg-gradient-to-br rounded-xl p-6 shadow-xl transition-all duration-300 transform hover:scale-[1.02] ${
-                        post.blinded 
-                          ? 'from-[#1a1a2e]/60 to-[#16213e]/60 border border-gray-600/30 opacity-70 hover:shadow-gray-500/30' 
-                          : 'from-[#1f2336]/90 to-[#252842]/90 border border-orange-500/30 hover:shadow-orange-500/50'
-                      }`}
-                    >
-                      {isAdmin && (
-                        <div className="mb-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedPosts.includes(post.id)}
-                            onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-                            className="w-4 h-4"
-                          />
-                        </div>
-                      )}
-                      <Link to={`/posts/${post.id}`} className="block h-full">
-                        <div className="flex items-start justify-between mb-3">
-                          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <span className="text-orange-400">🔥</span>
-                            {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs">[{post.dDay}]</span>}
-                            {post.blinded ? (
-                              post.blindType === 'ADMIN_BLIND' 
-                                ? '관리자가 직접 블라인드 처리한 게시글입니다'
-                                : '다수의 신고로 블라인드 처리된 게시글입니다'
-                            ) : post.title}
-                            {post.blinded && (
-                              <span className={`text-xs ml-2 px-2 py-1 rounded ${
-                                post.blindType === 'ADMIN_BLIND' 
-                                  ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
-                                  : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
-                              }`}>
-                                {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
-                              </span>
-                            )}
-                          </h3>
-                          <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>
-                        </div>
-                        <p className="text-sm text-gray-300 mb-4 line-clamp-2 leading-relaxed">{post.content}</p>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-400 flex items-center gap-1">
-                            <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                              {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
-                            </span>
-                            {post.blinded ? '***' : post.writer}
-                          </span>
-                          <div className="flex gap-3 text-gray-400">
-                            <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
-                            <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
-                            <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            {/* 일반 게시글 */}
-            <h3 className="text-2xl font-semibold mb-4 text-white">
-              {sort === 'popular' ? '📄 게시글 (추천순)' : '📄 일반 게시글'}
-            </h3>
-            
-            {/* 사진 갤러리 형식 (IMAGE 카테고리일 때) */}
-            {category === 'IMAGE' ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {normalPosts.map((post) => (
-                  <div 
-                    key={post.id} 
-                    className={`rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-[1.03] ${post.blinded ? 'opacity-70' : ''}`}
-                  >
-                    <Link to={`/posts/${post.id}`} className="block h-full">
-                      <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
-                        {/* 게시글 내용에서 첫 번째 이미지 URL 추출 */}
-                        {(() => {
-                          if (post.blinded) return null;
-                          const imgRegex = /<img[^>]+src="([^"]+)"/i;
-                          const match = post.content.match(imgRegex);
-                          const imgSrc = match ? match[1] : null;
-                          
-                          return imgSrc ? (
-                            <img 
-                              src={imgSrc} 
-                              alt={post.title} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = 'https://via.placeholder.com/300x300?text=이미지+없음';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
-                              <span className="text-4xl">🌌</span>
-                            </div>
-                          );
-                        })()} 
-                        
-                        {/* 관리자 체크박스 */}
-                        {isAdmin && (
-                          <div className="absolute top-2 left-2 z-10">
-                            <input
-                              type="checkbox"
-                              checked={selectedPosts.includes(post.id)}
-                              onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-                              className="w-4 h-4"
-                            />
-                          </div>
-                        )}
-                        
-                        {/* 블라인드 표시 */}
-                        {post.blinded && (
-                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                            <span className="text-4xl">🔒</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="p-3 bg-slate-800/80">
-                        <h4 className="text-sm font-medium text-white line-clamp-1">
-                          {post.blinded ? (
-                            post.blindType === 'ADMIN_BLIND' 
-                              ? '관리자 블라인드 처리됨'
-                              : '신고로 블라인드 처리됨'
-                          ) : post.title}
-                        </h4>
-                        
-                        <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <span className="bg-slate-700/50 rounded px-1 py-0.5 border border-slate-600/30">
-                              {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
-                            </span>
-                            <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
-                          </span>
-                          <div className="flex gap-2">
-                            <span className="flex items-center">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
-                            <span className="flex items-center">❤️ {post.blinded ? '*' : post.likeCount}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* 일반 리스트 형식 (다른 카테고리) */
-              <ul className="space-y-4">
-                {normalPosts.map((post) => (
-                  <li
-                    key={post.id}
-                    className={`rounded-lg p-4 transition-all duration-200 ${
-                      post.blinded 
-                        ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
-                        : 'bg-[#1f2336]/80 border border-gray-600/50 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {isAdmin && (
-                        <input
-                          type="checkbox"
-                          checked={selectedPosts.includes(post.id)}
-                          onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-                          className="w-4 h-4 mt-1"
-                        />
-                      )}
-                      <div className="flex-1">
-                    <Link to={`/posts/${post.id}`} className="block">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-base font-semibold text-white flex-1 mr-4">
-                          {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">[{post.dDay}]</span>}
-                          {post.blinded ? (
-                            post.blindType === 'ADMIN_BLIND' 
-                              ? '관리자가 직접 블라인드 처리한 게시글입니다'
-                              : '다수의 신고로 블라인드 처리된 게시글입니다'
-                          ) : post.title}
-                          {post.blinded && (
-                            <span className={`text-xs ml-2 px-2 py-1 rounded ${
-                              post.blindType === 'ADMIN_BLIND' 
-                                ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
-                                : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
-                            }`}>
-                              {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
-                            </span>
-                          )}
-                        </h4>
-                        <div className="flex gap-3 text-sm text-gray-400 flex-shrink-0">
-                          <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
-                          <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center text-sm text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                            {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
-                          </span>
-                          {post.blinded ? '***' : post.writer}
-                        </span>
-                        <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </Link>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {/* 페이지네이션 */}
-            <div className="mt-10 flex justify-center gap-2">
-              {page > 0 && (
-                <button
-                  onClick={() => handlePageChange(page - 1)}
-                  className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
-                >
-                  이전
-                </button>
-              )}
-              <span className="px-3 py-1 bg-gray-800 rounded text-white">Page {page + 1}</span>
-              {posts.length >= 30 && (
-                <button
-                  onClick={() => handlePageChange(page + 1)}
-                  className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
-                >
-                  다음
-                </button>
-              )}
-            </div>
-          </>
-        )}
+        {/* 게시글 목록 */}
+        {renderPostList()}
         
         {/* 카테고리 이동 모달 */}
-        {showMoveModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#1f2336] p-6 rounded-xl max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">카테고리 이동</h3>
-              <p className="text-gray-300 mb-4">선택한 {selectedPosts.length}개 게시글을 어느 게시판으로 이동하시겠습니까?</p>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {Object.entries(CATEGORY_LABELS)
-                  .filter(([cat]) => cat !== category)
-                  .map(([cat, label]) => (
-                    <button
-                      key={cat}
-                      onClick={() => handleMoveCategory(cat)}
-                      className="p-3 bg-[#2a2e45] hover:bg-[#3a3e55] rounded-lg text-center transition-colors"
-                    >
-                      {label}
-                    </button>
-                  ))
-                }
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowMoveModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {renderCategoryMoveModal()}
       </div>
     </div>
   );
