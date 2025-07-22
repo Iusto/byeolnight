@@ -51,6 +51,27 @@ interface ReportedPost {
   }[];
 }
 
+interface ReportedComment {
+  id: number;
+  content: string;
+  writer: string;
+  postId: number;
+  postTitle: string;
+  reportCount: number;
+  blinded: boolean;
+  createdAt: string;
+  reportReasons: string[];
+  reportDetails: {
+    reportId: number;
+    reporterNickname: string;
+    reason: string;
+    description?: string;
+    reviewed: boolean;
+    accepted?: boolean;
+    reportedAt: string;
+  }[];
+}
+
 export default function AdminUserPage() {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,12 +82,13 @@ export default function AdminUserPage() {
   const [deletedPosts, setDeletedPosts] = useState<any[]>([]);
   const [deletedComments, setDeletedComments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'users' | 'ips' | 'posts' | 'reportedPosts' | 'reportedComments' | 'blindComments' | 'deletedPosts' | 'deletedComments' | 'files' | 'scheduler'>('users');
-  const [reportedComments, setReportedComments] = useState<any[]>([]);
+  const [reportedComments, setReportedComments] = useState<ReportedComment[]>([]);
   const [showIpModal, setShowIpModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [showPointModal, setShowPointModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedReportPost, setSelectedReportPost] = useState<ReportedPost | null>(null);
+  const [selectedReportComment, setSelectedReportComment] = useState<ReportedComment | null>(null);
   const [modalAction, setModalAction] = useState<{ type: string; userId: number; status?: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'WITHDRAWN'>('ALL');
@@ -277,8 +299,10 @@ export default function AdminUserPage() {
 
   const fetchReportedComments = async () => {
     try {
-      const res = await axios.get('/admin/reports/comments');
-      const commentsData = Array.isArray(res.data) ? res.data : (res.data?.data?.content || res.data?.data || []);
+      const res = await axios.get('/admin/comments/reported');
+      console.log('신고된 댓글 API 응답:', res.data);
+      const commentsData = Array.isArray(res.data) ? res.data : (res.data?.data || res.data || []);
+      console.log('신고된 댓글 데이터:', commentsData);
       setReportedComments(commentsData);
     } catch (err) {
       console.error('신고된 댓글 목록 조회 실패', err);
@@ -338,6 +362,32 @@ export default function AdminUserPage() {
     } catch (err) {
       console.error('블라인드 처리 실패:', err);
       alert('블라인드 처리에 실패했습니다.');
+    }
+  };
+  
+  const handleBlindComment = async (commentId: number) => {
+    if (!confirm('이 댓글을 블라인드 처리하시겠습니까?')) return;
+    try {
+      await axios.patch(`/admin/comments/${commentId}/blind`);
+      alert('댓글이 블라인드 처리되었습니다.');
+      fetchReportedComments();
+      fetchBlindedComments();
+    } catch (err) {
+      console.error('댓글 블라인드 처리 실패:', err);
+      alert('댓글 블라인드 처리에 실패했습니다.');
+    }
+  };
+  
+  const handleUnblindReportedComment = async (commentId: number) => {
+    if (!confirm('이 댓글의 블라인드를 해제하시겠습니까?')) return;
+    try {
+      await axios.patch(`/admin/comments/${commentId}/unblind`);
+      alert('댓글 블라인드가 해제되었습니다.');
+      fetchReportedComments();
+      fetchBlindedComments();
+    } catch (err) {
+      console.error('댓글 블라인드 해제 실패:', err);
+      alert('댓글 블라인드 해제에 실패했습니다.');
     }
   };
 
@@ -1089,8 +1139,8 @@ export default function AdminUserPage() {
                             onClick={() => {
                               console.log('선택된 댓글:', comment);
                               console.log('신고 상세 데이터:', comment.reportDetails);
-                              // 댓글에 대한 신고 상세 모달 표시 로직 추가 필요
-                              alert('신고 내역: ' + (comment.reportReasons?.join(', ') || '정보 없음'));
+                              setSelectedReportComment(comment);
+                              setShowReportModal(true);
                             }}
                             className={`px-2 py-1 rounded text-xs font-medium hover:scale-105 transition-all duration-200 shadow-md whitespace-nowrap flex items-center gap-1 mx-auto ${
                               comment.reportCount >= 5 
@@ -1114,30 +1164,20 @@ export default function AdminUserPage() {
                         </td>
                         <td className="px-3 py-4 text-center">
                           <div className="flex gap-1 justify-center">
-                            {comment.reportDetails && comment.reportDetails.some(report => !report.reviewed) && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    const unreviewedReport = comment.reportDetails.find(report => !report.reviewed);
-                                    if (unreviewedReport) handleApproveReport(unreviewedReport.reportId);
-                                  }}
-                                  className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs whitespace-nowrap"
-                                >
-                                  승인
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const unreviewedReport = comment.reportDetails.find(report => !report.reviewed);
-                                    if (unreviewedReport) {
-                                      const reason = prompt('거부 사유를 입력하세요:');
-                                      if (reason) handleRejectReport(unreviewedReport.reportId, reason);
-                                    }
-                                  }}
-                                  className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs whitespace-nowrap"
-                                >
-                                  거부
-                                </button>
-                              </>
+                            {comment.blinded ? (
+                              <button
+                                onClick={() => handleUnblindReportedComment(comment.id)}
+                                className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs whitespace-nowrap"
+                              >
+                                해제
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleBlindComment(comment.id)}
+                                className="px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs whitespace-nowrap"
+                              >
+                                블라인드
+                              </button>
                             )}
                           </div>
                         </td>
@@ -1722,12 +1762,16 @@ export default function AdminUserPage() {
           onClose={() => {
             setShowReportModal(false);
             setSelectedReportPost(null);
+            setSelectedReportComment(null);
           }}
-          postTitle={selectedReportPost?.title || ''}
-          reports={selectedReportPost?.reportDetails || []}
+          postTitle={selectedReportPost ? selectedReportPost.title : (selectedReportComment ? `댓글: ${selectedReportComment.content.substring(0, 30)}...` : '')}
+          reports={selectedReportPost ? selectedReportPost.reportDetails : (selectedReportComment ? selectedReportComment.reportDetails : [])}
           onApprove={handleApproveReport}
           onReject={handleRejectReport}
-          onRefresh={fetchReportedPosts}
+          onRefresh={() => {
+            if (selectedReportPost) fetchReportedPosts();
+            if (selectedReportComment) fetchReportedComments();
+          }}
         />
       </div>
     </div>

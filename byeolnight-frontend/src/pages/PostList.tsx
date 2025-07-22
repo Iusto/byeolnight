@@ -302,7 +302,13 @@ export default function PostList() {
                         {icons[cat as keyof typeof icons]}
                       </span>
                     </div>
-                    <div className={`category-label category-label-${cat.toLowerCase()}`}>{CATEGORY_LABELS[cat]}</div>
+                    <div
+                      className={`category-label ${
+                        isActive ? 'category-label-active' : `category-label-${cat.toLowerCase()}`
+                      }`}
+                    >
+                      {CATEGORY_LABELS[cat]}
+                    </div>
                   </button>
                 );
               })}
