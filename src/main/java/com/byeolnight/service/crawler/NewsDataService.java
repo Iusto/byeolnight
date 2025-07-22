@@ -67,9 +67,9 @@ public class NewsDataService {
     
     public NewsApiResponseDto fetchKoreanSpaceNews() {
         try {
-            // 더 많은 뉴스를 가져와서 중복 제외 후 2개 선택
-            // 최고 품질 뉴스를 위해 60개 수집 (10개 x 6번)
-            int callCount = 6; // 총 60개 수집
+            // 더 많은 뉴스를 가져와서 중복 제외 후 1개 선택
+            // 최고 품질 뉴스를 위해 40개 수집 (10개 x 4번)
+            int callCount = 4; // 총 40개 수집
             
             // 한국어 뉴스 수집 (더 구체적인 키워드 사용)
             String koreanQuery = "NASA OR SpaceX OR 우주탐사 OR 화성탐사 OR 달탐사";

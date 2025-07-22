@@ -8,6 +8,9 @@ interface ReportDetail {
   reporterNickname: string;
   reason: string;
   reportedAt: string;
+  reviewed?: boolean;
+  accepted?: boolean;
+  description?: string;
 }
 
 interface ReportedPost {
@@ -103,18 +106,67 @@ export default function AdminReportsPage() {
     try {
       await axios.post(`/admin/reports/${reportId}/approve`);
       alert('신고가 승인되었습니다. 신고자에게 포인트가 지급됩니다.');
-      fetchReportedPosts();
+      
+      // 로컬 상태 즉시 업데이트
+      if (activeTab === 'posts') {
+        setPosts(posts.map(post => ({
+          ...post,
+          reports: post.reports.map(report => 
+            report.reportId === reportId 
+              ? { ...report, reviewed: true, accepted: true }
+              : report
+          )
+        })));
+      } else {
+        setReportedComments(reportedComments.map((comment: any) => ({
+          ...comment,
+          reportDetails: comment.reportDetails.map((report: any) => 
+            report.reportId === reportId 
+              ? { ...report, reviewed: true, accepted: true }
+              : report
+          )
+        })));
+      }
     } catch {
       alert('신고 승인에 실패했습니다.');
     }
   };
 
   const handleRejectReport = async (reportId: number) => {
+    const reason = prompt('거부 사유를 입력하세요:');
+    if (!reason) return;
+    
     if (!confirm('이 신고를 허위 신고로 거부하시겠습니까?')) return;
     try {
-      await axios.post(`/admin/reports/${reportId}/reject`);
+      await axios.post(`/admin/reports/${reportId}/reject`, { reason });
       alert('신고가 거부되었습니다. 신고자에게 페널티가 적용됩니다.');
-      fetchReportedPosts();
+      
+      // 로컬 상태 즉시 업데이트
+      if (activeTab === 'posts') {
+        setPosts(posts.map(post => ({
+          ...post,
+          reports: post.reports.map(report => 
+            report.reportId === reportId 
+              ? { ...report, reviewed: true, accepted: false }
+              : report
+          ),
+          // 신고 거부 시 신고수 감소
+          totalReportCount: post.reports.some(r => r.reportId === reportId) ? 
+            post.totalReportCount - 1 : post.totalReportCount
+        })));
+      } else {
+        setReportedComments(reportedComments.map((comment: any) => ({
+          ...comment,
+          reportDetails: comment.reportDetails.map((report: any) => 
+            report.reportId === reportId 
+              ? { ...report, reviewed: true, accepted: false }
+              : report
+          ),
+          // 신고 거부 시 신고수 감소
+          reportCount: comment.reportDetails.some((r: any) => r.reportId === reportId) ? 
+            comment.reportCount - 1 : comment.reportCount
+        })));
+      }
     } catch {
       alert('신고 거부에 실패했습니다.');
     }
@@ -255,17 +307,21 @@ export default function AdminReportsPage() {
                         <div className="text-gray-400 text-sm line-clamp-2">{post.content}</div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className={`px-3 py-1 rounded text-sm font-bold ${
-                          post.totalReportCount >= 5 ? 'bg-red-600' : 
-                          post.totalReportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
-                        }`}>
-                          신고 {post.totalReportCount}건
-                        </span>
+                        <button 
+                          onClick={() => toggleExpanded(post.postId)}
+                          className={`px-3 py-1 rounded text-sm font-bold cursor-pointer hover:brightness-110 ${
+                            post.totalReportCount >= 5 ? 'bg-red-600' : 
+                            post.totalReportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
+                          }`}
+                          title="신고 내역 보기"
+                        >
+                          신고 {post.totalReportCount}건 👆
+                        </button>
                         <button
                           onClick={() => toggleExpanded(post.postId)}
                           className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition"
                         >
-                          {expandedPost === post.postId ? '접기' : '상세보기'}
+                          {expandedPost === post.postId ? '접기 ▲' : '상세보기 ▼'}
                         </button>
                       </div>
                     </div>
@@ -285,18 +341,28 @@ export default function AdminReportsPage() {
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleApproveReport(report.reportId)}
-                                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
-                                >
-                                  승인
-                                </button>
-                                <button
-                                  onClick={() => handleRejectReport(report.reportId)}
-                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
-                                >
-                                  거부
-                                </button>
+                                {report.reviewed ? (
+                                  <span className={`px-3 py-1 rounded text-sm ${
+                                    report.accepted ? 'bg-green-800' : 'bg-red-800'
+                                  }`}>
+                                    {report.accepted ? '승인됨' : '거부됨'}
+                                  </span>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleApproveReport(report.reportId)}
+                                      className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
+                                    >
+                                      승인
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectReport(report.reportId)}
+                                      className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
+                                    >
+                                      거부
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -338,17 +404,21 @@ export default function AdminReportsPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className={`px-3 py-1 rounded text-sm font-bold ${
-                          comment.reportCount >= 5 ? 'bg-red-600' : 
-                          comment.reportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
-                        }`}>
-                          신고 {comment.reportCount}건
-                        </span>
+                        <button 
+                          onClick={() => toggleExpanded(comment.commentId)}
+                          className={`px-3 py-1 rounded text-sm font-bold cursor-pointer hover:brightness-110 ${
+                            comment.reportCount >= 5 ? 'bg-red-600' : 
+                            comment.reportCount >= 3 ? 'bg-orange-600' : 'bg-yellow-600'
+                          }`}
+                          title="신고 내역 보기"
+                        >
+                          신고 {comment.reportCount}건 👆
+                        </button>
                         <button
                           onClick={() => toggleExpanded(comment.commentId)}
                           className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition"
                         >
-                          {expandedPost === comment.commentId ? '접기' : '상세보기'}
+                          {expandedPost === comment.commentId ? '접기 ▲' : '상세보기 ▼'}
                         </button>
                       </div>
                     </div>
@@ -371,18 +441,28 @@ export default function AdminReportsPage() {
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleApproveReport(report.reportId)}
-                                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
-                                >
-                                  승인
-                                </button>
-                                <button
-                                  onClick={() => handleRejectReport(report.reportId)}
-                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
-                                >
-                                  거부
-                                </button>
+                                {report.reviewed ? (
+                                  <span className={`px-3 py-1 rounded text-sm ${
+                                    report.accepted ? 'bg-green-800' : 'bg-red-800'
+                                  }`}>
+                                    {report.accepted ? '승인됨' : '거부됨'}
+                                  </span>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleApproveReport(report.reportId)}
+                                      className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition"
+                                    >
+                                      승인
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectReport(report.reportId)}
+                                      className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
+                                    >
+                                      거부
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}

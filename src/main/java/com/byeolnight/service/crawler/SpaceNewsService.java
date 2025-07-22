@@ -67,9 +67,9 @@ public class SpaceNewsService {
                 continue;
             }
             
-            // 설정된 최대 개수만 저장
+            // 설정된 최대 개수만 저장 (하루에 1개만 저장)
             if (savedPosts.size() >= newsConfig.getCollection().getMaxPosts()) {
-                log.info("이미 {}개 뉴스를 저장했으므로 종료", newsConfig.getCollection().getMaxPosts());
+                log.info("이미 {}개 뉴스를 저장했으므로 종료 (하루 1개 제한)", newsConfig.getCollection().getMaxPosts());
                 break;
             }
             
@@ -87,8 +87,8 @@ public class SpaceNewsService {
             log.info("새 뉴스 게시글 저장: {}", savedPost.getTitle());
         }
         
-        log.info("우주 뉴스 수집 완료 - 수집: {}개, 저장: {}건, 실제 중복: {}건, 필터링: {}건", 
-                response.getResults().size(), savedPosts.size(), actualDuplicateCount, filteredCount);
+        log.info("우주 뉴스 수집 완료 - 수집: {}개, 저장: {}건 (하루 최대 {}), 실제 중복: {}건, 필터링: {}건", 
+                response.getResults().size(), savedPosts.size(), newsConfig.getCollection().getMaxPosts(), actualDuplicateCount, filteredCount);
         
         // 뉴스 수집과 토론 주제 생성을 분리
         // 토론 주제는 별도 스케줄러에서 매일 오전 8시에 생성
