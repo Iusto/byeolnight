@@ -302,12 +302,15 @@ export default function PostList() {
                         {icons[cat as keyof typeof icons]}
                       </span>
                     </div>
-                    <div
-                      className={`category-label ${
-                        isActive ? 'category-label-active' : `category-label-${cat.toLowerCase()}`
-                      }`}
-                    >
-                      {CATEGORY_LABELS[cat]}
+                    <div className="relative text-center">
+                      <div className="text-3xl bg-slate-800/50 p-2 rounded-lg relative z-10">
+                        🚀
+                        {isActive && (
+                          <span className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-xs px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-lg border border-white/30">
+                            {CATEGORY_LABELS[cat]}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 );
