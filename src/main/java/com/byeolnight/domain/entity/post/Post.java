@@ -12,7 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "posts")
+@Table(
+    name = "posts",
+    indexes = {
+        @Index(name = "idx_post_created_at", columnList = "created_at"),
+        @Index(name = "idx_post_category_created", columnList = "category, created_at"),
+        @Index(name = "idx_post_writer_created", columnList = "writer_id, created_at"),
+        @Index(name = "idx_post_pinned_created", columnList = "pinned, created_at")
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post {
