@@ -6,7 +6,6 @@ import AdminReasonModal from '../components/AdminReasonModal';
 import PointAwardModal from '../components/PointAwardModal';
 import ReportDetailModal from '../components/ReportDetailModal';
 import { grantNicknameChangeTicket } from '../lib/api/admin';
-import '../styles/category-labels.css';
 import { CATEGORY_LABELS } from './PostList';
 
 interface UserSummary {
