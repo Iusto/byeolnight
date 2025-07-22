@@ -145,8 +145,10 @@ const TuiEditor = forwardRef(({
             callback(cleanUrl, '검열 통과된 이미지');
             console.log('이미지 업로드 및 검열 성공:', cleanUrl);
             return true;
-          } else {
-            throw new Error('이미지 URL을 받지 못했습니다.');
+          }
+          
+          // 이미지 URL이 없는 경우
+          throw new Error('이미지 URL을 받지 못했습니다.');
           }
         } catch (error: any) {
           console.error('클립보드 이미지 업로드 및 검열 오류:', error);
