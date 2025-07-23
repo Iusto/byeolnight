@@ -76,6 +76,11 @@ const TuiEditor = forwardRef(({
       // 이미지 업로드 처리 중임을 표시
       isHandlingImageUpload.current = true;
       
+      // 부적절한 이미지 감지 시 파일 업로드 창이 뜨지 않도록 일정 시간 플래그 유지
+      const resetTimer = setTimeout(() => {
+        isHandlingImageUpload.current = false;
+      }, 2000); // 2초 후 플래그 초기화
+      
       // 클립보드에서 붙여넣기된 이미지인 경우 직접 처리
       if (blob.type.startsWith('image/')) {
         // Blob을 File로 변환
@@ -104,23 +109,23 @@ const TuiEditor = forwardRef(({
           });
           
           if (!moderationResponse.ok) {
-            alert('이미지 검열 실패: ' + moderationResponse.statusText);
+            // alert 제거하고 오류만 발생시킴
             throw new Error('이미지 검열 실패: ' + moderationResponse.statusText);
           }
           
           const moderationResult = await moderationResponse.json();
           console.log('클립보드 이미지 검열 결과:', moderationResult);
           
-          // 부적절한 이미지인 경우 예외 발생
+          // 부적절한 이미지인 경우 예외 발생 - alert 제거
           if (moderationResult.data && moderationResult.data.isSafe === false) {
-            alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+            // alert 제거하고 오류만 발생시킴
             throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
           }
           
           // 검열 통과한 이미지 정보 추출
           const imageData = moderationResult.data;
           if (!imageData || !imageData.url) {
-            alert('이미지 URL을 받지 못했습니다.');
+            // alert 제거하고 오류만 발생시킴
             throw new Error('이미지 URL을 받지 못했습니다.');
           }
           
@@ -148,7 +153,8 @@ const TuiEditor = forwardRef(({
           return true;
         } catch (error: any) {
           console.error('클립보드 이미지 업로드 및 검열 오류:', error);
-          alert(error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
+          // alert 제거 - 오류만 발생시킴
+          throw error; // 오류를 위로 전파하여 상위 핸들러에서 처리하도록 함
         }
       }
       
@@ -158,14 +164,17 @@ const TuiEditor = forwardRef(({
       }
     } catch (error: any) {
       console.error('이미지 업로드 오류:', error);
-      alert(error.message || '이미지 업로드 중 오류가 발생했습니다.');
+      // alert 제거 - 오류 로그만 출력
     } finally {
       // 이미지 업로드 처리 완료 표시
-      setTimeout(() => {
-        isHandlingImageUpload.current = false;
-      }, 100); // 약간의 지연을 주어 이벤트 처리 순서 문제 방지
+      // 오류 발생 시에도 플래그를 유지하여 파일 업로드 창이 뜨지 않도록 처리
+      // 플래그는 위에서 설정한 타이머에 의해 자동으로 초기화됨
     }
     // 실제 업로드는 handleImageUpload에서 처리하므로 여기서는 취소
+    // 부적절한 이미지 감지 시 파일 업로드 창이 뜨지 않도록 처리
+    if (isHandlingImageUpload.current) {
+      return true; // 이미 처리중인 경우 기본 업로드 창 방지
+    }
     return false;
   };
 
