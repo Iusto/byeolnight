@@ -18,6 +18,9 @@ public class AuthWhitelist {
             "/api/suggestions",
             "/actuator/**",         // 헬스체크
             "/health",              // 헬스체크
-            "/favicon.ico"          // 파비콘
+            "/favicon.ico",         // 파비콘
+            "/sitemap.xml",
+            "/sitemap-*.xml",
+            "/robots.txt"
     };
 }
