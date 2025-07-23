@@ -264,8 +264,17 @@ export default function PostCreate() {
       setContentLength(textContent.length);
     }
     
+    // TUI Editor에서 발생하는 이미지 검열 이벤트 수신
+    const handleImageValidating = (e: CustomEvent) => {
+      const { validating } = e.detail;
+      setIsImageValidating(validating);
+    };
+    
+    document.addEventListener('imageValidating', handleImageValidating as EventListener);
+    
     return () => {
       document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('imageValidating', handleImageValidating as EventListener);
     };
   }, []);
   
