@@ -64,11 +64,22 @@ public class AuthController {
             // 요청 본문 로깅 제거 (ContentCachingFilter에서 처리)
             AuthService.LoginResult result = authService.authenticate(dto, request);
 
+            // Refresh Token 쿠키 설정
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
+            
+            // Access Token도 HttpOnly 쿠키로 설정
+            ResponseCookie accessCookie = ResponseCookie.from("accessToken", result.getAccessToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
+                    .path("/")
+                    .maxAge(1800) // 30분
+                    .build();
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .body(CommonResponse.success(new TokenResponseDto(result.getAccessToken())));
+                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                    .body(CommonResponse.success(new TokenResponseDto(null))); // 토큰을 응답 본문에서 제거
         } catch (SecurityException e) {
             log.info("로그인 차단: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(CommonResponse.fail(e.getMessage()));
@@ -227,10 +238,20 @@ public class AuthController {
 
             // 새 Refresh Token을 HttpOnly 쿠키로 전달
             ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity);
+            
+            // Access Token도 HttpOnly 쿠키로 전달
+            ResponseCookie accessCookie = ResponseCookie.from("accessToken", newAccessToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
+                    .path("/")
+                    .maxAge(1800) // 30분
+                    .build();
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .body(CommonResponse.success(new TokenResponseDto(newAccessToken)));
+                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                    .body(CommonResponse.success(new TokenResponseDto(null))); // 토큰을 응답 본문에서 제거
 
         } catch (Exception e) {
             log.error("토큰 재발급 중 오류 발생", e);
@@ -246,34 +267,46 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<CommonResponse<String>> logout(
-            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(name = "accessToken", required = false) String accessToken,
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response
     ) {
         try {
-            String accessToken = resolveToken(authHeader);
-            String email = jwtTokenProvider.getEmail(accessToken);
+            // 쿠키에서 Access Token 가져오기
+            if (accessToken != null) {
+                String email = jwtTokenProvider.getEmail(accessToken);
 
-            // Access Token 블랙리스트 등록
-            long expirationMillis = jwtTokenProvider.getExpiration(accessToken);
-            tokenService.blacklistAccessToken(accessToken, expirationMillis);
-            log.info("🚫 AccessToken 블랙리스트 등록: {}", accessToken);
+                // Access Token 블랙리스트 등록
+                long expirationMillis = jwtTokenProvider.getExpiration(accessToken);
+                tokenService.blacklistAccessToken(accessToken, expirationMillis);
+                log.info("🚫 AccessToken 블랙리스트 등록: {}", accessToken);
 
-            // Refresh Token Redis에서 제거
-            if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
-                tokenService.delete(refreshToken, email);
-                log.info("🧹 RefreshToken 삭제 완료: {}", email);
+                // Refresh Token Redis에서 제거
+                if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
+                    tokenService.delete(refreshToken, email);
+                    log.info("🧹 RefreshToken 삭제 완료: {}", email);
+                }
             }
 
-            // 클라이언트에 쿠키 삭제 지시
-            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+            // 클라이언트에 쿠키 삭제 지시 - Refresh Token
+            ResponseCookie deleteRefreshCookie = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
                     .secure(true)
-                    .sameSite("Strict")
+                    .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 변경
                     .path("/")
                     .maxAge(0)
                     .build();
-            response.setHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+            response.setHeader(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString());
+            
+            // 클라이언트에 쿠키 삭제 지시 - Access Token
+            ResponseCookie deleteAccessCookie = ResponseCookie.from("accessToken", "")
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 변경
+                    .path("/")
+                    .maxAge(0)
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString());
 
             return ResponseEntity.ok(CommonResponse.success("로그아웃이 완료되었습니다."));
         } catch (Exception e) {

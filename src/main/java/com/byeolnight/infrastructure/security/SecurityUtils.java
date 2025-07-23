@@ -1,6 +1,7 @@
 package com.byeolnight.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.util.StringUtils;
@@ -23,12 +24,26 @@ public class SecurityUtils {
     
     /**
      * HTTP 요청에서 JWT 토큰 추출
+     * 1. 쿠키에서 토큰 추출 시도
+     * 2. 쿠키에 없으면 Authorization 헤더에서 추출 시도
      */
     public static String resolveToken(HttpServletRequest request) {
+        // 1. 쿠키에서 토큰 추출 시도
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        
+        // 2. Authorization 헤더에서 추출 시도 (후방 호환성)
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
+        
         return null;
     }
     

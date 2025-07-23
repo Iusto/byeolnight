@@ -3,6 +3,7 @@ package com.byeolnight.infrastructure.security;
 import com.byeolnight.service.auth.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -73,7 +74,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = SecurityUtils.resolveToken(request);
+        // 쿠키에서 Access Token 추출
+        String token = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        
+        // 쿠키에서 토큰을 찾지 못한 경우, 헤더에서 추출 시도 (후방 호환성)
+        if (token == null) {
+            token = SecurityUtils.resolveToken(request);
+        }
+        
         log.debug("🪪 추출된 토큰: {}", token);
 
         if (token == null) {
@@ -81,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (uri.contains("/health") || uri.contains("/actuator") || uri.contains("/favicon.ico")) {
                 log.debug("헬스체크 요청: {}", uri);
             } else {
-                log.warn("❌ Authorization 헤더 없음 또는 형식 오류: {}", uri);
+                log.warn("❌ 토큰이 없음 (쿠키 및 헤더 모두 부재): {}", uri);
             }
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;

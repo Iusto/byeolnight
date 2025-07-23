@@ -69,10 +69,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshToken = async (): Promise<boolean> => {
     try {
       const res = await axios.post('/auth/token/refresh');
-      const newToken = res.data?.success ? res.data.data?.accessToken : null;
-      
-      if (newToken) {
-        localStorage.setItem('accessToken', newToken);
+      // 토큰이 쿠키로 전달되민로 응답에서 토큰을 추출할 필요 없음
+      if (res.data?.success) {
+        // 쿠키로 전달된 토큰을 사용하민로 localStorage에 저장할 필요 없음
         await fetchMyInfo();
         return true;
       }
@@ -104,11 +103,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('로그인 응답:', res.data);
 
-      const token = res.data?.success ? res.data.data?.accessToken : null;
-      if (token) {
-        localStorage.setItem('accessToken', token);
+      if (res.data?.success) {
+        // 쿠키로 전달된 토큰을 사용하민로 localStorage에 저장할 필요 없음
         
-        // 로그인 유지 옵션 저장
+        // 로그인 유지 옵션만 저장
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true');
         } else {
@@ -119,7 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // 인앱브라우저 호환성을 위해 setTimeout 제거
         // 로그인 성공 후 리다이렉션은 Login 컴포넌트에서 처리
       } else {
-        throw new Error('토큰을 받지 못했습니다.');
+        throw new Error('로그인에 실패했습니다.');
       }
     } catch (err: any) {
       console.error('로그인 에러 상세:', {
@@ -150,17 +148,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       // 백엔드 로그아웃 API 호출
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        await axios.post('/auth/logout', {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
+      // 쿠키에 토큰이 있으므로 별도의 헤더 설정 필요 없음
+      await axios.post('/auth/logout');
     } catch (error) {
       console.error('로그아웃 API 호출 실패:', error);
     } finally {
       // 로컬 상태 정리
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem('rememberMe'); // rememberMe 옵션만 삭제
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');
@@ -170,21 +164,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('accessToken');
       const rememberMe = localStorage.getItem('rememberMe');
       
-      if (token) {
-        // 사용자 정보 조회 시도
-        const success = await fetchMyInfo();
-        
-        // 실패 시 토큰 갱신 시도 (로그인 유지 옵션이 있는 경우)
-        if (!success && rememberMe === 'true') {
-          const refreshSuccess = await refreshToken();
-          if (!refreshSuccess) {
-            // 토큰 갱신도 실패하면 로그아웃
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('rememberMe');
-          }
+      // 사용자 정보 조회 시도 (쿠키에 토큰이 있는지 확인)
+      const success = await fetchMyInfo();
+      
+      // 실패 시 토큰 갱신 시도 (로그인 유지 옵션이 있는 경우)
+      if (!success && rememberMe === 'true') {
+        const refreshSuccess = await refreshToken();
+        if (!refreshSuccess) {
+          // 토큰 갱신도 실패하면 로그인 유지 옵션 제거
+          localStorage.removeItem('rememberMe');
         }
       }
       

@@ -69,8 +69,6 @@ const getClientIp = async (): Promise<string> => {
 // 요청 인터셉터
 instance.interceptors.request.use(
   async (config) => {
-    const token = localStorage.getItem('accessToken');
-
     // 공개 API 및 인증 API 확인
     const isPublicEndpoint = config.url?.startsWith('/public/');
     const isAuthEndpoint = config.url?.includes('/auth/login') || 
@@ -108,11 +106,8 @@ instance.interceptors.request.use(
         config.data = { email, password };
       }
     }
-
-    // 인증이 필요한 경우만 Authorization 헤더 설정
-    if (token && !isAuthEndpoint && !isPublicEndpoint) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    
+    // 토큰은 쿠키로 전달되민로 Authorization 헤더 설정 제거
 
     // 클라이언트 IP를 헤더에 추가 (모바일 호환성 개선)
     try {
@@ -149,12 +144,12 @@ instance.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: any) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);
     } else {
-      resolve(token);
+      resolve(null);
     }
   });
   
@@ -179,8 +174,8 @@ instance.interceptors.response.use(
         // 이미 토큰 갱신 중이면 대기열에 추가
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }).then(() => {
+          // 쿠키로 토큰이 전달되민로 헤더 설정 필요 없음
           return instance(originalRequest);
         }).catch(err => {
           return Promise.reject(err);
@@ -212,11 +207,9 @@ instance.interceptors.response.use(
           }
         );
 
-        const newToken = refreshResponse.data.data?.accessToken;
-        if (newToken) {
-          localStorage.setItem('accessToken', newToken);
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          processQueue(null, newToken);
+        if (refreshResponse.data.success) {
+          // 쿠키로 토큰이 전달되민로 별도 저장 필요 없음
+          processQueue(null);
           console.log('토큰 자동 갱신 성공');
           return instance(originalRequest);
         } else {
@@ -225,8 +218,7 @@ instance.interceptors.response.use(
       } catch (refreshError) {
         // Refresh Token도 만료된 경우 로그아웃 처리
         console.warn('토큰 갱신 실패:', refreshError);
-        processQueue(refreshError, null);
-        localStorage.removeItem('accessToken');
+        processQueue(refreshError);
         localStorage.removeItem('rememberMe');
         
         // 현재 페이지가 로그인 페이지가 아니면 리다이렉트
