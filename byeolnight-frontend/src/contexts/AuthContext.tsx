@@ -79,19 +79,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshToken = async (): Promise<boolean> => {
     try {
       const res = await axios.post('/auth/token/refresh');
-      // 토큰이 쿠키로 전달되지만 응답 본문에서도 가져와서 사용
+      console.log('토큰 갱신 응답:', res.data);
+      
+      // 응답 본문에서 토큰 가져와서 저장
       if (res.data?.success) {
-        // 응답 본문에서 토큰 가져와서 저장
         const newAccessToken = res.data?.data?.accessToken;
         if (newAccessToken) {
           localStorage.setItem('accessToken', newAccessToken);
-          console.log('토큰 갱신 성공:', newAccessToken.substring(0, 10) + '...');
+          console.log('토큰 갱신 성공 - 저장된 토큰:', newAccessToken.substring(0, 10) + '...');
+          
+          // 토큰 저장 후 사용자 정보 가져오기
+          await fetchMyInfo();
+          return true;
         } else {
           console.warn('갱신된 토큰이 응답 본문에 없습니다.');
+          return false;
         }
-        
-        await fetchMyInfo();
-        return true;
       }
       return false;
     } catch (error) {
@@ -103,11 +106,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       console.log('로그인 요청 시작:', { email, rememberMe });
-      console.log('모바일 디버그:', {
-        userAgent: navigator.userAgent,
-        isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-        baseURL: axios.defaults.baseURL
-      });
       
       // 객체 형태로 명확하게 지정하여 배열 형태로 전송되는 문제 방지
       const loginData = {
@@ -122,12 +120,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('로그인 응답:', res.data);
 
       if (res.data?.success) {
-        // 쿠키로 전달된 토큰을 사용하지만, 응답 본문에서도 토큰을 가져와서 저장
+        // 응답 본문에서 토큰 가져와서 저장
         const accessToken = res.data?.data?.accessToken;
         if (accessToken) {
-          // 응답 본문에서 받은 토큰을 저장
           localStorage.setItem('accessToken', accessToken);
-          console.log('토큰 저장 성공:', accessToken.substring(0, 10) + '...');
+          console.log('로그인 성공 - 저장된 토큰:', accessToken.substring(0, 10) + '...');
         } else {
           console.warn('토큰이 응답 본문에 없습니다.');
         }
@@ -139,13 +136,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           localStorage.removeItem('rememberMe');
         }
 
-        // 토큰이 저장된 후 사용자 정보를 가져오기 전에 약간의 지연 추가
-        setTimeout(async () => {
-          console.log('로그인 후 사용자 정보 가져오기 시도');
-          await fetchMyInfo();
-          console.log('사용자 정보 가져오기 완료, 사용자 상태:', user ? '있음' : '없음');
-        }, 100); // 100ms 지연
-        // 로그인 성공 후 리다이렉션은 Login 컴포넌트에서 처리
+        // 토큰 저장 후 사용자 정보 가져오기
+        console.log('로그인 성공 - 사용자 정보 가져오기 시도');
+        await fetchMyInfo();
+        console.log('로그인 완료 - 사용자 정보:', user);
       } else {
         throw new Error('로그인에 실패했습니다.');
       }
@@ -154,20 +148,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         message: err?.message,
         status: err?.response?.status,
         statusText: err?.response?.statusText,
-        data: err?.response?.data,
-        config: {
-          url: err?.config?.url,
-          baseURL: err?.config?.baseURL,
-          headers: err?.config?.headers
-        },
-        network: err?.code === 'NETWORK_ERROR' || err?.message?.includes('Network Error'),
-        timeout: err?.code === 'ECONNABORTED'
+        data: err?.response?.data
       });
-      
-      // 네트워크 오류 시 사용자 친화적 메시지
-      if (err?.code === 'NETWORK_ERROR' || err?.message?.includes('Network Error')) {
-        throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인해주세요.');
-      }
       
       // 서버에서 온 구체적인 에러 메시지 전달
       const errorMessage = err?.response?.data?.message || '로그인에 실패했습니다.';
@@ -178,14 +160,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       // 백엔드 로그아웃 API 호출
-      // 쿠키에 토큰이 있으므로 별도의 헤더 설정 필요 없음
       await axios.post('/auth/logout');
     } catch (error) {
       console.error('로그아웃 API 호출 실패:', error);
     } finally {
       // 로컬 상태 정리
-      localStorage.removeItem('rememberMe'); // rememberMe 옵션 삭제
-      localStorage.removeItem('accessToken'); // 토큰 삭제
+      localStorage.removeItem('rememberMe');
+      localStorage.removeItem('accessToken');
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');
@@ -195,54 +176,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initializeAuth = async () => {
-      const rememberMe = localStorage.getItem('rememberMe');
       const accessToken = localStorage.getItem('accessToken');
+      const rememberMe = localStorage.getItem('rememberMe');
       
-      // 인증이 필요 없는 경로 확인
-      const isHomePage = window.location.pathname === '/';
-      const isPublicPage = window.location.pathname.includes('/posts') && !window.location.pathname.includes('/posts/new');
+      console.log('인증 상태 확인:', { 
+        accessToken: accessToken ? '존재함' : '없음', 
+        tokenLength: accessToken?.length,
+        rememberMe 
+      });
       
-      // sitemap.xml, robots.txt 등 정적 파일 경로 확인
-      const isStaticFile = [
-        '/sitemap.xml', 
-        '/robots.txt',
-        '/favicon.ico'
-      ].some(path => window.location.pathname === path) || 
-        window.location.pathname.startsWith('/sitemap-');
-      
-      if (isHomePage || isPublicPage || isStaticFile) {
-        console.log('인증이 필요 없는 페이지에서는 사용자 정보 조회를 스킵합니다.');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('인증 상태 확인:', { accessToken: accessToken ? '존재함' : '없음', rememberMe });
-      
-      // localStorage에 토큰이 있는 경우 사용자 정보 조회 시도
       if (accessToken) {
         console.log('저장된 토큰으로 사용자 정보 조회 시도');
         const success = await fetchMyInfo();
         
         if (!success && rememberMe === 'true') {
           console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
-          const refreshSuccess = await refreshToken();
-          if (!refreshSuccess) {
-            console.log('토큰 갱신 실패, 로그인 유지 옵션 제거');
-            localStorage.removeItem('rememberMe');
-            localStorage.removeItem('accessToken');
-          }
-        }
-      } else {
-        console.log('저장된 토큰이 없음, 쿠키만으로 사용자 정보 조회 시도');
-        const success = await fetchMyInfo();
-        
-        if (!success && rememberMe === 'true') {
-          console.log('쿠키로 사용자 정보 조회 실패, 토큰 갱신 시도');
-          const refreshSuccess = await refreshToken();
-          if (!refreshSuccess) {
-            console.log('토큰 갱신 실패, 로그인 유지 옵션 제거');
-            localStorage.removeItem('rememberMe');
-          }
+          await refreshToken();
         }
       }
       
@@ -269,9 +218,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('사용자 정보 새로고침 시작');
     const success = await fetchMyInfo();
     console.log('사용자 정보 새로고침 결과:', success);
-    if (success) {
-      console.log('새로고침된 사용자 포인트:', user?.points);
-    }
   };
 
   return (
