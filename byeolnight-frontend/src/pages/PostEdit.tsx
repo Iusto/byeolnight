@@ -369,8 +369,18 @@ export default function PostEdit() {
   // 컴포넌트 마운트 시 이벤트 리스너 등록
   useEffect(() => {
     document.addEventListener('paste', handlePaste);
+    
+    // TUI Editor에서 발생하는 이미지 검열 이벤트 수신
+    const handleImageValidating = (e: CustomEvent) => {
+      const { validating } = e.detail;
+      setIsImageValidating(validating);
+    };
+    
+    document.addEventListener('imageValidating', handleImageValidating as EventListener);
+    
     return () => {
       document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('imageValidating', handleImageValidating as EventListener);
     };
   }, []);
 

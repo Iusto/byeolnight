@@ -76,6 +76,10 @@ const TuiEditor = forwardRef(({
       // 이미지 업로드 처리 중임을 표시
       isHandlingImageUpload.current = true;
       
+      // 검열 중 표시를 위한 이벤트 발생
+      const imageValidatingEvent = new CustomEvent('imageValidating', { detail: { validating: true } });
+      document.dispatchEvent(imageValidatingEvent);
+      
       // 부적절한 이미지 감지 시 파일 업로드 창이 뜨지 않도록 일정 시간 플래그 유지
       const resetTimer = setTimeout(() => {
         isHandlingImageUpload.current = false;
@@ -116,9 +120,10 @@ const TuiEditor = forwardRef(({
           const moderationResult = await moderationResponse.json();
           console.log('클립보드 이미지 검열 결과:', moderationResult);
           
-          // 부적절한 이미지인 경우 예외 발생 - alert 제거
+          // 부적절한 이미지인 경우 예외 발생 - alert 한 번만 표시
           if (moderationResult.data && moderationResult.data.isSafe === false) {
-            // alert 제거하고 오류만 발생시킴
+            // alert 한 번만 표시
+            alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
             throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
           }
           
@@ -169,6 +174,10 @@ const TuiEditor = forwardRef(({
       // 이미지 업로드 처리 완료 표시
       // 오류 발생 시에도 플래그를 유지하여 파일 업로드 창이 뜨지 않도록 처리
       // 플래그는 위에서 설정한 타이머에 의해 자동으로 초기화됨
+      
+      // 검열 완료 표시를 위한 이벤트 발생
+      const imageValidatingEvent = new CustomEvent('imageValidating', { detail: { validating: false } });
+      document.dispatchEvent(imageValidatingEvent);
     }
     // 실제 업로드는 handleImageUpload에서 처리하므로 여기서는 취소
     // 부적절한 이미지 감지 시 파일 업로드 창이 뜨지 않도록 처리
