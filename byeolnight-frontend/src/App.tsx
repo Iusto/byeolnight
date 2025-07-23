@@ -26,7 +26,21 @@ import SuggestionDetail from './pages/SuggestionDetail';
 import SuggestionEdit from './pages/SuggestionEdit';
 import MessagesPage from './pages/MessagesPage';
 
+// 정적 파일 경로 확인 함수
+const isStaticFilePath = (pathname: string): boolean => {
+  return [
+    '/sitemap.xml',
+    '/robots.txt',
+    '/favicon.ico'
+  ].includes(pathname) || pathname.startsWith('/sitemap-');
+};
+
 function App() {
+  // 현재 경로가 정적 파일 경로인 경우 아무것도 렌더링하지 않음
+  if (isStaticFilePath(window.location.pathname)) {
+    return null;
+  }
+  
   return (
     <Routes>
       {/* 독립적인 페이지들 (Layout 없음) */}

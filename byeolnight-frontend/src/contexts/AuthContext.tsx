@@ -166,12 +166,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       const rememberMe = localStorage.getItem('rememberMe');
       
-      // 홈 페이지인 경우 로그인 여부를 확인하지 않고 그냥 로딩 완료
+      // 인증이 필요 없는 경로 확인
       const isHomePage = window.location.pathname === '/';
       const isPublicPage = window.location.pathname.includes('/posts') && !window.location.pathname.includes('/posts/new');
       
-      if (isHomePage || isPublicPage) {
-        console.log('홈 페이지 또는 공개 페이지에서는 사용자 정보 조회를 스킵합니다.');
+      // sitemap.xml, robots.txt 등 정적 파일 경로 확인
+      const isStaticFile = [
+        '/sitemap.xml', 
+        '/robots.txt',
+        '/favicon.ico'
+      ].some(path => window.location.pathname === path) || 
+        window.location.pathname.startsWith('/sitemap-');
+      
+      if (isHomePage || isPublicPage || isStaticFile) {
+        console.log('인증이 필요 없는 페이지에서는 사용자 정보 조회를 스킵합니다.');
         setLoading(false);
         return;
       }
