@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,6 +34,7 @@ public class SitemapController {
     /**
      * 메인 사이트맵 인덱스 - 여러 사이트맵을 관리
      */
+    @PreAuthorize("permitAll()")
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public String getSitemapIndex() {
         StringBuilder sitemap = new StringBuilder();
@@ -62,6 +64,7 @@ public class SitemapController {
     /**
      * 메인 페이지와 주요 페이지들을 위한 사이트맵
      */
+    @PreAuthorize("permitAll()")
     @GetMapping(value = "/sitemap-main.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public String getMainSitemap() {
         StringBuilder sitemap = new StringBuilder();
@@ -90,6 +93,7 @@ public class SitemapController {
     /**
      * 게시글 페이지들을 위한 사이트맵 (페이징 처리)
      */
+    @PreAuthorize("permitAll()")
     @GetMapping(value = "/sitemap-posts-{page}.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public String getPostsSitemap(@PathVariable int page) {
         StringBuilder sitemap = new StringBuilder();
