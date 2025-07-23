@@ -71,11 +71,16 @@ public class WebConfig implements WebMvcConfigurer {
     /**
      * 정적 리소스 설정
      * - robots.txt, sitemap.xml 등의 파일을 제공하기 위한 설정
+     * - 프론트엔드 라우팅을 우회하여 직접 컨트롤러에 접근하도록 설정
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/robots.txt", "/sitemap.xml", "/sitemap-*.xml")
+        // 사이트맵과 robots.txt는 프론트엔드 라우팅을 우회하여 직접 컨트롤러에 접근
+        registry.addResourceHandler("/robots.txt")
                 .addResourceLocations("classpath:/static/")
                 .setCachePeriod(3600); // 1시간 캐싱
+        
+        // 사이트맵은 컨트롤러에서 동적으로 생성하도록 설정
+        // 정적 파일을 사용하지 않고 컨트롤러에서 직접 생성
     }
 }
