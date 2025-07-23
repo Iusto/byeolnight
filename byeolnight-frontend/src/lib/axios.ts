@@ -111,6 +111,9 @@ instance.interceptors.request.use(
     const accessToken = localStorage.getItem('accessToken');
     if (accessToken && !isPublicEndpoint && !isAuthEndpoint) {
       config.headers['Authorization'] = `Bearer ${accessToken}`;
+      console.log('토큰 헤더 추가:', config.url, accessToken.substring(0, 10) + '...');
+    } else if (!isPublicEndpoint && !isAuthEndpoint) {
+      console.warn('토큰이 없어 헤더를 추가하지 않음:', config.url);
     }
 
     // 클라이언트 IP를 헤더에 추가 (모바일 호환성 개선)
