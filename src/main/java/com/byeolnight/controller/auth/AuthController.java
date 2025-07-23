@@ -79,7 +79,7 @@ public class AuthController {
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                    .body(CommonResponse.success(new TokenResponseDto(null))); // 토큰을 응답 본문에서 제거
+                    .body(CommonResponse.success(new TokenResponseDto(null, true))); // 토큰을 응답 본문에서 제거
         } catch (SecurityException e) {
             log.info("로그인 차단: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(CommonResponse.fail(e.getMessage()));
@@ -251,7 +251,7 @@ public class AuthController {
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                    .body(CommonResponse.success(new TokenResponseDto(null))); // 토큰을 응답 본문에서 제거
+                    .body(CommonResponse.success(new TokenResponseDto(null, true))); // 토큰을 응답 본문에서 제거
 
         } catch (Exception e) {
             log.error("토큰 재발급 중 오류 발생", e);
