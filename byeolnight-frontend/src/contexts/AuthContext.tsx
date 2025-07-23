@@ -69,9 +69,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshToken = async (): Promise<boolean> => {
     try {
       const res = await axios.post('/auth/token/refresh');
-      // 토큰이 쿠키로 전달되민로 응답에서 토큰을 추출할 필요 없음
+      // 토큰이 쿠키로 전달되지만 응답 본문에서도 가져와서 사용
       if (res.data?.success) {
-        // 쿠키로 전달된 토큰을 사용하민로 localStorage에 저장할 필요 없음
+        // 응답 본문에서 토큰 가져와서 저장
+        const newAccessToken = res.data?.data?.accessToken;
+        if (newAccessToken) {
+          localStorage.setItem('accessToken', newAccessToken);
+          console.log('토큰 갱신 성공:', newAccessToken.substring(0, 10) + '...');
+        } else {
+          console.warn('갱신된 토큰이 응답 본문에 없습니다.');
+        }
+        
         await fetchMyInfo();
         return true;
       }
@@ -104,9 +112,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('로그인 응답:', res.data);
 
       if (res.data?.success) {
-        // 쿠키로 전달된 토큰을 사용하민로 localStorage에 저장할 필요 없음
+        // 쿠키로 전달된 토큰을 사용하지만, 응답 본문에서도 토큰을 가져와서 저장
+        const accessToken = res.data?.data?.accessToken;
+        if (accessToken) {
+          // 응답 본문에서 받은 토큰을 저장
+          localStorage.setItem('accessToken', accessToken);
+          console.log('토큰 저장 성공:', accessToken.substring(0, 10) + '...');
+        } else {
+          console.warn('토큰이 응답 본문에 없습니다.');
+        }
         
-        // 로그인 유지 옵션만 저장
+        // 로그인 유지 옵션 저장
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true');
         } else {
@@ -154,7 +170,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('로그아웃 API 호출 실패:', error);
     } finally {
       // 로컬 상태 정리
-      localStorage.removeItem('rememberMe'); // rememberMe 옵션만 삭제
+      localStorage.removeItem('rememberMe'); // rememberMe 옵션 삭제
+      localStorage.removeItem('accessToken'); // 토큰 삭제
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');

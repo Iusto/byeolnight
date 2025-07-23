@@ -107,7 +107,11 @@ instance.interceptors.request.use(
       }
     }
     
-    // 토큰은 쿠키로 전달되민로 Authorization 헤더 설정 제거
+    // 토큰을 헤더에 추가 (쿠키와 이중으로 전송)
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken && !isPublicEndpoint && !isAuthEndpoint) {
+      config.headers['Authorization'] = `Bearer ${accessToken}`;
+    }
 
     // 클라이언트 IP를 헤더에 추가 (모바일 호환성 개선)
     try {
@@ -211,9 +215,19 @@ instance.interceptors.response.use(
         );
 
         if (refreshResponse.data.success) {
-          // 쿠키로 토큰이 전달되민로 별도 저장 필요 없음
+          // 쿠키로 토큰이 전달되지만 응답 본문에서도 가져와서 사용
+          const newAccessToken = refreshResponse.data?.data?.accessToken;
+          if (newAccessToken) {
+            localStorage.setItem('accessToken', newAccessToken);
+            console.log('토큰 자동 갱신 성공:', newAccessToken.substring(0, 10) + '...');
+            
+            // 원래 요청에 새 토큰 적용
+            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          } else {
+            console.warn('갱신된 토큰이 응답 본문에 없습니다.');
+          }
+          
           processQueue(null);
-          console.log('토큰 자동 갱신 성공');
           return instance(originalRequest);
         } else {
           throw new Error('새 토큰을 받지 못했습니다.');
