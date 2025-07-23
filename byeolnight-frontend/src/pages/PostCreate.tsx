@@ -71,13 +71,11 @@ export default function PostCreate() {
       console.error('클립보드 이미지 업로드 오류:', error);
       const errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
       
-      // 오류 메시지 표시
+      // 오류 메시지 표시 (alert 대신 ValidationAlert만 사용)
       setValidationAlert({
         message: errorMsg,
         type: 'error'
       });
-      
-      alert(errorMsg);
       throw error;
     } finally {
       setIsImageValidating(false);
@@ -146,7 +144,11 @@ export default function PostCreate() {
           
           // 모바일에서는 클립보드 붙여넣기 제한
           if (isMobileDevice) {
-            alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+            // alert 제거하고 ValidationAlert로 대체
+            setValidationAlert({
+              message: '모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.',
+              type: 'warning'
+            });
             return;
           }
           
@@ -168,7 +170,11 @@ export default function PostCreate() {
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
-            alert(error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
+            // ValidationAlert로 표시하고 alert 제거
+            setValidationAlert({
+              message: error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.',
+              type: 'error'
+            });
           }
           break;
         }
@@ -198,7 +204,11 @@ export default function PostCreate() {
     // URL 검증
     if (!isValidImageUrl(imageUrl)) {
       console.error('유효하지 않은 이미지 URL:', imageUrl);
-      alert('유효하지 않은 이미지 URL입니다.');
+      // alert 제거하고 ValidationAlert로 대체
+      setValidationAlert({
+        message: '유효하지 않은 이미지 URL입니다.',
+        type: 'error'
+      });
       return;
     }
     
@@ -234,7 +244,11 @@ export default function PostCreate() {
       console.error('이미지 삽입 중 오류:', error);
       // 오류 발생 시 상태 업데이트로 폴백
       setContent(prev => prev + `![${altText}](${imageUrl})\n`);
-      alert('이미지 삽입 중 오류가 발생했습니다.');
+      // alert 제거하고 ValidationAlert로 대체
+      setValidationAlert({
+        message: '이미지 삽입 중 오류가 발생했습니다.',
+        type: 'error'
+      });
     }
   };
   
@@ -318,18 +332,15 @@ export default function PostCreate() {
       // 이미지를 에디터에 삽입
       insertImageToEditor(imageData.url, imageData.originalName || '검열 통과된 이미지');
       
-      // 성공 메시지 표시 제거 - 검열완료 표시가 있으므로 불필요
-      
     } catch (error: any) {
       console.error('이미지 업로드 오류:', error);
       const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
       
-      // 오류 메시지 표시 - alert는 한 번만 호출
+      // 오류 메시지 표시 - alert 제거하고 ValidationAlert만 사용
       setValidationAlert({
         message: errorMsg,
         type: 'error'
       });
-      alert(errorMsg);
     } finally {
       setIsImageValidating(false);
       // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
