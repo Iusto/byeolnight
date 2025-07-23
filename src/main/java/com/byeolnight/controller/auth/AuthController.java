@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -40,6 +41,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 @Tag(name = "🔑 인증 API", description = "로그인, 회원가입, 토큰 관리 등 인증 관련 API")
 public class AuthController {
+    
+    @Value("${app.security.cookie.secure:false}")
+    private boolean secureCookie;
 
     private final AuthService authService;
     private final EmailAuthService emailAuthService;
@@ -70,7 +74,7 @@ public class AuthController {
             // Access Token도 HttpOnly 쿠키로 설정
             ResponseCookie accessCookie = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
-                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
+                    .secure(secureCookie) // 환경에 따라 동적으로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
                     .path("/")
                     .maxAge(1800) // 30분
@@ -242,7 +246,7 @@ public class AuthController {
             // Access Token도 HttpOnly 쿠키로 전달
             ResponseCookie accessCookie = ResponseCookie.from("accessToken", newAccessToken)
                     .httpOnly(true)
-                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
+                    .secure(secureCookie) // 환경에 따라 동적으로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
                     .path("/")
                     .maxAge(1800) // 30분
@@ -291,7 +295,7 @@ public class AuthController {
             // 클라이언트에 쿠키 삭제 지시 - Refresh Token
             ResponseCookie deleteRefreshCookie = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
-                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
+                    .secure(secureCookie) // 환경에 따라 동적으로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 변경
                     .path("/")
                     .maxAge(0)
@@ -301,7 +305,7 @@ public class AuthController {
             // 클라이언트에 쿠키 삭제 지시 - Access Token
             ResponseCookie deleteAccessCookie = ResponseCookie.from("accessToken", "")
                     .httpOnly(true)
-                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
+                    .secure(secureCookie) // 환경에 따라 동적으로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 변경
                     .path("/")
                     .maxAge(0)
@@ -454,7 +458,7 @@ public class AuthController {
     private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
         return ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
+                .secure(secureCookie) // 환경에 따라 동적으로 설정
                 .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 통일
                 .path("/")
                 .maxAge(validity / 1000)
