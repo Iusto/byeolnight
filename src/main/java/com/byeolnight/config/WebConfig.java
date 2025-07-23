@@ -74,7 +74,8 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/robots.txt", "/sitemap*.xml")
-                .addResourceLocations("classpath:/static/");
+        registry.addResourceHandler("/robots.txt", "/sitemap.xml", "/sitemap-*.xml")
+                .addResourceLocations("classpath:/static/")
+                .setCachePeriod(3600); // 1시간 캐싱
     }
 }
