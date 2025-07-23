@@ -25,7 +25,8 @@ export const ProtectedRoute = ({
   }
 
   // 인증이 필요한데 로그인하지 않은 경우
-  if (requireAuth && !user) {
+  // 홈 페이지는 로그인하지 않아도 접근 가능하도록 예외 처리
+  if (requireAuth && !user && location.pathname !== '/') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -168,8 +168,11 @@ instance.interceptors.response.use(
     // 로그인 API는 토큰 갱신 로직에서 제외
     const isLoginRequest = originalRequest.url?.includes('/auth/login');
     
-    // 401 에러이고 토큰 갱신을 시도하지 않은 경우 (로그인 요청 제외)
-    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
+    // 공개 API 요청인지 확인
+    const isPublicEndpoint = originalRequest.url?.startsWith('/public/');
+    
+    // 401 에러이고 토큰 갱신을 시도하지 않은 경우 (로그인 요청 및 공개 API 제외)
+    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest && !isPublicEndpoint) {
       if (isRefreshing) {
         // 이미 토큰 갱신 중이면 대기열에 추가
         return new Promise((resolve, reject) => {
@@ -221,9 +224,13 @@ instance.interceptors.response.use(
         processQueue(refreshError);
         localStorage.removeItem('rememberMe');
         
-        // 현재 페이지가 로그인 페이지가 아니면 리다이렉트
-        if (window.location.pathname !== '/login') {
+        // 현재 페이지가 로그인 페이지가 아니고, 보호된 경로에 대한 요청인 경우에만 리다이렉트
+        const isPublicEndpoint = originalRequest.url?.startsWith('/public/');
+        if (window.location.pathname !== '/login' && !isPublicEndpoint) {
+          console.log('보호된 경로에 대한 인증 실패, 로그인 페이지로 이동');
           window.location.href = '/login';
+        } else {
+          console.log('공개 API 요청이거나 이미 로그인 페이지에 있어 리다이렉트하지 않음');
         }
         
         return Promise.reject(refreshError);
