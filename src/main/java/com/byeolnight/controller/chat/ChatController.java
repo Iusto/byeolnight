@@ -3,6 +3,7 @@ package com.byeolnight.controller.chat;
 
 import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.dto.chat.ChatMessageDto;
+import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.ChatService;
 import com.byeolnight.service.chat.AdminChatService;
@@ -85,20 +86,20 @@ public class ChatController {
 
     @Operation(summary = "채팅 메시지 조회", description = "최근 채팅 메시지를 조회합니다.")
     @GetMapping("/api/public/chat")
-    public ResponseEntity<List<ChatMessageDto>> getMessages(
+    public ResponseEntity<CommonResponse<List<ChatMessageDto>>> getMessages(
             @RequestParam String roomId,
             @RequestParam(defaultValue = "20") int limit) {
         List<ChatMessageDto> messages = chatService.getRecentMessages(roomId, limit);
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(CommonResponse.success(messages));
     }
     
     @Operation(summary = "채팅 이력 조회", description = "특정 시점 이전의 채팅 이력을 조회합니다.")
     @GetMapping("/api/public/chat/history")
-    public ResponseEntity<List<ChatMessageDto>> getChatHistory(
+    public ResponseEntity<CommonResponse<List<ChatMessageDto>>> getChatHistory(
             @RequestParam String roomId,
             @RequestParam String beforeId,
             @RequestParam(defaultValue = "20") int limit) {
         List<ChatMessageDto> messages = chatService.getMessagesBefore(roomId, beforeId, limit);
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(CommonResponse.success(messages));
     }
 }

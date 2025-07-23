@@ -40,7 +40,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*") // 모든 출처 허용 (또는 특정 도메인만 지정)
+                .allowedOriginPatterns("*") // 모든 출처 허용 (allowCredentials와 함께 사용하기 위해 패턴 사용)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true) // 쿠키 포함 요청 허용
@@ -57,7 +57,7 @@ public class WebConfig implements WebMvcConfigurer {
         CorsConfiguration config = new CorsConfiguration();
         
         // 모든 출처 허용 (또는 특정 도메인만 지정)
-        config.addAllowedOrigin("*");
+        config.addAllowedOriginPattern("*"); // allowCredentials와 함께 사용하기 위해 패턴 사용
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true); // 쿠키 포함 요청 허용

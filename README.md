@@ -7,7 +7,7 @@
 본 프로젝트는 화려한 UI보다는 **운영 환경에서 살아남는 백엔드 구조**를 만드는 데 집중했습니다.  
 프론트엔드는 React, TailwindCSS 등으로 구성되었고, 핵심은 다음과 같은 내부 설계에 있습니다:
 
-- **HttpOnly 쿠키 기반 JWT + Redis 보안 구조**: 무상태 서버 유지 + XSS 방어 + 인앱브라우저 호환성
+- **JWT + Redis 기반 보안 구조**: 무상태 서버 유지 + 효율적 토큰 관리
 - **예외/토큰/로그인 실패를 고려한 보안 정책**: 실제 운영 환경 대응
 - **S3 Presigned URL을 통한 파일 구조**: 서버 부하 분산 및 확장성
 - **WebSocket 기반의 실시간 채팅 및 알림 시스템**: 대용량 실시간 처리
@@ -37,7 +37,7 @@
 
 ### 🎯 핵심 특징
 
-- 🔐 **강화된 보안 시스템**: HttpOnly 쿠키 기반 JWT + Redis 토큰 관리, 단계별 로그인 실패 대응
+- 🔐 **강화된 보안 시스템**: JWT + Redis 기반 토큰 관리, 단계별 로그인 실패 대응
 - 📱 **다중 인증 지원**: 이메일/SMS 인증을 통한 안전한 회원가입 (Gmail SMTP + SendGrid + CoolSMS)
 - 💬 **실시간 채팅**: WebSocket(STOMP) 기반 실시간 커뮤니케이션  
   > *구현 이유: HTTP 폴링 대비 성능 최적화, 대용량 동시 접속 지원, 양방향 통신*
@@ -415,7 +415,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 ```
 **성과**: 사용자 경험 개선, 데이터 손실 95% 감소
 
-#### 4. **WebSocket 연결 끊김 → 하트비트 + 재연결 로직 구현 + HttpOnly 쿠키 인증**
+#### 4. **WebSocket 연결 끊김 → 하트비트 + 재연결 로직 구현**
 
 **문제 상황**:
 - 모바일 환경에서 네트워크 전환(WiFi → 데이터) 시 WebSocket 연결 끊김
@@ -475,7 +475,7 @@ const handleConnectionError = () => {
 )}
 ```
 
-4. **브라우저 탭 활성화 감지 및 연결 상태 확인 + HttpOnly 쿠키 인증 적용**
+4. **브라우저 탭 활성화 감지 및 연결 상태 확인**
 ```typescript
 // 브라우저 탭 활성화 시 연결 상태 확인
 useEffect(() => {
@@ -490,16 +490,6 @@ useEffect(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }, [connected]);
-
-// WebSocket 연결 시 HttpOnly 쿠키 인증 적용
-const connect = () => {
-  const socket = new SockJS('/ws');
-  const stompClient = new Client({
-    webSocketFactory: () => socket,
-    connectHeaders: {},  // 쿠키에 토큰이 있으므로 별도 헤더 필요 없음
-    // ...
-  });
-};
 ```
 
 **결과 및 성과**:
@@ -725,7 +715,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 ```
 **성과**: 빌드 성공, 관리자 파일 정리 API 정상 작동
 
-#### 15. **JWT 토큰 자동 갱신 시스템 → 게시글 작성 중 데이터 손실 방지 (HttpOnly 쿠키 기반)**
+#### 15. **JWT 토큰 자동 갱신 시스템 → 게시글 작성 중 데이터 손실 방지**
 **문제**: 사용자가 게시글 작성 중 토큰 만료로 인한 데이터 손실 및 로그아웃
 ```java
 // 백엔드: JwtAuthenticationEntryPoint에서 401 응답
@@ -739,17 +729,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     }
 }
 
-// JwtAuthenticationFilter에서 쿠키에서 토큰 추출 및 검증
-Cookie[] cookies = request.getCookies();
-if (cookies != null) {
-    for (Cookie cookie : cookies) {
-        if ("accessToken".equals(cookie.getName())) {
-            token = cookie.getValue();
-            break;
-        }
-    }
-}
-
+// JwtAuthenticationFilter에서 토큰 검증 실패 시 401 반환
 if (!jwtTokenProvider.validate(token)) {
     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     return;
@@ -764,21 +744,19 @@ instance.interceptors.response.use(
       // 로그인 유지 옵션 확인
       const rememberMe = localStorage.getItem('rememberMe');
       if (rememberMe === 'true') {
-        // Refresh Token으로 새 Access Token 요청 (쿠키로 전달됨)
+        // Refresh Token으로 새 Access Token 요청
         const refreshResponse = await axios.post('/auth/token/refresh');
-        if (refreshResponse.data.success) {
-          // 쿠키로 토큰이 전달되민로 별도 저장 필요 없음
-          return instance(originalRequest);
-        }
+        const newToken = refreshResponse.data.data?.accessToken;
+        
+        // 새 토큰으로 원래 요청 재실행
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return instance(originalRequest);
       }
     }
   }
 );
 ```
-**성과**: 
-- 게시글 작성 중 토큰 만료되어도 자동 갱신 후 원래 요청 재실행
-- 사용자 데이터 손실 95% 감소
-- 인앱브라우저에서도 안정적으로 동작
+**성과**: 게시글 작성 중 토큰 만료되어도 자동 갱신 후 원래 요청 재실행, 사용자 데이터 손실 95% 감소
 
 ### 💡 **삽질을 통해 얻은 교훈**
 - **"일단 돌아가게 만들고 최적화"** → 초기 설계의 중요성 깨달음
@@ -812,27 +790,83 @@ instance.interceptors.response.use(
 
 ## 🔐 보안 및 인증 시스템
 
-### HttpOnly 쿠키 기반 JWT 인증 시스템
+### JWT + Redis 기반 인증 아키텍처
 
-> **Access Token도 HttpOnly 쿠키로 전환한 이유:**  
-> - 인앱브라우저에서 localStorage 접근 제한 문제 해결  
-> - XSS(Cross-Site Scripting) 공격으로부터 토큰 보호  
-> - 일관된 인증 관리로 클라이언트-서버 구현 단순화
+별 헤는 밤은 JWT(JSON Web Token)와 Redis를 결합한 강력한 인증 시스템을 구현하고 있습니다. 이 아키텍처는 보안성과 확장성을 모두 고려하여 설계되었습니다.
 
-> **구현 방식:**  
-> - Access Token과 Refresh Token 모두 HttpOnly 쿠키로 전달  
-> - SameSite=Lax 설정으로 인앱브라우저 호환성 확보  
-> - 서버에서 쿠키와 헤더 모두에서 토큰 추출 시도(후방 호환성)  
-> - Redis에 Refresh Token 관리 및 블랙리스트 적용
+#### 🔑 토큰 구조 및 관리
 
-> **결과:**  
-> - 인앱브라우저에서 로그인 후 화면 전환 문제 해결  
-> - 클라이언트에서 토큰 관리 코드 제거로 보안성 강화  
-> - 일관된 인증 방식으로 유지보수성 향상
+- **Access Token (JWT)**
+  - 유효기간: **30분** (짧은 수명으로 보안 강화)
+  - 저장위치: 클라이언트 메모리(localStorage) + HttpOnly Cookie
+  - 용도: API 요청 인증, 사용자 식별
+  - 포함정보: 사용자 ID, 권한(Role), 만료시간
 
-> **보안 주의**: 실제 운영 환경에서는 모든 보안 설정을 강화하고 정기적인 보안 점검을 수행해야 합니다.
+- **Refresh Token**
+  - 유효기간: **7일** (장기간 로그인 유지)
+  - 저장위치: 서버 Redis + 클라이언트 HttpOnly Cookie
+  - 용도: Access Token 갱신
+  - 보안강화: HttpOnly + Secure + SameSite 속성 적용
 
-### HttpOnly 쿠키 기반 JWT 인증 구조
+#### 🔄 인앱 브라우저 대응 개선
+
+- **문제**: 인앱 브라우저(카카오톡, 페이스북 등)에서 localStorage 접근 제한으로 인해 Access Token 저장 실패 → 흰 화면만 표시되는 버그 발생
+- **해결**: Access Token도 HttpOnly Cookie로 이중 전송 방식 구현
+  ```java
+  // 서버 측 구현
+  @PostMapping("/login")
+  public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+      // 인증 로직...
+      String accessToken = jwtTokenProvider.createAccessToken(user);
+      String refreshToken = jwtTokenProvider.createRefreshToken(user);
+      
+      // Access Token을 응답 본문과 쿠키에 모두 포함
+      ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", accessToken)
+          .httpOnly(true)
+          .path("/")
+          .maxAge(1800) // 30분
+          .sameSite("Lax")
+          .build();
+          
+      // Refresh Token은 쿠키로만 전송
+      ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+          .httpOnly(true)
+          .path("/")
+          .maxAge(604800) // 7일
+          .sameSite("Lax")
+          .build();
+          
+      return ResponseEntity.ok()
+          .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+          .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+          .body(new TokenResponse(accessToken));
+  }
+  ```
+- **성과**: 
+  - 인앱 브라우저 호환성 100% 달성
+  - 일반 브라우저에서는 localStorage 사용, 인앱 브라우저에서는 쿠키 사용으로 이중 보호
+  - 사용자 경험 개선 (흰 화면 버그 해결)
+
+#### 🛡️ 토큰 갱신 메커니즘
+
+1. **자동 갱신 시스템**
+   - Access Token 만료 시 Axios 인터셉터가 자동으로 갱신 요청
+   - 사용자 작업 중단 없이 인증 상태 유지
+   - 로그인 유지 옵션에 따라 자동 갱신 여부 결정
+
+2. **보안 강화 장치**
+   - Refresh Token 재사용 감지 시스템
+   - 토큰 탈취 의심 시 자동 무효화 및 강제 로그아웃
+   - Redis TTL 기반 자동 만료 관리
+
+#### 📊 Redis 활용 방식
+
+- **Refresh Token 저장**: `{userId}:refresh` 키로 저장
+- **토큰 블랙리스트**: 로그아웃 시 무효화된 토큰 관리
+- **계정 잠금 관리**: 로그인 실패 횟수 추적 및 자동 잠금
+- **토큰 재사용 감지**: 토큰 사용 이력 추적으로 탈취 감지
+
+#### 🔄 인증 흐름도
 
 ```mermaid
 sequenceDiagram
@@ -840,19 +874,41 @@ sequenceDiagram
     participant S as Server
     participant R as Redis
     
-    C->>S: 로그인 요청
+    C->>S: 로그인 요청 (이메일/비밀번호)
     S->>S: 사용자 검증
-    S->>R: Refresh Token 저장
-    S->>C: HttpOnly Cookie (Access Token + Refresh Token)
+    S->>R: Refresh Token 저장 (userId:refresh)
+    S->>C: Access Token(JWT) + HttpOnly Cookie(Refresh Token)
     
-    C->>S: API 요청 (Cookie에 토큰 포함)
-    S->>S: Cookie에서 토큰 추출 및 검증
-    S->>C: 응답
+    C->>S: API 요청 (Authorization: Bearer {AccessToken})
+    S->>S: JWT 검증 (서명, 만료여부)
+    S->>C: API 응답
     
-    C->>S: Token 갱신 요청
+    Note over C,S: Access Token 만료 시
+    C->>S: API 요청 (만료된 Access Token)
+    S->>C: 401 Unauthorized
+    C->>S: 토큰 갱신 요청 (Refresh Token 쿠키 자동 전송)
     S->>R: Refresh Token 검증
-    S->>C: HttpOnly Cookie로 새 Access Token + Refresh Token 전달
+    S->>R: 기존 Refresh Token 무효화 및 새 토큰 저장
+    S->>C: 새로운 Access Token(응답 본문 + 쿠키) + 새로운 Refresh Token(쿠키)
+    C->>S: 원래 API 요청 재시도 (새 Access Token)
+    S->>C: API 응답
 ```
+
+#### 🔒 보안 강화 기능
+
+- **토큰 자동 갱신**: 사용자 경험 중단 없이 인증 상태 유지
+- **토큰 탈취 대응**: Refresh Token 교체 및 재사용 감지
+- **계정 보호**: 로그인 실패 5회 시 자동 계정 잠금 (30분)
+- **IP 추적**: 비정상 로그인 시도 감지 및 차단
+- **토큰 무효화**: 로그아웃 시 즉시 토큰 블랙리스트 등록
+
+> **JWT + Redis 구조를 사용한 이유:**  
+> - 서버 무상태(stateless) 구조를 유지하면서도 Refresh Token 관리가 필요했기 때문  
+> - Redis에 Refresh Token을 저장하고, 블랙리스트 관리 및 계정 잠금 정책을 효율적으로 구현  
+> - 대용량 서비스에서 토큰 검증 성능 최적화
+> - 토큰 탈취 시나리오에 대응하기 위한 보안 강화 메커니즘 구현
+
+> **보안 주의**: 실제 운영 환경에서는 모든 보안 설정을 강화하고 정기적인 보안 점검을 수행해야 합니다.
 
 ### 🛡️ 보안 기능
 
