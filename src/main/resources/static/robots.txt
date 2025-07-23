@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/admin/
+Disallow: /api/member/
+Disallow: /api/auth/
+Disallow: /error
+
+# 사이트맵 위치
+Sitemap: https://byeolnight.com/sitemap.xml

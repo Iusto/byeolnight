@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+
+
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
@@ -195,4 +197,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * 카테고리별 삭제되지 않은 게시글 개수 조회
      */
     long countByCategoryAndIsDeletedFalse(Category category);
+    
+    /**
+     * 블라인드 처리되지 않은 게시글만 조회 (사이트맵용)
+     */
+    Page<Post> findByBlindedFalse(Pageable pageable);
+    
+    /**
+     * 블라인드 처리되지 않고 삭제되지 않은 게시글만 조회 (사이트맵용)
+     */
+    Page<Post> findByBlindedFalseAndIsDeletedFalse(Pageable pageable);
 }

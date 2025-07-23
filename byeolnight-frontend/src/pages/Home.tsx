@@ -48,6 +48,7 @@ export default function Home() {
       })
       .catch(err => {
         console.error('인기 게시글 불러오기 실패', err);
+        // 401 오류라도 로그인 페이지로 리다이렉트하지 않고 빈 배열로 처리
         setPosts([]);
       });
 

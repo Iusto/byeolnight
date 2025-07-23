@@ -9,6 +9,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -65,5 +66,15 @@ public class WebConfig implements WebMvcConfigurer {
         
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
+    }
+    
+    /**
+     * 정적 리소스 설정
+     * - robots.txt, sitemap.xml 등의 파일을 제공하기 위한 설정
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/robots.txt", "/sitemap*.xml")
+                .addResourceLocations("classpath:/static/");
     }
 }

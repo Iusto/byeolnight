@@ -19,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -63,6 +63,10 @@ coolsms:
 
 server:
   port: 8080
+
+# 사이트 설정
+site:
+  base-url: ${SITE_BASE_URL:https://byeolnight.com}
 
 cloud:
   aws:
