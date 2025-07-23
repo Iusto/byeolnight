@@ -43,6 +43,9 @@ public class JwtTokenProvider {
 
     @Value("${app.jwt.refresh-token-validity}")
     private Duration refreshTokenValidity;
+    
+    @Value("${app.jwt.allowed-clock-skew:5m}")
+    private Duration allowedClockSkew;
 
     // JWT 서명용 키 생성
     private Key getSigningKey() {
@@ -77,7 +80,12 @@ public class JwtTokenProvider {
      */
     public boolean validate(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+            // 설정에서 가져온 시간 오차(clock skew) 허용 설정 적용
+            Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .setAllowedClockSkewSeconds(allowedClockSkew.getSeconds()) // 설정에서 가져온 시간 오차 허용
+                .build()
+                .parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
             log.warn("⏰ JWT 만료됨: {}", e.getMessage());
@@ -91,6 +99,8 @@ public class JwtTokenProvider {
     
     /**
      * Refresh Token 유효성 검증
+     * 
+     * 일반 토큰 검증과 동일한 방식으로 시간 오차(clock skew)를 허용하여 검증합니다.
      */
     public boolean validateRefreshToken(String token) {
         return validate(token);
@@ -113,6 +123,7 @@ public class JwtTokenProvider {
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
+                .setAllowedClockSkewSeconds(allowedClockSkew.getSeconds()) // 설정에서 가져온 시간 오차 허용
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
