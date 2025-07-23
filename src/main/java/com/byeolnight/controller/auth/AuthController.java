@@ -70,7 +70,7 @@ public class AuthController {
             // Access Token도 HttpOnly 쿠키로 설정
             ResponseCookie accessCookie = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
                     .path("/")
                     .maxAge(1800) // 30분
@@ -242,7 +242,7 @@ public class AuthController {
             // Access Token도 HttpOnly 쿠키로 전달
             ResponseCookie accessCookie = ResponseCookie.from("accessToken", newAccessToken)
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
                     .path("/")
                     .maxAge(1800) // 30분
@@ -291,7 +291,7 @@ public class AuthController {
             // 클라이언트에 쿠키 삭제 지시 - Refresh Token
             ResponseCookie deleteRefreshCookie = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 변경
                     .path("/")
                     .maxAge(0)
@@ -301,7 +301,7 @@ public class AuthController {
             // 클라이언트에 쿠키 삭제 지시 - Access Token
             ResponseCookie deleteAccessCookie = ResponseCookie.from("accessToken", "")
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 변경
                     .path("/")
                     .maxAge(0)
@@ -454,8 +454,8 @@ public class AuthController {
     private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
         return ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
+                .secure(false) // 개발 환경에서는 HTTPS를 사용하지 않을 수 있으므로 false로 설정
+                .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 통일
                 .path("/")
                 .maxAge(validity / 1000)
                 .build();

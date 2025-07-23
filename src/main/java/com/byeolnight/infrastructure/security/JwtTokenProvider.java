@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 
 import java.security.Key;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -54,23 +55,35 @@ public class JwtTokenProvider {
 
     /**
      * AccessToken 생성
+     * 
+     * 명시적으로 UTC 시간을 사용하여 토큰 생성
      */
     public String createAccessToken(User user) {
+        Instant now = Instant.now();
+        Instant expiryDate = now.plusMillis(accessTokenValidity.toMillis());
+        
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("role", user.getRole().name())
-                .setExpiration(new Date(System.currentTimeMillis() + accessTokenValidity.toMillis()))
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiryDate))
                 .signWith(getSigningKey())
                 .compact();
     }
 
     /**
      * RefreshToken 생성
+     * 
+     * 명시적으로 UTC 시간을 사용하여 토큰 생성
      */
     public String createRefreshToken(User user) {
+        Instant now = Instant.now();
+        Instant expiryDate = now.plusMillis(refreshTokenValidity.toMillis());
+        
         return Jwts.builder()
                 .setSubject(user.getEmail())
-                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenValidity.toMillis()))
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiryDate))
                 .signWith(getSigningKey())
                 .compact();
     }
