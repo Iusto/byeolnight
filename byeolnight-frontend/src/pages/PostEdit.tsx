@@ -38,8 +38,8 @@ export default function PostEdit() {
   const uploadClipboardImage = async (file: File) => {
     // 파일 크기 체크 (10MB 제한으로 변경)
     if (file.size > 10 * 1024 * 1024) {
-      alert('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
-      return Promise.reject(new Error('파일 크기 초과'));
+      // alert 제거하고 오류만 발생시킴
+      return Promise.reject(new Error('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.'));
     }
     
     console.log('이미지 업로드 시작:', file.name, file.type, file.size);
@@ -107,14 +107,16 @@ export default function PostEdit() {
           
           // 파일 크기 체크 (10MB 제한으로 변경)
           if (file.size > 10 * 1024 * 1024) {
-            alert('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
+            // alert 제거하고 setError로 대체
+            setError('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
             return;
           }
           
           try {
             // 모바일에서는 클립보드 붙여넣기 제한
             if (isMobileDevice) {
-              alert('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+              // alert 제거하고 setError로 대체
+              setError('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
               return;
             }
             
@@ -141,7 +143,8 @@ export default function PostEdit() {
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
-            alert(error.message || '이미지 업로드에 실패했습니다.');
+            // alert 제거 - s3Upload.ts에서 이미 오류 메시지가 표시됨
+            setError(error.message || '이미지 업로드에 실패했습니다.');
           }
         }
         break;
@@ -173,7 +176,8 @@ export default function PostEdit() {
         console.log('선택된 파일:', file.name, file.type, file.size);
         // 파일 크기 체크 (10MB 제한으로 변경)
         if (file.size > 10 * 1024 * 1024) {
-          alert('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
+          // alert 제거하고 setError로 대체
+          setError('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
@@ -183,7 +187,8 @@ export default function PostEdit() {
         // 파일 형식 검사
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validImageTypes.includes(file.type)) {
-          alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
+          // alert 제거하고 setError로 대체
+          setError('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
@@ -223,7 +228,8 @@ export default function PostEdit() {
           console.error('오류 메시지:', error.message);
           
           const errorMsg = error.response?.data?.message || error.message || '이미지 업로드에 실패했습니다.';
-          alert(errorMsg);
+          // alert 제거하고 setError로 대체
+          setError(errorMsg);
         } finally {
           setIsImageValidating(false);
           // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
