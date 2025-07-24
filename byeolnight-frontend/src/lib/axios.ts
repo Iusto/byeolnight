@@ -41,24 +41,12 @@ const getClientIp = async (): Promise<string> => {
   }
 };
 
-// 요청 인터셉터
+// 요청 인터셉터 (인앱 브라우저 호환)
 instance.interceptors.request.use(
   async (config) => {
-    // 공개 API 및 인증 API 확인
-    const isPublicEndpoint = config.url?.startsWith('/public/');
-    const isAuthEndpoint = config.url?.includes('/auth/login') || 
-                          config.url?.includes('/auth/signup') ||
-                          config.url?.includes('/auth/token/refresh');
-    
-    // 토큰을 헤더에 추가 (쿠키와 이중으로 전송)
-    const accessToken = localStorage.getItem('accessToken');
-    if (accessToken && !isPublicEndpoint && !isAuthEndpoint) {
-      config.headers['Authorization'] = `Bearer ${accessToken}`;
-      console.log(`요청 헤더에 토큰 추가: ${config.url} - ${accessToken.substring(0, 10)}...`);
-    } else if (!isPublicEndpoint && !isAuthEndpoint) {
-      console.warn(`토큰 없음 - 헤더 추가 안함: ${config.url}`);
-    }
-
+    // 쿠키 기반 인증이므로 별도 헤더 추가 불필요
+    // withCredentials: true로 쿠키가 자동 전송됨
+    console.log(`API 요청: ${config.url} (쿠키 기반 인증)`);
     return config;
   },
   (error) => Promise.reject(error)
@@ -80,10 +68,9 @@ const processQueue = (error: any) => {
   failedQueue = [];
 };
 
-// 응답 인터셉터 (토큰 갱신 로직 포함)
+// 응답 인터셉터 (인앱 브라우저 호환)
 instance.interceptors.response.use(
   (response) => {
-    // CommonResponse 구조 그대로 반환
     return response;
   },
   async (error) => {
@@ -92,7 +79,6 @@ instance.interceptors.response.use(
     // 401 에러이고 토큰 갱신을 시도하지 않은 경우
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // 이미 토큰 갱신 중이면 대기열에 추가
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(() => {
@@ -106,15 +92,21 @@ instance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // 로그인 유지 옵션이 있는 경우만 토큰 갱신 시도
-        const rememberMe = localStorage.getItem('rememberMe');
+        // 로그인 유지 옵션 확인 (인앱 브라우저 호환)
+        let rememberMe = 'false';
+        try {
+          rememberMe = localStorage.getItem('rememberMe') || 'false';
+        } catch (storageError) {
+          console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
+        }
+        
         if (rememberMe !== 'true') {
           throw new Error('로그인 유지 옵션이 비활성화됨');
         }
 
-        console.log('토큰 갱신 시도');
+        console.log('토큰 갱신 시도 (쿠키 기반)');
         
-        // Refresh Token으로 새 Access Token 요청
+        // Refresh Token으로 새 Access Token 요청 (쿠키 기반)
         const refreshResponse = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL || 'https://byeolnight.com/api'}/auth/token/refresh`,
           {},
@@ -122,29 +114,22 @@ instance.interceptors.response.use(
         );
 
         if (refreshResponse.data.success) {
-          // 응답 본문에서 토큰 가져와서 저장
-          const newAccessToken = refreshResponse.data?.data?.accessToken;
-          if (newAccessToken) {
-            localStorage.setItem('accessToken', newAccessToken);
-            console.log('토큰 갱신 성공:', newAccessToken.substring(0, 10) + '...');
-            
-            // 원래 요청에 새 토큰 적용
-            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-          } else {
-            console.warn('갱신된 토큰이 응답 본문에 없습니다.');
-          }
-          
+          console.log('토큰 갱신 성공 (쿠키로 자동 저장됨)');
           processQueue(null);
           return instance(originalRequest);
         } else {
           throw new Error('새 토큰을 받지 못했습니다.');
         }
       } catch (refreshError) {
-        // Refresh Token도 만료된 경우 로그아웃 처리
         console.warn('토큰 갱신 실패:', refreshError);
         processQueue(refreshError);
-        localStorage.removeItem('rememberMe');
-        localStorage.removeItem('accessToken');
+        
+        // localStorage 안전하게 정리
+        try {
+          localStorage.removeItem('rememberMe');
+        } catch (storageError) {
+          console.warn('localStorage 정리 실패 (인앱브라우저):', storageError);
+        }
         
         // 현재 페이지가 로그인 페이지가 아니면 리다이렉트
         if (window.location.pathname !== '/login') {

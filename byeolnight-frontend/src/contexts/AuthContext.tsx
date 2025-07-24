@@ -35,9 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchMyInfo = async () => {
     try {
-      // 헤더에 토큰이 있는지 확인하기 위해 토큰 로그 추가
-      const accessToken = localStorage.getItem('accessToken');
-      console.log('내 정보 조회 시도 - 토큰 여부:', accessToken ? '있음' : '없음');
+      console.log('내 정보 조회 시도 - 쿠키 기반 인증');
       
       const res = await axios.get('/member/users/me');
       console.log('내 정보 응답 성공:', res.data);
@@ -81,20 +79,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const res = await axios.post('/auth/token/refresh');
       console.log('토큰 갱신 응답:', res.data);
       
-      // 응답 본문에서 토큰 가져와서 저장
+      // 쿠키 기반이므로 별도 저장 불필요
       if (res.data?.success) {
-        const newAccessToken = res.data?.data?.accessToken;
-        if (newAccessToken) {
-          localStorage.setItem('accessToken', newAccessToken);
-          console.log('토큰 갱신 성공 - 저장된 토큰:', newAccessToken.substring(0, 10) + '...');
-          
-          // 토큰 저장 후 사용자 정보 가져오기
-          await fetchMyInfo();
-          return true;
-        } else {
-          console.warn('갱신된 토큰이 응답 본문에 없습니다.');
-          return false;
-        }
+        console.log('토큰 갱신 성공 - 쿠키로 자동 저장됨');
+        
+        // 토큰 갱신 후 사용자 정보 가져오기
+        await fetchMyInfo();
+        return true;
       }
       return false;
     } catch (error) {
@@ -105,9 +96,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
-      console.log('로그인 요청 시작:', { email, rememberMe });
+      console.log('로그인 요청 시작 (인앱브라우저 호환):', { email, rememberMe });
       
-      // 객체 형태로 명확하게 지정하여 배열 형태로 전송되는 문제 방지
       const loginData = {
         email: email,
         password: password
@@ -120,26 +110,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('로그인 응답:', res.data);
 
       if (res.data?.success) {
-        // 응답 본문에서 토큰 가져와서 저장
-        const accessToken = res.data?.data?.accessToken;
-        if (accessToken) {
-          localStorage.setItem('accessToken', accessToken);
-          console.log('로그인 성공 - 저장된 토큰:', accessToken.substring(0, 10) + '...');
-        } else {
-          console.warn('토큰이 응답 본문에 없습니다.');
-        }
+        console.log('로그인 성공 - 쿠키로 토큰 자동 저장됨');
         
-        // 로그인 유지 옵션 저장
-        if (rememberMe) {
-          localStorage.setItem('rememberMe', 'true');
-        } else {
-          localStorage.removeItem('rememberMe');
+        // 로그인 유지 옵션을 안전하게 저장 (인앱브라우저 호환)
+        try {
+          if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+          } else {
+            localStorage.removeItem('rememberMe');
+          }
+        } catch (storageError) {
+          console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
+          // localStorage 실패해도 로그인은 계속 진행
         }
 
-        // 토큰 저장 후 사용자 정보 가져오기
+        // 토큰은 쿠키로 저장되므로 바로 사용자 정보 가져오기
         console.log('로그인 성공 - 사용자 정보 가져오기 시도');
         await fetchMyInfo();
-        console.log('로그인 완료 - 사용자 정보:', user);
+        console.log('로그인 완료');
       } else {
         throw new Error('로그인에 실패했습니다.');
       }
@@ -164,9 +152,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('로그아웃 API 호출 실패:', error);
     } finally {
-      // 로컬 상태 정리
-      localStorage.removeItem('rememberMe');
-      localStorage.removeItem('accessToken');
+      // 로컬 상태 정리 (인앱브라우저 호환)
+      try {
+        localStorage.removeItem('rememberMe');
+      } catch (storageError) {
+        console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
+      }
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');
@@ -176,23 +167,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initializeAuth = async () => {
-      const accessToken = localStorage.getItem('accessToken');
-      const rememberMe = localStorage.getItem('rememberMe');
+      let rememberMe = 'false';
       
-      console.log('인증 상태 확인:', { 
-        accessToken: accessToken ? '존재함' : '없음', 
-        tokenLength: accessToken?.length,
-        rememberMe 
-      });
+      // localStorage 안전하게 접근 (인앱브라우저 호환)
+      try {
+        rememberMe = localStorage.getItem('rememberMe') || 'false';
+      } catch (storageError) {
+        console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
+      }
       
-      if (accessToken) {
-        console.log('저장된 토큰으로 사용자 정보 조회 시도');
-        const success = await fetchMyInfo();
-        
-        if (!success && rememberMe === 'true') {
-          console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
-          await refreshToken();
-        }
+      console.log('인증 상태 확인 (쿠키 기반):', { rememberMe });
+      
+      // 쿠키에 토큰이 있는지 확인하기 위해 사용자 정보 조회 시도
+      console.log('쿠키 토큰으로 사용자 정보 조회 시도');
+      const success = await fetchMyInfo();
+      
+      if (!success && rememberMe === 'true') {
+        console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
+        await refreshToken();
       }
       
       setLoading(false);
