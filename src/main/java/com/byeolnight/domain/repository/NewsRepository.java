@@ -21,4 +21,6 @@ public interface NewsRepository extends JpaRepository<News, Long> {
     List<News> findTop20ByCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime after);
     
     List<News> findByPublishedAtAfter(LocalDateTime after);
+    
+    long countByCreatedAtAfter(LocalDateTime after);
 }

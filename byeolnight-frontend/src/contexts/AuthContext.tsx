@@ -146,12 +146,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
+    console.log('🚪 로그아웃 함수 호출됨');
     try {
+      console.log('🌐 백엔드 로그아웃 API 호출 시작');
       // 백엔드 로그아웃 API 호출
-      await axios.post('/auth/logout');
+      const response = await axios.post('/auth/logout');
+      console.log('✅ 로그아웃 API 응답:', response.data);
     } catch (error) {
-      console.error('로그아웃 API 호출 실패:', error);
+      console.error('❌ 로그아웃 API 호출 실패:', error);
     } finally {
+      console.log('🧹 로컬 상태 정리 시작');
       // 로컬 상태 정리 (인앱브라우저 호환)
       try {
         localStorage.removeItem('rememberMe');
@@ -161,6 +165,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');
+      console.log('✅ 로그아웃 완료');
     }
   };
 

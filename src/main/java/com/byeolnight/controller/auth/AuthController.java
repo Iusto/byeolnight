@@ -189,6 +189,8 @@ public class AuthController {
             @CookieValue(name = "accessToken", required = false) String accessToken,
             HttpServletRequest request
     ) {
+        log.info("🚪 로그아웃 API 호출됨 - 사용자: {}, 쿠키 토큰 존재: {}", 
+                user != null ? user.getEmail() : "null", accessToken != null);
         try {
             if (user != null) {
                 // Redis에서 Refresh Token 삭제
