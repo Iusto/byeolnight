@@ -17,18 +17,32 @@ export default function Login() {
   useEffect(() => {
     // 인앱브라우저 호환성을 위해 수정
     if (user) {
+      console.log('로그인 상태 감지 - 인앱브라우저 호환 리다이렉트');
+      
+      // 인앱브라우저에서 더 안전한 리다이렉트
+      const safeRedirect = () => {
+        try {
+          // navigate 사용 시도
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.warn('네비게이션 실패, window.location 사용:', navError);
+          // 대체 방법
+          window.location.href = '/';
+        }
+      };
+      
       if (!loginSuccess) {
         // 이미 로그인된 상태에서 페이지 접근 시
         console.log('이미 로그인된 상태 - 홈으로 리다이렉트');
-        // alert 제거 - 인앱브라우저에서 문제 발생 가능
-        window.location.href = '/';
+        safeRedirect();
       } else {
         // 로그인 성공 후
         console.log('로그인 성공 - 홈으로 리다이렉트');
-        window.location.href = '/';
+        // 짧은 대기 후 리다이렉트 (인앱브라우저 안정성)
+        setTimeout(safeRedirect, 100);
       }
     }
-  }, [user, loginSuccess]);
+  }, [user, loginSuccess, navigate]);
 
   // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
@@ -75,6 +89,18 @@ export default function Login() {
       await login(email, password, rememberMe)
       console.log('로그인 성공 - 인앱브라우저 호환성 개선');
       setLoginSuccess(true) // 로그인 성공 플래그 설정
+      
+      // 인앱브라우저에서 로그인 성공 후 직접 리다이렉트
+      console.log('인앱브라우저 로그인 성공 - 직접 리다이렉트');
+      setTimeout(() => {
+        try {
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.warn('네비게이션 실패, window.location 사용:', navError);
+          window.location.href = '/';
+        }
+      }, 200);
+      
     } catch (err: any) {
       console.error('로그인 실패 - 인앱브라우저 호환성 개선:', err);
       // 서버에서 온 구체적인 에러 메시지를 사용자 친화적으로 변환
