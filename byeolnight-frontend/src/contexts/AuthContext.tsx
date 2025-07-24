@@ -184,7 +184,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (!success && rememberMe === 'true') {
         console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
-        await refreshToken();
+        try {
+          await refreshToken();
+        } catch (refreshError) {
+          console.log('초기 토큰 갱신 실패 - 비로그인 상태로 유지');
+        }
       }
       
       setLoading(false);
@@ -195,11 +199,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 주기적으로 토큰 갱신 (로그인 유지 옵션이 있는 경우)
   useEffect(() => {
-    const rememberMe = localStorage.getItem('rememberMe');
+    let rememberMe = 'false';
+    try {
+      rememberMe = localStorage.getItem('rememberMe') || 'false';
+    } catch (storageError) {
+      console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
+    }
+    
     if (user && rememberMe === 'true') {
       // 25분마다 토큰 갱신 시도 (Access Token이 30분이므로)
-      const interval = setInterval(() => {
-        refreshToken();
+      const interval = setInterval(async () => {
+        try {
+          await refreshToken();
+        } catch (refreshError) {
+          console.log('주기적 토큰 갱신 실패:', refreshError);
+        }
       }, 25 * 60 * 1000);
 
       return () => clearInterval(interval);

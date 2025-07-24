@@ -131,9 +131,9 @@ instance.interceptors.response.use(
           console.warn('localStorage 정리 실패 (인앱브라우저):', storageError);
         }
         
-        // 현재 페이지가 로그인 페이지가 아니면 리다이렉트
-        if (window.location.pathname !== '/login') {
-          console.log('인증 실패, 로그인 페이지로 이동');
+        // 로그인 유지 옵션이 있었는데 토큰 갱신에 실패한 경우만 리다이렉트
+        if (rememberMe === 'true' && window.location.pathname !== '/login') {
+          console.log('토큰 갱신 실패, 로그인 페이지로 이동');
           window.location.href = '/login';
         }
         
@@ -143,6 +143,8 @@ instance.interceptors.response.use(
       }
     }
 
+    // 401 에러이지만 로그인 유지 옵션이 없는 경우 그냥 에러 반환
+    console.log('401 에러이지만 로그인 유지 옵션 없음 - 에러 반환');
     return Promise.reject(error);
   }
 );
