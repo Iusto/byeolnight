@@ -597,4 +597,11 @@ public class SpaceNewsService {
             result.getDescription().substring(0, Math.min(100, result.getDescription().length())) + "..." : 
             "우주 관련 최신 뉴스";
     }
+    
+    public long getTodayNewsCount() {
+        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        
+        // 오늘 작성된 NEWS 게시글 개수 조회
+        return newsRepository.countByCreatedAtAfter(todayStart);
+    }
 }

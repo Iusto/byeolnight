@@ -17,4 +17,6 @@ public interface CinemaRepository extends JpaRepository<Cinema, Long> {
     List<Cinema> findByCreatedAtAfter(LocalDateTime cutoffDate);
     
     List<Cinema> findTop10ByOrderByCreatedAtDesc();
+    
+    long countByCreatedAtAfter(LocalDateTime after);
 }
