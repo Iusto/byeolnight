@@ -77,10 +77,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 쿠키에서 Access Token 추출
         String token = null;
         Cookie[] cookies = request.getCookies();
+        
+        log.debug("🍪 쿠키 상태: {}", cookies != null ? cookies.length + "개 쿠키 있음" : "쿠키 없음");
+        
         if (cookies != null) {
             for (Cookie cookie : cookies) {
+                log.debug("🍪 쿠키: {} = {}", cookie.getName(), cookie.getValue().length() > 10 ? cookie.getValue().substring(0, 10) + "..." : cookie.getValue());
                 if ("accessToken".equals(cookie.getName())) {
                     token = cookie.getValue();
+                    log.debug("✅ accessToken 쿠키에서 발견: {}", token.substring(0, 10) + "...");
                     break;
                 }
             }

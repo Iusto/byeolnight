@@ -44,6 +44,9 @@ public class AuthController {
     
     @Value("${app.security.cookie.secure:false}")
     private boolean secureCookie;
+    
+    @Value("${app.security.cookie.domain:}")
+    private String cookieDomain;
 
     private final AuthService authService;
     private final EmailAuthService emailAuthService;
@@ -72,14 +75,18 @@ public class AuthController {
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
             
             // Access Token도 HttpOnly 쿠키로 설정
-            ResponseCookie accessCookie = ResponseCookie.from("accessToken", result.getAccessToken())
+            ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
-                    .secure(secureCookie) // 환경에 따라 동적으로 설정
-                    .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
-                    .domain(".byeolnight.com") // 도메인 설정
+                    .secure(secureCookie)
+                    .sameSite("Lax")
                     .path("/")
-                    .maxAge(1800) // 30분
-                    .build();
+                    .maxAge(1800);
+            
+            if (!cookieDomain.isEmpty()) {
+                accessCookieBuilder.domain(cookieDomain);
+            }
+            
+            ResponseCookie accessCookie = accessCookieBuilder.build();
 
             // 토큰을 응답 본문에 명시적으로 포함 (중요: 프론트엔드에서 사용)
             TokenResponseDto tokenResponse = new TokenResponseDto(result.getAccessToken(), true);
@@ -145,14 +152,18 @@ public class AuthController {
             ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity);
             
             // Access Token도 HttpOnly 쿠키로 전달
-            ResponseCookie accessCookie = ResponseCookie.from("accessToken", newAccessToken)
+            ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", newAccessToken)
                     .httpOnly(true)
-                    .secure(secureCookie) // 환경에 따라 동적으로 설정
-                    .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
-                    .domain(".byeolnight.com") // 도메인 설정
+                    .secure(secureCookie)
+                    .sameSite("Lax")
                     .path("/")
-                    .maxAge(1800) // 30분
-                    .build();
+                    .maxAge(1800);
+            
+            if (!cookieDomain.isEmpty()) {
+                accessCookieBuilder.domain(cookieDomain);
+            }
+            
+            ResponseCookie accessCookie = accessCookieBuilder.build();
 
             // 토큰을 응답 본문에 명시적으로 포함 (중요: 프론트엔드에서 사용)
             TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, true);
@@ -209,23 +220,27 @@ public class AuthController {
             }
             
             // 쿠키 삭제
-            ResponseCookie deleteRefreshCookie = ResponseCookie.from("refreshToken", "")
+            ResponseCookie.ResponseCookieBuilder deleteRefreshBuilder = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
-                    .domain(".byeolnight.com") // 도메인 설정
                     .path("/")
-                    .maxAge(0)
-                    .build();
-                    
-            ResponseCookie deleteAccessCookie = ResponseCookie.from("accessToken", "")
+                    .maxAge(0);
+            
+            ResponseCookie.ResponseCookieBuilder deleteAccessBuilder = ResponseCookie.from("accessToken", "")
                     .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
-                    .domain(".byeolnight.com") // 도메인 설정
                     .path("/")
-                    .maxAge(0)
-                    .build();
+                    .maxAge(0);
+            
+            if (!cookieDomain.isEmpty()) {
+                deleteRefreshBuilder.domain(cookieDomain);
+                deleteAccessBuilder.domain(cookieDomain);
+            }
+            
+            ResponseCookie deleteRefreshCookie = deleteRefreshBuilder.build();
+            ResponseCookie deleteAccessCookie = deleteAccessBuilder.build();
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
@@ -244,13 +259,17 @@ public class AuthController {
      * Refresh Token 쿠키 생성
      */
     private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
-        return ResponseCookie.from("refreshToken", refreshToken)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(secureCookie) // 환경에 따라 동적으로 설정
-                .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 통일
-                .domain(".byeolnight.com") // 도메인 설정
+                .secure(secureCookie)
+                .sameSite("Lax")
                 .path("/")
-                .maxAge(validity / 1000)
-                .build();
+                .maxAge(validity / 1000);
+        
+        if (!cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
+        }
+        
+        return builder.build();
     }
 }
