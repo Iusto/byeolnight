@@ -271,7 +271,7 @@ stella:
       StellarInfiniteUniverse: "끝없이 펼쳐진 무한한 우주의 신비"
       BigBang: "무(無)에서 시작된 우주 창조의 순간"
 
-# Cinema 설정 추가
+# Cinema 설정
 cinema:
   collection:
     max-posts: 1
@@ -283,23 +283,6 @@ cinema:
     min-title-length: 10
     min-description-length: 50
     max-results: 20
-    video-duration: medium
-    video-definition: high
-  youtube:
-    quality-channels:
-      - NASA
-      - SpaceX
-      - ESA
-      - National Geographic
-      - Discovery
-      - Science Channel
-      - Kurzgesagt
-    professional-terms:
-      - documentary
-      - science
-      - research
-      - mission
-      - exploration
-      - universe
-      - cosmos
-    published-after-years: 2
+    video-duration: medium  # short 제외 (어느정도 길이 있는 영상)
+    video-definition: any
+    published-after-years: 2  # 2년 이내 영상
