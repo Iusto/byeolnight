@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       setUser(userData);
-      console.log('사용자 정보 설정 성공:', userData);
+      console.log('사용자 정보 설정 성공 (인앱브라우저 호환):', userData.nickname);
       return true;
     } catch (err: any) {
       console.error('내 정보 조회 실패:', {
@@ -113,20 +113,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('로그인 성공 - 쿠키로 토큰 자동 저장됨');
         
         // 로그인 유지 옵션을 안전하게 저장 (인앱브라우저 호환)
-        try {
-          if (rememberMe) {
-            localStorage.setItem('rememberMe', 'true');
-          } else {
-            localStorage.removeItem('rememberMe');
+        const safeSetRememberMe = (value: boolean) => {
+          try {
+            if (value) {
+              localStorage.setItem('rememberMe', 'true');
+              sessionStorage.setItem('rememberMe', 'true'); // 백업
+            } else {
+              localStorage.removeItem('rememberMe');
+              sessionStorage.removeItem('rememberMe');
+            }
+          } catch (storageError) {
+            console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
+            // 인앱브라우저에서는 기본적으로 로그인 유지 활성화
+            if (value) {
+              console.log('인앱브라우저 - 기본 로그인 유지 활성화');
+            }
           }
-        } catch (storageError) {
-          console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
-          // localStorage 실패해도 로그인은 계속 진행
-        }
+        };
+        
+        safeSetRememberMe(rememberMe);
 
         // 토큰은 쿠키로 저장되므로 바로 사용자 정보 가져오기
         console.log('로그인 성공 - 사용자 정보 가져오기 시도');
-        await fetchMyInfo();
+        const userInfoSuccess = await fetchMyInfo();
+        
+        if (!userInfoSuccess) {
+          console.warn('사용자 정보 조회 실패 - 재시도');
+          // 잠시 대기 후 재시도
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await fetchMyInfo();
+        }
+        
         console.log('로그인 완료');
       } else {
         throw new Error('로그인에 실패했습니다.');
@@ -159,8 +176,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // 로컬 상태 정리 (인앱브라우저 호환)
       try {
         localStorage.removeItem('rememberMe');
+        sessionStorage.removeItem('rememberMe');
       } catch (storageError) {
-        console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
+        console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
       }
       setUser(null);
       alert("로그아웃 되었습니다.");
@@ -169,17 +187,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // 안전한 rememberMe 값 가져오기 (인앱브라우저 호환)
+  const getSafeRememberMe = (): boolean => {
+    try {
+      const localStorage_value = localStorage.getItem('rememberMe');
+      const sessionStorage_value = sessionStorage.getItem('rememberMe');
+      return localStorage_value === 'true' || sessionStorage_value === 'true';
+    } catch (storageError) {
+      console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
+      // 인앱브라우저에서는 기본적으로 로그인 유지 활성화
+      return true;
+    }
+  };
+
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initializeAuth = async () => {
-      let rememberMe = 'false';
-      
-      // localStorage 안전하게 접근 (인앱브라우저 호환)
-      try {
-        rememberMe = localStorage.getItem('rememberMe') || 'false';
-      } catch (storageError) {
-        console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
-      }
+      const rememberMe = getSafeRememberMe();
       
       console.log('인증 상태 확인 (쿠키 기반):', { rememberMe });
       
@@ -187,10 +211,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('쿠키 토큰으로 사용자 정보 조회 시도');
       const success = await fetchMyInfo();
       
-      if (!success && rememberMe === 'true') {
+      if (!success && rememberMe) {
         console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
         try {
-          await refreshToken();
+          const refreshSuccess = await refreshToken();
+          if (!refreshSuccess) {
+            console.log('토큰 갱신 실패 - 재시도');
+            // 잠시 대기 후 한 번 더 시도
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await refreshToken();
+          }
         } catch (refreshError) {
           console.log('초기 토큰 갱신 실패 - 비로그인 상태로 유지');
         }
@@ -204,14 +234,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 주기적으로 토큰 갱신 (로그인 유지 옵션이 있는 경우)
   useEffect(() => {
-    let rememberMe = 'false';
-    try {
-      rememberMe = localStorage.getItem('rememberMe') || 'false';
-    } catch (storageError) {
-      console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
-    }
+    const rememberMe = getSafeRememberMe();
     
-    if (user && rememberMe === 'true') {
+    if (user && rememberMe) {
       // 25분마다 토큰 갱신 시도 (Access Token이 30분이므로)
       const interval = setInterval(async () => {
         try {

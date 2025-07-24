@@ -93,14 +93,21 @@ instance.interceptors.response.use(
 
       try {
         // 로그인 유지 옵션 확인 (인앱 브라우저 호환)
-        let rememberMe = 'false';
-        try {
-          rememberMe = localStorage.getItem('rememberMe') || 'false';
-        } catch (storageError) {
-          console.warn('localStorage 접근 실패 (인앱브라우저):', storageError);
-        }
+        const getSafeRememberMe = (): boolean => {
+          try {
+            const localStorage_value = localStorage.getItem('rememberMe');
+            const sessionStorage_value = sessionStorage.getItem('rememberMe');
+            return localStorage_value === 'true' || sessionStorage_value === 'true';
+          } catch (storageError) {
+            console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
+            // 인앱브라우저에서는 기본적으로 로그인 유지 활성화
+            return true;
+          }
+        };
         
-        if (rememberMe !== 'true') {
+        const rememberMe = getSafeRememberMe();
+        
+        if (!rememberMe) {
           throw new Error('로그인 유지 옵션이 비활성화됨');
         }
 
@@ -124,15 +131,16 @@ instance.interceptors.response.use(
         console.warn('토큰 갱신 실패:', refreshError);
         processQueue(refreshError);
         
-        // localStorage 안전하게 정리
+        // Storage 안전하게 정리
         try {
           localStorage.removeItem('rememberMe');
+          sessionStorage.removeItem('rememberMe');
         } catch (storageError) {
-          console.warn('localStorage 정리 실패 (인앱브라우저):', storageError);
+          console.warn('Storage 정리 실패 (인앱브라우저):', storageError);
         }
         
         // 로그인 유지 옵션이 있었는데 토큰 갱신에 실패한 경우만 리다이렉트
-        if (rememberMe === 'true' && window.location.pathname !== '/login') {
+        if (rememberMe && window.location.pathname !== '/login') {
           console.log('토큰 갱신 실패, 로그인 페이지로 이동');
           window.location.href = '/login';
         }
