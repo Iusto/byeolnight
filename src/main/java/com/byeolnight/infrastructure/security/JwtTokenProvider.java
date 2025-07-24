@@ -147,6 +147,18 @@ public class JwtTokenProvider {
     }
 
     /**
+     * 토큰의 남은 유효시간 반환 (밀리초)
+     */
+    public long getRemainingTime(String token) {
+        try {
+            return extractAllClaims(token).getExpiration().getTime() - System.currentTimeMillis();
+        } catch (Exception e) {
+            log.warn("❌ 토큰 남은 시간 계산 실패: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * 토큰 기반 인증 객체 생성
      */
     public Authentication getAuthentication(String token) {
