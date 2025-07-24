@@ -192,34 +192,52 @@ public class AuthController {
         log.info("🚪 로그아웃 API 호출됨 - 사용자: {}, 쿠키 토큰 존재: {}", 
                 user != null ? user.getEmail() : "null", accessToken != null);
         try {
+            String userEmail = null;
+            
+            // 사용자 정보가 있으면 Refresh Token 삭제
             if (user != null) {
-                // Redis에서 Refresh Token 삭제
-                tokenService.deleteRefreshToken(user.getEmail());
-                
-                // Access Token을 블랙리스트에 등록
-                if (accessToken != null && jwtTokenProvider.validate(accessToken)) {
-                    long remainingTime = jwtTokenProvider.getExpiration(accessToken);
-                    if (remainingTime > 0) {
-                        tokenService.blacklistAccessToken(accessToken, remainingTime);
-                        log.info("🚫 Access Token 블랙리스트 등록: 사용자 {}, 남은 시간 {}ms", user.getEmail(), remainingTime);
-                    }
-                }
-                
-                // Authorization 헤더에서도 토큰 확인
-                String authHeader = request.getHeader("Authorization");
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                    String headerToken = authHeader.substring(7);
-                    if (!headerToken.equals(accessToken) && jwtTokenProvider.validate(headerToken)) {
-                        long remainingTime = jwtTokenProvider.getExpiration(headerToken);
-                        if (remainingTime > 0) {
-                            tokenService.blacklistAccessToken(headerToken, remainingTime);
-                            log.info("🚫 Authorization 헤더 토큰 블랙리스트 등록: 사용자 {}", user.getEmail());
-                        }
-                    }
-                }
-                
-                log.info("로그아웃 성공: 사용자 {} 토큰 무효화 완료", user.getEmail());
+                userEmail = user.getEmail();
+                tokenService.deleteRefreshToken(userEmail);
             }
+            
+            // 쿠키의 Access Token 블랙리스트 등록 (사용자 인증 여부와 무관)
+            if (accessToken != null && jwtTokenProvider.validate(accessToken)) {
+                long remainingTime = jwtTokenProvider.getExpiration(accessToken);
+                if (remainingTime > 0) {
+                    tokenService.blacklistAccessToken(accessToken, remainingTime);
+                    if (userEmail == null) {
+                        userEmail = jwtTokenProvider.getEmail(accessToken);
+                    }
+                    log.info("🚫 쿠키 Access Token 블랙리스트 등록: 사용자 {}, 남은 시간 {}ms", userEmail, remainingTime);
+                }
+            }
+            
+            // Authorization 헤더의 토큰도 블랙리스트 등록
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String headerToken = authHeader.substring(7);
+                if (!headerToken.equals(accessToken) && jwtTokenProvider.validate(headerToken)) {
+                    long remainingTime = jwtTokenProvider.getExpiration(headerToken);
+                    if (remainingTime > 0) {
+                        tokenService.blacklistAccessToken(headerToken, remainingTime);
+                        if (userEmail == null) {
+                            userEmail = jwtTokenProvider.getEmail(headerToken);
+                        }
+                        log.info("🚫 Authorization 헤더 토큰 블랙리스트 등록: 사용자 {}", userEmail);
+                    }
+                }
+            }
+            
+            // Refresh Token도 있으면 삭제 (사용자 정보 없어도 토큰에서 이메일 추출)
+            if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
+                if (userEmail == null) {
+                    userEmail = jwtTokenProvider.getEmail(refreshToken);
+                }
+                tokenService.deleteRefreshToken(userEmail);
+                log.info("🗑️ Refresh Token 삭제: 사용자 {}", userEmail);
+            }
+            
+            log.info("로그아웃 성공: 사용자 {} 토큰 무효화 완료", userEmail != null ? userEmail : "unknown");
             
             // 쿠키 삭제
             ResponseCookie.ResponseCookieBuilder deleteRefreshBuilder = ResponseCookie.from("refreshToken", "")
