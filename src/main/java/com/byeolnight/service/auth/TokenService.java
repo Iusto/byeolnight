@@ -42,7 +42,7 @@ public class TokenService {
     public void blacklistAccessToken(String accessToken, long expirationMillis) {
         String key = getBlacklistKey(accessToken);
         redisTemplate.opsForValue().set(key, "true", expirationMillis, TimeUnit.MILLISECONDS);
-        System.out.println("🚫 블랙리스트 등록됨: " + key);
+        log.info("🚫 블랙리스트 등록됨: {}, TTL: {}ms", key, expirationMillis);
     }
 
     /**

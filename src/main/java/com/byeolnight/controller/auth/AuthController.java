@@ -172,12 +172,37 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "현재 사용자를 로그아웃하고 토큰을 무효화합니다.")
     public ResponseEntity<CommonResponse<String>> logout(
             @AuthenticationPrincipal User user,
-            @CookieValue(name = "refreshToken", required = false) String refreshToken
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            @CookieValue(name = "accessToken", required = false) String accessToken,
+            HttpServletRequest request
     ) {
         try {
             if (user != null) {
                 // Redis에서 Refresh Token 삭제
                 tokenService.deleteRefreshToken(user.getEmail());
+                
+                // Access Token을 블랙리스트에 등록
+                if (accessToken != null) {
+                    long remainingTime = jwtTokenProvider.getRemainingTime(accessToken);
+                    if (remainingTime > 0) {
+                        tokenService.blacklistAccessToken(accessToken, remainingTime);
+                        log.info("🚫 Access Token 블랙리스트 등록: 사용자 {}, 남은 시간 {}ms", user.getEmail(), remainingTime);
+                    }
+                }
+                
+                // Authorization 헤더에서도 토큰 확인
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    String headerToken = authHeader.substring(7);
+                    if (!headerToken.equals(accessToken)) { // 쿠키와 다른 토큰인 경우
+                        long remainingTime = jwtTokenProvider.getRemainingTime(headerToken);
+                        if (remainingTime > 0) {
+                            tokenService.blacklistAccessToken(headerToken, remainingTime);
+                            log.info("🚫 Authorization 헤더 토큰 블랙리스트 등록: 사용자 {}", user.getEmail());
+                        }
+                    }
+                }
+                
                 log.info("로그아웃 성공: 사용자 {} 토큰 무효화 완료", user.getEmail());
             }
             
@@ -205,6 +230,7 @@ public class AuthController {
                     
         } catch (Exception e) {
             log.error("로그아웃 처리 중 오류 발생", e);
+            // 오류가 발생해도 로그아웃은 성공으로 처리 (보안상 이유)
             return ResponseEntity.ok()
                     .body(CommonResponse.success("로그아웃되었습니다."));
         }
