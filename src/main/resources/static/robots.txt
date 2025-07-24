@@ -8,3 +8,6 @@ Disallow: /error
 
 # 사이트맵 위치
 Sitemap: https://byeolnight.com/sitemap.xml
+
+# 네이버 서치어드바이저 인증 파일
+# naver-site-verification: naver9b35f2e4e182461bca018b55b43f0a6e

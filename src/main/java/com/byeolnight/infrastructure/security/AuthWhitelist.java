@@ -21,6 +21,7 @@ public class AuthWhitelist {
             "/favicon.ico",         // 파비콘
             "/sitemap.xml",
             "/sitemap-*.xml",
-            "/robots.txt"
+            "/robots.txt",
+            "/naver*.html"
     };
 }
