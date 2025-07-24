@@ -41,7 +41,9 @@ public class SecurityUtils {
         // 2. Authorization 헤더에서 추출 시도 (후방 호환성)
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            String token = bearerToken.substring(7);
+            System.out.println("Authorization 헤더에서 토큰 추출 성공: " + token.substring(0, Math.min(10, token.length())) + "...");
+            return token;
         }
         
         return null;
