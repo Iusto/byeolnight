@@ -35,7 +35,7 @@ spring:
   web:
     resources:
       static-locations: classpath:/static/
-      add-mappings: false
+      add-mappings: true
 
   mail:
     host: smtp.gmail.com

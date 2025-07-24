@@ -76,7 +76,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 사이트맵과 robots.txt는 프론트엔드 라우팅을 우회하여 직접 컨트롤러에 접근
-        registry.addResourceHandler("/robots.txt")
+        registry.addResourceHandler("/robots.txt", "/naver*.html")
                 .addResourceLocations("classpath:/static/")
                 .setCachePeriod(3600); // 1시간 캐싱
         
