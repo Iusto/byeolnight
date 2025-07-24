@@ -76,6 +76,7 @@ public class AuthController {
                     .httpOnly(true)
                     .secure(secureCookie) // 환경에 따라 동적으로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
+                    .domain(".byeolnight.com") // 도메인 설정
                     .path("/")
                     .maxAge(1800) // 30분
                     .build();
@@ -148,6 +149,7 @@ public class AuthController {
                     .httpOnly(true)
                     .secure(secureCookie) // 환경에 따라 동적으로 설정
                     .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 설정
+                    .domain(".byeolnight.com") // 도메인 설정
                     .path("/")
                     .maxAge(1800) // 30분
                     .build();
@@ -182,8 +184,8 @@ public class AuthController {
                 tokenService.deleteRefreshToken(user.getEmail());
                 
                 // Access Token을 블랙리스트에 등록
-                if (accessToken != null) {
-                    long remainingTime = jwtTokenProvider.getRemainingTime(accessToken);
+                if (accessToken != null && jwtTokenProvider.validate(accessToken)) {
+                    long remainingTime = jwtTokenProvider.getExpiration(accessToken);
                     if (remainingTime > 0) {
                         tokenService.blacklistAccessToken(accessToken, remainingTime);
                         log.info("🚫 Access Token 블랙리스트 등록: 사용자 {}, 남은 시간 {}ms", user.getEmail(), remainingTime);
@@ -194,8 +196,8 @@ public class AuthController {
                 String authHeader = request.getHeader("Authorization");
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     String headerToken = authHeader.substring(7);
-                    if (!headerToken.equals(accessToken)) { // 쿠키와 다른 토큰인 경우
-                        long remainingTime = jwtTokenProvider.getRemainingTime(headerToken);
+                    if (!headerToken.equals(accessToken) && jwtTokenProvider.validate(headerToken)) {
+                        long remainingTime = jwtTokenProvider.getExpiration(headerToken);
                         if (remainingTime > 0) {
                             tokenService.blacklistAccessToken(headerToken, remainingTime);
                             log.info("🚫 Authorization 헤더 토큰 블랙리스트 등록: 사용자 {}", user.getEmail());
@@ -211,6 +213,7 @@ public class AuthController {
                     .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
+                    .domain(".byeolnight.com") // 도메인 설정
                     .path("/")
                     .maxAge(0)
                     .build();
@@ -219,6 +222,7 @@ public class AuthController {
                     .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
+                    .domain(".byeolnight.com") // 도메인 설정
                     .path("/")
                     .maxAge(0)
                     .build();
@@ -244,6 +248,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(secureCookie) // 환경에 따라 동적으로 설정
                 .sameSite("Lax") // 인앱 브라우저 호환성을 위해 Lax로 통일
+                .domain(".byeolnight.com") // 도메인 설정
                 .path("/")
                 .maxAge(validity / 1000)
                 .build();
