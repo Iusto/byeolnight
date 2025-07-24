@@ -168,6 +168,48 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "로그아웃", description = "현재 사용자를 로그아웃하고 토큰을 무효화합니다.")
+    public ResponseEntity<CommonResponse<String>> logout(
+            @AuthenticationPrincipal User user,
+            @CookieValue(name = "refreshToken", required = false) String refreshToken
+    ) {
+        try {
+            if (user != null) {
+                // Redis에서 Refresh Token 삭제
+                tokenService.deleteRefreshToken(user.getEmail());
+                log.info("로그아웃 성공: 사용자 {} 토큰 무효화 완료", user.getEmail());
+            }
+            
+            // 쿠키 삭제
+            ResponseCookie deleteRefreshCookie = ResponseCookie.from("refreshToken", "")
+                    .httpOnly(true)
+                    .secure(secureCookie)
+                    .sameSite("Lax")
+                    .path("/")
+                    .maxAge(0)
+                    .build();
+                    
+            ResponseCookie deleteAccessCookie = ResponseCookie.from("accessToken", "")
+                    .httpOnly(true)
+                    .secure(secureCookie)
+                    .sameSite("Lax")
+                    .path("/")
+                    .maxAge(0)
+                    .build();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString())
+                    .body(CommonResponse.success("로그아웃되었습니다."));
+                    
+        } catch (Exception e) {
+            log.error("로그아웃 처리 중 오류 발생", e);
+            return ResponseEntity.ok()
+                    .body(CommonResponse.success("로그아웃되었습니다."));
+        }
+    }
+
     /**
      * Refresh Token 쿠키 생성
      */

@@ -21,6 +21,11 @@ public class TokenService {
         redisTemplate.delete("refresh:" + email);
         System.out.println("[Logout] refreshToken for " + email + " removed");
     }
+    
+    public void deleteRefreshToken(String email) {
+        redisTemplate.delete("refresh:" + email);
+        log.info("Refresh Token 삭제 완료: {}", email);
+    }
 
     public void saveRefreshToken(String email, String refreshToken, long expirationMillis) {
         redisTemplate.opsForValue().set("refresh:" + email, refreshToken, expirationMillis, TimeUnit.MILLISECONDS);
