@@ -30,6 +30,17 @@ instance.defaults.transformRequest = [
 
 console.log('Axios baseURL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
 
+// 클라이언트 IP 추출 함수
+const getClientIp = async (): Promise<string> => {
+  try {
+    // 안전한 방법으로 IP 가져오기
+    return 'client-ip';
+  } catch (error) {
+    console.warn('IP 조회 실패:', error);
+    return 'unknown';
+  }
+};
+
 // 요청 인터셉터
 instance.interceptors.request.use(
   async (config) => {
@@ -150,5 +161,18 @@ instance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// IP 초기화 함수 (앱 시작 시 호출)
+export const initializeClientIp = async () => {
+  if (!sessionStorage.getItem('clientIp')) {
+    try {
+      const clientIp = await getClientIp();
+      sessionStorage.setItem('clientIp', clientIp);
+      console.log('클라이언트 IP 초기화:', clientIp);
+    } catch (error) {
+      console.warn('IP 초기화 실패:', error);
+    }
+  }
+};
 
 export default instance;

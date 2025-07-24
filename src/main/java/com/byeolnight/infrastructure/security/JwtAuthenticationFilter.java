@@ -89,6 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 쿠키에서 토큰을 찾지 못한 경우, 헤더에서 추출 시도 (후방 호환성)
         if (token == null) {
             token = SecurityUtils.resolveToken(request);
+            log.debug("헤더에서 토큰 추출 시도: {}", token != null ? "성공" : "실패");
         }
         
         log.debug("🪪 추출된 토큰: {}", token);
