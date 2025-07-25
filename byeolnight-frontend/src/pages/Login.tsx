@@ -16,36 +16,31 @@ export default function Login() {
   
   // 모바일 디버깅 활성화
   useEffect(() => {
-    showMobileDebug();
     mobileLog('Login 페이지 로드됨');
+    mobileLog('UserAgent: ' + navigator.userAgent);
   }, []);
   
   // 이미 로그인된 사용자 리다이렉트
   useEffect(() => {
-    // 인앱브라우저 호환성을 위해 수정
     if (user) {
-      console.log('로그인 상태 감지 - 인앱브라우저 호환 리다이렉트');
+      mobileLog('로그인 상태 감지 - 사용자: ' + user.nickname);
       
-      // 인앱브라우저에서 더 안전한 리다이렉트
       const safeRedirect = () => {
         try {
-          // navigate 사용 시도
+          mobileLog('navigate 시도');
           navigate('/', { replace: true });
+          mobileLog('navigate 성공');
         } catch (navError) {
-          console.warn('네비게이션 실패, window.location 사용:', navError);
-          // 대체 방법
+          mobileLog('navigate 실패: ' + navError);
           window.location.href = '/';
         }
       };
       
       if (!loginSuccess) {
-        // 이미 로그인된 상태에서 페이지 접근 시
-        console.log('이미 로그인된 상태 - 홈으로 리다이렉트');
+        mobileLog('이미 로그인된 상태 - 리다이렉트');
         safeRedirect();
       } else {
-        // 로그인 성공 후
-        console.log('로그인 성공 - 홈으로 리다이렉트');
-        // 짧은 대기 후 리다이렉트 (인앱브라우저 안정성)
+        mobileLog('로그인 성공 - 리다이렉트');
         setTimeout(safeRedirect, 100);
       }
     }

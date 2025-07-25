@@ -49,7 +49,8 @@ export const showMobileDebug = () => {
 
 const updateDebugDisplay = () => {
   if (!debugDiv) return;
-  debugDiv.innerHTML = `<button style="position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; width: 20px; height: 20px; cursor: pointer;" onclick="this.parentElement.remove()">✕</button>${logs.slice(-20).join('\n')}`;
+  const recentLogs = logs.slice(-30).join('\n');
+  debugDiv.innerHTML = `<button style="position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; width: 20px; height: 20px; cursor: pointer;" onclick="this.parentElement.remove()">✕</button><div style="padding-top: 25px;">${recentLogs}</div>`;
 };
 
 export const mobileLog = (message: string) => {
@@ -57,6 +58,11 @@ export const mobileLog = (message: string) => {
   const logMessage = `[${timestamp}] ${message}`;
   logs.push(logMessage);
   console.log(logMessage);
+  
+  // 화면에 없어도 자동으로 디버그 창 생성
+  if (!debugDiv) {
+    showMobileDebug();
+  }
   
   if (debugDiv) {
     updateDebugDisplay();
@@ -82,3 +88,12 @@ console.warn = (...args) => {
   mobileLog('WARN: ' + args.join(' '));
   originalWarn.apply(console, args);
 };
+
+// React 에러 감지
+window.addEventListener('error', (e) => {
+  mobileLog(`JS ERROR: ${e.message} at ${e.filename}:${e.lineno}`);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  mobileLog(`PROMISE ERROR: ${e.reason}`);
+});
