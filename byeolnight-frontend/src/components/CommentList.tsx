@@ -183,11 +183,11 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                     <UserIconDisplay iconName={c.writerIcon} size="large" />
                   </div>
                 )}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <span>✍ {c.writer}</span>
                   {c.writerId && (
-                    <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-gray-400 hover:text-purple-300 transition-colors">
-                      🔍
+                    <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-xs text-gray-500 hover:text-purple-400 transition-colors border border-gray-600 hover:border-purple-400 px-1.5 py-0.5 rounded">
+                      사용자정보보기
                     </ClickableNickname>
                   )}
                 </div>
