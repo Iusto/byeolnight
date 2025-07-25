@@ -1,79 +1,97 @@
-import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useState } from 'react';
+import axios from '../lib/axios';
+import { useAuth } from '../contexts/AuthContext';
+import EmojiPicker from './EmojiPicker';
 
-type Props = {
+interface Props {
   postId: number;
-  parentId: number | null;
-  onSubmit: () => void;
-};
+  onCommentAdded: () => void;
+}
 
-export default function CommentForm({ postId, parentId, onSubmit }: Props) {
+export default function CommentForm({ postId, onCommentAdded }: Props) {
   const { user } = useAuth();
-
-  if (!user) return null;
-
-  const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [newComment, setNewComment] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const COMMENT_MAX_LENGTH = 500;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
-    
-    if (content.length > 2000) {
-      setError("댓글은 2000자를 초과할 수 없습니다.");
-      return;
-    }
+    if (!newComment.trim() || isSubmitting) return;
 
-    setLoading(true);
-    setError("");
-
+    setIsSubmitting(true);
     try {
-      const res = await fetch("/api/member/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({ postId, parentId, content }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "댓글 작성 실패");
-      }
-
-      setContent("");
-      onSubmit(); // reload comment list
+      const requestData = {
+        postId: postId,
+        content: newComment
+      };
+      
+      await axios.post('/member/comments', requestData);
+      
+      setNewComment('');
+      setError('');
+      
+      // 댓글 등록 후 목록 새로고침
+      setTimeout(() => {
+        onCommentAdded();
+      }, 1000);
+      
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err?.response?.data?.message || '댓글 등록에 실패했습니다.';
+      setError(errorMsg);
+      alert(errorMsg);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="mb-6">
       <div className="relative">
         <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={2}
-          maxLength={2000}
-          className="w-full p-2 rounded bg-[#1a1a2e] text-sm"
-          placeholder={parentId ? "대댓글을 입력하세요..." : "댓글을 입력하세요..."}
+          value={newComment}
+          onChange={(e) => {
+            if (e.target.value.length <= COMMENT_MAX_LENGTH) {
+              setNewComment(e.target.value);
+            }
+          }}
+          rows={3}
+          placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
+          className="w-full p-3 pr-12 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
+          disabled={!user || isSubmitting}
+          maxLength={COMMENT_MAX_LENGTH}
         />
-        <div className={`text-xs mt-1 ${content.length > 1800 ? 'text-red-400' : 'text-gray-400'}`}>
-          {content.length}/2000
+        {user && (
+          <EmojiPicker
+            onEmojiSelect={(emoji) => {
+              const newText = newComment + emoji;
+              if (newText.length <= COMMENT_MAX_LENGTH) {
+                setNewComment(newText);
+              }
+            }}
+            className="absolute top-2 right-2"
+          />
+        )}
+        <div className="text-xs text-gray-400 mb-2 text-right">
+          {newComment.length}/{COMMENT_MAX_LENGTH}
         </div>
       </div>
-      {error && <div className="text-red-500 text-sm">{error}</div>}
+      {error && (
+        <div className="text-red-400 text-sm mb-2">
+          {error}
+        </div>
+      )}
       <button
         type="submit"
-        disabled={loading}
-        className="self-end bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
+        className={`px-4 py-2 rounded text-sm transition ${
+          !user || isSubmitting
+            ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+            : 'bg-blue-500 hover:bg-blue-600'
+        }`}
+        disabled={!user || isSubmitting}
       >
-        {loading ? "작성 중..." : "작성"}
+        {isSubmitting ? '등록 중...' : user ? '댓글 등록' : '로그인 필요'}
       </button>
     </form>
   );

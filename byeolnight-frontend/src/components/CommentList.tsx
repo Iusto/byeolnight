@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import UserIconDisplay from './UserIconDisplay';
+import EmojiPicker from './EmojiPicker';
 
 interface Comment {
   id: number;
@@ -132,8 +133,17 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                   setEditContent(e.target.value);
                 }
               }}
-              className="w-full p-2 rounded bg-[#1f2336] text-white text-sm"
+              className="w-full p-2 pr-10 rounded bg-[#1f2336] text-white text-sm"
               maxLength={COMMENT_MAX_LENGTH}
+            />
+            <EmojiPicker
+              onEmojiSelect={(emoji) => {
+                const newText = editContent + emoji;
+                if (newText.length <= COMMENT_MAX_LENGTH) {
+                  setEditContent(newText);
+                }
+              }}
+              className="absolute top-1 right-1"
             />
             <div className="text-xs text-gray-400 mt-1 text-right">
               {editContent.length}/{COMMENT_MAX_LENGTH}
@@ -168,7 +178,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
               <div className="flex items-center gap-2">
                 {c.writerIcon && (
                   <div className="w-6 h-6 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-                    <UserIconDisplay iconName={c.writerIcon} size="medium" />
+                    <UserIconDisplay iconName={c.writerIcon} size="large" />
                   </div>
                 )}
                 <span>✍ {c.writer}</span>
