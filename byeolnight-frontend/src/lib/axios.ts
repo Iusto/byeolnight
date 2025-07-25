@@ -41,15 +41,23 @@ const getClientIp = async (): Promise<string> => {
   }
 };
 
-import { getCookie } from '../utils/cookieUtils';
-import { detectInAppBrowser } from '../utils/inAppBrowser';
-
 // 요청 인터셉터 (인앱 브라우저 호환)
 instance.interceptors.request.use(
   async (config) => {
     // 인앱 브라우저에서는 쿠키에서 토큰을 직접 읽어서 헤더에 추가
-    const { isInApp } = detectInAppBrowser();
+    const userAgent = navigator.userAgent;
+    const isInApp = /kakaotalk|naver|inapp|fbav|instagram|line/i.test(userAgent);
+    
     if (isInApp) {
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+          return parts.pop()?.split(';').shift() || null;
+        }
+        return null;
+      };
+      
       const accessToken = getCookie('accessToken');
       if (accessToken) {
         config.headers.Authorization = `Bearer ${accessToken}`;
