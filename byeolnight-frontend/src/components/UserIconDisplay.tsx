@@ -56,7 +56,7 @@ function getSizeClass(size: 'small' | 'medium' | 'large') {
   const sizeClasses = {
     small: 'w-7 h-7',
     medium: 'w-12 h-12',
-    large: 'w-15 h-15'
+    large: 'w-16 h-16'
   };
   return sizeClasses[size];
 }
