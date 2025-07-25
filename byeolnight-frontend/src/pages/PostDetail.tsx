@@ -449,14 +449,14 @@ export default function PostDetail() {
                 <UserIconDisplay iconName={post.writerIcon} size="large" className="text-2xl" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="text-lg font-semibold text-white">{post.writer}</span>
                   <ClickableNickname 
                     userId={post.writerId} 
                     nickname={post.writer}
-                    className="text-gray-400 hover:text-purple-300 transition-colors text-lg"
+                    className="text-xs text-gray-400 hover:text-purple-300 transition-colors border border-gray-600 hover:border-purple-400 px-2 py-1 rounded"
                   >
-                    🔍
+                    사용자정보보기
                   </ClickableNickname>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
