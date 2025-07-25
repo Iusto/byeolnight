@@ -449,11 +449,16 @@ export default function PostDetail() {
                 <UserIconDisplay iconName={post.writerIcon} size="large" className="text-2xl" />
               </div>
               <div>
-                <ClickableNickname 
-                  userId={post.writerId} 
-                  nickname={post.writer}
-                  className="text-lg font-semibold text-purple-300 hover:text-purple-200 underline decoration-dotted cursor-pointer transition-colors"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-white">{post.writer}</span>
+                  <ClickableNickname 
+                    userId={post.writerId} 
+                    nickname={post.writer}
+                    className="text-gray-400 hover:text-purple-300 transition-colors text-lg"
+                  >
+                    🔍
+                  </ClickableNickname>
+                </div>
                 <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
                   <span className="flex items-center gap-1">
                     <span className="bg-slate-800/50 rounded px-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>❤️</span> {post.likeCount}
@@ -654,6 +659,7 @@ export default function PostDetail() {
             id: c.id,
             content: c.content,
             writer: c.writer,
+            writerId: c.writerId,
             createdAt: c.createdAt,
             likeCount: c.likeCount || 0,
             reportCount: 0,
