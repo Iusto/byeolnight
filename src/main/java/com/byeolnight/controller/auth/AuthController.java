@@ -74,16 +74,9 @@ public class AuthController {
             // Refresh Token 쿠키 설정
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
             
-            // 인앱 브라우저 감지
-            String userAgent = request.getHeader("User-Agent");
-            boolean isInAppBrowser = userAgent != null && 
-                (userAgent.contains("KAKAOTALK") || userAgent.contains("NAVER") || 
-                 userAgent.contains("inapp") || userAgent.contains("FBAV") || 
-                 userAgent.contains("Instagram") || userAgent.contains("Line"));
-            
-            // Access Token 쿠키 설정 (인앱 브라우저에서는 HttpOnly 비활성화)
+            // Access Token도 HttpOnly 쿠키로 설정
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
-                    .httpOnly(!isInAppBrowser) // 인앱 브라우저에서는 false
+                    .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
                     .path("/")
@@ -94,10 +87,6 @@ public class AuthController {
             }
             
             ResponseCookie accessCookie = accessCookieBuilder.build();
-            
-            if (isInAppBrowser) {
-                log.info("인앱 브라우저 감지 - HttpOnly 비활성화: {}", userAgent);
-            }
 
             // 토큰을 응답 본문에 명시적으로 포함 (중요: 프론트엔드에서 사용)
             TokenResponseDto tokenResponse = new TokenResponseDto(result.getAccessToken(), true);
@@ -162,16 +151,9 @@ public class AuthController {
             // 새 Refresh Token을 HttpOnly 쿠키로 전달
             ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity);
             
-            // 인앱 브라우저 감지
-            userAgent = request.getHeader("User-Agent");
-            boolean isInAppBrowser = userAgent != null && 
-                (userAgent.contains("KAKAOTALK") || userAgent.contains("NAVER") || 
-                 userAgent.contains("inapp") || userAgent.contains("FBAV") || 
-                 userAgent.contains("Instagram") || userAgent.contains("Line"));
-            
-            // Access Token 쿠키 설정 (인앱 브라우저에서는 HttpOnly 비활성화)
+            // Access Token도 HttpOnly 쿠키로 전달
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", newAccessToken)
-                    .httpOnly(!isInAppBrowser) // 인앱 브라우저에서는 false
+                    .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
                     .path("/")
@@ -266,7 +248,7 @@ public class AuthController {
                     .maxAge(0);
             
             ResponseCookie.ResponseCookieBuilder deleteAccessBuilder = ResponseCookie.from("accessToken", "")
-                    .httpOnly(false) // 삭제 시에는 항상 false
+                    .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite("Lax")
                     .path("/")

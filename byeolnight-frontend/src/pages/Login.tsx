@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { showMobileDebug, mobileLog } from '../utils/mobileDebug'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -14,37 +13,14 @@ export default function Login() {
   const [loginSuccess, setLoginSuccess] = useState(false)
   const [capsLockOn, setCapsLockOn] = useState(false)
   
-  // 모바일 디버깅 활성화
-  useEffect(() => {
-    mobileLog('Login 페이지 로드됨');
-    mobileLog('UserAgent: ' + navigator.userAgent);
-  }, []);
+
   
   // 이미 로그인된 사용자 리다이렉트
   useEffect(() => {
     if (user) {
-      mobileLog('로그인 상태 감지 - 사용자: ' + user.nickname);
-      
-      const safeRedirect = () => {
-        try {
-          mobileLog('navigate 시도');
-          navigate('/', { replace: true });
-          mobileLog('navigate 성공');
-        } catch (navError) {
-          mobileLog('navigate 실패: ' + navError);
-          window.location.href = '/';
-        }
-      };
-      
-      if (!loginSuccess) {
-        mobileLog('이미 로그인된 상태 - 리다이렉트');
-        safeRedirect();
-      } else {
-        mobileLog('로그인 성공 - 리다이렉트');
-        setTimeout(safeRedirect, 100);
-      }
+      navigate('/', { replace: true });
     }
-  }, [user, loginSuccess, navigate]);
+  }, [user, navigate]);
 
   // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
@@ -87,26 +63,10 @@ export default function Login() {
     setError('')
 
     try {
-      mobileLog('로그인 시도 시작');
       await login(email, password, rememberMe)
-      mobileLog('로그인 성공!');
-      setLoginSuccess(true) // 로그인 성공 플래그 설정
-      
-      // 리다이렉트 시도
-      mobileLog('리다이렉트 시도');
-      setTimeout(() => {
-        try {
-          navigate('/', { replace: true });
-          mobileLog('navigate 성공');
-        } catch (navError) {
-          mobileLog('navigate 실패: ' + navError);
-          window.location.href = '/';
-        }
-      }, 200);
+      setLoginSuccess(true)
       
     } catch (err: any) {
-      mobileLog('로그인 실패: ' + err.message);
-      // 서버에서 온 구체적인 에러 메시지를 사용자 친화적으로 변환
       const errorMessage = getErrorMessage(err.message || '로그인에 실패했습니다.')
       setError(errorMessage)
     } finally {
