@@ -3,11 +3,13 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import UserIconDisplay from './UserIconDisplay';
 import EmojiPicker from './EmojiPicker';
+import ClickableNickname from './ClickableNickname';
 
 interface Comment {
   id: number;
   content: string;
   writer: string;
+  writerId?: number;
   createdAt: string;
   likeCount: number;
   reportCount: number;
@@ -177,11 +179,17 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-2">
                 {c.writerIcon && (
-                  <div className="w-6 h-6 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                  <div className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
                     <UserIconDisplay iconName={c.writerIcon} size="large" />
                   </div>
                 )}
-                <span>✍ {c.writer}</span>
+                {c.writerId ? (
+                  <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-purple-300 hover:text-purple-200 underline decoration-dotted">
+                    ✍ {c.writer}
+                  </ClickableNickname>
+                ) : (
+                  <span>✍ {c.writer}</span>
+                )}
               </div>
               <span>{new Date(c.createdAt).toLocaleString()}</span>
               

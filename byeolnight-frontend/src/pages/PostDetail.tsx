@@ -452,7 +452,7 @@ export default function PostDetail() {
                 <ClickableNickname 
                   userId={post.writerId} 
                   nickname={post.writer}
-                  className="text-lg font-semibold text-white hover:text-purple-300 transition-colors"
+                  className="text-lg font-semibold text-purple-300 hover:text-purple-200 underline decoration-dotted cursor-pointer transition-colors"
                 />
                 <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
                   <span className="flex items-center gap-1">
