@@ -163,7 +163,7 @@ public class AuthController {
             ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity);
             
             // 인앱 브라우저 감지
-            String userAgent = request.getHeader("User-Agent");
+            userAgent = request.getHeader("User-Agent");
             boolean isInAppBrowser = userAgent != null && 
                 (userAgent.contains("KAKAOTALK") || userAgent.contains("NAVER") || 
                  userAgent.contains("inapp") || userAgent.contains("FBAV") || 
