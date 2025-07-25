@@ -184,6 +184,7 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
 
