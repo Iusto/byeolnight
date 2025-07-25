@@ -39,14 +39,14 @@ public class CinemaService {
     @Value("${openai.api.key:}")
     private String openaiApiKey;
 
-    @Scheduled(cron = "0 0 20 * * ?")
+    @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
     @Transactional
     public void createDailyCinemaPost() {
         createDailyCinemaPostWithRetry();
     }
     
     // 5분 후 재시도
-    @Scheduled(cron = "0 5 20 * * ?")
+    @Scheduled(cron = "0 5 20 * * *", zone = "Asia/Seoul")
     @Transactional
     public void retryDailyCinemaPost() {
         if (shouldRetryToday()) {
@@ -56,7 +56,7 @@ public class CinemaService {
     }
     
     // 10분 후 마지막 재시도
-    @Scheduled(cron = "0 10 20 * * ?")
+    @Scheduled(cron = "0 10 20 * * *", zone = "Asia/Seoul")
     @Transactional
     public void finalRetryDailyCinemaPost() {
         if (shouldRetryToday()) {

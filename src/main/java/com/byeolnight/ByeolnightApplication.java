@@ -18,8 +18,8 @@ import java.util.TimeZone;
 @org.springframework.data.jpa.repository.config.EnableJpaAuditing
 public class ByeolnightApplication {
     public static void main(String[] args) {
-        // 애플리케이션 시작 시 시스템 기본 시간대를 UTC로 설정
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        // 애플리케이션 시작 시 시스템 기본 시간대를 한국 시간으로 설정
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
         SpringApplication.run(ByeolnightApplication.class, args);
     }
     
