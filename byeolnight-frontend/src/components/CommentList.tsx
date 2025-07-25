@@ -183,13 +183,14 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                     <UserIconDisplay iconName={c.writerIcon} size="large" />
                   </div>
                 )}
-                {c.writerId ? (
-                  <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-purple-300 hover:text-purple-200 underline decoration-dotted">
-                    ✍ {c.writer}
-                  </ClickableNickname>
-                ) : (
+                <div className="flex items-center gap-1">
                   <span>✍ {c.writer}</span>
-                )}
+                  {c.writerId && (
+                    <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-gray-400 hover:text-purple-300 transition-colors">
+                      🔍
+                    </ClickableNickname>
+                  )}
+                </div>
               </div>
               <span>{new Date(c.createdAt).toLocaleString()}</span>
               
