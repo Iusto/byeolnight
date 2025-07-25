@@ -28,8 +28,8 @@ export default function NotificationDropdown() {
       fetchUnreadCount();
       fetchAllNotifications();
       
-      // 브라우저 알림 권한 요청
-      if (Notification.permission === 'default') {
+      // 브라우저 알림 권한 요청 (인앱 브라우저 호환)
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         Notification.requestPermission();
       }
     } else {
