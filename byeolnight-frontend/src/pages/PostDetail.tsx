@@ -8,6 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import ClickableNickname from '../components/ClickableNickname';
 import UserIconDisplay from '../components/UserIconDisplay';
 import CommentList from '../components/CommentList';
+import CommentForm from '../components/CommentForm';
 
 interface Post {
   id: number;
@@ -183,10 +184,6 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newComment, setNewComment] = useState('');
-  const [error, setError] = useState('');
-  
-  const COMMENT_MAX_LENGTH = 500;
 
   const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
 
@@ -271,56 +268,7 @@ export default function PostDetail() {
     }
   };
 
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
 
-    try {
-      console.log('댓글 등록 요청:', {
-        postId: Number(id),
-        content: newComment
-      });
-      
-      // 인증 토큰 확인
-      const token = localStorage.getItem('accessToken');
-      console.log('저장된 토큰:', token ? '있음' : '없음');
-      console.log('로그인 상태:', user ? user.nickname : '비로그인');
-      
-      const requestData = {
-        postId: Number(id),
-        content: newComment
-      };
-      
-      const response = await axios.post('/member/comments', requestData);
-      
-      console.log('댓글 등록 성공:', response.data);
-      console.log('댓글 등록 응답 전체:', response);
-      
-      setNewComment('');
-      setError('');
-      
-      // 트랜잭션 커밋을 위해 더 긴 딩레이 후 댓글 새로고침
-      setTimeout(async () => {
-        console.log('댓글 등록 후 새로고침 시작');
-        fetchComments();
-        
-        // 알림 생성 확인
-        try {
-          const notificationResponse = await axios.get('/member/notifications/unread/count');
-          console.log('댓글 작성 후 알림 개수:', notificationResponse.data);
-        } catch (err) {
-          console.error('알림 확인 실패:', err);
-        }
-      }, 2000);
-      
-    } catch (err: any) {
-      console.error('댓글 등록 실패:', err);
-      console.error('에러 응답:', err.response);
-      const errorMsg = err?.response?.data?.message || '댓글 등록에 실패했습니다.';
-      setError(errorMsg);
-      alert(errorMsg);
-    }
-  };
 
   const handleLike = async () => {
     if (!user) {
@@ -695,43 +643,10 @@ export default function PostDetail() {
               </h2>
             </div>
 
-        {/* 댓글 입력창 */}
-        <form onSubmit={handleCommentSubmit} className="mb-6">
-            <div className="relative">
-              <textarea
-                value={newComment}
-                onChange={(e) => {
-                  if (e.target.value.length <= COMMENT_MAX_LENGTH) {
-                    setNewComment(e.target.value);
-                  }
-                }}
-                rows={3}
-                placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
-                className="w-full p-3 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
-                disabled={!user}
-                maxLength={COMMENT_MAX_LENGTH}
-              />
-              <div className="text-xs text-gray-400 mb-2 text-right">
-                {newComment.length}/{COMMENT_MAX_LENGTH}
-              </div>
-            </div>
-            {error && (
-              <div className="text-red-400 text-sm mb-2">
-                {error}
-              </div>
-            )}
-            <button
-              type="submit"
-              className={`px-4 py-2 rounded text-sm transition ${
-                !user
-                  ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              }`}
-              disabled={!user}
-            >
-              {user ? '댓글 등록' : '로그인 필요'}
-            </button>
-          </form>
+        <CommentForm 
+          postId={Number(id)} 
+          onCommentAdded={fetchComments}
+        />
 
         <CommentList 
           comments={comments.map(c => ({
