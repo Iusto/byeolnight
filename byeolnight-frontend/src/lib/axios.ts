@@ -41,11 +41,22 @@ const getClientIp = async (): Promise<string> => {
   }
 };
 
+import { getCookie } from '../utils/cookieUtils';
+import { detectInAppBrowser } from '../utils/inAppBrowser';
+
 // 요청 인터셉터 (인앱 브라우저 호환)
 instance.interceptors.request.use(
   async (config) => {
-    // 쿠키 기반 인증이므로 별도 헤더 추가 불필요
-    // withCredentials: true로 쿠키가 자동 전송됨
+    // 인앱 브라우저에서는 쿠키에서 토큰을 직접 읽어서 헤더에 추가
+    const { isInApp } = detectInAppBrowser();
+    if (isInApp) {
+      const accessToken = getCookie('accessToken');
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+        console.log(`인앱 브라우저 - 쿠키에서 토큰 추가: ${config.url}`);
+      }
+    }
+    
     console.log(`API 요청: ${config.url} (쿠키 기반 인증)`);
     return config;
   },
