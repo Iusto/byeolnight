@@ -188,11 +188,7 @@ export default function PostDetail() {
   
   const COMMENT_MAX_LENGTH = 500;
 
-  const [replyTo, setReplyTo] = useState<{id: number, writer: string} | null>(null);
-  const [editingComment, setEditingComment] = useState<{id: number, content: string} | null>(null);
-  const [editContent, setEditContent] = useState('');
   const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
-  const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
 
   const fetchPost = async () => {
     try {
@@ -223,30 +219,7 @@ export default function PostDetail() {
     }
   };
 
-  // 댓글을 계층 구조로 정렬하는 함수 (재귀적으로 모든 답글 처리)
-  const organizeComments = (comments: Comment[]) => {
-    const organized: Comment[] = [];
-    
-    // 재귀적으로 답글을 찾는 함수
-    const addReplies = (parentId: number, depth = 0) => {
-      const replies = comments.filter(c => c.parentId === parentId);
-      replies.forEach(reply => {
-        organized.push(reply);
-        // 이 답글의 답글들도 재귀적으로 추가
-        addReplies(reply.id, depth + 1);
-      });
-    };
-    
-    // 최상위 댓글들부터 시작
-    const parentComments = comments.filter(c => !c.parentId);
-    parentComments.forEach(parent => {
-      organized.push(parent);
-      // 해당 부모 댓글의 모든 답글들을 재귀적으로 추가
-      addReplies(parent.id);
-    });
-    
-    return organized;
-  };
+
 
   const fetchComments = async () => {
     try {
@@ -288,11 +261,9 @@ export default function PostDetail() {
         return comment;
       });
       
-      // 댓글을 계층 구조로 정렬
-      const organizedComments = organizeComments(enhancedComments);
-      console.log('정렬된 댓글:', organizedComments);
+      console.log('처리된 댓글:', enhancedComments);
       
-      setComments(organizedComments);
+      setComments(enhancedComments);
     } catch (err) {
       console.error('댓글 조회 실패:', err);
       console.error('에러 상세:', err.response);
@@ -317,8 +288,7 @@ export default function PostDetail() {
       
       const requestData = {
         postId: Number(id),
-        content: newComment,
-        parentId: replyTo?.id || null // 답글인 경우 부모 댓글 ID 포함
+        content: newComment
       };
       
       const response = await axios.post('/member/comments', requestData);
@@ -327,13 +297,7 @@ export default function PostDetail() {
       console.log('댓글 등록 응답 전체:', response);
       
       setNewComment('');
-      setReplyTo(null); // 답글 상태 초기화
       setError('');
-      
-      // 답글 등록 성공 메시지
-      if (replyTo) {
-        console.log(`${replyTo.writer}님에게 답글이 등록되었습니다.`);
-      }
       
       // 트랜잭션 커밋을 위해 더 긴 딩레이 후 댓글 새로고침
       setTimeout(async () => {
@@ -391,19 +355,6 @@ export default function PostDetail() {
     navigate(`/posts/${id}/report`);
   };
 
-  const handleBlind = async () => {
-    if (!confirm('이 게시글을 블라인드 처리하시겠습니까?')) return;
-    try {
-      await axios.patch(`/admin/posts/${id}/blind`);
-      alert('게시글이 블라인드 처리되었습니다.');
-      navigate('/posts');
-    } catch {
-      alert('블라인드 처리에 실패했습니다.');
-    }
-  };
-
-
-
   const handlePostBlind = async () => {
     if (!confirm('이 게시글을 블라인드 처리하시겠습니까?')) return;
     try {
@@ -417,90 +368,7 @@ export default function PostDetail() {
     }
   };
 
-  const handleCommentEdit = async (commentId: number) => {
-    if (!editContent.trim()) return;
-    try {
-      await axios.put(`/member/comments/${commentId}`, { content: editContent });
-      setEditingComment(null);
-      setEditContent('');
-      fetchComments();
-    } catch {
-      alert('댓글 수정에 실패했습니다.');
-    }
-  };
 
-  const handleCommentDelete = async (commentId: number) => {
-    if (!confirm('댓글을 삭제하시겠습니까?')) return;
-    try {
-      await axios.delete(`/member/comments/${commentId}`);
-      fetchComments();
-    } catch {
-      alert('댓글 삭제에 실패했습니다.');
-    }
-  };
-
-  const handleCommentBlind = async (commentId: number) => {
-    if (!confirm('이 댓글을 블라인드 처리하시겠습니까?')) return;
-    try {
-      await axios.patch(`/admin/comments/${commentId}/blind`);
-      alert('댓글이 블라인드 처리되었습니다.');
-      fetchComments();
-    } catch (error: any) {
-      console.error('댓글 블라인드 실패:', error);
-      const errorMessage = error.response?.data?.message || '블라인드 처리에 실패했습니다.';
-      alert(errorMessage);
-    }
-  };
-
-  const handleCommentUnblind = async (commentId: number) => {
-    if (!confirm('이 댓글의 블라인드를 해제하시겠습니까?')) return;
-    try {
-      await axios.patch(`/admin/comments/${commentId}/unblind`);
-      alert('댓글 블라인드가 해제되었습니다.');
-      fetchComments();
-    } catch (error: any) {
-      console.error('댓글 블라인드 해제 실패:', error);
-      const errorMessage = error.response?.data?.message || '블라인드 해제에 실패했습니다.';
-      alert(errorMessage);
-    }
-  };
-
-  const handleCommentLike = async (commentId: number) => {
-    try {
-      const response = await axios.post(`/member/comments/${commentId}/like`);
-      const liked = response.data.data;
-      
-      if (liked) {
-        setLikedComments(prev => new Set([...prev, commentId]));
-      } else {
-        setLikedComments(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(commentId);
-          return newSet;
-        });
-      }
-      fetchComments();
-    } catch {
-      alert('좋아요 처리 실패');
-    }
-  };
-
-  const handleCommentReport = async (commentId: number) => {
-    const reason = prompt('신고 사유를 입력해주세요.');
-    if (!reason?.trim()) return;
-    
-    try {
-      await axios.post(`/member/comments/${commentId}/report`, null, {
-        params: {
-          reason: reason,
-          description: ''
-        }
-      });
-      alert('신고가 접수되었습니다.');
-    } catch (error: any) {
-      alert(error.response?.data?.message || '신고 실패');
-    }
-  };
 
   const handleEdit = () => navigate(`/posts/${id}/edit`);
 
@@ -583,11 +451,7 @@ export default function PostDetail() {
     }
   };
   
-  // iframe을 실제 YouTube 플레이어로 렌더링하는 함수
-  const processIframeContent = (content: string) => {
-    // 이미 완성된 iframe은 그대로 유지
-    return content;
-  };
+
 
   if (loading) return <div className="text-white p-8">로딩 중...</div>;
   if (!post) return <div className="text-red-400 p-8">{error}</div>;
@@ -831,9 +695,8 @@ export default function PostDetail() {
               </h2>
             </div>
 
-        {/* 일반 댓글 입력창 (답글 모드가 아닐 때만 표시) */}
-        {!replyTo && (
-          <form onSubmit={handleCommentSubmit} className="mb-6">
+        {/* 댓글 입력창 */}
+        <form onSubmit={handleCommentSubmit} className="mb-6">
             <div className="relative">
               <textarea
                 value={newComment}
@@ -869,7 +732,6 @@ export default function PostDetail() {
               {user ? '댓글 등록' : '로그인 필요'}
             </button>
           </form>
-        )}
 
         <CommentList 
           comments={comments.map(c => ({
