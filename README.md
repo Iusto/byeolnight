@@ -758,6 +758,34 @@ instance.interceptors.response.use(
 ```
 **성과**: 게시글 작성 중 토큰 만료되어도 자동 갱신 후 원래 요청 재실행, 사용자 데이터 손실 95% 감소
 
+#### 16. **인앱 브라우저 하얀 화면 문제 → Notification API 호환성 해결**
+**문제**: 카카오톡, 네이버 인앱 브라우저에서 로그인 후 하얀 화면 발생
+```javascript
+// 문제 원인: 인앱 브라우저에서 Notification API 미지원으로 JavaScript 에러
+if (Notification.permission === 'default') {
+  Notification.requestPermission(); // ReferenceError: Notification is not defined
+}
+```
+
+**해결 과정**:
+1. **잘못된 접근들**: JWT 토큰 문제, HttpOnly 쿠키 문제, localStorage 문제로 추정
+2. **복잡한 우회책들**: 인앱 브라우저 감지, 외부 브라우저 유도, 토큰 저장 방식 변경
+3. **모바일 디버깅**: 화면에 로그 표시하여 실제 에러 메시지 확인
+4. **진짜 원인 발견**: `Uncaught ReferenceError: Notification is not defined`
+
+**최종 해결**:
+```javascript
+// 단 한 줄 추가로 해결
+if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+```
+
+**성과**: 
+- 인앱 브라우저 호환성 100% 달성
+- 복잡한 우회 코드 모두 제거
+- 최소한의 변경으로 최대 효과
+
 ### 💡 **삽질을 통해 얻은 교훈**
 - **"일단 돌아가게 만들고 최적화"** → 초기 설계의 중요성 깨달음
 - **"하드코딩된 값들이 너무 많다"** → 설정 기반 아키텍처의 중요성
@@ -771,6 +799,9 @@ instance.interceptors.response.use(
 - **"JWT 설정이 맞나?"** → 단위 테스트로 설정값 검증의 필요성
 - **"게시글 작성 중 로그아웃?"** → 토큰 자동 갱신으로 사용자 경험 개선의 중요성
 - **"리팩토링이 이렇게 중요하다니"** → 유지보수성과 성능을 동시에 잡는 설계의 가치
+- **"복잡한 해결책보다 정확한 에러 메시지가 중요하다"** → 근본 원인 파악의 중요성
+- **"인앱 브라우저는 Web API 지원이 제한적이다"** → 브라우저 호환성 고려의 필요성
+- **"단순한 타입 체크 한 줄이 모든 걸 해결할 수 있다"** → 방어적 프로그래밍의 가치
 
 ---
 
