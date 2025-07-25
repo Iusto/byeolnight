@@ -117,6 +117,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     }
   };
 
+
+
   // 댓글 렌더링 함수
   const renderComment = (c: Comment) => (
     <>
@@ -166,7 +168,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
               <div className="flex items-center gap-2">
                 {c.writerIcon && (
                   <div className="w-6 h-6 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-                    <UserIconDisplay iconName={c.writerIcon} size="small" />
+                    <UserIconDisplay iconName={c.writerIcon} size="medium" />
                   </div>
                 )}
                 <span>✍ {c.writer}</span>
