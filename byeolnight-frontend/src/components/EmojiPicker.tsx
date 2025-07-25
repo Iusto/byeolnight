@@ -5,7 +5,7 @@ interface Props {
   className?: string;
 }
 
-const EMOJI_CATEGORIES = {
+const EMOJI_CATEGORIES: Record<string, string[]> = {
   '우주': ['🌌', '🌟', '⭐', '🌠', '🚀', '🛸', '🌙', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔'],
   '감정': ['😊', '😂', '🥰', '😍', '🤔', '😮', '😢', '😭', '😡', '🤯', '😎', '🥳', '😴', '🤗', '👍'],
   '기타': ['❤️', '💜', '💙', '💚', '💛', '🧡', '🔥', '✨', '💫', '⚡', '🎉', '🎊', '👏', '🙌', '💪']
@@ -54,7 +54,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
           {/* 이모티콘 그리드 */}
           <div className="p-3 max-h-48 overflow-y-auto">
             <div className="grid grid-cols-5 gap-2">
-              {EMOJI_CATEGORIES[activeCategory].map((emoji, index) => (
+              {(EMOJI_CATEGORIES[activeCategory] || []).map((emoji, index) => (
                 <button
                   key={index}
                   type="button"
