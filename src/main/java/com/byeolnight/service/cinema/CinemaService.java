@@ -217,9 +217,35 @@ public class CinemaService {
             return false;
         }
         
+        // K-POP 및 음악 관련 키워드 필터링
+        if (isKPopOrMusicContent(titleLower, descLower)) {
+            return false;
+        }
+        
         // 우주 키워드 체크
         String[] allKeywords = newsDataService.getAllSpaceKeywordsCached();
         for (String keyword : allKeywords) {
+            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean isKPopOrMusicContent(String titleLower, String descLower) {
+        // K-POP 그룹명 및 음악 관련 키워드
+        String[] kpopKeywords = {
+            "원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans",
+            "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd",
+            "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion",
+            "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core",
+            "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video",
+            "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무",
+            "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu"
+        };
+        
+        for (String keyword : kpopKeywords) {
             if (titleLower.contains(keyword) || descLower.contains(keyword)) {
                 return true;
             }
