@@ -284,7 +284,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 )}
                 
                 {/* 답글 */}
-                {user && !c.blinded && !isReply && (
+                {user && !c.blinded && (
                   <button
                     onClick={() => handleReply(c.id)}
                     className="px-2 py-1 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded text-xs transition-colors"
