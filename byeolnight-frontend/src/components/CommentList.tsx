@@ -207,14 +207,14 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-2">
-                {c.writerIcon && (
+                {c.writerIcon && !c.deleted && (
                   <div className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
                     <UserIconDisplay iconName={c.writerIcon} size="large" />
                   </div>
                 )}
                 <div className="flex items-center gap-2">
                   <span>✍ {c.writer}</span>
-                  {c.writerId && (
+                  {c.writerId && !c.deleted && (
                     <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-xs text-gray-500 hover:text-purple-400 transition-colors border border-gray-600 hover:border-purple-400 px-1.5 py-0.5 rounded">
                       사용자정보보기
                     </ClickableNickname>
@@ -223,8 +223,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
               </div>
               <span>{new Date(c.createdAt).toLocaleString()}</span>
               
-              {/* 작성자 인증서 표시 */}
-              {c.writerCertificates && c.writerCertificates.length > 0 && (
+              {/* 작성자 인증서 표시 - 삭제되지 않은 댓글만 */}
+              {c.writerCertificates && c.writerCertificates.length > 0 && !c.deleted && (
                 <div className="flex gap-1 ml-2">
                   {c.writerCertificates.slice(0, 2).map((cert, idx) => {
                     const certIcons = {
@@ -252,49 +252,54 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
-              {/* 좋아요 버튼 - 로그인한 사용자만 */}
-              {user && !c.blinded && (
-                <button
-                  onClick={() => handleLike(c.id)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                    likedComments.has(c.id)
-                      ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                      : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 border border-gray-600/30'
-                  }`}
-                >
-                  {likedComments.has(c.id) ? '❤️' : '🤍'} {c.likeCount}
-                </button>
+              {/* 삭제된 댓글이 아닌 경우에만 버튼들 표시 */}
+              {!c.deleted && (
+                <>
+                  {/* 좋아요 버튼 - 로그인한 사용자만 */}
+                  {user && !c.blinded && (
+                    <button
+                      onClick={() => handleLike(c.id)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                        likedComments.has(c.id)
+                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                          : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 border border-gray-600/30'
+                      }`}
+                    >
+                      {likedComments.has(c.id) ? '❤️' : '🤍'} {c.likeCount}
+                    </button>
+                  )}
+                  
+                  {/* 답글 버튼 - 로그인한 사용자만, 답글이 아닌 경우만 */}
+                  {user && !c.blinded && !isReply && (
+                    <button
+                      onClick={() => handleReply(c.id)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-green-600/30 text-green-300 hover:bg-green-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-green-600/30"
+                    >
+                      💬 답글
+                    </button>
+                  )}
+                  
+                  {/* 신고 버튼 - 다른 사용자 댓글만 */}
+                  {user && user.nickname !== c.writer && !c.blinded && (
+                    <button
+                      onClick={() => setReportingId(c.id)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-orange-600/30 text-orange-300 hover:bg-orange-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-orange-600/30"
+                    >
+                      🚨 신고
+                    </button>
+                  )}
+                  
+                  {/* 좋아요 수만 표시 - 비로그인 사용자 */}
+                  {!user && c.likeCount > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400">
+                      🤍 {c.likeCount}
+                    </span>
+                  )}
+                </>
               )}
               
-              {/* 답글 버튼 - 로그인한 사용자만, 답글이 아닌 경우만 */}
-              {user && !c.blinded && !isReply && (
-                <button
-                  onClick={() => handleReply(c.id)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600/30 text-green-300 hover:bg-green-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-green-600/30"
-                >
-                  💬 답글
-                </button>
-              )}
-              
-              {/* 신고 버튼 - 다른 사용자 댓글만 */}
-              {user && user.nickname !== c.writer && !c.blinded && (
-                <button
-                  onClick={() => setReportingId(c.id)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-orange-600/30 text-orange-300 hover:bg-orange-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-orange-600/30"
-                >
-                  🚨 신고
-                </button>
-              )}
-              
-              {/* 좋아요 수만 표시 - 비로그인 사용자 */}
-              {!user && c.likeCount > 0 && (
-                <span className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400">
-                  🤍 {c.likeCount}
-                </span>
-              )}
-              
-              {/* 수정/삭제 버튼 - 작성자만 */}
-              {user?.nickname === c.writer && (
+              {/* 수정/삭제 버튼 - 작성자만, 삭제되지 않은 댓글만 */}
+              {user?.nickname === c.writer && !c.deleted && (
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleEdit(c)}
@@ -416,6 +421,20 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
               </div>
             </div>
           )}
+          
+          {/* 답글 표시 */}
+          {c.children && c.children.length > 0 && (
+            <div className="mt-4 ml-8 space-y-3 border-l-2 border-gray-600 pl-4">
+              {c.children.map((reply) => (
+                <div key={reply.id} className="p-3 bg-gray-800/30 rounded-lg">
+                  <div className="text-xs text-green-400 mb-2 flex items-center gap-1">
+                    ㄴ <span className="font-medium">{c.writer}</span>님에게 답글
+                  </div>
+                  {renderComment(reply, true)}
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </>
@@ -468,20 +487,6 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                   #{index + 1}
                 </div>
                 {renderComment(c)}
-                
-                {/* 답글 표시 */}
-                {c.children && c.children.length > 0 && (
-                  <div className="mt-4 ml-6 space-y-3 border-l-2 border-gray-600 pl-4">
-                    {c.children.map((reply) => (
-                      <div key={reply.id} className="p-3 bg-gray-800/50 rounded-lg">
-                        <div className="text-xs text-green-400 mb-1 flex items-center gap-1">
-                          ↳ <span className="font-medium">{c.writer}</span>님에게 답글
-                        </div>
-                        {renderComment(reply, true)}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </li>
             ))}
           </ul>
@@ -493,20 +498,6 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         {regularComments.map((c) => (
           <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
             {renderComment(c)}
-            
-            {/* 답글 표시 */}
-            {c.children && c.children.length > 0 && (
-              <div className="mt-4 ml-6 space-y-3 border-l-2 border-gray-600 pl-4">
-                {c.children.map((reply) => (
-                  <div key={reply.id} className="p-3 bg-gray-800/50 rounded-lg">
-                    <div className="text-xs text-green-400 mb-1 flex items-center gap-1">
-                      ↳ <span className="font-medium">{c.writer}</span>님에게 답글
-                    </div>
-                    {renderComment(reply, true)}
-                  </div>
-                ))}
-              </div>
-            )}
           </li>
         ))}
       </ul>
