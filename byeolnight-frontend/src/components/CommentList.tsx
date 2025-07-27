@@ -438,14 +438,14 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           
           {/* 답글 표시 */}
           {c.children && c.children.length > 0 && (
-            <div className="mt-4 ml-8 space-y-3 border-l-2 border-gray-600 pl-4">
+            <div className="mt-4 space-y-4">
               {c.children.map((reply) => (
-                <div key={reply.id} className="p-3 bg-gray-800/30 rounded-lg">
+                <li key={reply.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
                   <div className="text-xs text-green-400 mb-2 flex items-center gap-1">
-                    ㄴ <span className="font-medium">{reply.parentWriter || c.writer}</span>님에게 답글
+                    ↪ <span className="font-medium">{reply.parentWriter || c.writer}</span>님에게 답글
                   </div>
-                  {renderComment(reply, true)}
-                </div>
+                  {renderComment(reply)}
+                </li>
               ))}
             </div>
           )}
