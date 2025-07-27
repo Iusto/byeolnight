@@ -25,16 +25,12 @@ public class CommentResponseDto {
     private boolean isPopular;
 
     public static CommentResponseDto from(Comment comment) {
-        System.out.println("CommentResponseDto.from 호출 - 댓글 ID: " + comment.getId());
-        
         // writer 정보 상세 체크
         String writerName;
         if (comment.getWriter() != null) {
             writerName = comment.getWriter().getNickname();
-            System.out.println("정상 writer: " + writerName);
         } else {
             writerName = "알 수 없는 사용자";
-            System.out.println("Writer가 null입니다!");
         }
         
         // 부모 댓글 정보 처리
@@ -44,9 +40,6 @@ public class CommentResponseDto {
             parentId = comment.getParent().getId();
             parentWriter = (comment.getParent().getWriter() != null) ? 
                 comment.getParent().getWriter().getNickname() : "알 수 없는 사용자";
-            System.out.println("답글 발견 - 댓글 ID: " + comment.getId() + ", 부모 ID: " + parentId);
-        } else {
-            System.out.println("루트 댓글 - 댓글 ID: " + comment.getId());
         }
         
         // 사용자 아이콘 정보 가져오기
