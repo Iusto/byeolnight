@@ -209,7 +209,9 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           <div className="break-words overflow-wrap-anywhere">
             <p className="text-sm whitespace-pre-wrap">
               {/* 관리자는 블라인드/삭제된 댓글도 원본 내용 표시 */}
-              {(c.blinded || c.deleted) && user?.role !== 'ADMIN' ? (
+              {user?.role === 'ADMIN' ? (
+                c.content
+              ) : (c.blinded || c.deleted) ? (
                 <span className="text-gray-500 italic">
                   {c.blinded ? '[블라인드 처리된 댓글입니다]' : '[삭제된 댓글입니다]'}
                 </span>
