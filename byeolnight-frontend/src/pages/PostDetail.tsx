@@ -63,6 +63,11 @@ export default function PostDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  const [post, setPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
   // iframe 렌더링을 위한 전역 CSS 스타일 추가
   useEffect(() => {
     const style = document.createElement('style');
@@ -160,31 +165,6 @@ export default function PostDetail() {
       }
     };
   }, []);
-
-  // ID 유효성 검사
-  if (!id || isNaN(Number(id))) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
-        <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
-          <div className="text-red-400 text-center">
-            <h1 className="text-2xl font-bold mb-4">잘못된 접근입니다</h1>
-            <p className="mb-4">유효하지 않은 게시글 ID입니다.</p>
-            <button 
-              onClick={() => navigate('/posts')}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition"
-            >
-              게시글 목록으로 돌아가기
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const [post, setPost] = useState<Post | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
 
@@ -350,6 +330,12 @@ export default function PostDetail() {
   };
 
   useEffect(() => {
+    // ID 유효성 검사
+    if (!id || isNaN(Number(id))) {
+      setLoading(false);
+      return;
+    }
+    
     fetchPost();
     fetchComments();
     setLoading(false);
@@ -419,7 +405,28 @@ export default function PostDetail() {
   
 
 
+  // ID 유효성 검사 - 로딩 완료 후에만 실행
+  if (!loading && (!id || isNaN(Number(id)))) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+        <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
+          <div className="text-red-400 text-center">
+            <h1 className="text-2xl font-bold mb-4">잘못된 접근입니다</h1>
+            <p className="mb-4">유효하지 않은 게시글 ID입니다.</p>
+            <button 
+              onClick={() => navigate('/posts')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition"
+            >
+              게시글 목록으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return <div className="text-white p-8">로딩 중...</div>;
+  
   if (!post || error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
