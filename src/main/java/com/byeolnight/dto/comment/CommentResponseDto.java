@@ -44,6 +44,9 @@ public class CommentResponseDto {
             parentId = comment.getParent().getId();
             parentWriter = (comment.getParent().getWriter() != null) ? 
                 comment.getParent().getWriter().getNickname() : "알 수 없는 사용자";
+            System.out.println("답글 발견 - 댓글 ID: " + comment.getId() + ", 부모 ID: " + parentId);
+        } else {
+            System.out.println("루트 댓글 - 댓글 ID: " + comment.getId());
         }
         
         // 사용자 아이콘 정보 가져오기
