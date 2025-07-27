@@ -442,27 +442,32 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     </>
   );
 
-  // 댓글을 계층 구조로 정리
+  // 댓글을 평면적 구조로 정리
   const organizeComments = (comments: Comment[]) => {
     console.log('=== 댓글 데이터 분석 ===');
     comments.forEach(comment => {
       console.log(`댓글 ID: ${comment.id}, parentId: ${comment.parentId || 'null'}, 내용: ${comment.content.substring(0, 20)}...`);
     });
     
-    // 단순하게 만들어보자 - parentId가 없는 것만 루트로
     const rootComments = comments.filter(c => !c.parentId);
-    const replyComments = comments.filter(c => c.parentId);
+    const allReplies = comments.filter(c => c.parentId);
     
-    console.log(`루트 댓글 수: ${rootComments.length}`);
-    console.log(`답글 수: ${replyComments.length}`);
-    
-    // 각 루트 댓글에 답글 연결
+    // 각 루트 댓글에 모든 관련 답글들을 평면적으로 연결
     const organizedComments = rootComments.map(root => {
-      const children = replyComments.filter(reply => reply.parentId === root.id);
-      console.log(`댓글 ${root.id}의 답글 수: ${children.length}`);
+      // 이 루트 댓글과 관련된 모든 답글들 찾기
+      const getRootId = (comment: Comment): number => {
+        if (!comment.parentId) return comment.id;
+        const parent = comments.find(c => c.id === comment.parentId);
+        return parent ? getRootId(parent) : comment.id;
+      };
+      
+      const relatedReplies = allReplies.filter(reply => getRootId(reply) === root.id);
+      
+      console.log(`댓글 ${root.id}의 관련 답글 수: ${relatedReplies.length}`);
+      
       return {
         ...root,
-        children: children
+        children: relatedReplies
       };
     });
     
