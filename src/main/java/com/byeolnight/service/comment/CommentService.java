@@ -109,7 +109,7 @@ public class CommentService {
         return commentId;
     }
 
-    public List<CommentResponseDto> getByPostId(Long postId) {
+    public List<CommentResponseDto> getByPostId(Long postId, User currentUser) {
         if (postId == null || postId <= 0) {
             throw new IllegalArgumentException("유효하지 않은 게시글 ID입니다.");
         }
@@ -121,7 +121,7 @@ public class CommentService {
         List<Comment> comments = commentRepository.findAllByPostId(postId);
         
         return comments.stream()
-                .map(CommentResponseDto::from)
+                .map(comment -> CommentResponseDto.from(comment, currentUser))
                 .collect(Collectors.toList());
     }
 
@@ -163,16 +163,16 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponseDto> getBlindedComments() {
+    public List<CommentResponseDto> getBlindedComments(User currentUser) {
         return commentRepository.findByBlindedTrueOrderByCreatedAtDesc().stream()
-                .map(CommentResponseDto::from)
+                .map(comment -> CommentResponseDto.from(comment, currentUser))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponseDto> getDeletedComments() {
+    public List<CommentResponseDto> getDeletedComments(User currentUser) {
         return commentRepository.findByDeletedTrueOrderByCreatedAtDesc().stream()
-                .map(CommentResponseDto::from)
+                .map(comment -> CommentResponseDto.from(comment, currentUser))
                 .toList();
     }
     

@@ -25,8 +25,11 @@ public class AdminCommentController {
     @Operation(summary = "블라인드 댓글 목록 조회", description = "관리자가 블라인드 처리된 댓글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/comments/blinded")
-    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getBlindedComments() {
-        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getBlindedComments();
+    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getBlindedComments(
+            org.springframework.security.core.Authentication authentication) {
+        com.byeolnight.domain.entity.user.User currentUser = 
+            (com.byeolnight.domain.entity.user.User) authentication.getPrincipal();
+        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getBlindedComments(currentUser);
         return ResponseEntity.ok(comments);
     }
 
@@ -49,8 +52,11 @@ public class AdminCommentController {
     @Operation(summary = "삭제된 댓글 목록 조회", description = "관리자가 삭제된 댓글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/comments/deleted")
-    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getDeletedComments() {
-        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getDeletedComments();
+    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getDeletedComments(
+            org.springframework.security.core.Authentication authentication) {
+        com.byeolnight.domain.entity.user.User currentUser = 
+            (com.byeolnight.domain.entity.user.User) authentication.getPrincipal();
+        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getDeletedComments(currentUser);
         return ResponseEntity.ok(comments);
     }
 

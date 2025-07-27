@@ -40,10 +40,6 @@ public class Comment {
 
     @Column(nullable = false, length = 500)
     private String content;
-    
-    @Lob
-    @Column(name = "original_content", columnDefinition = "TEXT")
-    private String originalContent;
 
     @Builder.Default
     @Column(nullable = false)
@@ -94,27 +90,16 @@ public class Comment {
         return this.blinded;
     }
 
-    // ✅ 댓글 소프트 삭제 (사용자용 - 원본 내용 보존)
+    // ✅ 댓글 소프트 삭제
     public void softDelete() {
         this.deleted = true;
         this.deletedAt = LocalDateTime.now();
-        // 원본 내용 백업
-        if (this.originalContent == null) {
-            this.originalContent = this.content;
-        }
-        this.content = "이 댓글은 삭제되었습니다.";
     }
-
 
     // ✅ 댓글 복구
     public void restore() {
         this.deleted = false;
         this.deletedAt = null;
-        // 원본 내용 복원
-        if (this.originalContent != null) {
-            this.content = this.originalContent;
-            this.originalContent = null;
-        }
     }
 
 
