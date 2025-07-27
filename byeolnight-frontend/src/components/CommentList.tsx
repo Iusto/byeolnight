@@ -441,38 +441,30 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
 
   // 댓글을 계층 구조로 정리
   const organizeComments = (comments: Comment[]) => {
-    console.log('원본 댓글 데이터:', comments);
-    
-    const commentMap = new Map<number, Comment>();
-    const rootComments: Comment[] = [];
-    
-    // 모든 댓글을 맵에 저장하고 children 배열 초기화
+    console.log('=== 댓글 데이터 분석 ===');
     comments.forEach(comment => {
-      commentMap.set(comment.id, { ...comment, children: [] });
+      console.log(`댓글 ID: ${comment.id}, parentId: ${comment.parentId || 'null'}, 내용: ${comment.content.substring(0, 20)}...`);
     });
     
-    // 부모-자식 관계 설정
-    comments.forEach(comment => {
-      const commentWithChildren = commentMap.get(comment.id)!;
-      if (comment.parentId) {
-        console.log(`답글 발견: ID ${comment.id}, 부모 ID ${comment.parentId}`);
-        // 답글인 경우 부모 댓글의 children에 추가
-        const parent = commentMap.get(comment.parentId);
-        if (parent) {
-          parent.children!.push(commentWithChildren);
-          console.log(`부모 댓글 ${comment.parentId}에 답글 ${comment.id} 추가`);
-        } else {
-          console.log(`부모 댓글 ${comment.parentId}를 찾을 수 없음`);
-        }
-      } else {
-        console.log(`루트 댓글: ID ${comment.id}`);
-        // 루트 댓글인 경우 rootComments에 추가
-        rootComments.push(commentWithChildren);
-      }
+    // 단순하게 만들어보자 - parentId가 없는 것만 루트로
+    const rootComments = comments.filter(c => !c.parentId);
+    const replyComments = comments.filter(c => c.parentId);
+    
+    console.log(`루트 댓글 수: ${rootComments.length}`);
+    console.log(`답글 수: ${replyComments.length}`);
+    
+    // 각 루트 댓글에 답글 연결
+    const organizedComments = rootComments.map(root => {
+      const children = replyComments.filter(reply => reply.parentId === root.id);
+      console.log(`댓글 ${root.id}의 답글 수: ${children.length}`);
+      return {
+        ...root,
+        children: children
+      };
     });
     
-    console.log('정리된 댓글 구조:', rootComments);
-    return rootComments;
+    console.log('최종 정리된 구조:', organizedComments);
+    return organizedComments;
   };
   
   const organizedComments = organizeComments(comments);
