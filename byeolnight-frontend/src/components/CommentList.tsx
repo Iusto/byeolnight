@@ -208,8 +208,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         <>
           <div className="break-words overflow-wrap-anywhere">
             <p className="text-sm whitespace-pre-wrap">
-              {c.blinded ? (user?.role === 'ADMIN' ? c.content : '이 댓글은 블라인드 처리되었습니다.') :
-               c.deleted ? (user?.role === 'ADMIN' ? c.content : '이 댓글은 삭제되었습니다.') : 
+              {c.blinded ? (user?.role === 'ADMIN' ? `[블라인드 댓글] ${c.content}` : '이 댓글은 블라인드 처리되었습니다.') :
+               c.deleted ? (user?.role === 'ADMIN' ? `[삭제된 댓글] ${c.content}` : '이 댓글은 삭제되었습니다.') : 
                c.content}
             </p>
           </div>

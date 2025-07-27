@@ -1278,7 +1278,7 @@ export default function AdminUserPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <p className="text-gray-300 mb-2">
-                          {comment.content}
+                          {comment.originalContent || comment.content}
                         </p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
