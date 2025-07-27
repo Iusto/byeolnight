@@ -30,9 +30,6 @@ interface Props {
 }
 
 export default function CommentList({ comments, postId, onRefresh }: Props) {
-  console.log('CommentList 렌더링 - 받은 댓글 수:', comments.length);
-  console.log('받은 댓글 데이터:', comments);
-  
   const { user } = useAuth();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -211,21 +208,21 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         <>
           <div className="break-words overflow-wrap-anywhere">
             <p className="text-sm whitespace-pre-wrap">
-              {c.blinded ? '[블라인드 처리된 댓글입니다]' : 
-               c.deleted ? (user?.role === 'ADMIN' ? `[삭제된 댓글] ${c.content}` : '이 댓글은 삭제되었습니다.') : 
+              {c.blinded ? (user?.role === 'ADMIN' ? c.content : '이 댓글은 블라인드 처리되었습니다.') :
+               c.deleted ? (user?.role === 'ADMIN' ? c.content : '이 댓글은 삭제되었습니다.') : 
                c.content}
             </p>
           </div>
           
           {/* 사용자 정보 */}
           <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-            {c.writerIcon && (!c.deleted || user?.role === 'ADMIN') && (
+            {c.writerIcon && ((!c.deleted && !c.blinded) || user?.role === 'ADMIN') && (
               <div className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
                 <UserIconDisplay iconName={c.writerIcon} size="large" />
               </div>
             )}
             <div className="flex items-center gap-2">
-              {(!c.deleted || user?.role === 'ADMIN') && (
+              {((!c.deleted && !c.blinded) || user?.role === 'ADMIN') && (
                 <>
                   <span>✍ {c.writer}</span>
                   {c.writerId && (
@@ -240,7 +237,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
             <span>{new Date(c.createdAt).toLocaleString()}</span>
             
             {/* 인증서 배지 복원 */}
-            {c.writerCertificates && c.writerCertificates.length > 0 && (!c.deleted || user?.role === 'ADMIN') && (
+            {c.writerCertificates && c.writerCertificates.length > 0 && ((!c.deleted && !c.blinded) || user?.role === 'ADMIN') && (
               <div className="flex gap-1 ml-2">
                 {c.writerCertificates.slice(0, 2).map((cert, idx) => {
                   const certIcons = {
@@ -269,10 +266,10 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           
           {/* 버튼들 */}
           <div className="mt-2 flex items-center gap-1 text-xs">
-            {!c.deleted && (
+            {!c.deleted && !c.blinded && (
               <>
                 {/* 좋아요 */}
-                {user && !c.blinded && (
+                {user && (
                   <button
                     onClick={() => handleLike(c.id)}
                     className={`px-2 py-1 rounded text-xs transition-colors ${
@@ -284,7 +281,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 )}
                 
                 {/* 답글 */}
-                {user && !c.blinded && (
+                {user && (
                   <button
                     onClick={() => handleReply(c.id)}
                     className="px-2 py-1 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded text-xs transition-colors"
@@ -312,7 +309,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 )}
                 
                 {/* 신고 */}
-                {user && user.nickname !== c.writer && !c.blinded && (
+                {user && user.nickname !== c.writer && (
                   <button
                     onClick={() => setReportingId(c.id)}
                     className="px-2 py-1 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded text-xs transition-colors"
@@ -444,11 +441,6 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
 
   // 댓글을 평면적 구조로 정리
   const organizeComments = (comments: Comment[]) => {
-    console.log('=== 댓글 데이터 분석 ===');
-    comments.forEach(comment => {
-      console.log(`댓글 ID: ${comment.id}, parentId: ${comment.parentId || 'null'}, 내용: ${comment.content.substring(0, 20)}...`);
-    });
-    
     const rootComments = comments.filter(c => !c.parentId);
     const allReplies = comments.filter(c => c.parentId);
     
@@ -463,15 +455,12 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       
       const relatedReplies = allReplies.filter(reply => getRootId(reply) === root.id);
       
-      console.log(`댓글 ${root.id}의 관련 답글 수: ${relatedReplies.length}`);
-      
       return {
         ...root,
         children: relatedReplies
       };
     });
     
-    console.log('최종 정리된 구조:', organizedComments);
     return organizedComments;
   };
   
