@@ -195,6 +195,19 @@ export default function PostDetail() {
       const postData = res.data?.data || res.data;
       console.log('게시글 데이터:', postData);
       
+      // 삭제되거나 블라인드된 게시글 처리
+      if (postData && (postData.deleted || postData.blinded)) {
+        // 관리자가 아닌 경우 접근 제한
+        if (!user || user.role !== 'ADMIN') {
+          if (postData.deleted) {
+            setError('삭제된 게시글입니다.');
+          } else if (postData.blinded) {
+            setError('블라인드 처리된 게시글입니다.');
+          }
+          return;
+        }
+      }
+      
       // 작성자 정보 보완 (선택적)
       if (postData && postData.writerId) {
         try {
@@ -211,9 +224,13 @@ export default function PostDetail() {
       }
       
       setPost(postData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('게시글 조회 실패:', err);
-      setError('게시글을 불러올 수 없습니다.');
+      if (err.response?.status === 404) {
+        setError('존재하지 않는 게시글입니다.');
+      } else {
+        setError('게시글을 불러올 수 없습니다.');
+      }
     }
   };
 
@@ -403,7 +420,24 @@ export default function PostDetail() {
 
 
   if (loading) return <div className="text-white p-8">로딩 중...</div>;
-  if (!post) return <div className="text-red-400 p-8">{error}</div>;
+  if (!post || error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+        <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
+          <div className="text-red-400 text-center">
+            <h1 className="text-2xl font-bold mb-4">접근할 수 없는 게시글</h1>
+            <p className="mb-4">{error}</p>
+            <button 
+              onClick={() => navigate('/posts')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition"
+            >
+              게시글 목록으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isOwnerOrAdmin = user && (user.nickname === post.writer || user.role === 'ADMIN');
   // createdAt 사용 (업데이트 시간이 아닌 작성 시간 표시)
@@ -667,7 +701,9 @@ export default function PostDetail() {
             blinded: c.blinded || false,
             deleted: c.deleted || false,
             writerIcon: c.writerIcon,
-            writerCertificates: c.writerCertificates
+            writerCertificates: c.writerCertificates,
+            parentId: c.parentId,
+            parentWriter: c.parentWriter
           }))}
           postId={Number(id)}
           onRefresh={fetchComments}
