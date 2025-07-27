@@ -22,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.RedisTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,17 +45,28 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final com.byeolnight.service.notification.NotificationService notificationService;
     private final DeleteLogService deleteLogService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
-        validateAdminCategoryWrite(dto.getCategory(), user);
+        // 중복 등록 방지를 위한 락 키 생성 (사용자ID + 제목 해시)
+        String lockKey = "post_create:" + user.getId() + ":" + dto.getTitle().hashCode();
+        
+        // Redis 분산 락 적용 (10초 유지)
+        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", Duration.ofSeconds(10));
+        if (!lockAcquired) {
+            throw new IllegalStateException("동일한 게시글이 이미 등록 중입니다. 잠시 후 다시 시도해주세요.");
+        }
+        
+        try {
+            validateAdminCategoryWrite(dto.getCategory(), user);
 
-        Post post = Post.builder()
-                .title(dto.getTitle())
-                .content(dto.getContent())
-                .category(dto.getCategory())
-                .writer(user)
-                .build();
+            Post post = Post.builder()
+                    .title(dto.getTitle())
+                    .content(dto.getContent())
+                    .category(dto.getCategory())
+                    .writer(user)
+                    .build();
         
         if (dto.getOriginTopicId() != null) {
             Post originTopic = postRepository.findById(dto.getOriginTopicId())
@@ -100,7 +113,11 @@ public class PostService {
             }
         }
 
-        return post.getId();
+            return post.getId();
+        } finally {
+            // 락 해제
+            redisTemplate.delete(lockKey);
+        }
     }
 
     @Transactional

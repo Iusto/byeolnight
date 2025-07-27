@@ -208,7 +208,14 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         <>
           <div className="break-words overflow-wrap-anywhere">
             <p className="text-sm whitespace-pre-wrap">
-              {c.content}
+              {/* 관리자는 블라인드/삭제된 댓글도 원본 내용 표시 */}
+              {(c.blinded || c.deleted) && user?.role !== 'ADMIN' ? (
+                <span className="text-gray-500 italic">
+                  {c.blinded ? '[블라인드 처리된 댓글입니다]' : '[삭제된 댓글입니다]'}
+                </span>
+              ) : (
+                c.content
+              )}
             </p>
           </div>
           
@@ -227,6 +234,14 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                     <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-xs text-gray-500 hover:text-purple-400 transition-colors border border-gray-600 hover:border-purple-400 px-1.5 py-0.5 rounded">
                       사용자정보보기
                     </ClickableNickname>
+                  )}
+                  {/* 관리자에게 댓글 상태 표시 */}
+                  {user?.role === 'ADMIN' && (c.blinded || c.deleted) && (
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      c.blinded ? 'bg-red-600/20 text-red-400 border border-red-600/50' : 'bg-gray-600/20 text-gray-400 border border-gray-600/50'
+                    }`}>
+                      {c.blinded ? '블라인드' : '삭제됨'}
+                    </span>
                   )}
                 </>
               )}
@@ -337,11 +352,25 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 >
                   {c.blinded ? '해제' : '블라인드'}
                 </button>
+                {/* 삭제된 댓글 표시 */}
+                {c.deleted && (
+                  <span className="px-2 py-1 text-gray-500 text-xs bg-gray-700/30 rounded">
+                    삭제됨
+                  </span>
+                )}
               </>
+            )}
+            
+            {/* 블라인드/삭제된 댓글의 좋아요 수 표시 */}
+            {(c.deleted || c.blinded) && c.likeCount > 0 && (
+              <span className="px-2 py-1 text-gray-500 text-xs">
+                🤍 {c.likeCount}
+              </span>
             )}
           </div>
           
-          {reportingId === c.id && (
+          {/* 신고 폼은 블라인드/삭제되지 않은 댓글에만 표시 */}
+          {reportingId === c.id && !c.deleted && !c.blinded && (
             <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-orange-500/30">
               <h4 className="text-sm font-medium text-orange-300 mb-2">댓글 신고</h4>
               <select
@@ -382,8 +411,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
             </div>
           )}
           
-          {/* 답글 작성 폼 */}
-          {replyingTo === c.id && (
+          {/* 답글 작성 폼은 블라인드/삭제되지 않은 댓글에만 표시 */}
+          {replyingTo === c.id && !c.deleted && !c.blinded && (
             <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-green-500/30">
               <h4 className="text-sm font-medium text-green-300 mb-2">답글 작성</h4>
               <div className="relative">
