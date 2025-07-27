@@ -25,7 +25,7 @@ public class PublicCommentController {
     @GetMapping("/post/{postId}")
     public ResponseEntity<CommonResponse<List<CommentResponseDto>>> getByPost(@PathVariable Long postId) {
         System.out.println("PublicCommentController.getByPost 호출 - postId: " + postId);
-        List<CommentResponseDto> comments = commentService.getByPostId(postId);
+        List<CommentResponseDto> comments = commentService.getByPostId(postId, null);
         System.out.println("반환할 댓글 수: " + comments.size());
         return ResponseEntity.ok(CommonResponse.success(comments));
     }

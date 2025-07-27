@@ -25,6 +25,10 @@ public class CommentResponseDto {
     private boolean isPopular;
 
     public static CommentResponseDto from(Comment comment) {
+        return from(comment, null);
+    }
+    
+    public static CommentResponseDto from(Comment comment, com.byeolnight.domain.entity.user.User currentUser) {
         // writer 정보 상세 체크
         String writerName;
         if (comment.getWriter() != null) {
@@ -65,9 +69,17 @@ public class CommentResponseDto {
             }
         }
         
+        // 관리자는 원본 내용, 일반 사용자는 마스킹 내용
+        String displayContent = comment.getContent();
+        if (comment.getBlinded() && (currentUser == null || !"ADMIN".equals(currentUser.getRole().name()))) {
+            displayContent = "이 댓글은 블라인드 처리되었습니다.";
+        } else if (comment.getDeleted() && (currentUser == null || !"ADMIN".equals(currentUser.getRole().name()))) {
+            displayContent = "이 댓글은 삭제되었습니다.";
+        }
+        
         return CommentResponseDto.builder()
                 .id(comment.getId())
-                .content(comment.getBlinded() ? "[블라인드 처리된 댓글입니다]" : comment.getContent())
+                .content(displayContent)
                 .writer(writerName)
                 .writerId(comment.getWriter() != null ? comment.getWriter().getId() : null)
                 .blinded(comment.getBlinded())
