@@ -1212,13 +1212,20 @@ export default function AdminUserPage() {
                         <p className="text-gray-300 mb-2">{comment.content}</p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
-                          <button
-                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
-                            className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
-                            title="게시글로 이동"
-                          >
-                            {comment.postTitle}
-                          </button>
+                          {comment.postId && comment.postTitle ? (
+                            <button
+                              onClick={() => {
+                                console.log('게시글 이동 시도:', comment.postId, comment.postTitle);
+                                window.open(`/posts/${comment.postId}`, '_blank');
+                              }}
+                              className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
+                              title="게시글로 이동"
+                            >
+                              {comment.postTitle}
+                            </button>
+                          ) : (
+                            <span className="text-gray-500 ml-1">삭제된 게시글</span>
+                          )}
                         </p>
                       </div>
                       <button
@@ -1282,13 +1289,20 @@ export default function AdminUserPage() {
                         </p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
-                          <button
-                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
-                            className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
-                            title="게시글로 이동"
-                          >
-                            {comment.postTitle}
-                          </button>
+                          {comment.postId && comment.postTitle ? (
+                            <button
+                              onClick={() => {
+                                console.log('게시글 이동 시도:', comment.postId, comment.postTitle);
+                                window.open(`/posts/${comment.postId}`, '_blank');
+                              }}
+                              className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
+                              title="게시글로 이동"
+                            >
+                              {comment.postTitle}
+                            </button>
+                          ) : (
+                            <span className="text-gray-500 ml-1">삭제된 게시글</span>
+                          )}
                         </p>
                       </div>
                       <button

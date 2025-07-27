@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import UserIconDisplay from './UserIconDisplay';
@@ -40,8 +40,35 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [adminComments, setAdminComments] = useState<Comment[]>([]);
   
   const COMMENT_MAX_LENGTH = 500;
+
+  // 관리자용 댓글 데이터 가져오기
+  const fetchAdminComments = async () => {
+    if (user?.role === 'ADMIN') {
+      try {
+        const response = await axios.get(`/admin/posts/${postId}/comments`);
+        setAdminComments(response.data?.data || response.data || []);
+      } catch (error) {
+        console.error('관리자 댓글 조회 실패:', error);
+      }
+    }
+  };
+
+  // 컴포넌트 마운트 시 관리자 댓글 데이터 가져오기
+  useEffect(() => {
+    fetchAdminComments();
+  }, [user, postId]);
+
+  // 관리자인 경우 원본 댓글 데이터 사용
+  const displayComments = user?.role === 'ADMIN' && adminComments.length > 0 ? adminComments : comments;
+
+  // onRefresh 시에도 관리자 댓글 데이터 새로고침
+  const handleRefresh = () => {
+    onRefresh();
+    fetchAdminComments();
+  };
 
   const handleEdit = (comment: Comment) => {
     setEditingId(comment.id);
@@ -53,7 +80,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       await axios.put(`/member/comments/${id}`, { content: editContent });
       setEditingId(null);
       setEditContent('');
-      onRefresh();
+      handleRefresh();
     } catch {
       alert('댓글 수정 실패');
     }
@@ -63,7 +90,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     if (!confirm('댓글을 삭제할까요?')) return;
     try {
       await axios.delete(`/member/comments/${id}`);
-      onRefresh();
+      handleRefresh();
     } catch {
       alert('댓글 삭제 실패');
     }
@@ -83,7 +110,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           return newSet;
         });
       }
-      onRefresh();
+      handleRefresh();
     } catch {
       alert('좋아요 처리 실패');
     }
@@ -106,7 +133,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       setReportingId(null);
       setReportReason('');
       setReportDescription('');
-      onRefresh();
+      handleRefresh();
     } catch (error: any) {
       alert(error.response?.data?.message || '신고 실패');
     }
@@ -131,7 +158,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       });
       setReplyingTo(null);
       setReplyContent('');
-      onRefresh();
+      handleRefresh();
     } catch (error: any) {
       alert(error.response?.data?.message || '답글 작성 실패');
     }
@@ -149,7 +176,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         await axios.patch(`/admin/comments/${id}/blind`);
         alert('블라인드 처리되었습니다.');
       }
-      onRefresh();
+      handleRefresh();
     } catch (error: any) {
       alert(error.response?.data?.message || '블라인드 처리 실패');
     }
@@ -493,7 +520,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     return organizedComments;
   };
   
-  const organizedComments = organizeComments(comments);
+  const organizedComments = organizeComments(displayComments);
   
   // TOP3 댓글과 일반 댓글 분리 (루트 댓글만)
   const topComments = organizedComments.filter(c => c.isPopular).slice(0, 3);
