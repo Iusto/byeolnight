@@ -1212,13 +1212,15 @@ export default function AdminUserPage() {
                         <p className="text-gray-300 mb-2">{comment.content}</p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
-                          <button
-                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
+                          <a
+                            href={`/posts/${comment.postId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
                             title="게시글로 이동"
                           >
                             {comment.postTitle}
-                          </button>
+                          </a>
                         </p>
                       </div>
                       <button
@@ -1278,17 +1280,19 @@ export default function AdminUserPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <p className="text-gray-300 mb-2">
-                          {comment.originalContent || comment.content}
+                          {comment.content}
                         </p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
-                          <button
-                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
+                          <a
+                            href={`/posts/${comment.postId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
                             title="게시글로 이동"
                           >
                             {comment.postTitle}
-                          </button>
+                          </a>
                         </p>
                       </div>
                       <button
