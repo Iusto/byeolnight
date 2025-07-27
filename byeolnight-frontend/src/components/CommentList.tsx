@@ -217,21 +217,50 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           {/* 사용자 정보 */}
           <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
             {c.writerIcon && (!c.deleted || user?.role === 'ADMIN') && (
-              <div className="w-6 h-6 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-                <UserIconDisplay iconName={c.writerIcon} size="small" />
+              <div className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                <UserIconDisplay iconName={c.writerIcon} size="large" />
               </div>
             )}
-            {(!c.deleted || user?.role === 'ADMIN') && (
-              <span>✍ {c.writer}</span>
-            )}
+            <div className="flex items-center gap-2">
+              {(!c.deleted || user?.role === 'ADMIN') && (
+                <>
+                  <span>✍ {c.writer}</span>
+                  {c.writerId && (
+                    <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-xs text-gray-500 hover:text-purple-400 transition-colors border border-gray-600 hover:border-purple-400 px-1.5 py-0.5 rounded">
+                      사용자정보보기
+                    </ClickableNickname>
+                  )}
+                </>
+              )}
+            </div>
             <span>•</span>
             <span>{new Date(c.createdAt).toLocaleString()}</span>
             
-            {/* 인증서 */}
+            {/* 인증서 배지 복원 */}
             {c.writerCertificates && c.writerCertificates.length > 0 && (!c.deleted || user?.role === 'ADMIN') && (
-              <span className="text-yellow-400" title={c.writerCertificates[0]}>
-                🏆
-              </span>
+              <div className="flex gap-1 ml-2">
+                {c.writerCertificates.slice(0, 2).map((cert, idx) => {
+                  const certIcons = {
+                    '별빛 탐험가': '🌠',
+                    '우주인 등록증': '🌍',
+                    '은하 통신병': '📡',
+                    '별 관측 매니아': '🔭',
+                    '별빛 채팅사': '🗨️',
+                    '별 헤는 밤 시민증': '🏅',
+                    '별빛 수호자': '🛡️',
+                    '우주 실험자': '⚙️',
+                    '건의왕': '💡',
+                    '은하 관리자 훈장': '🏆'
+                  };
+                  const icon = certIcons[cert] || '🏆';
+                  
+                  return (
+                    <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30 animate-pulse" title={cert}>
+                      {icon} {cert}
+                    </span>
+                  );
+                })}
+              </div>
             )}
           </div>
           
@@ -243,8 +272,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 {user && !c.blinded && (
                   <button
                     onClick={() => handleLike(c.id)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      likedComments.has(c.id) ? 'text-red-400' : 'text-gray-400 hover:text-red-400'
+                    className={`px-2 py-1 rounded text-xs transition-colors ${
+                      likedComments.has(c.id) ? 'text-red-400 bg-red-500/10' : 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
                     }`}
                   >
                     {likedComments.has(c.id) ? '❤️' : '🤍'} {c.likeCount}
@@ -255,7 +284,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 {user && !c.blinded && !isReply && (
                   <button
                     onClick={() => handleReply(c.id)}
-                    className="px-2 py-1 text-gray-400 hover:text-green-400 rounded text-xs"
+                    className="px-2 py-1 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded text-xs transition-colors"
                   >
                     💬 답글
                   </button>
@@ -266,13 +295,13 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                   <>
                     <button
                       onClick={() => handleEdit(c)}
-                      className="px-2 py-1 text-gray-400 hover:text-blue-400 rounded text-xs"
+                      className="px-2 py-1 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded text-xs transition-colors"
                     >
                       수정
                     </button>
                     <button
                       onClick={() => handleDelete(c.id)}
-                      className="px-2 py-1 text-gray-400 hover:text-red-400 rounded text-xs"
+                      className="px-2 py-1 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded text-xs transition-colors"
                     >
                       삭제
                     </button>
@@ -283,7 +312,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 {user && user.nickname !== c.writer && !c.blinded && (
                   <button
                     onClick={() => setReportingId(c.id)}
-                    className="px-2 py-1 text-gray-400 hover:text-orange-400 rounded text-xs"
+                    className="px-2 py-1 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded text-xs transition-colors"
                   >
                     🚨
                   </button>
@@ -304,17 +333,12 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 <span className="text-gray-600">|</span>
                 <button
                   onClick={() => handleBlindToggle(c.id, c.blinded)}
-                  className={`px-2 py-1 rounded text-xs ${
-                    c.blinded ? 'text-green-400 hover:text-green-300' : 'text-purple-400 hover:text-purple-300'
+                  className={`px-2 py-1 rounded text-xs transition-colors ${
+                    c.blinded ? 'text-green-400 hover:text-green-300 hover:bg-green-500/10' : 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/10'
                   }`}
                 >
                   {c.blinded ? '해제' : '블라인드'}
                 </button>
-                {c.writerId && (
-                  <ClickableNickname userId={c.writerId} nickname={c.writer} className="px-2 py-1 text-gray-400 hover:text-purple-400 rounded text-xs">
-                    정보
-                  </ClickableNickname>
-                )}
               </>
             )}
           </div>
@@ -417,6 +441,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
 
   // 댓글을 계층 구조로 정리
   const organizeComments = (comments: Comment[]) => {
+    console.log('원본 댓글 데이터:', comments);
+    
     const commentMap = new Map<number, Comment>();
     const rootComments: Comment[] = [];
     
@@ -429,17 +455,23 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     comments.forEach(comment => {
       const commentWithChildren = commentMap.get(comment.id)!;
       if (comment.parentId) {
+        console.log(`답글 발견: ID ${comment.id}, 부모 ID ${comment.parentId}`);
         // 답글인 경우 부모 댓글의 children에 추가
         const parent = commentMap.get(comment.parentId);
         if (parent) {
           parent.children!.push(commentWithChildren);
+          console.log(`부모 댓글 ${comment.parentId}에 답글 ${comment.id} 추가`);
+        } else {
+          console.log(`부모 댓글 ${comment.parentId}를 찾을 수 없음`);
         }
       } else {
+        console.log(`루트 댓글: ID ${comment.id}`);
         // 루트 댓글인 경우 rootComments에 추가
         rootComments.push(commentWithChildren);
       }
     });
     
+    console.log('정리된 댓글 구조:', rootComments);
     return rootComments;
   };
   
