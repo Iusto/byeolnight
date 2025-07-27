@@ -18,7 +18,8 @@ interface Comment {
   deleted: boolean;
   writerIcon?: string;
   writerCertificates?: string[];
-  parent?: Comment;
+  parentId?: number;
+  parentWriter?: string;
   children?: Comment[];
 }
 
@@ -139,10 +140,15 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
   // 관리자용 댓글 블라인드 처리/해제 함수
   const handleBlindToggle = async (id: number, currentBlindStatus: boolean) => {
     try {
-      await axios.patch(`/admin/comments/${id}/blind`, null, {
-        params: { blind: !currentBlindStatus }
-      });
-      alert(currentBlindStatus ? '블라인드가 해제되었습니다.' : '블라인드 처리되었습니다.');
+      if (currentBlindStatus) {
+        // 블라인드 해제
+        await axios.patch(`/admin/comments/${id}/unblind`);
+        alert('블라인드가 해제되었습니다.');
+      } else {
+        // 블라인드 처리
+        await axios.patch(`/admin/comments/${id}/blind`);
+        alert('블라인드 처리되었습니다.');
+      }
       onRefresh();
     } catch (error: any) {
       alert(error.response?.data?.message || '블라인드 처리 실패');
@@ -436,7 +442,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
               {c.children.map((reply) => (
                 <div key={reply.id} className="p-3 bg-gray-800/30 rounded-lg">
                   <div className="text-xs text-green-400 mb-2 flex items-center gap-1">
-                    ㄴ <span className="font-medium">{c.writer}</span>님에게 답글
+                    ㄴ <span className="font-medium">{reply.parentWriter || c.writer}</span>님에게 답글
                   </div>
                   {renderComment(reply, true)}
                 </div>
@@ -453,7 +459,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     const commentMap = new Map<number, Comment>();
     const rootComments: Comment[] = [];
     
-    // 모든 댓글을 맵에 저장
+    // 모든 댓글을 맵에 저장하고 children 배열 초기화
     comments.forEach(comment => {
       commentMap.set(comment.id, { ...comment, children: [] });
     });
@@ -461,12 +467,14 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     // 부모-자식 관계 설정
     comments.forEach(comment => {
       const commentWithChildren = commentMap.get(comment.id)!;
-      if (comment.parent) {
-        const parent = commentMap.get(comment.parent.id);
+      if (comment.parentId) {
+        // 답글인 경우 부모 댓글의 children에 추가
+        const parent = commentMap.get(comment.parentId);
         if (parent) {
           parent.children!.push(commentWithChildren);
         }
       } else {
+        // 루트 댓글인 경우 rootComments에 추가
         rootComments.push(commentWithChildren);
       }
     });
