@@ -18,6 +18,8 @@ interface Comment {
   deleted: boolean;
   writerIcon?: string;
   writerCertificates?: string[];
+  parent?: Comment;
+  children?: Comment[];
 }
 
 interface Props {
@@ -35,6 +37,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState('');
   
   const COMMENT_MAX_LENGTH = 500;
 
@@ -107,6 +111,31 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     }
   };
 
+  const handleReply = (commentId: number) => {
+    setReplyingTo(commentId);
+    setReplyContent('');
+  };
+
+  const handleSubmitReply = async (parentId: number) => {
+    if (!replyContent.trim()) {
+      alert('답글 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      await axios.post('/member/comments', {
+        postId,
+        content: replyContent,
+        parentId
+      });
+      setReplyingTo(null);
+      setReplyContent('');
+      onRefresh();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '답글 작성 실패');
+    }
+  };
+
   // 관리자용 댓글 블라인드 처리/해제 함수
   const handleBlindToggle = async (id: number, currentBlindStatus: boolean) => {
     try {
@@ -123,7 +152,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
 
 
   // 댓글 렌더링 함수
-  const renderComment = (c: Comment) => (
+  const renderComment = (c: Comment, isReply: boolean = false) => (
     <>
       {editingId === c.id ? (
         <div className="space-y-2">
@@ -237,6 +266,16 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                 </button>
               )}
               
+              {/* 답글 버튼 - 로그인한 사용자만, 답글이 아닌 경우만 */}
+              {user && !c.blinded && !isReply && (
+                <button
+                  onClick={() => handleReply(c.id)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600/30 text-green-300 hover:bg-green-600/50 rounded-md text-xs font-medium transition-all duration-200 border border-green-600/30"
+                >
+                  💬 답글
+                </button>
+              )}
+              
               {/* 신고 버튼 - 다른 사용자 댓글만 */}
               {user && user.nickname !== c.writer && !c.blinded && (
                 <button
@@ -328,14 +367,91 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
               </div>
             </div>
           )}
+          
+          {/* 답글 작성 폼 */}
+          {replyingTo === c.id && (
+            <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-green-500/30">
+              <h4 className="text-sm font-medium text-green-300 mb-2">답글 작성</h4>
+              <div className="relative">
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => {
+                    if (e.target.value.length <= COMMENT_MAX_LENGTH) {
+                      setReplyContent(e.target.value);
+                    }
+                  }}
+                  placeholder="답글을 입력하세요..."
+                  className="w-full p-2 pr-10 bg-gray-700 text-white rounded text-sm h-20 resize-none"
+                  maxLength={COMMENT_MAX_LENGTH}
+                />
+                <EmojiPicker
+                  onEmojiSelect={(emoji) => {
+                    const newText = replyContent + emoji;
+                    if (newText.length <= COMMENT_MAX_LENGTH) {
+                      setReplyContent(newText);
+                    }
+                  }}
+                  className="absolute top-1 right-1"
+                />
+                <div className="text-xs text-gray-400 mt-1 text-right">
+                  {replyContent.length}/{COMMENT_MAX_LENGTH}
+                </div>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleSubmitReply(c.id)}
+                  className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+                >
+                  답글 작성
+                </button>
+                <button
+                  onClick={() => {
+                    setReplyingTo(null);
+                    setReplyContent('');
+                  }}
+                  className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </>
   );
 
-  // TOP3 댓글과 일반 댓글 분리
-  const topComments = comments.filter(c => c.isPopular).slice(0, 3);
-  const regularComments = comments.filter(c => !c.isPopular);
+  // 댓글을 계층 구조로 정리
+  const organizeComments = (comments: Comment[]) => {
+    const commentMap = new Map<number, Comment>();
+    const rootComments: Comment[] = [];
+    
+    // 모든 댓글을 맵에 저장
+    comments.forEach(comment => {
+      commentMap.set(comment.id, { ...comment, children: [] });
+    });
+    
+    // 부모-자식 관계 설정
+    comments.forEach(comment => {
+      const commentWithChildren = commentMap.get(comment.id)!;
+      if (comment.parent) {
+        const parent = commentMap.get(comment.parent.id);
+        if (parent) {
+          parent.children!.push(commentWithChildren);
+        }
+      } else {
+        rootComments.push(commentWithChildren);
+      }
+    });
+    
+    return rootComments;
+  };
+  
+  const organizedComments = organizeComments(comments);
+  
+  // TOP3 댓글과 일반 댓글 분리 (루트 댓글만)
+  const topComments = organizedComments.filter(c => c.isPopular).slice(0, 3);
+  const regularComments = organizedComments.filter(c => !c.isPopular);
 
   return (
     <div className="space-y-6">
@@ -352,6 +468,20 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                   #{index + 1}
                 </div>
                 {renderComment(c)}
+                
+                {/* 답글 표시 */}
+                {c.children && c.children.length > 0 && (
+                  <div className="mt-4 ml-6 space-y-3 border-l-2 border-gray-600 pl-4">
+                    {c.children.map((reply) => (
+                      <div key={reply.id} className="p-3 bg-gray-800/50 rounded-lg">
+                        <div className="text-xs text-green-400 mb-1 flex items-center gap-1">
+                          ↳ <span className="font-medium">{c.writer}</span>님에게 답글
+                        </div>
+                        {renderComment(reply, true)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -363,6 +493,20 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         {regularComments.map((c) => (
           <li key={c.id} className="p-4 bg-[#2a2e45] rounded-xl shadow-sm text-white">
             {renderComment(c)}
+            
+            {/* 답글 표시 */}
+            {c.children && c.children.length > 0 && (
+              <div className="mt-4 ml-6 space-y-3 border-l-2 border-gray-600 pl-4">
+                {c.children.map((reply) => (
+                  <div key={reply.id} className="p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-xs text-green-400 mb-1 flex items-center gap-1">
+                      ↳ <span className="font-medium">{c.writer}</span>님에게 답글
+                    </div>
+                    {renderComment(reply, true)}
+                  </div>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>
