@@ -201,30 +201,38 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       ) : (
         <>
           <div className="break-words overflow-wrap-anywhere">
-            <p className="text-sm whitespace-pre-wrap">{c.blinded ? '[블라인드 처리된 댓글입니다]' : c.content}</p>
+            <p className="text-sm whitespace-pre-wrap">
+              {c.blinded ? '[블라인드 처리된 댓글입니다]' : 
+               c.deleted ? (user?.role === 'ADMIN' ? `[삭제된 댓글] ${c.content}` : '이 댓글은 삭제되었습니다.') : 
+               c.content}
+            </p>
           </div>
           
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-2">
-                {c.writerIcon && !c.deleted && (
+                {c.writerIcon && (!c.deleted || user?.role === 'ADMIN') && (
                   <div className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
                     <UserIconDisplay iconName={c.writerIcon} size="large" />
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span>✍ {c.writer}</span>
-                  {c.writerId && !c.deleted && (
-                    <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-xs text-gray-500 hover:text-purple-400 transition-colors border border-gray-600 hover:border-purple-400 px-1.5 py-0.5 rounded">
-                      사용자정보보기
-                    </ClickableNickname>
+                  {(!c.deleted || user?.role === 'ADMIN') && (
+                    <>
+                      <span>✍ {c.writer}</span>
+                      {c.writerId && (
+                        <ClickableNickname userId={c.writerId} nickname={c.writer} className="text-xs text-gray-500 hover:text-purple-400 transition-colors border border-gray-600 hover:border-purple-400 px-1.5 py-0.5 rounded">
+                          사용자정보보기
+                        </ClickableNickname>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
               <span>{new Date(c.createdAt).toLocaleString()}</span>
               
-              {/* 작성자 인증서 표시 - 삭제되지 않은 댓글만 */}
-              {c.writerCertificates && c.writerCertificates.length > 0 && !c.deleted && (
+              {/* 작성자 인증서 표시 - 삭제되지 않은 댓글이거나 관리자인 경우 */}
+              {c.writerCertificates && c.writerCertificates.length > 0 && (!c.deleted || user?.role === 'ADMIN') && (
                 <div className="flex gap-1 ml-2">
                   {c.writerCertificates.slice(0, 2).map((cert, idx) => {
                     const certIcons = {
