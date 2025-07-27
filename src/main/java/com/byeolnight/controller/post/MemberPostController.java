@@ -36,8 +36,13 @@ public class MemberPostController {
     public ResponseEntity<CommonResponse<Long>> create(
             @RequestBody @Valid PostRequestDto requestDto,
             @AuthenticationPrincipal User user) {
-        Long postId = postService.createPost(requestDto, user);
-        return ResponseEntity.ok(CommonResponse.success(postId));
+        try {
+            Long postId = postService.createPost(requestDto, user);
+            return ResponseEntity.ok(CommonResponse.success(postId));
+        } catch (IllegalStateException e) {
+            // 중복 등록 방지 예외 처리
+            return ResponseEntity.badRequest().body(CommonResponse.error(e.getMessage()));
+        }
     }
 
     @Operation(summary = "게시글 수정", description = """

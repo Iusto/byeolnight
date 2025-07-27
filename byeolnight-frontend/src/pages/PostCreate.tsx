@@ -35,6 +35,7 @@ export default function PostCreate() {
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
   const [isImageValidating, setIsImageValidating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // 마크다운 모드 사용하지 않음
   const isMarkdownMode = false;
   const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
@@ -397,28 +398,35 @@ export default function PostCreate() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 중복 제출 방지
+    if (isSubmitting) {
+      return;
+    }
+    
     setError('');
+    setIsSubmitting(true);
 
-    if (!user) {
-      setError('로그인이 필요합니다.');
-      return;
-    }
-    
-    // 길이 검증
-    if (title.length > 100) {
-      setError('제목은 100자를 초과할 수 없습니다.');
-      return;
-    }
-    
-    if (content.length > 10000) {
-      setError('내용은 10,000자를 초과할 수 없습니다.');
-      return;
-    }
-
-    // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
-    const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
-    
     try {
+      if (!user) {
+        setError('로그인이 필요합니다.');
+        return;
+      }
+      
+      // 길이 검증
+      if (title.length > 100) {
+        setError('제목은 100자를 초과할 수 없습니다.');
+        return;
+      }
+      
+      if (content.length > 10000) {
+        setError('내용은 10,000자를 초과할 수 없습니다.');
+        return;
+      }
+
+      // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
+      const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
+      
       const response = await axios.post('/member/posts', {
         title,
         content: finalContent,
@@ -450,7 +458,18 @@ export default function PostCreate() {
       navigate(`/posts?category=${category}&sort=recent`);
     } catch (err: any) {
       const msg = err?.response?.data?.message || '게시글 작성 실패';
-      setError(msg);
+      
+      // 중복 등록 오류 메시지 처리
+      if (msg.includes('동일한 게시글이 이미 등록 중')) {
+        setValidationAlert({
+          message: '동일한 게시글이 이미 등록 중입니다. 잠시 후 다시 시도해주세요.',
+          type: 'warning'
+        });
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -776,10 +795,15 @@ export default function PostCreate() {
             
             <button
               type="submit"
-              disabled={isImageValidating}
+              disabled={isImageValidating || isSubmitting}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
             >
-              {isImageValidating ? (
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  게시글 등록 중... 잠시만 기다려주세요
+                </div>
+              ) : isImageValidating ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
                   이미지 검열 중... 잠시만 기다려주세요

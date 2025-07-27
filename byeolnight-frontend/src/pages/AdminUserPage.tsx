@@ -1212,15 +1212,13 @@ export default function AdminUserPage() {
                         <p className="text-gray-300 mb-2">{comment.content}</p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
-                          <a
-                            href={`/posts/${comment.postId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
                             className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
                             title="게시글로 이동"
                           >
                             {comment.postTitle}
-                          </a>
+                          </button>
                         </p>
                       </div>
                       <button
@@ -1284,15 +1282,13 @@ export default function AdminUserPage() {
                         </p>
                         <p className="text-gray-400 text-sm">
                           작성자: {comment.writer} | 게시글: 
-                          <a
-                            href={`/posts/${comment.postId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => window.open(`/posts/${comment.postId}`, '_blank')}
                             className="text-blue-400 hover:text-blue-300 hover:underline ml-1"
                             title="게시글로 이동"
                           >
                             {comment.postTitle}
-                          </a>
+                          </button>
                         </p>
                       </div>
                       <button
