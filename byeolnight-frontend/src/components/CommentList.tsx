@@ -30,6 +30,9 @@ interface Props {
 }
 
 export default function CommentList({ comments, postId, onRefresh }: Props) {
+  console.log('CommentList 렌더링 - 받은 댓글 수:', comments.length);
+  console.log('받은 댓글 데이터:', comments);
+  
   const { user } = useAuth();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
