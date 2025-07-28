@@ -194,6 +194,11 @@
     "blind": "블라인드",
     "comments": "댓글",
     "post_not_found": "존재하지 않는 게시글입니다.",
-    "cannot_load_post": "게시글을 불러올 수 없습니다."
+    "cannot_load_post": "게시글을 불러올 수 없습니다.",
+    "post_edit": "게시글 수정",
+    "edit_and_share": "내용을 수정하고 다시 공유해보세요",
+    "markdown_on": "마크다운 ON",
+    "markdown_off": "마크다운 OFF",
+    "edit_complete": "수정 완료"
   }
 }

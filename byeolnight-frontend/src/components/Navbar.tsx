@@ -33,50 +33,48 @@ export default function Navbar() {
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="hidden lg:flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <Link 
-                to="/posts" 
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
-              >
-                <span className="group-hover:animate-bounce">📚</span>
-                <span className="font-medium">{t('nav.posts')}</span>
-              </Link>
+          <div className="hidden lg:flex items-center gap-3">
+            <Link 
+              to="/posts" 
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+            >
+              <span className="group-hover:animate-bounce text-sm">📚</span>
+              <span className="font-medium text-sm">{t('nav.posts')}</span>
+            </Link>
+            
+            <Link 
+              to="/suggestions" 
+              className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-300"
+            >
+              <span className="group-hover:animate-pulse text-sm">💡</span>
+              <span className="text-sm">{t('nav.suggestions')}</span>
+            </Link>
+            
+            <Link 
+              to="/shop" 
+              className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-purple-600/30 hover:from-purple-500/50 hover:via-pink-500/50 hover:to-purple-500/50 text-white font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 border border-purple-400/30 hover:border-purple-300/50 overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
               
-              <Link 
-                to="/suggestions" 
-                className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-300"
-              >
-                <span className="group-hover:animate-pulse">💡</span>
-                <span>{t('nav.suggestions')}</span>
-              </Link>
+              <div className="relative flex items-center justify-center">
+                <span className="text-lg animate-pulse group-hover:animate-spin transition-all duration-300">✨</span>
+                <div className="absolute -top-1 -right-1 w-1 h-1 bg-yellow-300 rounded-full animate-ping"></div>
+              </div>
               
+              <span className="relative z-10 bg-gradient-to-r from-yellow-200 via-white to-pink-200 bg-clip-text text-transparent font-bold">
+                {t('nav.shop')}
+              </span>
+            </Link>
+            
+            {user && (
               <Link 
-                to="/shop" 
-                className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-purple-600/30 hover:from-purple-500/50 hover:via-pink-500/50 hover:to-purple-500/50 text-white font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 border border-purple-400/30 hover:border-purple-300/50 overflow-hidden group"
+                to="/certificates" 
+                className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-                
-                <div className="relative flex items-center justify-center">
-                  <span className="text-lg animate-pulse group-hover:animate-spin transition-all duration-300">✨</span>
-                  <div className="absolute -top-1 -right-1 w-1 h-1 bg-yellow-300 rounded-full animate-ping"></div>
-                </div>
-                
-                <span className="relative z-10 bg-gradient-to-r from-yellow-200 via-white to-pink-200 bg-clip-text text-transparent font-bold">
-                  {t('nav.shop')}
-                </span>
+                <span className="group-hover:animate-bounce text-sm">🏆</span>
+                <span className="text-sm">{t('nav.certificates')}</span>
               </Link>
-              
-              {user && (
-                <Link 
-                  to="/certificates" 
-                  className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-300"
-                >
-                  <span className="group-hover:animate-bounce">🏆</span>
-                  <span>{t('nav.certificates')}</span>
-                </Link>
-              )}
-            </div>
+            )}
           </div>
 
           {/* 사용자 영역 */}
@@ -98,26 +96,24 @@ export default function Navbar() {
                 </Link>
 
                 {/* 사용자 정보 */}
-                <div className="flex items-center gap-2 bg-gradient-to-r from-slate-800/80 to-purple-900/80 px-3 py-2 rounded-full border border-purple-500/40 shadow-lg backdrop-blur-sm">
-                  <div className="flex items-center gap-2">
-                    {/* 사용자 아이콘 */}
-                    {user.equippedIconName ? (
-                      <div className="w-8 h-8 flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full border border-purple-400/30">
-                        <UserIconDisplay
-                          iconName={user.equippedIconName}
-                          size="small"
-                          className="text-lg"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 flex items-center justify-center bg-gradient-to-br from-gray-600/30 to-gray-700/30 rounded-full">
-                        <span className="text-sm text-gray-400">👤</span>
-                      </div>
-                    )}
-                    
-                    {/* 닉네임 (데스크톱만) */}
-                    <span className="hidden sm:block text-white font-medium text-sm">{user.nickname}</span>
-                  </div>
+                <div className="flex items-center gap-2 bg-gradient-to-r from-slate-800/80 to-purple-900/80 px-2 py-1.5 rounded-full border border-purple-500/40 shadow-lg backdrop-blur-sm">
+                  {/* 사용자 아이콘 */}
+                  {user.equippedIconName ? (
+                    <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full border border-purple-400/30">
+                      <UserIconDisplay
+                        iconName={user.equippedIconName}
+                        size="small"
+                        className="text-base"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-gray-600/30 to-gray-700/30 rounded-full">
+                      <span className="text-xs text-gray-400">👤</span>
+                    </div>
+                  )}
+                  
+                  {/* 닉네임 (데스크톱만) */}
+                  <span className="hidden sm:block text-white font-medium text-xs">{user.nickname}</span>
                 </div>
 
                 {/* 액션 버튼들 */}
@@ -127,28 +123,28 @@ export default function Navbar() {
                   
                   <Link 
                     to="/profile" 
-                    className="p-2 rounded-full bg-white hover:bg-gray-100 text-gray-800 hover:text-gray-900 transition-all duration-200"
+                    className="p-1.5 rounded-full bg-white hover:bg-gray-100 text-gray-800 hover:text-gray-900 transition-all duration-200"
                     title="내 정보"
                   >
-                    <span className="text-sm">👤</span>
+                    <span className="text-xs">👤</span>
                   </Link>
                   
                   {user.role === 'ADMIN' && (
                     <Link 
                       to="/admin/users" 
-                      className="p-2 rounded-full hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-all duration-200"
+                      className="p-1.5 rounded-full hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-all duration-200"
                       title="관리자"
                     >
-                      <span className="text-sm">⚙️</span>
+                      <span className="text-xs">⚙️</span>
                     </Link>
                   )}
                   
                   <button 
                     onClick={logout}
-                    className="p-2 rounded-full hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-200"
+                    className="p-1.5 rounded-full hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-200"
                     title="로그아웃"
                   >
-                    <span className="text-sm">🚪</span>
+                    <span className="text-xs">🚪</span>
                   </button>
                 </div>
 
