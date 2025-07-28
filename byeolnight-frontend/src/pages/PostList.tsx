@@ -75,10 +75,10 @@ const getCategoryDescription = (category: string, t: any): string => {
   const descriptions: Record<string, string> = {
     NEWS: t('home.news_auto_desc'),
     DISCUSSION: t('home.discussion_auto_desc'),
-    IMAGE: '아름다운 우주 사진을 공유하고 감상해보세요',
-    REVIEW: '우주 관련 경험과 후기를 나눠주세요',
-    FREE: '우주에 대한 자유로운 이야기를 나눠보세요',
-    NOTICE: '중요한 공지사항을 확인하세요',
+    IMAGE: t('home.share_beautiful_space_photos'),
+    REVIEW: t('home.share_space_experiences'),
+    FREE: t('home.share_free_space_stories'),
+    NOTICE: t('home.check_important_notices'),
     STARLIGHT_CINEMA: t('home.cinema_auto_desc')
   };
   return descriptions[category] || '';
