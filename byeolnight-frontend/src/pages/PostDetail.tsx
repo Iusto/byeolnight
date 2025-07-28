@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
@@ -62,6 +63,7 @@ export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -208,9 +210,9 @@ export default function PostDetail() {
     } catch (err: any) {
       console.error('게시글 조회 실패:', err);
       if (err.response?.status === 404) {
-        setError('존재하지 않는 게시글입니다.');
+        setError(t('home.post_not_found'));
       } else {
-        setError('게시글을 불러올 수 없습니다.');
+        setError(t('home.cannot_load_post'));
       }
     } finally {
       setLoading(false);
@@ -417,13 +419,13 @@ export default function PostDetail() {
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
         <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
           <div className="text-red-400 text-center">
-            <h1 className="text-2xl font-bold mb-4">잘못된 접근입니다</h1>
-            <p className="mb-4">유효하지 않은 게시글 ID입니다.</p>
+            <h1 className="text-2xl font-bold mb-4">{t('home.invalid_access')}</h1>
+            <p className="mb-4">{t('home.invalid_post_id')}</p>
             <button 
               onClick={() => navigate('/posts')}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition"
             >
-              게시글 목록으로 돌아가기
+              {t('home.back_to_posts')}
             </button>
           </div>
         </div>
@@ -436,8 +438,8 @@ export default function PostDetail() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mb-4"></div>
-          <p className="text-xl font-medium text-purple-300">게시글을 불러오는 중...</p>
-          <p className="text-sm text-gray-400 mt-2">잠시만 기다려주세요</p>
+          <p className="text-xl font-medium text-purple-300">{t('home.loading_post')}</p>
+          <p className="text-sm text-gray-400 mt-2">{t('home.please_wait')}</p>
         </div>
       </div>
     );
@@ -448,13 +450,12 @@ export default function PostDetail() {
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
         <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
           <div className="text-red-400 text-center">
-            <h1 className="text-2xl font-bold mb-4">접근할 수 없는 게시글</h1>
-            <p className="mb-4">{error}</p>
+            <h1 className="text-2xl font-bold mb-4">{t('home.inaccessible_post')}</h1>
             <button 
               onClick={() => navigate('/posts')}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition"
             >
-              게시글 목록으로 돌아가기
+              {t('home.back_to_posts')}
             </button>
           </div>
         </div>
@@ -478,7 +479,7 @@ export default function PostDetail() {
               onClick={() => navigate(`/posts?category=${post.category}`)}
               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-medium transition-all duration-200 backdrop-blur-sm border border-white/20"
             >
-              ← {categoryName} 게시판
+              ← {categoryName} {t('home.board')}
             </button>
             <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl shadow-lg border-2 border-white/20">
               <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif', textShadow: '0 0 4px rgba(0,0,0,0.8)' }}>
@@ -513,7 +514,7 @@ export default function PostDetail() {
                     nickname={post.writer}
                     className="text-xs text-gray-400 hover:text-purple-300 transition-colors border border-gray-600 hover:border-purple-400 px-2 py-1 rounded"
                   >
-                    사용자정보보기
+                    {t('home.user_info')}
                   </ClickableNickname>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
@@ -614,7 +615,7 @@ export default function PostDetail() {
             const imageUrls = imageUrlMatch.map(match => match.replace('🖼️ 관련 이미지: ', ''));
             return (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-purple-300">🖼️ 관련 이미지</h3>
+                <h3 className="text-lg font-semibold mb-3 text-purple-300">🖼️ {t('home.related_images')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {imageUrls.map((url, index) => (
                     <div key={index} className="relative group">
@@ -653,7 +654,7 @@ export default function PostDetail() {
                       : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-purple-500/25 transform hover:scale-105'
                   }`}
                 >
-                  {!user ? '❤️ 로그인 필요' : post.likedByMe ? '✅ 이미 추천함' : `❤️ 추천 (${post.likeCount})`}
+                  {!user ? `❤️ ${t('home.login_required_like')}` : post.likedByMe ? `✅ ${t('home.already_liked')}` : `❤️ ${t('home.like_with_count')} (${post.likeCount})`}
                 </button>
 
                 <button
@@ -665,7 +666,7 @@ export default function PostDetail() {
                       : 'bg-red-600/80 hover:bg-red-600 text-white shadow-lg hover:shadow-red-500/25 transform hover:scale-105'
                   }`}
                 >
-                  🚨 신고
+                  🚨 {t('home.report')}
                 </button>
               </>
             )}
@@ -677,13 +678,13 @@ export default function PostDetail() {
                   onClick={handleEdit}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600/80 hover:bg-blue-600 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105"
                 >
-                  ✏️ 수정
+                  ✏️ {t('home.edit')}
                 </button>
                 <button
                   onClick={handleDelete}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-600/80 hover:bg-gray-600 text-white font-medium transition-all duration-200 shadow-lg transform hover:scale-105"
                 >
-                  🗑 삭제
+                  🗑 {t('home.delete')}
                 </button>
               </>
             )}
@@ -694,7 +695,7 @@ export default function PostDetail() {
                 onClick={handlePostBlind}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600/80 hover:bg-orange-600 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-orange-500/25 transform hover:scale-105"
               >
-                👁️‍🗨️ 블라인드
+                👁️‍🗨️ {t('home.blind')}
               </button>
             )}
           </div>
@@ -702,7 +703,7 @@ export default function PostDetail() {
           <div className="border-t border-purple-500/20 pt-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                💬 댓글 ({post.commentCount || comments.length})
+                💬 {t('home.comments')} ({post.commentCount || comments.length})
               </h2>
             </div>
 

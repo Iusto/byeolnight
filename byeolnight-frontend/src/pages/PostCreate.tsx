@@ -675,10 +675,10 @@ export default function PostCreate() {
                   </>
                 ) : (
                   <>
-                    🎨 Toast UI Editor: 한국에서 개발한 강력한 에디터, 한글 지원 완벽!<br/>
-                    🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
-                    🛡️ 이미지 검열: 업로드된 모든 이미지는 자동으로 검열되어 안전한 콘텐츠만 허용됩니다<br/>
-                    🎬 마크다운/WYSIWYG 모드: 두 가지 모드를 지원하여 편리한 편집 가능
+                    🎨 {t('home.editor_info_1')}<br/>
+                    🖼️ {t('home.editor_info_2')}<br/>
+                    🛡️ {t('home.editor_info_3')}<br/>
+                    🎬 {t('home.editor_info_4')}
                   </>
                 )}
               </div>

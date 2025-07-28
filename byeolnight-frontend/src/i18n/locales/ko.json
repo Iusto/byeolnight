@@ -63,7 +63,7 @@
     "no_notifications": "알림이 없습니다"
   },
   "home": {
-    "title": "별 헤는 밤",
+    "bigtitle": "별 헤는 밤",
     "subtitle": "우주의 신비를 탐험하고, 지식을 나누며, 꿈을 향해 나아가는 커뮤니티",
     "login_prompt": "로그인하여 더 많은 기능을 이용해보세요",
     "welcome": "님, 환영합니다!",
@@ -172,6 +172,28 @@
     "fixed": "고정",
     "submit_post": "게시글 등록",
     "submitting": "게시글 등록 중... 잠시만 기다려주세요",
-    "image_validating": "이미지 검열 중... 잠시만 기다려주세요"
+    "image_validating": "이미지 검열 중... 잠시만 기다려주세요",
+    "editor_info_1": "Toast UI Editor: 한국에서 개발한 강력한 에디터, 한글 지원 완벽!",
+    "editor_info_2": "이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!",
+    "editor_info_3": "이미지 검열: 업로드된 모든 이미지는 자동으로 검열되어 안전한 콘텐츠만 허용됩니다",
+    "editor_info_4": "마크다운/WYSIWYG 모드: 두 가지 모드를 지원하여 편리한 편집 가능",
+    "invalid_access": "잘못된 접근입니다",
+    "invalid_post_id": "유효하지 않은 게시글 ID입니다.",
+    "back_to_posts": "게시글 목록으로 돌아가기",
+    "loading_post": "게시글을 불러오는 중...",
+    "please_wait": "잠시만 기다려주세요",
+    "inaccessible_post": "접근할 수 없는 게시글",
+    "user_info": "사용자정보보기",
+    "related_images": "관련 이미지",
+    "login_required_like": "로그인 필요",
+    "already_liked": "이미 추천함",
+    "like_with_count": "추천",
+    "report": "신고",
+    "edit": "수정",
+    "delete": "삭제",
+    "blind": "블라인드",
+    "comments": "댓글",
+    "post_not_found": "존재하지 않는 게시글입니다.",
+    "cannot_load_post": "게시글을 불러올 수 없습니다."
   }
 }
