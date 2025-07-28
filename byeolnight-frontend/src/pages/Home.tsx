@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from '../lib/axios';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ChatSidebar from '../components/ChatSidebar';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,6 +38,7 @@ export default function Home() {
   const [cinemaPosts, setCinemaPosts] = useState<Post[]>([]);
 
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // 인기 게시글 로딩
@@ -263,7 +265,7 @@ export default function Home() {
           to={link} 
           className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
         >
-          전체보기
+          {t('home.view_all')}
           <span className="group-hover:translate-x-1 transition-transform">→</span>
         </Link>
       </div>
@@ -310,21 +312,21 @@ export default function Home() {
             <h1 className="text-5xl md:text-7xl font-bold">
               <span className="text-5xl mr-2">🌌</span>
               <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
-                별 헤는 밤
+                {t('home.title')}
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              우주의 신비를 탐험하고, 지식을 나누며, 꿈을 향해 나아가는 커뮤니티
+              {t('home.subtitle')}
             </p>
             {user ? (
               <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20">
                 <span className="text-purple-300">👋</span>
-                <span className="text-white font-medium">{user.nickname}님, 환영합니다!</span>
+                <span className="text-white font-medium">{user.nickname}{t('home.welcome')}</span>
               </div>
             ) : (
               <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20">
                 <span className="text-purple-400">✨</span>
-                <span className="text-gray-300">로그인하여 더 많은 기능을 이용해보세요</span>
+                <span className="text-gray-300">{t('home.login_prompt')}</span>
               </div>
             )}
           </div>
@@ -338,10 +340,10 @@ export default function Home() {
             <h2 className="text-3xl font-bold mb-3 flex items-center justify-center gap-2">
               <span className="text-white text-3xl">🚀</span>
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                게시판 둘러보기
+                {t('home.explore_boards')}
               </span>
             </h2>
-            <p className="text-gray-400 text-sm">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
+            <p className="text-gray-400 text-sm">{t('home.explore_subtitle')}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
             <Link to="/posts?category=NEWS&sort=recent" className="group">
@@ -350,8 +352,8 @@ export default function Home() {
                   <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
                 </div>
                 <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
-                <div className="text-sm font-medium text-blue-100">우주 뉴스</div>
-                <div className="text-xs text-blue-300 mt-1">자동 수집</div>
+                <div className="text-sm font-medium text-blue-100">{t('home.space_news')}</div>
+                <div className="text-xs text-blue-300 mt-1">{t('home.news_auto')}</div>
               </div>
             </Link>
             <Link to="/posts?category=DISCUSSION&sort=recent" className="group">
@@ -360,37 +362,37 @@ export default function Home() {
                   <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
                 </div>
                 <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
-                <div className="text-sm font-medium text-green-100">토론</div>
-                <div className="text-xs text-green-300 mt-1">주제 생성</div>
+                <div className="text-sm font-medium text-green-100">{t('home.discussion')}</div>
+                <div className="text-xs text-green-300 mt-1">{t('home.discussion_auto')}</div>
               </div>
             </Link>
             <Link to="/posts?category=IMAGE&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25">
                 <div className="text-3xl mb-2 group-hover:animate-spin" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
-                <div className="text-sm font-medium text-purple-100">별 사진</div>
-                <div className="text-xs text-purple-300 mt-1">갤러리</div>
+                <div className="text-sm font-medium text-purple-100">{t('home.star_photo')}</div>
+                <div className="text-xs text-purple-300 mt-1">{t('home.gallery')}</div>
               </div>
             </Link>
 
             <Link to="/posts?category=REVIEW&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 hover:from-yellow-600/40 hover:to-orange-600/40 rounded-xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25">
                 <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
-                <div className="text-sm font-medium text-yellow-100">후기</div>
-                <div className="text-xs text-yellow-300 mt-1">리뷰 공유</div>
+                <div className="text-sm font-medium text-yellow-100">{t('home.review')}</div>
+                <div className="text-xs text-yellow-300 mt-1">{t('home.review_share')}</div>
               </div>
             </Link>
             <Link to="/posts?category=FREE&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-pink-600/20 to-rose-600/20 hover:from-pink-600/40 hover:to-rose-600/40 rounded-xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-pink-500/25">
                 <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
-                <div className="text-sm font-medium text-pink-100">자유</div>
-                <div className="text-xs text-pink-300 mt-1">자유 소통</div>
+                <div className="text-sm font-medium text-pink-100">{t('home.free')}</div>
+                <div className="text-xs text-pink-300 mt-1">{t('home.free_chat')}</div>
               </div>
             </Link>
             <Link to="/posts?category=NOTICE&sort=recent" className="group">
               <div className="p-4 bg-gradient-to-br from-red-600/20 to-orange-600/20 hover:from-red-600/40 hover:to-orange-600/40 rounded-xl border border-red-500/30 hover:border-red-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-red-500/25">
                 <div className="text-3xl mb-2 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
-                <div className="text-sm font-medium text-red-100">공지</div>
-                <div className="text-xs text-red-300 mt-1">중요 안내</div>
+                <div className="text-sm font-medium text-red-100">{t('home.notice')}</div>
+                <div className="text-xs text-red-300 mt-1">{t('home.important_notice')}</div>
               </div>
             </Link>
             <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group">
@@ -400,15 +402,15 @@ export default function Home() {
                   <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold">🤖 AI</span>
                 </div>
                 <div className="text-3xl mb-2 relative z-10 group-hover:animate-pulse" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
-                <div className="text-sm font-medium relative z-10 text-purple-100">별빛 시네마</div>
-                <div className="text-xs text-purple-300 mt-1 relative z-10">영상 큐레이션</div>
+                <div className="text-sm font-medium relative z-10 text-purple-100">{t('home.star_cinema')}</div>
+                <div className="text-xs text-purple-300 mt-1 relative z-10">{t('home.video_curation')}</div>
               </div>
             </Link>
             <Link to="/suggestions" className="group">
               <div className="p-4 bg-gradient-to-br from-orange-600/20 to-amber-600/20 hover:from-orange-600/40 hover:to-amber-600/40 rounded-xl border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-orange-500/25">
                 <div className="text-3xl mb-2 group-hover:animate-bounce" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💡</div>
-                <div className="text-sm font-medium text-orange-100">건의게시판</div>
-                <div className="text-xs text-orange-300 mt-1">아이디어 공유</div>
+                <div className="text-sm font-medium text-orange-100">{t('home.suggestions')}</div>
+                <div className="text-xs text-orange-300 mt-1">{t('home.idea_share')}</div>
               </div>
             </Link>
           </div>
@@ -420,7 +422,7 @@ export default function Home() {
           <div className="lg:col-span-2 space-y-8">
             {/* 📢 공지사항 */}
             <Section 
-              title="공지사항" 
+              title={t('home.notice_board')} 
               icon="📢" 
               link="/posts?category=NOTICE&sort=recent"
               bgColor="bg-gradient-to-br from-emerald-900/30 to-green-900/30"
@@ -433,7 +435,7 @@ export default function Home() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                            공지
+                            {t('home.notice')}
                           </span>
                           <span className="font-semibold text-emerald-100 group-hover:text-white transition-colors">
                             {post.title}
@@ -460,7 +462,7 @@ export default function Home() {
                   <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🔥</span>
                 </div>
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                  인기 게시글
+                  {t('home.popular_posts')}
                 </h2>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
@@ -489,7 +491,7 @@ export default function Home() {
 
             {/* 🌌 별 사진 갤러리 */}
             <Section 
-              title="밤하늘 별 사진 갤러리" 
+              title={t('home.night_sky_gallery')} 
               icon="🌌" 
               link="/posts?category=IMAGE&sort=recent"
               bgColor="bg-gradient-to-br from-indigo-900/30 to-purple-900/30"
@@ -498,8 +500,8 @@ export default function Home() {
               {starPhotos.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-6xl mb-4 opacity-50">🌌</div>
-                  <p className="text-indigo-300">아직 업로드된 별 사진이 없습니다</p>
-                  <p className="text-indigo-400 text-sm mt-2">첫 번째 별 사진을 공유해보세요!</p>
+                  <p className="text-indigo-300">{t('home.no_star_photos')}</p>
+                  <p className="text-indigo-400 text-sm mt-2">{t('home.share_first_photo')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -551,7 +553,7 @@ export default function Home() {
 
             {/* 🚀 우주 뉴스 */}
             <Section 
-              title="우주 뉴스" 
+              title={t('home.space_news')} 
               icon="🚀" 
               link="/posts?category=NEWS&sort=recent"
               bgColor="bg-gradient-to-br from-blue-900/30 to-cyan-900/30"
@@ -560,7 +562,7 @@ export default function Home() {
               <div className="mb-3 p-2 bg-blue-800/30 rounded-lg border border-blue-600/30">
                 <p className="text-blue-200 text-xs flex items-center gap-2">
                   <span className="text-green-400">🤖</span>
-                  <span>뉴스봇이 매일 오전 8시에 최신 우주 뉴스를 자동 수집합니다</span>
+                  <span>{t('home.news_auto_desc')}</span>
                 </p>
               </div>
               <div className="space-y-3">
@@ -584,7 +586,7 @@ export default function Home() {
 
             {/* ⭐ 리뷰 게시판 */}
             <Section 
-              title="리뷰 게시판" 
+              title={t('home.review_board')} 
               icon="⭐" 
               link="/posts?category=REVIEW&sort=recent"
               bgColor="bg-gradient-to-br from-purple-900/30 to-pink-900/30"
@@ -611,7 +613,7 @@ export default function Home() {
 
             {/* 💬 토론 게시판 */}
             <Section 
-              title="토론 게시판" 
+              title={t('home.discussion_board')} 
               icon="💬" 
               link="/posts?category=DISCUSSION&sort=recent"
               bgColor="bg-gradient-to-br from-green-900/30 to-teal-900/30"
@@ -620,7 +622,7 @@ export default function Home() {
             <div className="mb-3 p-2 bg-green-800/30 rounded-lg border border-green-600/30">
                 <p className="text-green-200 text-xs flex items-center gap-2">
                   <span className="text-green-400">🤖</span>
-                  <span>AI가 매일 오전 8시 5분에 흥미로운 토론 주제를 자동 선정합니다.</span>
+                  <span>{t('home.discussion_auto_desc')}</span>
                 </p>
               </div>
               <div className="space-y-3">
@@ -644,7 +646,7 @@ export default function Home() {
 
             {/* 🎈 자유 게시판 */}
             <Section 
-              title="자유 게시판" 
+              title={t('home.free_board')} 
               icon="🎈" 
               link="/posts?category=FREE&sort=recent"
               bgColor="bg-gradient-to-br from-pink-900/30 to-rose-900/30"
@@ -671,7 +673,7 @@ export default function Home() {
 
             {/* 🎬 별빛 시네마 */}
             <Section 
-              title="별빛 시네마" 
+              title={t('home.star_cinema')} 
               icon="🎬" 
               link="/posts?category=STARLIGHT_CINEMA&sort=recent"
               bgColor="bg-gradient-to-br from-purple-900/30 to-pink-900/30"
@@ -680,7 +682,7 @@ export default function Home() {
               <div className="mb-3 p-3 bg-gradient-to-r from-purple-800/30 to-pink-800/30 rounded-lg border border-purple-600/30">
                 <p className="text-purple-200 text-xs flex items-center gap-2">
                   <span className="text-purple-400">🤖</span>
-                  <span>AI 봇이 매일 오후 8시에 우주 관련 YouTube 영상을 자동 큐레이션합니다</span>
+                  <span>{t('home.cinema_auto_desc')}</span>
                 </p>
               </div>
               <div className="space-y-3">

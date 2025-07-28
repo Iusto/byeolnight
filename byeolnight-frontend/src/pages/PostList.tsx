@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../lib/axios';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import DiscussionTopicBanner from '../components/DiscussionTopicBanner';
 
@@ -26,6 +27,21 @@ interface Post {
   dDay?: string;
 }
 
+// CATEGORY_LABELS를 다국어로 처리하기 위해 함수로 변경
+const getCategoryLabel = (category: string, t: any): string => {
+  const labels: Record<string, string> = {
+    NEWS: t('home.space_news'),
+    DISCUSSION: t('home.discussion'),
+    IMAGE: t('home.star_photo'),
+    REVIEW: t('home.review'),
+    FREE: t('home.free'),
+    NOTICE: t('home.notice'),
+    STARLIGHT_CINEMA: t('home.star_cinema'),
+  };
+  return labels[category] || category;
+};
+
+// 기존 CATEGORY_LABELS는 호환성을 위해 유지
 const CATEGORY_LABELS: Record<string, string> = {
   NEWS: '뉴스',
   DISCUSSION: '토론',
@@ -54,7 +70,21 @@ const CATEGORY_ICONS: Record<string, string> = {
   STARLIGHT_CINEMA: '🎬'
 };
 
-// 카테고리별 설명 매핑
+// 카테고리별 설명을 다국어로 처리하는 함수
+const getCategoryDescription = (category: string, t: any): string => {
+  const descriptions: Record<string, string> = {
+    NEWS: t('home.news_auto_desc'),
+    DISCUSSION: t('home.discussion_auto_desc'),
+    IMAGE: '아름다운 우주 사진을 공유하고 감상해보세요',
+    REVIEW: '우주 관련 경험과 후기를 나눠주세요',
+    FREE: '우주에 대한 자유로운 이야기를 나눠보세요',
+    NOTICE: '중요한 공지사항을 확인하세요',
+    STARLIGHT_CINEMA: t('home.cinema_auto_desc')
+  };
+  return descriptions[category] || '';
+};
+
+// 기존 CATEGORY_DESCRIPTIONS는 호환성을 위해 유지
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   NEWS: '최신 우주 뉴스를 AI가 자동으로 수집합니다',
   DISCUSSION: 'AI가 생성한 토론 주제로 깊이 있는 대화를 나눠보세요',
@@ -77,6 +107,7 @@ export default function PostList() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // URL 파라미터 추출
   const category = searchParams.get('category') || 'NEWS';
@@ -235,11 +266,11 @@ export default function PostList() {
   // 게시글 목록 렌더링 함수
   const renderPostList = () => {
     if (loading) {
-      return <p className="text-center text-gray-400">🌠 로딩 중...</p>;
+      return <p className="text-center text-gray-400">🌠 {t('home.loading')}</p>;
     }
     
     if (posts.length === 0) {
-      return <p className="text-center text-gray-400">게시글이 없습니다.</p>;
+      return <p className="text-center text-gray-400">{t('home.no_posts')}</p>;
     }
     
     return (
@@ -247,7 +278,7 @@ export default function PostList() {
         {/* 인기 게시글 */}
         {sort === 'recent' && hotPosts.length > 0 && (
           <>
-            <h3 className="text-2xl font-semibold mb-4 text-orange-400">🔥 인기 게시글</h3>
+            <h3 className="text-2xl font-semibold mb-4 text-orange-400">🔥 {t('home.hot_posts')}</h3>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
               {hotPosts.map((post) => renderPostItem(post, true))}
             </ul>
@@ -256,7 +287,7 @@ export default function PostList() {
 
         {/* 일반 게시글 */}
         <h3 className="text-2xl font-semibold mb-4 text-white">
-          {sort === 'popular' ? '📄 게시글 (추천순)' : '📄 일반 게시글'}
+          {sort === 'popular' ? `📄 ${t('home.posts_popular')}` : `📄 ${t('home.normal_posts')}`}
         </h3>
         
         {category === 'IMAGE' ? (
@@ -276,16 +307,16 @@ export default function PostList() {
               onClick={() => handlePageChange(page - 1)}
               className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
             >
-              이전
+              {t('home.previous')}
             </button>
           )}
-          <span className="px-3 py-1 bg-gray-800 rounded text-white">Page {page + 1}</span>
+          <span className="px-3 py-1 bg-gray-800 rounded text-white">{t('home.page')} {page + 1}</span>
           {posts.length >= 30 && (
             <button
               onClick={() => handlePageChange(page + 1)}
               className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
             >
-              다음
+              {t('home.next')}
             </button>
           )}
         </div>
@@ -489,7 +520,7 @@ export default function PostList() {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-[#1f2336] p-6 rounded-xl max-w-md w-full mx-4">
-          <h3 className="text-lg font-semibold mb-4">카테고리 이동</h3>
+          <h3 className="text-lg font-semibold mb-4">{t('home.move_category')}</h3>
           <p className="text-gray-300 mb-4">선택한 {selectedPosts.length}개 게시글을 어느 게시판으로 이동하시겠습니까?</p>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {Object.entries(CATEGORY_LABELS)
@@ -510,7 +541,7 @@ export default function PostList() {
               onClick={() => setShowMoveModal(false)}
               className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
             >
-              취소
+              {t('home.cancel')}
             </button>
           </div>
         </div>
@@ -533,10 +564,10 @@ export default function PostList() {
               </div>
             </div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
-              {CATEGORY_LABELS[category]} 게시판
+              {getCategoryLabel(category, t)} {t('home.board')}
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              {CATEGORY_DESCRIPTIONS[category]}
+              {getCategoryDescription(category, t)}
             </p>
           </div>
         </div>
@@ -549,10 +580,10 @@ export default function PostList() {
           <h2 className="text-3xl font-bold mb-3 flex items-center justify-center gap-2">
             <span className="text-white text-3xl animate-pulse">🚀</span>
             <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-              게시판 둘러보기
+              {t('home.explore_boards')}
             </span>
           </h2>
-          <p className="text-gray-300 text-sm mb-6">다양한 주제의 게시판에서 우주의 신비를 탐험해보세요</p>
+          <p className="text-gray-300 text-sm mb-6">{t('home.explore_boards_desc')}</p>
           <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
@@ -566,8 +597,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
               </div>
-              <div className="text-base font-bold text-blue-100 mb-1">우주 뉴스</div>
-              <div className="text-xs text-blue-300 bg-blue-500/10 rounded-full py-1 px-3 inline-block">자동 수집</div>
+              <div className="text-base font-bold text-blue-100 mb-1">{t('home.space_news')}</div>
+              <div className="text-xs text-blue-300 bg-blue-500/10 rounded-full py-1 px-3 inline-block">{t('home.news_auto')}</div>
             </div>
           </Link>
           <Link to="/posts?category=DISCUSSION&sort=recent" className="group">
@@ -580,8 +611,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
               </div>
-              <div className="text-base font-bold text-green-100 mb-1">토론</div>
-              <div className="text-xs text-green-300 bg-green-500/10 rounded-full py-1 px-3 inline-block">주제 생성</div>
+              <div className="text-base font-bold text-green-100 mb-1">{t('home.discussion')}</div>
+              <div className="text-xs text-green-300 bg-green-500/10 rounded-full py-1 px-3 inline-block">{t('home.discussion_auto')}</div>
             </div>
           </Link>
           <Link to="/posts?category=IMAGE&sort=recent" className="group">
@@ -591,8 +622,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-spin">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
               </div>
-              <div className="text-base font-bold text-purple-100 mb-1">별 사진</div>
-              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">갤러리</div>
+              <div className="text-base font-bold text-purple-100 mb-1">{t('home.star_photo')}</div>
+              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">{t('home.gallery')}</div>
             </div>
           </Link>
 
@@ -603,8 +634,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
               </div>
-              <div className="text-base font-bold text-yellow-100 mb-1">후기</div>
-              <div className="text-xs text-yellow-300 bg-yellow-500/10 rounded-full py-1 px-3 inline-block">리뷰 공유</div>
+              <div className="text-base font-bold text-yellow-100 mb-1">{t('home.review')}</div>
+              <div className="text-xs text-yellow-300 bg-yellow-500/10 rounded-full py-1 px-3 inline-block">{t('home.review_share')}</div>
             </div>
           </Link>
           <Link to="/posts?category=FREE&sort=recent" className="group">
@@ -614,8 +645,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-bounce">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
               </div>
-              <div className="text-base font-bold text-pink-100 mb-1">자유</div>
-              <div className="text-xs text-pink-300 bg-pink-500/10 rounded-full py-1 px-3 inline-block">자유 소통</div>
+              <div className="text-base font-bold text-pink-100 mb-1">{t('home.free')}</div>
+              <div className="text-xs text-pink-300 bg-pink-500/10 rounded-full py-1 px-3 inline-block">{t('home.free_chat')}</div>
             </div>
           </Link>
           <Link to="/posts?category=NOTICE&sort=recent" className="group">
@@ -625,8 +656,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-red-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
               </div>
-              <div className="text-base font-bold text-red-100 mb-1">공지</div>
-              <div className="text-xs text-red-300 bg-red-500/10 rounded-full py-1 px-3 inline-block">중요 안내</div>
+              <div className="text-base font-bold text-red-100 mb-1">{t('home.notice')}</div>
+              <div className="text-xs text-red-300 bg-red-500/10 rounded-full py-1 px-3 inline-block">{t('home.important_notice')}</div>
             </div>
           </Link>
           <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group">
@@ -639,8 +670,8 @@ export default function PostList() {
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
                 <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
               </div>
-              <div className="text-base font-bold text-purple-100 mb-1">별빛 시네마</div>
-              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">영상 큐레이션</div>
+              <div className="text-base font-bold text-purple-100 mb-1">{t('home.star_cinema')}</div>
+              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">{t('home.video_curation')}</div>
             </div>
           </Link>
         </div>
@@ -650,16 +681,16 @@ export default function PostList() {
           <div className="mb-6 p-4 bg-blue-900/30 rounded-lg border border-blue-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🤖</span>
-              <h3 className="text-lg font-semibold text-blue-200">자동 뉴스 업데이트</h3>
+              <h3 className="text-lg font-semibold text-blue-200">{t('home.auto_news_update')}</h3>
             </div>
             <p className="text-blue-200 text-sm leading-relaxed">
-              <strong>뉴스봇</strong>이 매일 <strong>오전 8시</strong>에 우주 뉴스를 자동 수집합니다.
+              {t('home.news_bot_desc')}
               <br />
-              <strong>[대상 출처]</strong><br />
-              <strong>NewsData.io API:</strong> 전 세계 한국어 우주 관련 뉴스<br />
-              <strong>키워드:</strong> 우주, 천문학, NASA, 스페이스X, 화성, 달, 위성, 항공우주
+              <strong>[{t('home.target_sources')}]</strong><br />
+              {t('home.newsdata_api')}<br />
+              {t('home.keywords')}
               <br />
-              매번 새 게시글로 등록되며, 중복 가능성은 낮습니다.
+              {t('home.news_registration')}
             </p>
           </div>
         )}
@@ -668,12 +699,12 @@ export default function PostList() {
           <div className="mb-6 p-4 bg-purple-900/30 rounded-lg border border-purple-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🌌</span>
-              <h3 className="text-lg font-semibold text-purple-200">사진 게시판 이용안내</h3>
+              <h3 className="text-lg font-semibold text-purple-200">{t('home.star_photo')} {t('home.board_usage_guide')}</h3>
             </div>
             <p className="text-purple-200 text-sm leading-relaxed">
-              우주와 관련된 <strong>아름다운 사진들</strong>을 공유해주세요! 하늘, 별, 행성, 우주 관측 사진 등 모든 우주 관련 이미지를 환영합니다.
+              {t('home.image_board_desc')}
               <br />
-              <strong>📷 추천 컨텐츠:</strong> 천체 사진, 우주 관측 사진, 우주 관련 예술 작품, 우주선 및 우주 정거장 사진
+              <strong>📷 {t('home.image_recommended')}</strong>
             </p>
           </div>
         )}
@@ -682,12 +713,12 @@ export default function PostList() {
           <div className="mb-6 p-4 bg-yellow-900/30 rounded-lg border border-yellow-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">⭐</span>
-              <h3 className="text-lg font-semibold text-yellow-200">후기 게시판 이용안내</h3>
+              <h3 className="text-lg font-semibold text-yellow-200">{t('home.review')} {t('home.board_usage_guide')}</h3>
             </div>
             <p className="text-yellow-200 text-sm leading-relaxed">
-              우주 관련 <strong>경험과 후기</strong>를 나눠주세요! 천체 관측, 과학관 방문, 우주 관련 도서나 영화 감상문 등을 공유해주세요.
+              {t('home.review_board_desc')}
               <br />
-              <strong>🎆 추천 컨텐츠:</strong> 천체관측 후기, 과학관 방문기, 우주 관련 도서/영화 리뷰, 망원경 구매 후기
+              <strong>🎆 {t('home.review_recommended')}</strong>
             </p>
           </div>
         )}
@@ -696,12 +727,12 @@ export default function PostList() {
           <div className="mb-6 p-4 bg-green-900/30 rounded-lg border border-green-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🎈</span>
-              <h3 className="text-lg font-semibold text-green-200">자유 게시판 이용안내</h3>
+              <h3 className="text-lg font-semibold text-green-200">{t('home.free')} {t('home.board_usage_guide')}</h3>
             </div>
             <p className="text-green-200 text-sm leading-relaxed">
-              우주와 관련된 <strong>자유로운 이야기</strong>를 나눠주세요! 우주에 대한 궁금증, 생각, 일상 이야기 등 어떤 주제든 환영합니다.
+              {t('home.free_board_desc')}
               <br />
-              <strong>🚀 추천 컨텐츠:</strong> 우주 관련 질문, 일상 이야기, 우주 관련 꿈과 목표, 우주 관련 취미 공유
+              <strong>🚀 {t('home.recommended_content')}</strong>
             </p>
           </div>
         )}
@@ -710,12 +741,12 @@ export default function PostList() {
           <div className="mb-6 p-4 bg-red-900/30 rounded-lg border border-red-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">📢</span>
-              <h3 className="text-lg font-semibold text-red-200">공지사항 게시판</h3>
+              <h3 className="text-lg font-semibold text-red-200">{t('home.notice_board')} {t('home.board_usage_guide')}</h3>
             </div>
             <p className="text-red-200 text-sm leading-relaxed">
-              사이트 운영과 관련된 <strong>중요한 공지사항</strong>을 확인하세요. 업데이트, 이벤트, 정책 변경 등의 정보를 안내합니다.
+              {t('home.notice_board_desc')}
               <br />
-              <strong>⚠️ 주의:</strong> 공지사항은 관리자만 작성할 수 있습니다.
+              <strong>⚠️ {t('home.notice_warning')}</strong>
             </p>
           </div>
         )}
@@ -724,16 +755,16 @@ export default function PostList() {
           <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-lg border border-purple-600/30">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🤖</span>
-              <h3 className="text-lg font-semibold text-purple-200">AI 별빛 시네마 큐레이션</h3>
+              <h3 className="text-lg font-semibold text-purple-200">{t('home.ai_cinema_curation')}</h3>
             </div>
             <p className="text-purple-200 text-sm leading-relaxed">
-              <strong>시네마봇</strong>이 매일 <strong>오후 8시</strong>에 우주 관련 YouTube 영상을 자동 큐레이션합니다.
+              {t('home.cinema_bot_desc')}
               <br />
-              <strong>🎬 큐레이션 내용:</strong> 우주 다큐멘터리, 천체 관측 영상, NASA 공식 영상, 우주 과학 교육 콘텐츠
+              <strong>🎬 {t('home.curation_content')}</strong>
               <br />
-              <strong>🤖 AI 요약:</strong> 각 영상마다 GPT가 생성한 한국어 요약 제공
+              <strong>🤖 {t('home.ai_summary')}</strong>
               <br />
-              <strong>⚠️ 주의:</strong> 별빛 시네마는 AI 봇 전용 게시판입니다.
+              <strong>⚠️ {t('home.cinema_warning')}</strong>
             </p>
           </div>
         )}
@@ -951,10 +982,10 @@ export default function PostList() {
                 className="bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                 aria-label="검색 유형 선택"
               >
-                <option value="title">제목</option>
-                <option value="content">내용</option>
-                <option value="titleAndContent">제목+내용</option>
-                <option value="writer">글작성자</option>
+                <option value="title">{t('post.title')}</option>
+                <option value="content">{t('post.content')}</option>
+                <option value="titleAndContent">{t('home.title_content')}</option>
+                <option value="writer">{t('home.writer')}</option>
               </select>
               
               {/* 검색어 입력 */}
@@ -962,7 +993,7 @@ export default function PostList() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="검색어를 입력하세요..."
+                placeholder={t('home.search_placeholder')}
                 className="flex-1 bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
                 aria-label="검색어 입력"
               />
@@ -974,7 +1005,7 @@ export default function PostList() {
                   className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
                   aria-label="검색 실행"
                 >
-                  🔍 검색
+                  🔍 {t('common.search')}
                 </button>
                 
                 {/* 초기화 버튼 (검색어가 있을 때만 표시) */}
@@ -985,7 +1016,7 @@ export default function PostList() {
                     className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200"
                     aria-label="검색 초기화"
                   >
-                    초기화
+                    {t('home.reset')}
                   </button>
                 )}
               </div>
@@ -995,12 +1026,12 @@ export default function PostList() {
             {searchKeyword && (
               <div className="mt-4 p-3 bg-purple-900/30 rounded-lg border border-purple-600/30 animate-fadeIn">
                 <p className="text-sm text-purple-200 flex items-center gap-2">
-                  <span className="text-purple-300">검색 결과:</span> 
+                  <span className="text-purple-300">{t('home.search_result')}:</span> 
                   <span className="font-semibold text-white bg-purple-800/30 px-2 py-1 rounded">"{searchKeyword}"</span> 
                   <span className="text-purple-300 text-xs bg-purple-800/20 px-2 py-1 rounded-full">
-                    {searchType === 'titleAndContent' ? '제목+내용' : 
-                     searchType === 'title' ? '제목' : 
-                     searchType === 'content' ? '내용' : '글작성자'}
+                    {searchType === 'titleAndContent' ? t('home.title_content') : 
+                     searchType === 'title' ? t('post.title') : 
+                     searchType === 'content' ? t('post.content') : t('home.writer')}
                   </span>
                 </p>
               </div>
@@ -1013,14 +1044,14 @@ export default function PostList() {
           <div className="flex items-center gap-4">
             {/* 정렬 옵션 */}
             <div className="flex items-center gap-2">
-              <label className="text-base text-gray-300">정렬:</label>
+              <label className="text-base text-gray-300">{t('home.sort')}:</label>
               <select
                 value={sort}
                 onChange={(e) => handleSortChange(e.target.value)}
                 className="bg-[#2a2e45] text-sm rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="recent">최신순</option>
-                <option value="popular">추천순</option>
+                <option value="recent">{t('home.recent')}</option>
+                <option value="popular">{t('home.popular')}</option>
               </select>
             </div>
             
@@ -1034,13 +1065,13 @@ export default function PostList() {
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="w-4 h-4"
                 />
-                <label htmlFor="selectAll" className="text-sm text-gray-300">전체선택</label>
+                <label htmlFor="selectAll" className="text-sm text-gray-300">{t('home.select_all')}</label>
                 {selectedPosts.length > 0 && (
                   <button
                     onClick={() => setShowMoveModal(true)}
                     className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
                   >
-                    카테고리 이동 ({selectedPosts.length})
+                    {t('home.move_category')} ({selectedPosts.length})
                   </button>
                 )}
               </div>
@@ -1053,7 +1084,7 @@ export default function PostList() {
               to={`/posts/write?fixedCategory=${category}`}
               className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
-              ✍️ {CATEGORY_LABELS[category]} 글쓰기
+              ✍️ {getCategoryLabel(category, t)} {t('home.write_post')}
             </Link>
           )}
         </div>

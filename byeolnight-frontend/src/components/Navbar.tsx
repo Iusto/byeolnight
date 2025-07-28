@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import UserIconDisplay from './UserIconDisplay';
 import NotificationDropdown from './notification/NotificationDropdown';
+import LanguageSwitcher from './LanguageSwitcher';
 import { useState } from 'react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -22,10 +25,10 @@ export default function Navbar() {
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
             </div>
             <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent hidden sm:block">
-              별 헤는 밤
+              {t('nav.logo_full') || '별 헤는 밤'}
             </span>
             <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent sm:hidden">
-              별헤는밤
+              {t('nav.logo_short') || '별헤는밤'}
             </span>
           </Link>
 
@@ -37,7 +40,7 @@ export default function Navbar() {
                 className="group flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
               >
                 <span className="group-hover:animate-bounce">📚</span>
-                <span className="font-medium">게시판</span>
+                <span className="font-medium">{t('nav.posts')}</span>
               </Link>
               
               <Link 
@@ -45,7 +48,7 @@ export default function Navbar() {
                 className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-300"
               >
                 <span className="group-hover:animate-pulse">💡</span>
-                <span>건의게시판</span>
+                <span>{t('nav.suggestions')}</span>
               </Link>
               
               <Link 
@@ -60,7 +63,7 @@ export default function Navbar() {
                 </div>
                 
                 <span className="relative z-10 bg-gradient-to-r from-yellow-200 via-white to-pink-200 bg-clip-text text-transparent font-bold">
-                  스텔라 상점
+                  {t('nav.shop')}
                 </span>
               </Link>
               
@@ -70,7 +73,7 @@ export default function Navbar() {
                   className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-300"
                 >
                   <span className="group-hover:animate-bounce">🏆</span>
-                  <span>인증서</span>
+                  <span>{t('nav.certificates')}</span>
                 </Link>
               )}
             </div>
@@ -89,7 +92,7 @@ export default function Navbar() {
                   <span className="text-yellow-400 text-sm animate-pulse group-hover:animate-bounce">✨</span>
                   <div className="flex flex-col items-center">
                     <span className="text-yellow-200 font-bold text-xs leading-tight">{user.points?.toLocaleString() || 0}</span>
-                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors">출석체크</span>
+                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors">{t('nav.points')}</span>
                   </div>
                   <span className="text-yellow-300/50 text-xs group-hover:text-yellow-200 transition-colors">📊</span>
                 </Link>
@@ -119,6 +122,7 @@ export default function Navbar() {
 
                 {/* 액션 버튼들 */}
                 <div className="flex items-center gap-1">
+                  <LanguageSwitcher />
                   <NotificationDropdown />
                   
                   <Link 
@@ -158,17 +162,18 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-2">
+                <LanguageSwitcher />
                 <Link 
                   to="/login" 
                   className="px-4 py-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400 font-medium text-sm"
                 >
-                  로그인
+                  {t('nav.login')}
                 </Link>
                 <Link 
                   to="/signup" 
                   className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-sm"
                 >
-                  회원가입
+                  {t('nav.signup')}
                 </Link>
                 
                 {/* 모바일 메뉴 버튼 (비로그인) */}
@@ -193,7 +198,7 @@ export default function Navbar() {
                 className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-all duration-200"
               >
                 <span className="text-2xl">📚</span>
-                <span className="text-sm font-medium">게시판</span>
+                <span className="text-sm font-medium">{t('nav.posts')}</span>
               </Link>
               <Link 
                 to="/shop"
@@ -201,7 +206,7 @@ export default function Navbar() {
                 className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/30 hover:to-pink-600/30 text-white transition-all duration-200"
               >
                 <span className="text-2xl animate-pulse">✨</span>
-                <span className="text-sm font-medium">스텔라 상점</span>
+                <span className="text-sm font-medium">{t('nav.shop')}</span>
               </Link>
               <Link 
                 to="/suggestions"
@@ -209,7 +214,7 @@ export default function Navbar() {
                 className="flex flex-col items-center gap-2 p-4 rounded-xl bg-orange-600/20 hover:bg-orange-600/30 text-orange-200 transition-all duration-200"
               >
                 <span className="text-2xl">💡</span>
-                <span className="text-sm font-medium">건의게시판</span>
+                <span className="text-sm font-medium">{t('nav.suggestions')}</span>
               </Link>
               {user && (
                 <Link 
@@ -218,7 +223,7 @@ export default function Navbar() {
                   className="flex flex-col items-center gap-2 p-4 rounded-xl bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 transition-all duration-200"
                 >
                   <span className="text-2xl">🏆</span>
-                  <span className="text-sm font-medium">인증서</span>
+                  <span className="text-sm font-medium">{t('nav.certificates')}</span>
                 </Link>
               )}
             </div>
@@ -233,7 +238,7 @@ export default function Navbar() {
                 <span className="text-yellow-400 text-xl animate-pulse group-hover:animate-bounce">✨</span>
                 <div className="flex flex-col items-center">
                   <span className="text-yellow-200 font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
-                  <span className="text-yellow-300/70 text-sm group-hover:text-yellow-200 transition-colors">출석체크 & 내역보기</span>
+                  <span className="text-yellow-300/70 text-sm group-hover:text-yellow-200 transition-colors">{t('nav.points')} & 내역보기</span>
                 </div>
                 <span className="text-yellow-300/50 text-lg group-hover:text-yellow-200 transition-colors">📊</span>
               </Link>

@@ -1,4 +1,5 @@
 // App.tsx
+import './i18n'; // i18n 초기화
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
