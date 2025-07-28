@@ -191,6 +191,11 @@
     "blind": "Blind",
     "comments": "Comments",
     "post_not_found": "Post not found.",
-    "cannot_load_post": "Cannot load post."
+    "cannot_load_post": "Cannot load post.",
+    "post_edit": "Edit Post",
+    "edit_and_share": "Edit content and share again",
+    "markdown_on": "Markdown ON",
+    "markdown_off": "Markdown OFF",
+    "edit_complete": "Edit Complete"
   }
 }

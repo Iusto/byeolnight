@@ -191,6 +191,11 @@
     "blind": "ブラインド",
     "comments": "コメント",
     "post_not_found": "存在しない投稿です。",
-    "cannot_load_post": "投稿を読み込めません。"
+    "cannot_load_post": "投稿を読み込めません。",
+    "post_edit": "投稿編集",
+    "edit_and_share": "内容を編集して再度シェアしてみてください",
+    "markdown_on": "マークダウン ON",
+    "markdown_off": "マークダウン OFF",
+    "edit_complete": "編集完了"
   }
 }

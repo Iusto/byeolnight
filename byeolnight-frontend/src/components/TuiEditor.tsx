@@ -27,7 +27,7 @@ interface TuiEditorProps {
 const TuiEditor = forwardRef(({ 
   value, 
   onChange, 
-  placeholder = "내용을 입력하세요...", 
+  placeholder = "Enter content...", 
   height = "500px",
   handleImageUpload 
 }: TuiEditorProps, ref) => {

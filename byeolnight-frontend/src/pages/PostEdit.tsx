@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import TuiEditor, { isHandlingImageUpload } from '../components/TuiEditor';
@@ -17,6 +18,7 @@ export default function PostEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, refreshToken } = useAuth();
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -24,7 +26,7 @@ export default function PostEdit() {
   const [images, setImages] = useState<FileDto[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  const isMarkdownMode = false;
   const editorRef = useRef<any>(null);
   
   const [isImageValidating, setIsImageValidating] = useState(false);
@@ -490,9 +492,9 @@ export default function PostEdit() {
               ✏️
             </div>
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
-              게시글 수정
+              {t('home.post_edit')}
             </h1>
-            <p className="text-xl text-gray-300">내용을 수정하고 다시 공유해보세요</p>
+            <p className="text-xl text-gray-300">{t('home.edit_and_share')}</p>
           </div>
         </div>
       </div>
@@ -502,14 +504,14 @@ export default function PostEdit() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">제목</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('post.title')}</label>
               <div className="relative">
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={100}
-                  placeholder="제목을 입력하세요..."
+                  placeholder={t('home.title_placeholder')}
                   required
                   className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
                 />
@@ -520,15 +522,9 @@ export default function PostEdit() {
             </div>
             <div>
               <div className="flex justify-between items-center mb-3">
-                <label className="text-sm font-medium text-gray-300">내용</label>
+                <label className="text-sm font-medium text-gray-300">{t('post.content')}</label>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsMarkdownMode(!isMarkdownMode)}
-                    className={`flex items-center gap-2 px-4 py-2 ${isMarkdownMode ? 'bg-green-600/80 hover:bg-green-600' : 'bg-gray-600/80 hover:bg-gray-600'} text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg transform hover:scale-105`}
-                  >
-                    📝 {isMarkdownMode ? '마크다운 ON' : '마크다운 OFF'}
-                  </button>
+
                   <button
                     type="button"
                     onClick={handleImageUpload}
@@ -538,49 +534,27 @@ export default function PostEdit() {
                     {isImageValidating ? (
                       <>
                         <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        검열 중...
+                        {t('home.validating')}
                       </>
                     ) : (
                       <>
-                        🖼️ 이미지
+                        🖼️ {t('home.add_image')}
                       </>
                     )}
                   </button>
                 </div>
               </div>
-              <div className="rounded-xl overflow-hidden border border-slate-600/50 quill-wrapper">
-                {isMarkdownMode ? (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        maxLength={50000}
-                        placeholder="마크다운으로 수정해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
-                        className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
-                      />
-                      <div className={`text-xs mt-1 ${content.length > 45000 ? 'text-red-400' : 'text-gray-400'}`}>
-                        {content.length}/50,000
-                      </div>
-                    </div>
-                    <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                      <h3 className="text-sm font-medium text-gray-300 mb-3">📝 마크다운 미리보기:</h3>
-                      <div 
-                        className="prose prose-invert max-w-none min-h-[100px] p-3 bg-slate-900/30 rounded-lg border border-slate-600/30"
-                        dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <TuiEditor
-                    ref={editorRef}
-                    value={content}
-                    onChange={setContent}
-                    placeholder="내용을 입력하세요..."
-                    height="500px"
-                    handleImageUpload={handleImageUpload}
-                  />
-                )}
+              <div className="rounded-xl overflow-hidden border border-slate-600/50 quill-wrapper" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+                <TuiEditor
+                  ref={editorRef}
+                  value={content}
+                  onChange={(newContent) => {
+                    setContent(newContent);
+                  }}
+                  placeholder={t('home.content_placeholder')}
+                  height="500px"
+                  handleImageUpload={handleImageUpload}
+                />
               </div>
               
               {/* YouTube 영상 미리보기 */}
@@ -622,33 +596,24 @@ export default function PostEdit() {
                 </div>
               )}
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                {isMarkdownMode ? (
-                  <>
-                    📝 마크다운 모드: # 제목, **굵게**, *기울임*, - 리스트, --- 구분선, [링크](URL)<br/>
-                    🎨 실시간 미리보기로 결과를 확인하며 수정하세요!<br/>
-                    🔄 언제든 "마크다운 OFF" 버튼으로 리치 에디터로 전환 가능합니다
-                  </>
-                ) : (
-                  <>
-                    🎨 Toast UI Editor: 한국에서 개발한 강력한 에디터, 한글 지원 완벽!<br/>
-                    🖼️ 이미지 붙여넣기: 이미지를 복사한 후 Ctrl+V로 바로 붙여넣을 수 있습니다!<br/>
-                    🎬 마크다운/WYSIWYG 모드: 두 가지 모드를 지원하여 편리한 편집 가능
-                  </>
-                )}
+                🎨 {t('home.editor_info_1')}<br/>
+                🖼️ {t('home.editor_info_2')}<br/>
+                🛡️ {t('home.editor_info_3')}<br/>
+                🎬 {t('home.editor_info_4')}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">카테고리</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('home.category')}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="FREE">자유</option>
-                <option value="DISCUSSION">토론</option>
-                <option value="IMAGE">사진</option>
-                <option value="REVIEW">후기</option>
-                <option value="STARLIGHT_CINEMA">별빛 시네마</option>
+                <option value="FREE">{t('home.free')}</option>
+                <option value="DISCUSSION">{t('home.discussion')}</option>
+                <option value="IMAGE">{t('home.star_photo')}</option>
+                <option value="REVIEW">{t('home.review')}</option>
+                <option value="STARLIGHT_CINEMA">{t('home.star_cinema')}</option>
               </select>
             </div>
 
@@ -717,10 +682,10 @@ export default function PostEdit() {
               {isImageValidating ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  이미지 검열 중... 잠시만 기다려주세요
+                  {t('home.image_validating')}
                 </div>
               ) : (
-                '✏️ 수정 완료'
+                `✏️ ${t('home.edit_complete')}`
               )}
             </button>
           </form>
