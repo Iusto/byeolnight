@@ -1,6 +1,6 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.dto.ApiResponse;
+import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.service.admin.AdminReportPostService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,26 +25,26 @@ public class AdminReportController {
     @Operation(summary = "신고 승인", description = "신고를 승인 처리합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{reportId}/approve")
-    public ResponseEntity<ApiResponse<Void>> approveReport(
+    public ResponseEntity<CommonResponse<Void>> approveReport(
             @PathVariable Long reportId,
             HttpServletRequest request
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(request);
         adminReportPostService.approveReport(reportId, adminId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(CommonResponse.success());
     }
 
     @Operation(summary = "신고 거부", description = "신고를 거부 처리합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{reportId}/reject")
-    public ResponseEntity<ApiResponse<Void>> rejectReport(
+    public ResponseEntity<CommonResponse<Void>> rejectReport(
             @PathVariable Long reportId,
             @RequestBody RejectReportRequest request,
             HttpServletRequest httpRequest
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         adminReportPostService.rejectReport(reportId, adminId, request.getReason());
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(CommonResponse.success());
     }
 
     public static class RejectReportRequest {

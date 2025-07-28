@@ -1,7 +1,7 @@
 package com.byeolnight.controller.suggestion;
 
 import com.byeolnight.domain.entity.Suggestion;
-import com.byeolnight.dto.ApiResponse;
+import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.dto.suggestion.SuggestionDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.service.suggestion.SuggestionService;
@@ -27,7 +27,7 @@ public class SuggestionController {
 
     @GetMapping
     @Operation(summary = "건의사항 목록 조회", description = "카테고리와 상태별로 건의사항 목록을 조회합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.ListResponse>> getSuggestions(
+    public ResponseEntity<CommonResponse<SuggestionDto.ListResponse>> getSuggestions(
             @RequestParam(required = false) Suggestion.SuggestionCategory category,
             @RequestParam(required = false) Suggestion.SuggestionStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -55,12 +55,12 @@ public class SuggestionController {
         // 모든 사용자가 모든 건의사항을 볼 수 있도록 수정 (비공개는 제목만 마스킹)
         SuggestionDto.ListResponse response = suggestionService.getAllSuggestionsForAdmin(category, status, pageable);
         
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "건의사항 상세 조회", description = "특정 건의사항의 상세 정보를 조회합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> getSuggestion(
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> getSuggestion(
             @PathVariable Long id,
             HttpServletRequest httpRequest
     ) {
@@ -74,46 +74,46 @@ public class SuggestionController {
         SuggestionDto.Response response = userId != null ? 
             suggestionService.getSuggestion(id, userId) : 
             suggestionService.getSuggestion(id);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PostMapping
     @Operation(summary = "건의사항 작성", description = "새로운 건의사항을 작성합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> createSuggestion(
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> createSuggestion(
             @Valid @RequestBody SuggestionDto.CreateRequest request,
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         SuggestionDto.Response response = suggestionService.createSuggestion(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "건의사항 수정", description = "기존 건의사항을 수정합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> updateSuggestion(
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> updateSuggestion(
             @PathVariable Long id,
             @Valid @RequestBody SuggestionDto.UpdateRequest request,
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         SuggestionDto.Response response = suggestionService.updateSuggestion(id, userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "건의사항 삭제", description = "건의사항을 삭제합니다.")
-    public ResponseEntity<ApiResponse<Void>> deleteSuggestion(
+    public ResponseEntity<CommonResponse<Void>> deleteSuggestion(
             @PathVariable Long id,
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         suggestionService.deleteSuggestion(id, userId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(CommonResponse.success());
     }
 
     @GetMapping("/my")
     @Operation(summary = "내 건의사항 조회", description = "내가 작성한 건의사항 목록을 조회합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.ListResponse>> getMySuggestions(
+    public ResponseEntity<CommonResponse<SuggestionDto.ListResponse>> getMySuggestions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest
@@ -122,19 +122,19 @@ public class SuggestionController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         SuggestionDto.ListResponse response = suggestionService.getMySuggestions(userId, pageable);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PostMapping("/{id}/admin-response")
     @Operation(summary = "관리자 답변 등록", description = "건의사항에 관리자 답변을 등록합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> addAdminResponse(
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> addAdminResponse(
             @PathVariable Long id,
             @RequestBody SuggestionDto.AdminResponseRequest request,
             HttpServletRequest httpRequest
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         SuggestionDto.Response response = suggestionService.addAdminResponse(id, adminId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
 }

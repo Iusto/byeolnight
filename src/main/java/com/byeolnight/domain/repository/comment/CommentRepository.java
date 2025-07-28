@@ -16,6 +16,12 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findAllByPostId(@Param("postId") Long postId);
     
     /**
+     * 게시글 ID로 모든 댓글 조회 (삭제/블라인드 포함) - 관리자용
+     */
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.writer WHERE c.post.id = :postId ORDER BY c.createdAt ASC")
+    List<Comment> findAllByPostIdIncludingDeleted(@Param("postId") Long postId);
+    
+    /**
      * 게시글 ID로 인기 댓글 TOP3 조회 (좋아요 5개 이상)
      */
     @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.writer WHERE c.post.id = :postId AND c.likeCount >= 5 AND c.deleted = false AND c.blinded = false ORDER BY c.likeCount DESC LIMIT 3")
@@ -29,6 +35,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // 사용자별 댓글 수 조회
     long countByWriter(com.byeolnight.domain.entity.user.User writer);
+    
+    // 사용자별 댓글 수 조회 (블라인드/삭제된 댓글 제외)
+    long countByWriterAndDeletedFalseAndBlindedFalse(com.byeolnight.domain.entity.user.User writer);
     
     // 사용자가 받은 댓글 좋아요 수 조회 (현재 좋아요 기능 미구현으로 0 반환)
     @Query("SELECT 0")

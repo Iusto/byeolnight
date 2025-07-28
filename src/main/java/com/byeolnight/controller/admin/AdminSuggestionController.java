@@ -1,7 +1,7 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.domain.entity.Suggestion;
-import com.byeolnight.dto.ApiResponse;
+import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.dto.suggestion.SuggestionDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.service.suggestion.SuggestionService;
@@ -29,7 +29,7 @@ public class AdminSuggestionController {
 
     @GetMapping
     @Operation(summary = "전체 건의사항 조회", description = "관리자가 모든 건의사항을 조회합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.ListResponse>> getAllSuggestions(
+    public ResponseEntity<CommonResponse<SuggestionDto.ListResponse>> getAllSuggestions(
             @RequestParam(required = false) Suggestion.SuggestionCategory category,
             @RequestParam(required = false) Suggestion.SuggestionStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -45,30 +45,30 @@ public class AdminSuggestionController {
         
         SuggestionDto.ListResponse response = suggestionService.getAllSuggestionsForAdmin(category, status, pageable);
         
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PostMapping("/{id}/admin-response")
     @Operation(summary = "관리자 답변 등록", description = "건의사항에 관리자 답변을 등록합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> addAdminResponse(
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> addAdminResponse(
             @PathVariable Long id,
             @Valid @RequestBody SuggestionDto.AdminResponseRequest request,
             HttpServletRequest httpRequest
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         SuggestionDto.Response response = suggestionService.addAdminResponse(id, adminId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PutMapping("/{id}/status")
     @Operation(summary = "건의사항 상태 변경", description = "건의사항의 상태를 변경합니다.")
-    public ResponseEntity<ApiResponse<SuggestionDto.Response>> updateStatus(
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody SuggestionDto.StatusUpdateRequest request,
             HttpServletRequest httpRequest
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
         SuggestionDto.Response response = suggestionService.updateStatus(id, adminId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 }

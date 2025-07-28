@@ -175,6 +175,24 @@ public class CommentService {
                 .map(comment -> CommentResponseDto.from(comment, currentUser))
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<CommentResponseDto> getPostCommentsForAdmin(Long postId, User currentUser) {
+        if (postId == null || postId <= 0) {
+            throw new IllegalArgumentException("유효하지 않은 게시글 ID입니다.");
+        }
+        
+        // 게시글 존재 여부 확인
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        
+        // 관리자는 삭제된 댓글과 블라인드된 댓글도 모두 조회 가능
+        List<Comment> comments = commentRepository.findAllByPostIdIncludingDeleted(postId);
+        
+        return comments.stream()
+                .map(comment -> CommentResponseDto.fromForAdmin(comment, currentUser))
+                .collect(Collectors.toList());
+    }
     
     // 댓글 좋아요/취소
     @Transactional

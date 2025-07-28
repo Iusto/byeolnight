@@ -7,7 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
+/*
+ 보관함 화면 (보유 아이콘 + 구매/장착 정보)
+ */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

@@ -11,10 +11,7 @@ import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
-    // 특정 방의 최근 메시지 조회 (최신순)
-    List<ChatMessage> findByRoomIdOrderByTimestampDesc(String roomId, Pageable pageable);
-    
-    // 특정 방의 최근 메시지 조회 (오래된순 - 기존 호환성)
+    // 특정 방의 최근 메시지 조회
     @Query("SELECT c FROM ChatMessage c WHERE c.roomId = :roomId ORDER BY c.timestamp ASC")
     List<ChatMessage> findTop100ByRoomIdOrderByTimestampAsc(@Param("roomId") String roomId, Pageable pageable);
 
@@ -23,10 +20,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     // 블라인드된 메시지 목록 조회
     List<ChatMessage> findByIsBlindedTrueOrderByBlindedAtDesc(Pageable pageable);
-
-    // 특정 기간 내 메시지 수 조회
-    @Query("SELECT COUNT(c) FROM ChatMessage c WHERE c.timestamp >= :startTime")
-    long countByTimestampAfter(@Param("startTime") LocalDateTime startTime);
 
     // 활성 사용자 수 조회 (최근 1시간 내 메시지 보낸 사용자)
     @Query("SELECT COUNT(DISTINCT c.sender) FROM ChatMessage c WHERE c.timestamp >= :startTime")

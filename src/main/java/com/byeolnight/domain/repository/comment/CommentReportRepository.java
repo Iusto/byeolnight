@@ -13,8 +13,6 @@ import java.util.Optional;
 @Repository
 public interface CommentReportRepository extends JpaRepository<CommentReport, Long> {
     
-    Optional<CommentReport> findByCommentAndUser(Comment comment, User user);
-    
     boolean existsByCommentAndUser(Comment comment, User user);
     
     List<CommentReport> findByComment(Comment comment);

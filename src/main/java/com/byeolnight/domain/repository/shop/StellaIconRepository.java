@@ -15,12 +15,7 @@ public interface StellaIconRepository extends JpaRepository<StellaIcon, Long> {
      * 구매 가능한 아이콘 목록 조회
      */
     List<StellaIcon> findByAvailableTrue();
-    
-    /**
-     * 등급별 아이콘 조회
-     */
-    List<StellaIcon> findByGradeAndAvailableTrue(StellaIconGrade grade);
-    
+
     /**
      * 이름으로 아이콘 조회
      */

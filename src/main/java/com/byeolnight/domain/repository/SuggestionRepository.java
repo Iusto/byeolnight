@@ -43,20 +43,6 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
 
     // 작성자별 조회
     Page<Suggestion> findByAuthor(User author, Pageable pageable);
-
-    // 제목으로 검색
-    @Query("SELECT s FROM Suggestion s WHERE s.title LIKE %:keyword% ORDER BY s.createdAt DESC")
-    Page<Suggestion> findByTitleContaining(@Param("keyword") String keyword, Pageable pageable);
-
-    // 최신 건의사항 조회 (관리자용)
-    @Query("SELECT s FROM Suggestion s WHERE s.status = 'PENDING' ORDER BY s.createdAt DESC")
-    Page<Suggestion> findPendingSuggestions(Pageable pageable);
-
-    // 통계용 - 상태별 개수
-    long countByStatus(Suggestion.SuggestionStatus status);
-
-    // 통계용 - 카테고리별 개수
-    long countByCategory(Suggestion.SuggestionCategory category);
     
     // 사용자별 건의사항 작성 수 조회
     long countByAuthor(User author);

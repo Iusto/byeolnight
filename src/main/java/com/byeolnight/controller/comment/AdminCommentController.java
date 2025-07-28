@@ -49,6 +49,18 @@ public class AdminCommentController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "게시글의 모든 댓글 조회 (관리자용)", description = "관리자가 특정 게시글의 모든 댓글(삭제/블라인드 포함)을 원본 내용으로 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/posts/{postId}/comments")
+    public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getPostCommentsForAdmin(
+            @PathVariable Long postId,
+            org.springframework.security.core.Authentication authentication) {
+        com.byeolnight.domain.entity.user.User currentUser = 
+            (com.byeolnight.domain.entity.user.User) authentication.getPrincipal();
+        List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getPostCommentsForAdmin(postId, currentUser);
+        return ResponseEntity.ok(comments);
+    }
+
     @Operation(summary = "삭제된 댓글 목록 조회", description = "관리자가 삭제된 댓글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/comments/deleted")

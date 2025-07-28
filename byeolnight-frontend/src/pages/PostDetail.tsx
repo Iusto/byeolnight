@@ -184,6 +184,7 @@ export default function PostDetail() {
           } else if (postData.blinded) {
             setError('블라인드 처리된 게시글입니다.');
           }
+          setLoading(false);
           return;
         }
       }
@@ -211,6 +212,8 @@ export default function PostDetail() {
       } else {
         setError('게시글을 불러올 수 없습니다.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -336,9 +339,12 @@ export default function PostDetail() {
       return;
     }
     
-    fetchPost();
-    fetchComments();
-    setLoading(false);
+    const loadData = async () => {
+      await fetchPost();
+      await fetchComments();
+    };
+    
+    loadData();
     
     // iframe 지원 여부 체크 (개발용)
     if (process.env.NODE_ENV === 'development') {
@@ -425,7 +431,17 @@ export default function PostDetail() {
     );
   }
 
-  if (loading) return <div className="text-white p-8">로딩 중...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mb-4"></div>
+          <p className="text-xl font-medium text-purple-300">게시글을 불러오는 중...</p>
+          <p className="text-sm text-gray-400 mt-2">잠시만 기다려주세요</p>
+        </div>
+      </div>
+    );
+  }
   
   if (!post || error) {
     return (
