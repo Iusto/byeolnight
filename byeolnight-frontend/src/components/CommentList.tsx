@@ -49,7 +49,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     if (user?.role === 'ADMIN') {
       try {
         const response = await axios.get(`/admin/posts/${postId}/comments`);
-        setAdminComments(response.data?.data || response.data || []);
+        setAdminComments(response.data || []);
       } catch (error) {
         console.error('관리자 댓글 조회 실패:', error);
       }
@@ -237,7 +237,16 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
             <p className="text-sm whitespace-pre-wrap">
               {/* 관리자는 블라인드/삭제된 댓글도 원본 내용 표시 */}
               {user?.role === 'ADMIN' ? (
-                c.content
+                <>
+                  {c.content}
+                  {(c.blinded || c.deleted) && (
+                    <span className={`ml-2 text-xs px-2 py-1 rounded ${
+                      c.blinded ? 'bg-red-600/20 text-red-400' : 'bg-gray-600/20 text-gray-400'
+                    }`}>
+                      ({c.blinded ? '블라인드됨' : '삭제됨'})
+                    </span>
+                  )}
+                </>
               ) : (c.blinded || c.deleted) ? (
                 <span className="text-gray-500 italic">
                   {c.blinded ? '[블라인드 처리된 댓글입니다]' : '[삭제된 댓글입니다]'}

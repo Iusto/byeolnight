@@ -3,16 +3,26 @@ package com.byeolnight.service.certificate;
 import com.byeolnight.domain.entity.certificate.Certificate;
 import com.byeolnight.domain.entity.certificate.UserCertificate;
 import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.domain.repository.SuggestionRepository;
+import com.byeolnight.domain.repository.chat.ChatParticipationRepository;
 import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.domain.repository.certificate.UserCertificateRepository;
+import com.byeolnight.domain.repository.post.PostReportRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
+import com.byeolnight.domain.repository.user.DailyAttendanceRepository;
+import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.dto.certificate.CertificateDto;
+import com.byeolnight.infrastructure.config.ApplicationContextProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,10 +32,10 @@ public class CertificateService {
     private final UserCertificateRepository userCertificateRepository;
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-    private final com.byeolnight.domain.repository.chat.ChatParticipationRepository chatParticipationRepository;
-    private final com.byeolnight.domain.repository.post.PostReportRepository postReportRepository;
-    private final com.byeolnight.domain.repository.SuggestionRepository suggestionRepository;
-    private final com.byeolnight.domain.repository.user.DailyAttendanceRepository dailyAttendanceRepository;
+    private final ChatParticipationRepository chatParticipationRepository;
+    private final PostReportRepository postReportRepository;
+    private final SuggestionRepository suggestionRepository;
+    private final DailyAttendanceRepository dailyAttendanceRepository;
 
     // 인증서 발급 체크 및 발급
     @Transactional
@@ -197,18 +207,18 @@ public class CertificateService {
                     userCertificates.stream()
                             .anyMatch(uc -> uc.getCertificateType() == type && uc.isRepresentative())
                 ))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     // 인증서 정보를 담는 내부 클래스
     public static class CertificateInfo {
         private final Certificate.CertificateType type;
         private final boolean owned;
-        private final java.time.LocalDateTime issuedAt;
+        private final LocalDateTime issuedAt;
         private final boolean isRepresentative;
 
-        public CertificateInfo(Certificate.CertificateType type, boolean owned, 
-                              java.time.LocalDateTime issuedAt, boolean isRepresentative) {
+        public CertificateInfo(Certificate.CertificateType type, boolean owned,
+                               LocalDateTime issuedAt, boolean isRepresentative) {
             this.type = type;
             this.owned = owned;
             this.issuedAt = issuedAt;
@@ -229,35 +239,32 @@ public class CertificateService {
     /**
      * 사용자의 공개 인증서 조회 (최신순 제한)
      */
-    public List<com.byeolnight.dto.certificate.CertificateDto.Response> getUserPublicCertificates(Long userId, int limit) {
+    public List<CertificateDto.Response> getUserPublicCertificates(Long userId, int limit) {
         try {
-            com.byeolnight.domain.entity.user.User user = 
-                com.byeolnight.infrastructure.config.ApplicationContextProvider
-                    .getBean(com.byeolnight.domain.repository.user.UserRepository.class)
-                    .findById(userId).orElse(null);
+            User user = ApplicationContextProvider.getBean(UserRepository.class).findById(userId).orElse(null);
             
             if (user == null) {
-                return java.util.Collections.emptyList();
+                return Collections.emptyList();
             }
             
             List<UserCertificate> userCertificates = userCertificateRepository
                 .findByUserOrderByCreatedAtDesc(user)
                 .stream()
                 .limit(limit)
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
             
             return userCertificates.stream()
-                .map(uc -> com.byeolnight.dto.certificate.CertificateDto.Response.builder()
+                .map(uc -> CertificateDto.Response.builder()
                     .id(uc.getId())
                     .title(uc.getCertificateType().getName())
                     .description(uc.getCertificateType().getDescription())
                     .iconUrl(uc.getCertificateType().getIcon())
                     .earnedAt(uc.getCreatedAt())
                     .build())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("인증서 조회 실패: {}", e.getMessage());
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
     }
 }

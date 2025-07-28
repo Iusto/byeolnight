@@ -29,10 +29,6 @@ public interface UserCertificateRepository extends JpaRepository<UserCertificate
     @Query("UPDATE UserCertificate uc SET uc.isRepresentative = false WHERE uc.user = :user")
     void unsetAllRepresentativeCertificates(@Param("user") User user);
 
-    // 인증서별 보유자 수 통계
-    @Query("SELECT uc.certificateType, COUNT(uc) FROM UserCertificate uc GROUP BY uc.certificateType")
-    List<Object[]> getCertificateStatistics();
-
     // 사용자의 특정 인증서 조회
     Optional<UserCertificate> findByUserAndCertificateType(User user, Certificate.CertificateType certificateType);
 }

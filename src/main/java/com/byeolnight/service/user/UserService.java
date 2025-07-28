@@ -525,9 +525,9 @@ public class UserService {
         // 최신 인증서 4개 조회
         List<CertificateDto.Response> certificates = certificateService.getUserPublicCertificates(userId, 4);
         
-        // 통계 정보 조회
+        // 통계 정보 조회 (블라인드/삭제된 것 제외)
         long postCount = postRepository.countByWriterAndIsDeletedFalse(user);
-        long commentCount = commentRepository.countByWriter(user);
+        long commentCount = commentRepository.countByWriterAndDeletedFalseAndBlindedFalse(user);
         
         // 보유 아이콘 개수 조회
         int totalIconCount = (int) userIconRepository.countByUserId(userId);

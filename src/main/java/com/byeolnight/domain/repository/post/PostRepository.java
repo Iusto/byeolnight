@@ -26,11 +26,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * - 정렬: 작성일 내림차순
      */
     Page<Post> findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
-    
-    /**
-     * [기존 호환성] 블라인드되지 않은 게시글만 조회
-     */
-    Page<Post> findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
 
     /**
      * [게시판 - 최신순 정렬 시] HOT 게시글 조회
@@ -62,11 +57,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * - 정렬: 추천수 내림차순
      */
     Page<Post> findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(Category category, Pageable pageable);
-    
-    /**
-     * [기존 호환성] 블라인드되지 않은 게시글만 조회
-     */
-    Page<Post> findByIsDeletedFalseAndBlindedFalseAndCategoryOrderByLikeCountDesc(Category category, Pageable pageable);
 
     /**
      * [게시글 상세조회] 게시글 + 작성자 정보 즉시 로딩
@@ -116,19 +106,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("SELECT COUNT(DISTINCT p.category) FROM Post p WHERE p.writer = :writer AND p.isDeleted = false")
     long countDistinctCategoriesByWriter(@Param("writer") com.byeolnight.domain.entity.user.User writer);
-
-    /**
-     * 신고된 게시글 조회 (신고 수 1개 이상)
-     */
-    @Query("""
-    SELECT DISTINCT p FROM Post p
-    JOIN PostReport pr ON pr.post = p
-    WHERE p.isDeleted = false
-    GROUP BY p
-    HAVING COUNT(pr) > 0
-    ORDER BY COUNT(pr) DESC, p.createdAt DESC
-    """)
-    List<Post> findReportedPosts();
     
     // 검색 기능 (블라인드 포함)
     Page<Post> findByTitleContainingAndCategoryAndIsDeletedFalse(String title, Post.Category category, Pageable pageable);
@@ -139,28 +116,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     
     @Query("SELECT p FROM Post p WHERE p.writer.nickname LIKE %:nickname% AND p.category = :category AND p.isDeleted = false")
     Page<Post> findByWriterNicknameContainingAndCategoryAndIsDeletedFalse(@Param("nickname") String nickname, @Param("category") Post.Category category, Pageable pageable);
-    
-    // 기존 호환성 (블라인드 제외)
-    Page<Post> findByTitleContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(String title, Post.Category category, Pageable pageable);
-    Page<Post> findByContentContainingAndCategoryAndIsDeletedFalseAndBlindedFalse(String content, Post.Category category, Pageable pageable);
-    
-    @Query("SELECT p FROM Post p WHERE (p.title LIKE %:keyword% OR p.content LIKE %:keyword%) AND p.category = :category AND p.isDeleted = false AND p.blinded = false")
-    Page<Post> findByTitleOrContentContainingAndCategory(@Param("keyword") String keyword, @Param("category") Post.Category category, Pageable pageable);
-    
-    @Query("SELECT p FROM Post p WHERE p.writer.nickname LIKE %:nickname% AND p.category = :category AND p.isDeleted = false AND p.blinded = false")
-    Page<Post> findByWriterNicknameContainingAndCategory(@Param("nickname") String nickname, @Param("category") Post.Category category, Pageable pageable);
-    
+
     /**
      * 사용자별 작성 게시글 조회 (삭제되지 않은 것만)
      */
     Page<Post> findByWriterAndIsDeletedFalseOrderByCreatedAtDesc(com.byeolnight.domain.entity.user.User writer, Pageable pageable);
-    
-    /**
-     * 모든 게시글의 신고수를 실제 신고 데이터와 동기화
-     */
-    @Modifying
-    @Query("UPDATE Post p SET p.reportCount = (SELECT COUNT(pr) FROM PostReport pr WHERE pr.post = p)")
-    void updateReportCounts();
+
     
     /**
      * 토론 주제 관련 쿼리
@@ -182,12 +143,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("SELECT p FROM Post p WHERE p.isDeleted = true AND p.deletedAt < :threshold")
     List<Post> findExpiredDeletedPosts(@Param("threshold") LocalDateTime threshold);
-    
-    /**
-     * 제목으로 게시글 존재 여부 확인 (뉴스 중복 체크용)
-     */
-    boolean existsByTitle(String title);
-    
+
     /**
      * 게시글 내용에 특정 문자열이 포함된 게시글 존재 여부 확인 (S3 파일 사용 여부 체크용)
      */
@@ -197,12 +153,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * 카테고리별 삭제되지 않은 게시글 개수 조회
      */
     long countByCategoryAndIsDeletedFalse(Category category);
-    
-    /**
-     * 블라인드 처리되지 않은 게시글만 조회 (사이트맵용)
-     */
-    Page<Post> findByBlindedFalse(Pageable pageable);
-    
+
     /**
      * 블라인드 처리되지 않고 삭제되지 않은 게시글만 조회 (사이트맵용)
      */

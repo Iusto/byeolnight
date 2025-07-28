@@ -5,7 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
+/*
+ 상점 화면 (구매 가능한 아이콘 + 소유 여부)
+ */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

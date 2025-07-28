@@ -2,7 +2,9 @@ package com.byeolnight.dto.shop;
 
 import lombok.Builder;
 import lombok.Getter;
-
+/*
+ 프로필 화면 (장착된 아이콘 간단 정보)
+ */
 @Getter
 public class EquippedIconDto {
     private final Long iconId;

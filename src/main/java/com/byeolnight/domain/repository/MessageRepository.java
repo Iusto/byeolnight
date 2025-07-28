@@ -22,13 +22,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // 읽지 않은 쪽지 개수
     long countByReceiverAndIsReadFalseAndReceiverDeletedFalse(User receiver);
 
-    // 특정 사용자와의 쪽지 대화 조회
-    @Query("SELECT m FROM Message m WHERE " +
-           "((m.sender = :user1 AND m.receiver = :user2 AND m.senderDeleted = false) OR " +
-           "(m.sender = :user2 AND m.receiver = :user1 AND m.receiverDeleted = false)) " +
-           "ORDER BY m.createdAt DESC")
-    Page<Message> findConversationBetweenUsers(@Param("user1") User user1, @Param("user2") User user2, Pageable pageable);
-    
     // 3년 경과 후 영구 삭제 대상 쪽지 조회
     @Query("SELECT m FROM Message m WHERE m.senderDeleted = true AND m.receiverDeleted = true " +
            "AND ((m.senderDeletedAt < :threeYearsAgo) OR (m.receiverDeletedAt < :threeYearsAgo))")

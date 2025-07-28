@@ -12,8 +12,6 @@ import java.util.List;
 public interface PostReportRepository extends JpaRepository<PostReport, Long> {
 
     boolean existsByUserAndPost(User user, Post post);
-
-    long countByPost(Post post);
     
     List<PostReport> findByPost(Post post);
     
@@ -23,12 +21,6 @@ public interface PostReportRepository extends JpaRepository<PostReport, Long> {
     List<PostReport> findByPostTitleContainingIgnoreCase(String title);
     
     List<PostReport> findByPostWriterNicknameContainingIgnoreCase(String nickname);
-    
-    @Query("SELECT CONCAT(pr.reason, CASE WHEN pr.description IS NOT NULL AND pr.description != '' THEN CONCAT(' (', pr.description, ')') ELSE '' END) FROM PostReport pr WHERE pr.post = :post")
-    List<String> findReasonsByPost(@Param("post") Post post);
-    
-    @Query("SELECT pr FROM PostReport pr JOIN FETCH pr.user WHERE pr.post = :post ORDER BY pr.createdAt DESC")
-    List<PostReport> findDetailsByPost(@Param("post") Post post);
     
     // 사용자별 승인된 신고 수 조회
     @Query("SELECT COUNT(pr) FROM PostReport pr WHERE pr.user = :user AND pr.accepted = true")

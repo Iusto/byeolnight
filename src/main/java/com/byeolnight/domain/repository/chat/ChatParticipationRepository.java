@@ -13,9 +13,6 @@ public interface ChatParticipationRepository extends JpaRepository<ChatParticipa
     
     Optional<ChatParticipation> findByUserAndParticipationDate(User user, LocalDate date);
     
-    @Query("SELECT COUNT(cp) FROM ChatParticipation cp WHERE cp.user = :user")
-    long countParticipationDaysByUser(@Param("user") User user);
-    
     @Query("SELECT SUM(cp.messageCount) FROM ChatParticipation cp WHERE cp.user = :user")
     Long getTotalMessageCountByUser(@Param("user") User user);
 }
