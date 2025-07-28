@@ -63,7 +63,7 @@
     "no_notifications": "通知がありません"
   },
   "home": {
-    "title": "星を数える夜",
+    "bigtitle": "星を数える夜",
     "subtitle": "宇宙の神秘を探索し、知識を共有し、夢に向かって進むコミュニティ",
     "login_prompt": "ログインしてより多くの機能をご利用ください",
     "welcome": "さん、ようこそ！",
@@ -169,6 +169,28 @@
     "fixed": "固定",
     "submit_post": "投稿する",
     "submitting": "投稿中... しばらくお待ちください",
-    "image_validating": "画像検証中... しばらくお待ちください"
+    "image_validating": "画像検証中... しばらくお待ちください",
+    "editor_info_1": "Toast UI Editor: 韓国で開発された強力なエディタ、ハングルサポート完璧！",
+    "editor_info_2": "画像貼り付け: 画像をコピーしてCtrl+Vで直接貼り付けできます！",
+    "editor_info_3": "画像検閲: アップロードされたすべての画像は自動的に検閲され、安全なコンテンツのみ許可されます",
+    "editor_info_4": "マークダウン/WYSIWYGモード: 両方のモードをサポートして便利な編集が可能",
+    "invalid_access": "無効なアクセスです",
+    "invalid_post_id": "無効な投稿IDです。",
+    "back_to_posts": "投稿一覧に戻る",
+    "loading_post": "投稿を読み込み中...",
+    "please_wait": "しばらくお待ちください",
+    "inaccessible_post": "アクセスできない投稿",
+    "user_info": "ユーザー情報を見る",
+    "related_images": "関連画像",
+    "login_required_like": "ログインが必要",
+    "already_liked": "既にいいね済み",
+    "like_with_count": "いいね",
+    "report": "報告",
+    "edit": "編集",
+    "delete": "削除",
+    "blind": "ブラインド",
+    "comments": "コメント",
+    "post_not_found": "存在しない投稿です。",
+    "cannot_load_post": "投稿を読み込めません。"
   }
 }

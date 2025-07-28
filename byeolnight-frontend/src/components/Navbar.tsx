@@ -121,7 +121,7 @@ export default function Navbar() {
                 </div>
 
                 {/* 액션 버튼들 */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <LanguageSwitcher />
                   <NotificationDropdown />
                   
@@ -161,7 +161,7 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <LanguageSwitcher />
                 <Link 
                   to="/login" 

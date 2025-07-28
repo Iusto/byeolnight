@@ -63,7 +63,7 @@
     "no_notifications": "No notifications"
   },
   "home": {
-    "title": "Starry Night",
+    "bigtitle": "Starry Night",
     "subtitle": "A community to explore the mysteries of the universe, share knowledge, and pursue dreams",
     "login_prompt": "Login to access more features",
     "welcome": ", welcome!",
@@ -169,6 +169,28 @@
     "fixed": "Fixed",
     "submit_post": "Submit Post",
     "submitting": "Submitting post... Please wait",
-    "image_validating": "Validating image... Please wait"
+    "image_validating": "Validating image... Please wait",
+    "editor_info_1": "Toast UI Editor: Powerful editor developed in Korea, perfect Korean support!",
+    "editor_info_2": "Image paste: Copy an image and paste it directly with Ctrl+V!",
+    "editor_info_3": "Image moderation: All uploaded images are automatically moderated to allow only safe content",
+    "editor_info_4": "Markdown/WYSIWYG mode: Supports both modes for convenient editing",
+    "invalid_access": "Invalid access",
+    "invalid_post_id": "Invalid post ID.",
+    "back_to_posts": "Back to post list",
+    "loading_post": "Loading post...",
+    "please_wait": "Please wait",
+    "inaccessible_post": "Inaccessible post",
+    "user_info": "View user info",
+    "related_images": "Related images",
+    "login_required_like": "Login required",
+    "already_liked": "Already liked",
+    "like_with_count": "Like",
+    "report": "Report",
+    "edit": "Edit",
+    "delete": "Delete",
+    "blind": "Blind",
+    "comments": "Comments",
+    "post_not_found": "Post not found.",
+    "cannot_load_post": "Cannot load post."
   }
 }

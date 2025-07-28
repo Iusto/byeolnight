@@ -312,7 +312,7 @@ export default function Home() {
             <h1 className="text-5xl md:text-7xl font-bold">
               <span className="text-5xl mr-2">🌌</span>
               <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
-                {t('home.title')}
+                {t('home.bigtitle')}
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
