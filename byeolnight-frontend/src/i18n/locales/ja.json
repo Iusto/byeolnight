@@ -194,8 +194,10 @@
     "cannot_load_post": "投稿を読み込めません。",
     "post_edit": "投稿編集",
     "edit_and_share": "内容を編集して再度シェアしてみてください",
-    "markdown_on": "マークダウン ON",
-    "markdown_off": "マークダウン OFF",
-    "edit_complete": "編集完了"
+    "edit_complete": "編集完了",
+    "share_beautiful_space_photos": "美しい宇宙写真をシェアして鑑賞してみてください",
+    "share_space_experiences": "宇宙関連の経験とレビューをシェアしてください",
+    "share_free_space_stories": "宇宙についての自由な話をシェアしてみてください",
+    "check_important_notices": "重要なお知らせを確認してください"
   }
 }

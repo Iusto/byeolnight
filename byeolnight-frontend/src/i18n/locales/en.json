@@ -194,8 +194,10 @@
     "cannot_load_post": "Cannot load post.",
     "post_edit": "Edit Post",
     "edit_and_share": "Edit content and share again",
-    "markdown_on": "Markdown ON",
-    "markdown_off": "Markdown OFF",
-    "edit_complete": "Edit Complete"
+    "edit_complete": "Edit Complete",
+    "share_beautiful_space_photos": "Share and enjoy beautiful space photos",
+    "share_space_experiences": "Share your space-related experiences and reviews",
+    "share_free_space_stories": "Share free stories about space",
+    "check_important_notices": "Check important notices"
   }
 }
