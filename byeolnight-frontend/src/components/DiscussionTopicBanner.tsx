@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { parseMarkdown } from '../utils/markdownParser';
 
@@ -18,6 +19,7 @@ export default function DiscussionTopicBanner() {
   const [todayTopic, setTodayTopic] = useState<DiscussionTopic | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchTodayTopic();
@@ -49,10 +51,10 @@ export default function DiscussionTopicBanner() {
       <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 backdrop-blur-md rounded-xl p-6 mb-8 border border-gray-600/30">
         <div className="text-center text-gray-400">
           <div className="text-2xl mb-2">🤖</div>
-          <p>오늘의 토론 주제가 준비 중입니다.</p>
+          <p>{t('home.today_topic_preparing')}</p>
           <div className="mt-3 p-3 bg-blue-900/20 rounded-lg border border-blue-500/20">
-            <p className="text-blue-300 font-medium mb-1">🤖 자동 토론 주제 선정</p>
-            <p className="text-sm text-blue-200">AI가 매일 오전 8시 5분에 흥미로운 토론 주제를 자동 선정합니다.</p>
+            <p className="text-blue-300 font-medium mb-1">🤖 {t('home.auto_topic_selection')}</p>
+            <p className="text-sm text-blue-200">{t('home.discussion_auto_detail')}</p>
           </div>
         </div>
       </div>
@@ -77,11 +79,11 @@ export default function DiscussionTopicBanner() {
             <div className="flex items-center gap-2">
               <span className="text-2xl">🔥</span>
               <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent font-bold text-lg">
-                오늘의 토론
+                {t('home.today_discussion')}
               </span>
             </div>
             <div className="px-3 py-1 bg-purple-600/30 border border-purple-400/30 rounded-full text-xs text-purple-200">
-              AI 생성 주제
+              {t('home.ai_generated_topic')}
             </div>
           </div>
           <div className="text-xs text-gray-400">
@@ -125,13 +127,13 @@ export default function DiscussionTopicBanner() {
               onClick={() => navigate(`/posts/${todayTopic.id}`)}
               className="px-4 py-2 bg-purple-600/80 hover:bg-purple-600 text-white rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
             >
-              💬 토론 참여
+              💬 {t('home.join_discussion')}
             </button>
             <button
               onClick={() => navigate(`/posts/new?originTopic=${todayTopic.id}`)}
               className="px-4 py-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
             >
-              ✍️ 의견 작성
+              ✍️ {t('home.write_opinion')}
             </button>
           </div>
         </div>

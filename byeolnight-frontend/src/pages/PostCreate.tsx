@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import TuiEditor, { isHandlingImageUpload } from '../components/TuiEditor';
@@ -28,6 +29,7 @@ export default function PostCreate() {
   const navigate = useNavigate();
   const { user, refreshUserInfo } = useAuth();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [contentLength, setContentLength] = useState(0);
@@ -409,7 +411,7 @@ export default function PostCreate() {
 
     try {
       if (!user) {
-        setError('로그인이 필요합니다.');
+        setError(t('home.login_required'));
         return;
       }
       
@@ -478,12 +480,12 @@ export default function PostCreate() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center text-white">
         <div className="text-center">
-          <p className="text-lg mb-4">게시글 작성은 로그인이 필요합니다.</p>
+          <p className="text-lg mb-4">{t('home.login_required_desc')}</p>
           <button 
             onClick={() => navigate('/login')}
             className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded"
           >
-            로그인 하러 가기
+            {t('home.go_to_login')}
           </button>
         </div>
       </div>
@@ -509,7 +511,7 @@ export default function PostCreate() {
               📝
             </div>
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
-              게시글 작성
+              {t('home.post_create')}
             </h1>
             {originTopicId && (
               <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-600/20 border border-blue-400/30 rounded-full text-blue-200 backdrop-blur-sm">
@@ -525,11 +527,11 @@ export default function PostCreate() {
         <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">제목</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('post.title')}</label>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="제목을 입력하세요..."
+                  placeholder={t('home.title_placeholder')}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={100}
@@ -543,7 +545,7 @@ export default function PostCreate() {
             </div>
             <div>
               <div className="flex justify-between items-center mb-3">
-                <label className="text-sm font-medium text-gray-300">내용</label>
+                <label className="text-sm font-medium text-gray-300">{t('post.content')}</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -554,11 +556,11 @@ export default function PostCreate() {
                     {isImageValidating ? (
                       <>
                         <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        검열 중...
+                        {t('home.validating')}
                       </>
                     ) : (
                       <>
-                        🖼️ 이미지 추가
+                        🖼️ {t('home.add_image')}
                       </>
                     )}
                   </button>
@@ -607,7 +609,7 @@ export default function PostCreate() {
                         const textContent = tempDiv.textContent || tempDiv.innerText || '';
                         setContentLength(textContent.length);
                       }}
-                      placeholder="내용을 입력하세요..."
+                      placeholder={t('home.content_placeholder')}
                       height="500px"
                       handleImageUpload={handleImageUpload}
                     />
@@ -756,18 +758,18 @@ export default function PostCreate() {
             </div>
           )}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">카테고리</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('home.category')}</label>
               {isFixedCategory ? (
                 <div className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-gray-300 border border-slate-600/50">
                   {{
-                    DISCUSSION: '토론',
-                    IMAGE: '사진', 
-                    REVIEW: '후기',
-                    FREE: '자유',
-                    NOTICE: '공지',
-                    NEWS: '뉴스',
-                    STARLIGHT_CINEMA: '별빛 시네마'
-                  }[category]} (고정)
+                    DISCUSSION: t('home.discussion'),
+                    IMAGE: t('home.star_photo'), 
+                    REVIEW: t('home.review'),
+                    FREE: t('home.free'),
+                    NOTICE: t('home.notice'),
+                    NEWS: t('home.space_news'),
+                    STARLIGHT_CINEMA: t('home.star_cinema')
+                  }[category]} ({t('home.fixed')})
                 </div>
               ) : (
                 <select
@@ -775,13 +777,13 @@ export default function PostCreate() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
-                  <option value="DISCUSSION">토론</option>
-                  <option value="IMAGE">사진</option>
-                  <option value="REVIEW">후기</option>
-                  <option value="FREE">자유</option>
-                  <option value="STARLIGHT_CINEMA">별빛 시네마</option>
+                  <option value="DISCUSSION">{t('home.discussion')}</option>
+                  <option value="IMAGE">{t('home.star_photo')}</option>
+                  <option value="REVIEW">{t('home.review')}</option>
+                  <option value="FREE">{t('home.free')}</option>
+                  <option value="STARLIGHT_CINEMA">{t('home.star_cinema')}</option>
                   {user?.role === 'ADMIN' && (
-                    <option value="NEWS">뉴스</option>
+                    <option value="NEWS">{t('home.space_news')}</option>
                   )}
                 </select>
               )}
@@ -801,15 +803,15 @@ export default function PostCreate() {
               {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  게시글 등록 중... 잠시만 기다려주세요
+                  {t('home.submitting')}
                 </div>
               ) : isImageValidating ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  이미지 검열 중... 잠시만 기다려주세요
+                  {t('home.image_validating')}
                 </div>
               ) : (
-                '🚀 게시글 등록'
+                `🚀 ${t('home.submit_post')}`
               )}
             </button>
           </form>
