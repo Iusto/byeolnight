@@ -1,5 +1,6 @@
 package com.byeolnight.service.video;
 
+import com.byeolnight.service.crawler.NewsDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +19,7 @@ import java.util.Map;
 public class YouTubeService {
     
     private final RestTemplate restTemplate;
-    private final com.byeolnight.service.crawler.NewsDataService newsDataService;
+    private final NewsDataService newsDataService;
     
     @Value("${google.api.key:}")
     private String googleApiKey;
