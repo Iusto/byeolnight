@@ -451,11 +451,6 @@ public class CinemaService {
         
         content.append("🎬 **오늘의 우주 영상**: ").append(title).append("\n\n");
         
-        if (description != null && !description.trim().isEmpty()) {
-            String summary = description.length() > 150 ? description.substring(0, 147) + "..." : description;
-            content.append("📌 **요약** ").append(summary).append("\n\n");
-        }
-        
         content.append("▶️ **영상 보기**\n\n");
         content.append(String.format("""
             <div class="video-container" style="position: relative; padding-bottom: 56.25%%; height: 0; overflow: hidden; max-width: 100%%; background: #000; margin: 20px 0;">
@@ -479,10 +474,7 @@ public class CinemaService {
         if (description != null && !description.trim().isEmpty()) {
             content.append("📝 **설명** ").append(description).append("\n\n");
         }
-        
-        content.append("🔗 **YouTube 바로가기**\n");
-        content.append("[🎬 원본 영상 보기](https://www.youtube.com/watch?v=").append(videoId).append(")\n\n");
-        
+
         content.append("💬 **자유롭게 의견을 나눠주세요!**\n\n");
         content.append("---\n\n");
         
