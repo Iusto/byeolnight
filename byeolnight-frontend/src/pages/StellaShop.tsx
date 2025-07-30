@@ -36,6 +36,8 @@ export default function StellaShop() {
     } catch (err) {
       console.error('아이콘 목록 조회 실패:', err);
       setIcons(stellaIcons);
+    } finally {
+      setLoading(false);
     }
   };
 

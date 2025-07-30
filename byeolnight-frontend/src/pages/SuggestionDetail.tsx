@@ -169,6 +169,23 @@ export default function SuggestionDetail() {
     );
   }
 
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔐</div>
+          <p className="text-gray-400 text-lg mb-4">이 건의사항을 보려면 로그인이 필요합니다.</p>
+          <Link
+            to="/login"
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            로그인하러 가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!suggestion) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
