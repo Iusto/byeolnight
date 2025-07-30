@@ -1,3 +1,6 @@
+// TuiEditor.tsx
+// Toast UI Editor 커스텀 래퍼 컴포넌트 - 다국어 placeholder 반영 및 이미지 검열 업로드 처리
+
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { Editor } from '@toast-ui/react-editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
@@ -5,16 +8,17 @@ import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../styles/tui-editor.css';
 import { uploadImage } from '../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
+import { updateTuiPlaceholder } from '../utils/updateTuiPlaceholder';
 
-// 이미지 URL 정규식
+// 이미지 URL 정규식 (업로드 후 유효성 검사용)
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
 
-// 이미지 URL 검증 함수
+// 이미지 URL 유효성 검사 함수
 const isValidImageUrl = (url: string): boolean => {
   return IMAGE_URL_REGEX.test(url);
 };
 
-// 이미지 업로드 이벤트 처리 여부를 확인하기 위한 전역 플래그
+// 이미지 업로드 처리 여부를 전역 플래그로 표시
 export const isHandlingImageUpload = { current: false };
 
 interface TuiEditorProps {
@@ -32,32 +36,22 @@ const TuiEditor = forwardRef(({
   height = "500px",
   handleImageUpload 
 }: TuiEditorProps, ref) => {
-  // 다국어 지원 UI
   const { t, i18n } = useTranslation();
-
   const editorRef = useRef<any>(null);
   const effectivePlaceholder = placeholder ?? t('home.content_placeholder');
 
-  // 외부에서 ref를 통해 에디터에 접근할 수 있도록 설정
+  // 외부에서 ref로 에디터 인스턴스 접근 허용
   useImperativeHandle(ref, () => ({
     getInstance: () => editorRef.current?.getInstance(),
     insertContent: (content: string) => {
       const instance = editorRef.current?.getInstance();
-      if (instance) {
-        instance.insertText(content);
-      }
+      if (instance) instance.insertText(content);
     },
-    getMarkdown: () => {
-      const instance = editorRef.current?.getInstance();
-      return instance ? instance.getMarkdown() : '';
-    },
-    getHTML: () => {
-      const instance = editorRef.current?.getInstance();
-      return instance ? instance.getHTML() : '';
-    }
+    getMarkdown: () => editorRef.current?.getInstance()?.getMarkdown() || '',
+    getHTML: () => editorRef.current?.getInstance()?.getHTML() || ''
   }));
 
-  // 1. 내용 반영
+  // 초기 마크다운 값 설정
   useEffect(() => {
     const instance = editorRef.current?.getInstance();
     if (instance && value !== instance.getMarkdown()) {
@@ -65,142 +59,85 @@ const TuiEditor = forwardRef(({
     }
   }, [value]);
 
-  // 2. placeholder 다국어 반영
+  // 언어 변경 시 placeholder 실시간 반영
   useEffect(() => {
-    const editorEl = editorRef.current?.getInstance()?.root;
-    if (editorEl) {
-      const placeholderEl = editorEl.querySelector('.toastui-editor-ww-container .toastui-editor-placeholder');
-      if (placeholderEl) {
-        placeholderEl.textContent = t('home.content_placeholder');
-      }
+    const instance = editorRef.current?.getInstance();
+    if (instance) {
+      updateTuiPlaceholder(instance, t('home.content_placeholder'));
     }
   }, [i18n.language]);
 
-
-  // 에디터 변경 이벤트 핸들러
+  // 마크다운 변경 시 외부 콜백 호출
   const handleChange = () => {
     const instance = editorRef.current?.getInstance();
     if (instance) {
-      // HTML 대신 마크다운 형식으로 저장하여 이미지가 정상적으로 표시되도록 함
       const newContent = instance.getMarkdown();
       onChange(newContent);
     }
   };
 
-  // 이미지 업로드 핸들러 설정
+  // 이미지 업로드 처리 함수
   const onUploadImage = async (blob: Blob, callback: Function) => {
     try {
-      // 이미지 업로드 처리 중임을 표시
       isHandlingImageUpload.current = true;
-      
-      // 검열 중 표시를 위한 이벤트 발생
-      const imageValidatingEvent = new CustomEvent('imageValidating', { detail: { validating: true } });
-      document.dispatchEvent(imageValidatingEvent);
-      
-      // 부적절한 이미지 감지 시 파일 업로드 창이 뜨지 않도록 일정 시간 플래그 유지
+
+      document.dispatchEvent(new CustomEvent('imageValidating', { detail: { validating: true } }));
       const resetTimer = setTimeout(() => {
         isHandlingImageUpload.current = false;
-      }, 2000); // 2초 후 플래그 초기화
-      
-      // 클립보드에서 붙여넣기된 이미지인 경우 직접 처리
+      }, 2000);
+
       if (blob.type.startsWith('image/')) {
-        // Blob을 File로 변환
         const file = new File([blob], `clipboard-image-${Date.now()}.${blob.type.split('/')[1] || 'png'}`, {
           type: blob.type
         });
-        
+
         try {
-          // 이미지 업로드 처리 (검열 과정 적용)
-          console.log('클립보드 이미지 검열 시작...');
-          
-          // 직접 서버로 이미지 전송하여 검열 처리
           const formData = new FormData();
           formData.append('file', file);
           formData.append('needsModeration', 'true');
-          
-          // JWT 토큰 가져오기
           const token = localStorage.getItem('accessToken');
-          
+
           const moderationResponse = await fetch('/api/files/moderate-direct', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
           });
-          
+
           if (!moderationResponse.ok) {
-            // alert 제거하고 오류만 발생시킴
             throw new Error('이미지 검열 실패: ' + moderationResponse.statusText);
           }
-          
+
           const moderationResult = await moderationResponse.json();
-          console.log('클립보드 이미지 검열 결과:', moderationResult);
-          
-          // 부적절한 이미지인 경우 예외 발생 - alert 한 번만 표시
-          if (moderationResult.data && moderationResult.data.isSafe === false) {
-            // alert 한 번만 표시
+          if (moderationResult.data?.isSafe === false) {
             alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
-            throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+            throw new Error('부적절한 이미지 감지');
           }
-          
-          // 검열 통과한 이미지 정보 추출
-          const imageData = moderationResult.data;
-          if (!imageData || !imageData.url) {
-            // alert 제거하고 오류만 발생시킴
-            throw new Error('이미지 URL을 받지 못했습니다.');
+
+          let cleanUrl = moderationResult.data.url;
+          const extension = cleanUrl.split('.').pop()?.toLowerCase();
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension?.startsWith(ext))) {
+            const endIdx = cleanUrl.lastIndexOf('.' + extension) + extension.length + 1;
+            cleanUrl = cleanUrl.substring(0, endIdx);
           }
-          
-          // URL에 붙어있는 불필요한 텍스트 제거
-          let cleanUrl = imageData.url;
-          if (cleanUrl.includes('링크그대로만뜨고') || cleanUrl.includes('이미지가 안뜨')) {
-            const urlParts = cleanUrl.split('.');
-            const extension = urlParts[urlParts.length - 1].toLowerCase();
-            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension.startsWith(ext))) {
-              const extensionEndIndex = cleanUrl.lastIndexOf('.' + extension) + extension.length + 1;
-              cleanUrl = cleanUrl.substring(0, extensionEndIndex);
-              console.log('수정된 URL:', cleanUrl);
-            }
-          }
-          
-          // URL 검증
-          if (!isValidImageUrl(cleanUrl)) {
-            console.error('유효하지 않은 이미지 URL:', cleanUrl);
-            throw new Error('유효하지 않은 이미지 URL입니다.');
-          }
-          
-          // 콜백으로 URL 전달 - 이미지 삽입
+
+          if (!isValidImageUrl(cleanUrl)) throw new Error('유효하지 않은 이미지 URL');
+
           callback(cleanUrl, '검열 통과된 이미지');
-          console.log('이미지 업로드 및 검열 성공:', cleanUrl);
           return true;
-        } catch (error: any) {
-          console.error('클립보드 이미지 업로드 및 검열 오류:', error);
-          // alert 제거 - 오류만 발생시킴
-          throw error; // 오류를 위로 전파하여 상위 핸들러에서 처리하도록 함
+        } catch (error) {
+          console.error('이미지 업로드 검열 오류:', error);
+          throw error;
         }
       }
-      
-      // 버튼을 통한 업로드인 경우 커스텀 핸들러 호출
-      if (handleImageUpload) {
-        handleImageUpload();
-      }
-    } catch (error: any) {
+
+      if (handleImageUpload) handleImageUpload();
+    } catch (error) {
       console.error('이미지 업로드 오류:', error);
-      // alert 제거 - 오류 로그만 출력
     } finally {
-      // 이미지 업로드 처리 완료 표시
-      // 오류 발생 시에도 플래그를 유지하여 파일 업로드 창이 뜨지 않도록 처리
-      // 플래그는 위에서 설정한 타이머에 의해 자동으로 초기화됨
-      
-      // 검열 완료 표시를 위한 이벤트 발생
-      const imageValidatingEvent = new CustomEvent('imageValidating', { detail: { validating: false } });
-      document.dispatchEvent(imageValidatingEvent);
+      document.dispatchEvent(new CustomEvent('imageValidating', { detail: { validating: false } }));
     }
-    // 실제 업로드는 handleImageUpload에서 처리하므로 여기서는 취소
-    // 부적절한 이미지 감지 시 파일 업로드 창이 뜨지 않도록 처리
-    if (isHandlingImageUpload.current) {
-      return true; // 이미 처리중인 경우 기본 업로드 창 방지
-    }
+
+    if (isHandlingImageUpload.current) return true;
     return false;
   };
 
@@ -216,9 +153,7 @@ const TuiEditor = forwardRef(({
       usageStatistics={false}
       onChange={handleChange}
       theme="dark"
-      hooks={{
-        addImageBlobHook: onUploadImage
-      }}
+      hooks={{ addImageBlobHook: onUploadImage }}
       toolbarItems={[
         ['heading', 'bold', 'italic', 'strike'],
         ['hr', 'quote'],
