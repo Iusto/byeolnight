@@ -103,7 +103,6 @@
     "review": "후기",
     "free": "자유",
     "notice": "공지",
-    "star_cinema": "별빛 시네마",
     "suggestions": "건의게시판",
     "board": "게시판",
     "loading": "로딩 중...",
@@ -152,10 +151,7 @@
     "curation_content": "큐레이션 내용: 우주 다큐멘터리, 천체 관측 영상, NASA 공식 영상, 우주 과학 교육 컨텐츠",
     "ai_summary": "AI 요약: 각 영상마다 GPT가 생성한 한국어 요약 제공",
     "cinema_warning": "주의: 별빛 시네마는 AI 봇 전용 게시판입니다.",
-    "today_topic_preparing": "오늘의 토론 주제가 준비 중입니다.",
-    "auto_topic_selection": "자동 토론 주제 선정",
     "discussion_auto_detail": "AI가 매일 오전 8시 5분에 흥미로운 토론 주제를 자동 선정합니다.",
-    "notice_board": "공지사항",
     "today_discussion": "오늘의 토론",
     "ai_generated_topic": "AI 생성 주제",
     "join_discussion": "토론 참여",
@@ -202,5 +198,8 @@
     "share_space_experiences": "우주 관련 경험과 후기를 나눠주세요",
     "share_free_space_stories": "우주에 대한 자유로운 이야기를 나눠보세요",
     "check_important_notices": "중요한 공지사항을 확인하세요"
+  },
+  "suggestion": {
+    
   }
 }
