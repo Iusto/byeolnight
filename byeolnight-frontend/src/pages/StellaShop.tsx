@@ -16,12 +16,15 @@ export default function StellaShop() {
   const grades = ['ALL', 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
 
   useEffect(() => {
-    fetchIcons();
-    if (user) {
-      fetchOwnedIcons();
-    } else {
+    const fetchAll = async () => {
+      await fetchIcons();
+      if (user) {
+        await fetchOwnedIcons();
+      }
       setLoading(false);
-    }
+    };
+
+    fetchAll();
   }, [user]);
 
   const fetchIcons = async () => {
@@ -36,8 +39,6 @@ export default function StellaShop() {
     } catch (err) {
       console.error('아이콘 목록 조회 실패:', err);
       setIcons(stellaIcons);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -49,8 +50,6 @@ export default function StellaShop() {
       }
     } catch (err) {
       console.error('보유 아이콘 조회 실패:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
