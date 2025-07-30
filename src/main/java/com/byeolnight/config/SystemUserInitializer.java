@@ -4,6 +4,7 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.shop.StellaIconRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.infrastructure.security.EncryptionUtil;
+import com.byeolnight.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,7 @@ public class SystemUserInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EncryptionUtil encryptionUtil;
-    private final com.byeolnight.service.user.UserService userService;
+    private final UserService userService;
     private final StellaIconRepository stellaIconRepository;
 
     @Value("${system.password.newsbot}")
