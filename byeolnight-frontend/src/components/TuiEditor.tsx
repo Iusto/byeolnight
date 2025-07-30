@@ -8,7 +8,6 @@ import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../styles/tui-editor.css';
 import { uploadImage } from '../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
-import { updateTuiPlaceholder } from '../utils/updateTuiPlaceholder';
 
 // 이미지 URL 정규식 (업로드 후 유효성 검사용)
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
@@ -58,14 +57,6 @@ const TuiEditor = forwardRef(({
       instance.setMarkdown(value);
     }
   }, [value]);
-
-  // 언어 변경 시 placeholder 실시간 반영
-  useEffect(() => {
-    const instance = editorRef.current?.getInstance();
-    if (instance) {
-      updateTuiPlaceholder(instance, t('home.content_placeholder'));
-    }
-  }, [i18n.language]);
 
   // 마크다운 변경 시 외부 콜백 호출
   const handleChange = () => {
