@@ -4,6 +4,7 @@ import '@toast-ui/editor/dist/toastui-editor.css';
 import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../styles/tui-editor.css';
 import { uploadImage } from '../lib/s3Upload';
+import { useTranslation } from 'react-i18next';
 
 // 이미지 URL 정규식
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
@@ -26,12 +27,16 @@ interface TuiEditorProps {
 
 const TuiEditor = forwardRef(({ 
   value, 
-  onChange, 
-  placeholder = "Enter content...", 
+  onChange,
+  placeholder,
   height = "500px",
   handleImageUpload 
 }: TuiEditorProps, ref) => {
+  // 다국어 지원 UI
+  const { t, i18n } = useTranslation();
+
   const editorRef = useRef<any>(null);
+  const effectivePlaceholder = placeholder ?? t('home.content_placeholder');
 
   // 외부에서 ref를 통해 에디터에 접근할 수 있도록 설정
   useImperativeHandle(ref, () => ({
@@ -52,13 +57,25 @@ const TuiEditor = forwardRef(({
     }
   }));
 
-  // 초기 값 설정
+  // 1. 내용 반영
   useEffect(() => {
     const instance = editorRef.current?.getInstance();
     if (instance && value !== instance.getMarkdown()) {
       instance.setMarkdown(value);
     }
   }, [value]);
+
+  // 2. placeholder 다국어 반영
+  useEffect(() => {
+    const editorEl = editorRef.current?.getInstance()?.root;
+    if (editorEl) {
+      const placeholderEl = editorEl.querySelector('.toastui-editor-ww-container .toastui-editor-placeholder');
+      if (placeholderEl) {
+        placeholderEl.textContent = t('home.content_placeholder');
+      }
+    }
+  }, [i18n.language]);
+
 
   // 에디터 변경 이벤트 핸들러
   const handleChange = () => {
@@ -191,7 +208,7 @@ const TuiEditor = forwardRef(({
     <Editor
       ref={editorRef}
       initialValue={value || ''}
-      placeholder={placeholder}
+      placeholder={effectivePlaceholder}
       previewStyle="vertical"
       height={height}
       initialEditType="wysiwyg"
