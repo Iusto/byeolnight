@@ -26,6 +26,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
     - name: 백엔드 빌드
       run: ./gradlew build -x test
 
@@ -37,7 +40,7 @@ jobs:
     - name: 프론트엔드 빌드
       working-directory: ./byeolnight-frontend
       run: |
-        npm ci
+        npm ci --legacy-peer-deps
         npm run build
 
     - name: CodeQL 분석 실행
@@ -57,6 +60,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
     - name: Gradle 의존성 취약점 검사
       run: ./gradlew dependencyCheckAnalyze
 
@@ -68,5 +74,5 @@ jobs:
     - name: npm audit 실행
       working-directory: ./byeolnight-frontend
       run: |
-        npm ci
+        npm ci --legacy-peer-deps
         npm audit --audit-level=moderate
