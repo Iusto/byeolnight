@@ -8,18 +8,22 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-    show-sql: true
-  
+        format_sql: true
+        
   h2:
     console:
       enabled: true
 
-# JWT 설정 (테스트용)
-app:
-  jwt:
-    secret: testSecretKeyForJwtTokenTesting123456789
-    access-token-validity: 30m
-    refresh-token-validity: 7d
+jwt:
+  secret: testSecretKeyForJwtTokenTesting123456789012345678901234567890
+  access-token-validity: 30m
+  refresh-token-validity: 7d
+  allowed-clock-skew: 30s
+
+logging:
+  level:
+    com.byeolnight: DEBUG
+    org.springframework.security: DEBUG
