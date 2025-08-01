@@ -1,0 +1,72 @@
+name: 코드 품질 검사
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  security-scan:
+    name: 보안 취약점 스캔
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: CodeQL 초기화
+      uses: github/codeql-action/init@v3
+      with:
+        languages: java, javascript
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: 백엔드 빌드
+      run: ./gradlew build -x test
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: 프론트엔드 빌드
+      working-directory: ./byeolnight-frontend
+      run: |
+        npm ci
+        npm run build
+
+    - name: CodeQL 분석 실행
+      uses: github/codeql-action/analyze@v3
+
+  dependency-check:
+    name: 의존성 보안 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Gradle 의존성 취약점 검사
+      run: ./gradlew dependencyCheckAnalyze
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: npm audit 실행
+      working-directory: ./byeolnight-frontend
+      run: |
+        npm ci
+        npm audit --audit-level=moderate
