@@ -66,6 +66,9 @@ jobs:
         echo "REDIS_PORT=6379" >> $GITHUB_ENV
         echo "JWT_SECRET=test-secret-key-for-github-actions" >> $GITHUB_ENV
 
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
     - name: 테스트 실행
       run: ./gradlew test --info
 
@@ -93,7 +96,7 @@ jobs:
 
     - name: 의존성 설치
       working-directory: ./byeolnight-frontend
-      run: npm ci
+      run: npm ci --legacy-peer-deps
 
     - name: 린트 검사
       working-directory: ./byeolnight-frontend

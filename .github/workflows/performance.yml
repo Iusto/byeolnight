@@ -133,6 +133,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
     - name: 성능 테스트 실행
       run: |
         # 실제 성능 테스트는 별도 프로파일로 실행
