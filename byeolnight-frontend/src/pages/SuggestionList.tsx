@@ -1,23 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { getSuggestions } from '../lib/api/suggestion';
 import type { Suggestion, SuggestionCategory, SuggestionStatus } from '../types/suggestion';
 
-const CATEGORIES = {
-  FEATURE: '기능 개선',
-  BUG: '버그 신고',
-  UI_UX: 'UI/UX 개선',
-  CONTENT: '콘텐츠 관련',
-  OTHER: '기타'
-} as const;
+// 다국어 지원을 위해 함수로 변경
+  const getCategories = () => ({
+    FEATURE: t('suggestion.categories.FEATURE'),
+    BUG: t('suggestion.categories.BUG'),
+    UI_UX: t('suggestion.categories.UI_UX'),
+    CONTENT: t('suggestion.categories.CONTENT'),
+    OTHER: t('suggestion.categories.OTHER')
+  });
 
-const STATUS = {
-  PENDING: '검토 중',
-  IN_PROGRESS: '진행 중',
-  COMPLETED: '완료',
-  REJECTED: '거절'
-} as const;
+  const getStatuses = () => ({
+    PENDING: t('suggestion.statuses.PENDING'),
+    IN_PROGRESS: t('suggestion.statuses.IN_PROGRESS'),
+    COMPLETED: t('suggestion.statuses.COMPLETED'),
+    REJECTED: t('suggestion.statuses.REJECTED')
+  });
 
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
@@ -36,6 +38,7 @@ const CATEGORY_COLORS = {
 
 export default function SuggestionList() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<SuggestionCategory | 'ALL'>('ALL');
@@ -72,7 +75,7 @@ export default function SuggestionList() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
-        <div className="text-white text-xl">로딩 중...</div>
+        <div className="text-white text-xl">{t('suggestion.loading')}</div>
       </div>
     );
   }
@@ -83,8 +86,8 @@ export default function SuggestionList() {
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">💡 건의게시판</h1>
-            <p className="text-gray-300">서비스 개선을 위한 여러분의 소중한 의견을 들려주세요</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{t('suggestion.title')}</h1>
+            <p className="text-gray-300">{t('suggestion.subtitle')}</p>
           </div>
           
           {user && (
@@ -92,7 +95,7 @@ export default function SuggestionList() {
               to="/suggestions/new"
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
-              ✍️ 건의하기
+              {t('suggestion.write_suggestion')}
             </Link>
           )}
         </div>
@@ -102,7 +105,7 @@ export default function SuggestionList() {
           <div className="flex flex-wrap gap-4">
             {/* 카테고리 필터 */}
             <div className="flex flex-wrap gap-2">
-              <span className="text-gray-300 font-medium">카테고리:</span>
+              <span className="text-gray-300 font-medium">{t('suggestion.category')}:</span>
               <button
                 onClick={() => setSelectedCategory('ALL')}
                 className={`px-3 py-1 rounded-full text-sm transition-all ${
@@ -111,9 +114,9 @@ export default function SuggestionList() {
                     : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50'
                 }`}
               >
-                전체
+                {t('suggestion.all')}
               </button>
-              {Object.entries(CATEGORIES).map(([key, label]) => (
+              {Object.entries(getCategories()).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setSelectedCategory(key as SuggestionCategory)}
@@ -130,7 +133,7 @@ export default function SuggestionList() {
 
             {/* 상태 필터 */}
             <div className="flex flex-wrap gap-2">
-              <span className="text-gray-300 font-medium">상태:</span>
+              <span className="text-gray-300 font-medium">{t('suggestion.status')}:</span>
               <button
                 onClick={() => setSelectedStatus('ALL')}
                 className={`px-3 py-1 rounded-full text-sm transition-all ${
@@ -139,9 +142,9 @@ export default function SuggestionList() {
                     : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50'
                 }`}
               >
-                전체
+                {t('suggestion.all')}
               </button>
-              {Object.entries(STATUS).map(([key, label]) => (
+              {Object.entries(getStatuses()).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setSelectedStatus(key as SuggestionStatus)}
@@ -163,18 +166,21 @@ export default function SuggestionList() {
           {filteredSuggestions.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📝</div>
-              <p className="text-gray-400 text-lg">아직 건의사항이 없습니다.</p>
+              <p className="text-gray-400 text-lg">{t('suggestion.no_suggestions')}</p>
               {user && (
                 <Link
                   to="/suggestions/new"
                   className="inline-block mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
                 >
-                  첫 번째 건의사항 작성하기
+                  {t('suggestion.write_first_suggestion')}
                 </Link>
               )}
             </div>
           ) : (
-            filteredSuggestions.map((suggestion) => (
+            filteredSuggestions.map((suggestion) => {
+              const categories = getCategories();
+              const statuses = getStatuses();
+              return (
               <div
                 key={suggestion.id}
                 className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-200 hover:shadow-lg"
@@ -183,14 +189,14 @@ export default function SuggestionList() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
-                        {CATEGORIES[suggestion.category]}
+                        {categories[suggestion.category]}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[suggestion.status]}`}>
-                        {STATUS[suggestion.status]}
+                        {statuses[suggestion.status]}
                       </span>
                       {!suggestion.isPublic && (
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
-                          🔒 비공개
+                          {t('suggestion.private')}
                         </span>
                       )}
                     </div>
@@ -204,14 +210,14 @@ export default function SuggestionList() {
                             : 'text-gray-500'
                         }`}
                       >
-                        {suggestion.isPublic ? suggestion.title : '비공개 건의사항입니다'}
+                        {suggestion.isPublic ? suggestion.title : t('suggestion.private_suggestion')}
                       </Link>
                     ) : (
                       <span
                         className="text-xl font-bold text-gray-500 cursor-not-allowed opacity-60 select-none"
-                        title="비공개 건의사항은 관리자만 볼 수 있습니다."
+                        title={t('suggestion.private_suggestion_tooltip')}
                       >
-                        비공개 건의사항입니다
+                        {t('suggestion.private_suggestion')}
                       </span>
                     )}
                   </div>
@@ -219,19 +225,19 @@ export default function SuggestionList() {
 
                 <div className="flex justify-between items-center text-sm text-gray-400">
                   <div className="flex items-center gap-4">
-                    <span>작성자: {suggestion.authorNickname}</span>
-                    <span>{new Date(suggestion.createdAt).toLocaleDateString('ko-KR')}</span>
+                    <span>{t('suggestion.author')} {suggestion.authorNickname}</span>
+                    <span>{new Date(suggestion.createdAt).toLocaleDateString()}</span>
                   </div>
                   
                   {suggestion.adminResponse && (
                     <div className="flex items-center gap-1 text-green-400">
                       <span>✅</span>
-                      <span>관리자 답변 완료</span>
+                      <span>{t('suggestion.admin_response_completed')}</span>
                     </div>
                   )}
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
       </div>

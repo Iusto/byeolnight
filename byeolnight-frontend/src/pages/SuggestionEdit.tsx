@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import axios from '../lib/axios';
 
@@ -7,6 +8,7 @@ export default function SuggestionEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('FEATURE');
@@ -14,13 +16,13 @@ export default function SuggestionEdit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  const CATEGORIES = {
-    FEATURE: '기능 개선',
-    BUG: '버그 신고',
-    UI_UX: 'UI/UX 개선',
-    CONTENT: '콘텐츠 관련',
-    OTHER: '기타'
-  } as const;
+  const getCategories = () => ({
+    FEATURE: t('suggestion.categories.FEATURE'),
+    BUG: t('suggestion.categories.BUG'),
+    UI_UX: t('suggestion.categories.UI_UX'),
+    CONTENT: t('suggestion.categories.CONTENT'),
+    OTHER: t('suggestion.categories.OTHER')
+  });
 
   useEffect(() => {
     if (!user) {
@@ -42,7 +44,7 @@ export default function SuggestionEdit() {
       
       // 작성자만 수정 가능
       if (suggestion.authorNickname !== user?.nickname) {
-        setError('수정 권한이 없습니다.');
+        setError(t('suggestion.no_edit_permission'));
         return;
       }
       
@@ -52,7 +54,7 @@ export default function SuggestionEdit() {
       setIsPublic(suggestion.isPublic);
     } catch (error) {
       console.error('건의사항 조회 실패:', error);
-      setError('건의사항을 불러올 수 없습니다.');
+      setError(t('suggestion.cannot_load'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ export default function SuggestionEdit() {
     e.preventDefault();
     
     if (!title.trim() || !content.trim()) {
-      setError('제목과 내용을 모두 입력해주세요.');
+      setError(t('suggestion.validation_error'));
       return;
     }
 
@@ -76,7 +78,7 @@ export default function SuggestionEdit() {
       
       navigate(`/suggestions/${id}`);
     } catch (error: any) {
-      const msg = error?.response?.data?.message || '수정에 실패했습니다.';
+      const msg = error?.response?.data?.message || t('suggestion.edit_failed');
       setError(msg);
     }
   };
@@ -84,7 +86,7 @@ export default function SuggestionEdit() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-lg">로딩 중...</div>
+        <div className="text-white text-lg">{t('suggestion.loading')}</div>
       </div>
     );
   }
@@ -98,7 +100,7 @@ export default function SuggestionEdit() {
             onClick={() => navigate('/suggestions')}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
           >
-            목록으로 돌아가기
+            {t('suggestion.back_to_list')}
           </button>
         </div>
       </div>
@@ -115,9 +117,9 @@ export default function SuggestionEdit() {
               ✏️
             </div>
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
-              건의사항 수정
+              {t('suggestion.edit_title')}
             </h1>
-            <p className="text-xl text-gray-300">소중한 의견을 수정해주세요</p>
+            <p className="text-xl text-gray-300">{t('suggestion.edit_subtitle')}</p>
           </div>
         </div>
       </div>
@@ -127,9 +129,9 @@ export default function SuggestionEdit() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 카테고리 선택 */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">카테고리</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('suggestion.category')}</label>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {Object.entries(CATEGORIES).map(([key, label]) => (
+                {Object.entries(getCategories()).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"
@@ -147,23 +149,23 @@ export default function SuggestionEdit() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">제목</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('suggestion.title_label')}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="제목을 입력하세요..."
+                placeholder={t('suggestion.title_placeholder')}
                 required
                 className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">내용</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('suggestion.content_label')}</label>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="건의사항을 자세히 작성해주세요..."
+                placeholder={t('suggestion.content_placeholder')}
                 required
                 rows={10}
                 className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 resize-none"
@@ -179,7 +181,7 @@ export default function SuggestionEdit() {
                 className="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
               />
               <label htmlFor="isPublic" className="text-sm text-gray-300">
-                공개 건의사항 (체크 해제 시 관리자만 볼 수 있습니다)
+                {t('suggestion.public_setting')}
               </label>
             </div>
 
@@ -195,13 +197,13 @@ export default function SuggestionEdit() {
                 onClick={() => navigate(`/suggestions/${id}`)}
                 className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-4 rounded-xl transition-all duration-200"
               >
-                취소
+                {t('suggestion.cancel')}
               </button>
               <button
                 type="submit"
                 className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
               >
-                ✏️ 수정 완료
+                ✏️ {t('suggestion.edit_complete')}
               </button>
             </div>
           </form>

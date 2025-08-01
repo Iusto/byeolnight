@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { createSuggestion } from '../lib/api/suggestion';
 import type { SuggestionCategory } from '../types/suggestion';
 
-const CATEGORIES = {
-  FEATURE: '기능 개선',
-  BUG: '버그 신고',
-  UI_UX: 'UI/UX 개선',
-  CONTENT: '콘텐츠 관련',
-  OTHER: '기타'
-} as const;
-
 export default function SuggestionCreate() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  
+  const getCategories = () => ({
+    FEATURE: t('suggestion.categories.FEATURE'),
+    BUG: t('suggestion.categories.BUG'),
+    UI_UX: t('suggestion.categories.UI_UX'),
+    CONTENT: t('suggestion.categories.CONTENT'),
+    OTHER: t('suggestion.categories.OTHER')
+  });
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -33,7 +35,7 @@ export default function SuggestionCreate() {
     e.preventDefault();
     
     if (!formData.title.trim() || !formData.content.trim()) {
-      alert('제목과 내용을 모두 입력해주세요.');
+      alert(t('suggestion.validation_error'));
       return;
     }
 
@@ -41,12 +43,12 @@ export default function SuggestionCreate() {
     
     try {
       await createSuggestion(formData);
-      alert('건의사항이 성공적으로 제출되었습니다!');
+      alert(t('suggestion.submit_success'));
       navigate('/suggestions');
       
     } catch (error: any) {
       console.error('건의사항 제출 실패:', error);
-      const errorMessage = error.response?.data?.message || '건의사항 제출에 실패했습니다. 다시 시도해주세요.';
+      const errorMessage = error.response?.data?.message || t('suggestion.submit_failed');
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -58,8 +60,8 @@ export default function SuggestionCreate() {
       <div className="max-w-4xl mx-auto px-6">
         {/* 헤더 */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">✍️ 건의사항 작성</h1>
-          <p className="text-gray-300">서비스 개선을 위한 소중한 의견을 들려주세요</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('suggestion.create_title')}</h1>
+          <p className="text-gray-300">{t('suggestion.create_subtitle')}</p>
         </div>
 
         {/* 작성 폼 */}
@@ -67,9 +69,9 @@ export default function SuggestionCreate() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 카테고리 선택 */}
             <div>
-              <label className="block text-white font-medium mb-3">카테고리</label>
+              <label className="block text-white font-medium mb-3">{t('suggestion.category')}</label>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {Object.entries(CATEGORIES).map(([key, label]) => (
+                {Object.entries(getCategories()).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"
@@ -89,14 +91,14 @@ export default function SuggestionCreate() {
             {/* 제목 입력 */}
             <div>
               <label htmlFor="title" className="block text-white font-medium mb-3">
-                제목 <span className="text-red-400">*</span>
+                {t('suggestion.title_label')} <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="건의사항의 제목을 입력해주세요"
+                placeholder={t('suggestion.title_placeholder')}
                 className="w-full px-4 py-3 bg-[#2a2e45]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
                 maxLength={100}
                 required
@@ -109,13 +111,13 @@ export default function SuggestionCreate() {
             {/* 내용 입력 */}
             <div>
               <label htmlFor="content" className="block text-white font-medium mb-3">
-                내용 <span className="text-red-400">*</span>
+                {t('suggestion.content_label')} <span className="text-red-400">*</span>
               </label>
               <textarea
                 id="content"
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="건의사항의 상세 내용을 입력해주세요&#10;&#10;• 구체적인 상황이나 문제점을 설명해주세요&#10;• 개선 방안이 있다면 함께 제안해주세요&#10;• 스크린샷이나 예시가 있다면 더욱 도움이 됩니다"
+                placeholder={t('suggestion.content_placeholder')}
                 className="w-full px-4 py-3 bg-[#2a2e45]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all resize-none"
                 rows={12}
                 maxLength={2000}
@@ -136,7 +138,7 @@ export default function SuggestionCreate() {
                 className="w-4 h-4 text-purple-600 bg-[#2a2e45]/60 border border-purple-500/30 rounded focus:ring-purple-400 focus:ring-2"
               />
               <label htmlFor="isPublic" className="text-white text-sm">
-                공개 건의사항 (체크 해제 시 관리자만 볼 수 있습니다)
+                {t('suggestion.public_setting')}
               </label>
             </div>
 
@@ -145,12 +147,11 @@ export default function SuggestionCreate() {
               <div className="flex items-start gap-3">
                 <span className="text-blue-400 text-xl">💡</span>
                 <div className="text-blue-300 text-sm">
-                  <p className="font-medium mb-2">건의사항 작성 가이드</p>
+                  <p className="font-medium mb-2">{t('suggestion.guide_title')}</p>
                   <ul className="space-y-1 text-blue-200">
-                    <li>• 구체적이고 명확한 내용으로 작성해주세요</li>
-                    <li>• 비슷한 건의사항이 있는지 먼저 확인해주세요</li>
-                    <li>• 관리자가 검토 후 답변을 드립니다</li>
-                    <li>• 부적절한 내용은 삭제될 수 있습니다</li>
+                    {t('suggestion.guide_items', { returnObjects: true }).map((item: string, index: number) => (
+                      <li key={index}>• {item}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -164,14 +165,14 @@ export default function SuggestionCreate() {
                 className="flex-1 px-6 py-3 bg-gray-600/30 hover:bg-gray-600/50 text-gray-300 font-medium rounded-lg transition-all duration-200"
                 disabled={loading}
               >
-                취소
+                {t('suggestion.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading || !formData.title.trim() || !formData.content.trim()}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
               >
-                {loading ? '제출 중...' : '건의사항 제출'}
+                {loading ? t('suggestion.submitting') : t('suggestion.submit')}
               </button>
             </div>
           </form>

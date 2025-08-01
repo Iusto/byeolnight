@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,6 +16,7 @@ interface Certificate {
 
 export default function Certificates() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [representative, setRepresentative] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,9 +53,9 @@ export default function Certificates() {
       await axios.put(`/member/certificates/representative/${certificateType}`);
       fetchRepresentative();
       fetchCertificates();
-      alert('대표 인증서가 설정되었습니다!');
+      alert(t('certificates.set_representative_success'));
     } catch (err) {
-      alert('대표 인증서 설정에 실패했습니다.');
+      alert(t('certificates.set_representative_failed'));
     }
   };
 
@@ -64,7 +66,7 @@ export default function Certificates() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white flex items-center justify-center">
-        <p>로그인이 필요합니다.</p>
+        <p>{t('certificates.login_required')}</p>
       </div>
     );
   }
@@ -72,7 +74,7 @@ export default function Certificates() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white flex items-center justify-center">
-        <p>🌠 로딩 중...</p>
+        <p>{t('certificates.loading')}</p>
       </div>
     );
   }
@@ -81,18 +83,18 @@ export default function Certificates() {
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold mb-8 text-center text-white drop-shadow-glow">
-          🏆 우주 인증서 보관함
+          {t('certificates.title')}
         </h1>
 
         {/* 대표 인증서 */}
         {representative && (
           <div className="mb-12 text-center">
-            <h2 className="text-2xl font-semibold mb-4 text-purple-300">✨ 대표 인증서</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-purple-300">{t('certificates.representative_title')}</h2>
             <div className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-xl shadow-2xl">
               <div className="text-6xl mb-4">{representative.icon}</div>
               <h3 className="text-2xl font-bold mb-2">{representative.name}</h3>
               <p className="text-sm text-gray-200">{representative.description}</p>
-              <p className="text-xs text-gray-300 mt-2">발급일: {formatDate(representative.issuedAt)}</p>
+              <p className="text-xs text-gray-300 mt-2">{t('certificates.issued_date')} {formatDate(representative.issuedAt)}</p>
             </div>
           </div>
         )}
@@ -102,12 +104,12 @@ export default function Certificates() {
           <div className="inline-flex items-center gap-8 bg-[#1f2336]/80 backdrop-blur-md px-8 py-4 rounded-xl">
             <div>
               <div className="text-3xl font-bold text-purple-400">{certificates.filter(c => c.owned).length}</div>
-              <div className="text-sm text-gray-300">보유 인증서</div>
+              <div className="text-sm text-gray-300">{t('certificates.owned_certificates')}</div>
             </div>
             <div className="w-px h-12 bg-gray-600"></div>
             <div>
               <div className="text-3xl font-bold text-blue-400">{certificates.length}</div>
-              <div className="text-sm text-gray-300">전체 인증서</div>
+              <div className="text-sm text-gray-300">{t('certificates.total_certificates')}</div>
             </div>
           </div>
         </div>
@@ -134,24 +136,24 @@ export default function Certificates() {
                 
                 {cert.owned ? (
                   <>
-                    <p className="text-xs text-gray-400 mb-4">발급일: {formatDate(cert.issuedAt!)}</p>
+                    <p className="text-xs text-gray-400 mb-4">{t('certificates.issued_date')} {formatDate(cert.issuedAt!)}</p>
                     {cert.isRepresentative ? (
                       <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-                        ✨ 대표 인증서
+                        {t('certificates.representative_badge')}
                       </div>
                     ) : (
                       <button
                         onClick={() => setAsRepresentative(cert.type)}
                         className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                       >
-                        대표로 설정
+                        {t('certificates.set_as_representative')}
                       </button>
                     )}
                   </>
                 ) : (
                   <>
                     <div className="bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm mb-3">
-                      획득 방법
+                      {t('certificates.how_to_get')}
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed">{cert.howToGet}</p>
                   </>
@@ -164,8 +166,8 @@ export default function Certificates() {
         {certificates.filter(c => c.owned).length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🌌</div>
-            <h3 className="text-2xl font-semibold mb-2 text-gray-300">아직 보유한 인증서가 없습니다</h3>
-            <p className="text-gray-400">다양한 활동을 통해 우주 인증서를 수집해보세요!</p>
+            <h3 className="text-2xl font-semibold mb-2 text-gray-300">{t('certificates.no_certificates_title')}</h3>
+            <p className="text-gray-400">{t('certificates.no_certificates_desc')}</p>
           </div>
         )}
       </div>

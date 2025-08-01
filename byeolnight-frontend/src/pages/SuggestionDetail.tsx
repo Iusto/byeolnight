@@ -1,24 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
 import UserIconDisplay from '../components/UserIconDisplay';
 import type { Suggestion } from '../types/suggestion';
-
-const CATEGORIES = {
-  FEATURE: '기능 개선',
-  BUG: '버그 신고',
-  UI_UX: 'UI/UX 개선',
-  CONTENT: '콘텐츠 관련',
-  OTHER: '기타'
-} as const;
-
-const STATUS = {
-  PENDING: '검토 중',
-  IN_PROGRESS: '진행 중',
-  COMPLETED: '완료',
-  REJECTED: '거절'
-} as const;
 
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
@@ -35,12 +21,26 @@ const CATEGORY_COLORS = {
   OTHER: 'bg-gray-500/20 text-gray-300'
 };
 
-
-
 export default function SuggestionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  
+  const getCategories = () => ({
+    FEATURE: t('suggestion.categories.FEATURE'),
+    BUG: t('suggestion.categories.BUG'),
+    UI_UX: t('suggestion.categories.UI_UX'),
+    CONTENT: t('suggestion.categories.CONTENT'),
+    OTHER: t('suggestion.categories.OTHER')
+  });
+
+  const getStatuses = () => ({
+    PENDING: t('suggestion.statuses.PENDING'),
+    IN_PROGRESS: t('suggestion.statuses.IN_PROGRESS'),
+    COMPLETED: t('suggestion.statuses.COMPLETED'),
+    REJECTED: t('suggestion.statuses.REJECTED')
+  });
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAdminResponse, setShowAdminResponse] = useState(false);
@@ -74,24 +74,24 @@ export default function SuggestionDetail() {
   };
 
   const handleDelete = async () => {
-    if (!suggestion || !window.confirm('정말로 삭제하시겠습니까?')) {
+    if (!suggestion || !window.confirm(t('suggestion.delete_confirm'))) {
       return;
     }
 
     try {
       await deleteSuggestion(suggestion.id);
-      alert('건의사항이 삭제되었습니다.');
+      alert(t('suggestion.delete_success'));
       navigate('/suggestions');
     } catch (error: any) {
       console.error('건의사항 삭제 실패:', error);
-      const errorMessage = error.response?.data?.message || '건의사항 삭제에 실패했습니다.';
+      const errorMessage = error.response?.data?.message || t('suggestion.delete_failed');
       alert(errorMessage);
     }
   };
 
   const handleAdminResponse = async () => {
     if (!adminResponse.trim()) {
-      alert('답변 내용을 입력해주세요.');
+      alert(t('suggestion.response_required'));
       return;
     }
 
@@ -101,13 +101,13 @@ export default function SuggestionDetail() {
         response: adminResponse,
         status: responseStatus
       });
-      alert('관리자 답변이 등록되었습니다.');
+      alert(t('suggestion.response_success'));
       setShowAdminResponse(false);
       setAdminResponse('');
       fetchSuggestion(); // 새로고침
     } catch (error: any) {
       console.error('관리자 답변 등록 실패:', error);
-      const errorMessage = error.response?.data?.message || '답변 등록에 실패했습니다.';
+      const errorMessage = error.response?.data?.message || t('suggestion.response_failed');
       alert(errorMessage);
     } finally {
       setSubmitting(false);
@@ -119,18 +119,18 @@ export default function SuggestionDetail() {
 
     try {
       await updateSuggestionStatus(Number(id), newStatus);
-      alert('상태가 변경되었습니다.');
+      alert(t('suggestion.status_change_success'));
       fetchSuggestion(); // 새로고침
     } catch (error: any) {
       console.error('상태 변경 실패:', error);
-      const errorMessage = error.response?.data?.message || '상태 변경에 실패했습니다.';
+      const errorMessage = error.response?.data?.message || t('suggestion.status_change_failed');
       alert(errorMessage);
     }
   };
 
   const handleEditResponse = async () => {
     if (!editResponse.trim()) {
-      alert('답변 내용을 입력해주세요.');
+      alert(t('suggestion.response_required'));
       return;
     }
 
@@ -140,13 +140,13 @@ export default function SuggestionDetail() {
         response: editResponse,
         status: editStatus
       });
-      alert('관리자 답변이 수정되었습니다.');
+      alert(t('suggestion.response_edit_success'));
       setEditingResponse(false);
       setEditResponse('');
       fetchSuggestion(); // 새로고침
     } catch (error: any) {
       console.error('관리자 답변 수정 실패:', error);
-      const errorMessage = error.response?.data?.message || '답변 수정에 실패했습니다.';
+      const errorMessage = error.response?.data?.message || t('suggestion.response_edit_failed');
       alert(errorMessage);
     } finally {
       setSubmitting(false);
@@ -164,7 +164,7 @@ export default function SuggestionDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
-        <div className="text-white text-xl">로딩 중...</div>
+        <div className="text-white text-xl">{t('suggestion.loading')}</div>
       </div>
     );
   }
@@ -174,12 +174,12 @@ export default function SuggestionDetail() {
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🔐</div>
-          <p className="text-gray-400 text-lg mb-4">이 건의사항을 보려면 로그인이 필요합니다.</p>
+          <p className="text-gray-400 text-lg mb-4">{t('suggestion.login_required')}</p>
           <Link
             to="/login"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
-            로그인하러 가기
+            {t('suggestion.go_to_login')}
           </Link>
         </div>
       </div>
@@ -191,12 +191,12 @@ export default function SuggestionDetail() {
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
-          <p className="text-gray-400 text-lg mb-4">건의사항을 찾을 수 없습니다.</p>
+          <p className="text-gray-400 text-lg mb-4">{t('suggestion.not_found')}</p>
           <Link
             to="/suggestions"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
-            목록으로 돌아가기
+            {t('suggestion.back_to_list')}
           </Link>
         </div>
       </div>
@@ -209,12 +209,12 @@ export default function SuggestionDetail() {
       <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🔒</div>
-          <p className="text-gray-400 text-lg mb-4">비공개 건의사항입니다.</p>
+          <p className="text-gray-400 text-lg mb-4">{t('suggestion.private_access_denied')}</p>
           <Link
             to="/suggestions"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
-            목록으로 돌아가기
+            {t('suggestion.back_to_list')}
           </Link>
         </div>
       </div>
@@ -231,7 +231,7 @@ export default function SuggestionDetail() {
             className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 transition-colors"
           >
             <span>←</span>
-            <span>목록으로 돌아가기</span>
+            <span>{t('suggestion.back_to_list')}</span>
           </Link>
         </div>
 
@@ -243,14 +243,14 @@ export default function SuggestionDetail() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
-                    {CATEGORIES[suggestion.category]}
+                    {getCategories()[suggestion.category]}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${STATUS_COLORS[suggestion.status]}`}>
-                    {STATUS[suggestion.status]}
+                    {getStatuses()[suggestion.status]}
                   </span>
                   {!suggestion.isPublic && (
                     <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
-                      🔒 비공개
+                      {t('suggestion.private')}
                     </span>
                   )}
                 </div>
@@ -292,18 +292,18 @@ export default function SuggestionDetail() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-green-400">✅</span>
-                    <span className="text-green-300 font-medium">관리자 답변</span>
+                    <span className="text-green-300 font-medium">{t('suggestion.admin_response')}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-sm text-green-400">
-                      {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleString('ko-KR')}
+                      {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleString()}
                     </div>
                     {user && user.role === 'ADMIN' && (
                       <button
                         onClick={startEditResponse}
                         className="text-sm px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 rounded transition-all"
                       >
-                        수정
+                        {t('suggestion.modify_response')}
                       </button>
                     )}
                   </div>
@@ -321,23 +321,23 @@ export default function SuggestionDetail() {
           {editingResponse && (
             <div className="mx-8 mb-8 bg-green-500/10 border border-green-500/30 rounded-lg p-6">
               <div className="mb-4">
-                <label className="block text-green-300 font-medium mb-2">답변 상태</label>
+                <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_status')}</label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value as 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
                   className="w-full px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white focus:outline-none focus:border-green-400"
                 >
-                  <option value="IN_PROGRESS">진행 중</option>
-                  <option value="COMPLETED">완료</option>
-                  <option value="REJECTED">거절</option>
+                  <option value="IN_PROGRESS">{t('suggestion.statuses.IN_PROGRESS')}</option>
+                  <option value="COMPLETED">{t('suggestion.statuses.COMPLETED')}</option>
+                  <option value="REJECTED">{t('suggestion.statuses.REJECTED')}</option>
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block text-green-300 font-medium mb-2">답변 내용</label>
+                <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_content')}</label>
                 <textarea
                   value={editResponse}
                   onChange={(e) => setEditResponse(e.target.value)}
-                  placeholder="건의사항에 대한 답변을 작성해주세요..."
+                  placeholder={t('suggestion.response_placeholder')}
                   className="w-full h-32 px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-400 resize-none"
                 />
               </div>
@@ -347,7 +347,7 @@ export default function SuggestionDetail() {
                   disabled={submitting}
                   className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white rounded-lg transition-all font-medium"
                 >
-                  {submitting ? '수정 중...' : '수정 완료'}
+                  {submitting ? t('suggestion.modifying') : t('suggestion.modify_complete')}
                 </button>
                 <button
                   onClick={() => {
@@ -356,7 +356,7 @@ export default function SuggestionDetail() {
                   }}
                   className="px-6 py-2 bg-gray-600/20 hover:bg-gray-600/40 text-gray-300 border border-gray-500/30 rounded-lg transition-all"
                 >
-                  취소
+                  {t('suggestion.cancel')}
                 </button>
               </div>
             </div>
@@ -367,16 +367,16 @@ export default function SuggestionDetail() {
             <div className="mx-8 mb-8">
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                 <div className="flex items-center gap-4">
-                  <label className="text-blue-300 font-medium">상태 변경:</label>
+                  <label className="text-blue-300 font-medium">{t('suggestion.change_status')}</label>
                   <select
                     value={suggestion.status}
                     onChange={(e) => handleStatusChange(e.target.value as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
                     className="px-3 py-2 bg-[#1f2336] border border-blue-500/30 rounded-lg text-white focus:outline-none focus:border-blue-400"
                   >
-                    <option value="PENDING">검토 중</option>
-                    <option value="IN_PROGRESS">진행 중</option>
-                    <option value="COMPLETED">완료</option>
-                    <option value="REJECTED">거절</option>
+                    <option value="PENDING">{t('suggestion.statuses.PENDING')}</option>
+                    <option value="IN_PROGRESS">{t('suggestion.statuses.IN_PROGRESS')}</option>
+                    <option value="COMPLETED">{t('suggestion.statuses.COMPLETED')}</option>
+                    <option value="REJECTED">{t('suggestion.statuses.REJECTED')}</option>
                   </select>
                 </div>
               </div>
@@ -391,28 +391,28 @@ export default function SuggestionDetail() {
                   onClick={() => setShowAdminResponse(true)}
                   className="w-full py-3 bg-green-600/20 hover:bg-green-600/40 text-green-300 border border-green-500/30 rounded-lg transition-all font-medium"
                 >
-                  📝 관리자 답변 작성
+                  {t('suggestion.write_admin_response')}
                 </button>
               ) : (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
                   <div className="mb-4">
-                    <label className="block text-green-300 font-medium mb-2">답변 상태</label>
+                    <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_status')}</label>
                     <select
                       value={responseStatus}
                       onChange={(e) => setResponseStatus(e.target.value as 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
                       className="w-full px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white focus:outline-none focus:border-green-400"
                     >
-                      <option value="IN_PROGRESS">진행 중</option>
-                      <option value="COMPLETED">완료</option>
-                      <option value="REJECTED">거절</option>
+                      <option value="IN_PROGRESS">{t('suggestion.statuses.IN_PROGRESS')}</option>
+                      <option value="COMPLETED">{t('suggestion.statuses.COMPLETED')}</option>
+                      <option value="REJECTED">{t('suggestion.statuses.REJECTED')}</option>
                     </select>
                   </div>
                   <div className="mb-4">
-                    <label className="block text-green-300 font-medium mb-2">답변 내용</label>
+                    <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_content')}</label>
                     <textarea
                       value={adminResponse}
                       onChange={(e) => setAdminResponse(e.target.value)}
-                      placeholder="건의사항에 대한 답변을 작성해주세요..."
+                      placeholder={t('suggestion.response_placeholder')}
                       className="w-full h-32 px-3 py-2 bg-[#1f2336] border border-green-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-400 resize-none"
                     />
                   </div>
@@ -422,7 +422,7 @@ export default function SuggestionDetail() {
                       disabled={submitting}
                       className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white rounded-lg transition-all font-medium"
                     >
-                      {submitting ? '등록 중...' : '답변 등록'}
+                      {submitting ? t('suggestion.registering_response') : t('suggestion.register_response')}
                     </button>
                     <button
                       onClick={() => {
@@ -431,7 +431,7 @@ export default function SuggestionDetail() {
                       }}
                       className="px-6 py-2 bg-gray-600/20 hover:bg-gray-600/40 text-gray-300 border border-gray-500/30 rounded-lg transition-all"
                     >
-                      취소
+                      {t('suggestion.cancel')}
                     </button>
                   </div>
                 </div>
@@ -447,13 +447,13 @@ export default function SuggestionDetail() {
                   to={`/suggestions/${suggestion.id}/edit`}
                   className="px-6 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 rounded-lg transition-all text-center"
                 >
-                  수정하기
+                  {t('suggestion.edit')}
                 </Link>
                 <button 
                   onClick={handleDelete}
                   className="px-6 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/30 rounded-lg transition-all"
                 >
-                  삭제하기
+                  {t('suggestion.delete')}
                 </button>
               </div>
             </div>

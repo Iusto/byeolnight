@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import MyActivity from '../components/MyActivity';
 import UserIconDisplay from '../components/UserIconDisplay';
 import { getReceivedMessages, getSentMessages, markMessageAsRead, type Message, type MessageListResponse } from '../lib/api/message';
-import { getNotifications, markAsRead, markAllAsRead } from '../lib/api/notification';
+import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../lib/api/notification';
 import type { Notification, NotificationListResponse } from '../types/notification';
 
 interface Post {
@@ -244,6 +244,22 @@ export default function Profile() {
     
     if (notification.targetUrl) {
       window.location.href = notification.targetUrl;
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // 알림 클릭 이벤트 방지
+    
+    try {
+      await deleteNotification(notificationId);
+      setNotifications(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => n.id !== notificationId),
+        totalCount: prev.totalCount - 1
+      }));
+    } catch (error) {
+      console.error('알림 삭제 실패:', error);
+      alert('알림 삭제에 실패했습니다.');
     }
   };
 
@@ -1016,9 +1032,16 @@ export default function Profile() {
                           <p className="text-sm text-gray-300 mb-2">{notification.message}</p>
                           <p className="text-xs text-gray-500">{formatDate(notification.createdAt)}</p>
                         </div>
+                        <button
+                          onClick={(e) => handleDeleteNotification(notification.id, e)}
+                          className="ml-2 p-1 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors flex-shrink-0"
+                          title="알림 삭제"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
-                  ))}
+                  ))
                 </div>
               )}
             </div>

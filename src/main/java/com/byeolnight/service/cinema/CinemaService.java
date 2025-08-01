@@ -6,7 +6,7 @@ import com.byeolnight.domain.entity.user.User;
 import com.byeolnight.domain.repository.CinemaRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
-import com.byeolnight.service.crawler.NewsDataService;
+
 import com.byeolnight.infrastructure.config.CinemaCollectionProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +29,14 @@ public class CinemaService {
     private final CinemaRepository cinemaRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final NewsDataService newsDataService;
     private final CinemaCollectionProperties cinemaConfig;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+    
+    // 키워드 상수
+    private static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "태양", "지구", "목성", "토성", "천왕성", "해왕성", "수성", "금성", "명왕성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사", "우주발사", "우주탐사", "성운", "퀘이사", "중성자별", "백색왜성", "적색거성", "초신성", "성단", "성간물질", "암흑물질", "암흑에너지", "빅뱅", "우주론", "외계행성", "외계생명", "SETI", "우주망원경", "허블", "제임스웹", "케플러", "스피처", "찬드라", "컴프턴", "국제우주정거장", "ISS", "아르테미스", "아폴로", "보이저", "카시니", "갈릴레오", "뉴호라이즌스", "파커", "주노", "화성탐사", "달탐사", "목성탐사", "토성탐사", "태양탐사", "소행성탐사", "혜성탐사", "우주쓰레기", "우주날씨", "태양풍", "자기권", "오로라", "일식", "월식", "유성우", "운석", "크레이터", "화산", "대기", "중력", "궤도", "공전", "자전", "조석", "라그랑주점", "중력파", "상대성이론", "양자역학", "끈이론", "다중우주", "우주배경복사", "적색편이", "도플러효과", "허블상수", "우주나이", "우주크기", "관측가능우주", "사건지평선", "특이점", "웜홀"};
+    private static final String[] ENGLISH_KEYWORDS = {"space", "rocket", "satellite", "Mars", "Moon", "Sun", "Earth", "Jupiter", "Saturn", "Uranus", "Neptune", "Mercury", "Venus", "Pluto", "blackhole", "galaxy", "star", "stellar", "comet", "asteroid", "telescope", "astronomy", "aerospace", "spacecraft", "space station", "astronaut", "space launch", "space exploration", "nebula", "quasar", "neutron star", "white dwarf", "red giant", "supernova", "cluster", "interstellar", "dark matter", "dark energy", "big bang", "cosmology", "exoplanet", "extraterrestrial", "SETI", "space telescope", "Hubble", "James Webb", "Kepler", "Spitzer", "Chandra", "Compton", "ISS", "International Space Station", "Artemis", "Apollo", "Voyager", "Cassini", "Galileo", "New Horizons", "Parker", "Juno", "Mars exploration", "lunar exploration", "Jupiter mission", "Saturn mission", "solar mission", "asteroid mission", "comet mission", "space debris", "space weather", "solar wind", "magnetosphere", "aurora", "eclipse", "lunar eclipse", "meteor shower", "meteorite", "crater", "volcano", "atmosphere", "gravity", "orbit", "revolution", "rotation", "tidal", "Lagrange point", "gravitational wave", "relativity", "quantum mechanics", "string theory", "multiverse", "cosmic background", "redshift", "Doppler effect", "Hubble constant", "universe age", "universe size", "observable universe", "event horizon", "singularity", "wormhole"};
+    private static final String[] ALL_KEYWORDS = java.util.stream.Stream.concat(java.util.Arrays.stream(KOREAN_KEYWORDS), java.util.Arrays.stream(ENGLISH_KEYWORDS)).map(String::toLowerCase).toArray(String[]::new);
+    private static final String[] MUSIC_KEYWORDS = {"원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans", "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd", "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion", "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core", "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video", "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무", "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu", "가사", "lyrics", "노래", "song", "음악", "music", "앨범", "album", "미발매", "unreleased", "콘서트", "concert", "페스티벌", "festival", "칸타빌레", "cantabile", "더 시즌즈", "the seasons", "박보검", "샘 킴", "sam kim", "오현우", "ohHyunwoo", "일식", "eclipse", "[가사]", "[lyrics]", "kbs", "방송"};
 
     @Value("${google.api.key:}")
     private String googleApiKey;
@@ -130,10 +135,7 @@ public class CinemaService {
         }
 
         // 한국어 → 영어 순서로 시도
-        String[][] keywordSets = {
-            newsDataService.getKoreanSpaceKeywords(),
-            newsDataService.getEnglishSpaceKeywords()
-        };
+        String[][] keywordSets = {KOREAN_KEYWORDS, ENGLISH_KEYWORDS};
         
         for (String[] keywords : keywordSets) {
             for (int attempt = 0; attempt < cinemaConfig.getCollection().getRetryCount(); attempt++) {
@@ -222,36 +224,21 @@ public class CinemaService {
             return false;
         }
         
-        // 우주 키워드 체크
-        String[] allKeywords = newsDataService.getAllSpaceKeywordsCached();
-        for (String keyword : allKeywords) {
+        // 우주 키워드 체크 (최소 2개 이상 필요)
+        int spaceKeywordCount = 0;
+        for (String keyword : ALL_KEYWORDS) {
             if (titleLower.contains(keyword) || descLower.contains(keyword)) {
-                return true;
+                spaceKeywordCount++;
             }
         }
         
-        return false;
+        // 우주 키워드가 2개 이상 있어야 함
+        return spaceKeywordCount >= 2;
     }
     
     private boolean isKPopOrMusicContent(String titleLower, String descLower) {
-        // K-POP 그룹명 및 음악 관련 키워드
-        String[] kpopKeywords = {
-            "원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans",
-            "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd",
-            "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion",
-            "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core",
-            "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video",
-            "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무",
-            "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu"
-        };
-        
-        for (String keyword : kpopKeywords) {
-            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
-                return true;
-            }
-        }
-        
-        return false;
+        return java.util.Arrays.stream(MUSIC_KEYWORDS)
+                .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
     }
     
     private String getRandomKeywords(String[] keywords, int count) {
@@ -517,6 +504,96 @@ public class CinemaService {
         } catch (Exception e) {
             return LocalDateTime.now();
         }
+    }
+    
+    // YouTubeService에서 이동된 공개 API 메서드들
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> searchSpaceVideos() {
+        try {
+            String url = String.format(
+                "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=relevance&regionCode=KR&relevanceLanguage=ko&key=%s",
+                getRandomSpaceQuery(), 12, googleApiKey
+            );
+            
+            log.info("YouTube API 호출: 우주 관련 영상 검색");
+            
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            
+            if (response != null) {
+                var items = (List<Map<String, Object>>) response.get("items");
+                log.info("YouTube 영상 검색 성공: {}개", items != null ? items.size() : 0);
+                return items != null ? items : List.of();
+            }
+            
+            log.warn("YouTube API 호출 실패");
+            return List.of();
+            
+        } catch (Exception e) {
+            log.error("YouTube 영상 검색 중 오류 발생", e);
+            return List.of();
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> searchVideosByKeyword(String keyword) {
+        try {
+            String url = String.format(
+                "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s 우주&type=video&maxResults=%d&order=relevance&regionCode=KR&relevanceLanguage=ko&key=%s",
+                keyword, 6, googleApiKey
+            );
+            
+            log.info("YouTube API 호출: {} 관련 영상 검색", keyword);
+            
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            
+            if (response != null) {
+                var items = (List<Map<String, Object>>) response.get("items");
+                return items != null ? items : List.of();
+            }
+            
+            return List.of();
+            
+        } catch (Exception e) {
+            log.error("YouTube 키워드 검색 중 오류 발생: {}", keyword, e);
+            return List.of();
+        }
+    }
+    
+    public List<Map<String, Object>> getUniqueSpaceVideos() {
+        List<Map<String, Object>> allVideos = new java.util.ArrayList<>();
+        java.util.Set<String> videoIds = new java.util.HashSet<>();
+        
+        for (int i = 0; i < 3; i++) {
+            List<Map<String, Object>> videos = searchSpaceVideos();
+            for (Map<String, Object> video : videos) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> id = (Map<String, Object>) video.get("id");
+                if (id != null) {
+                    String videoId = (String) id.get("videoId");
+                    if (videoId != null && !videoIds.contains(videoId)) {
+                        videoIds.add(videoId);
+                        allVideos.add(video);
+                    }
+                }
+            }
+        }
+        
+        log.info("중복 제거 후 YouTube 영상: {}개", allVideos.size());
+        return allVideos;
+    }
+    
+    private String getRandomSpaceQuery() {
+        java.util.Random random = new java.util.Random();
+        java.util.Set<String> selectedKeywords = new java.util.HashSet<>();
+        
+        while (selectedKeywords.size() < 3 && selectedKeywords.size() < KOREAN_KEYWORDS.length) {
+            int randomIndex = random.nextInt(KOREAN_KEYWORDS.length);
+            selectedKeywords.add(KOREAN_KEYWORDS[randomIndex]);
+        }
+        
+        String query = String.join(" ", selectedKeywords);
+        log.info("YouTube 검색 키워드: {}", query);
+        return query;
     }
     
     public Map<String, Object> getCinemaStatus() {
