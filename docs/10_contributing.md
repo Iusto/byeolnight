@@ -279,8 +279,8 @@ Closes #123
 - **Pull Requests**: 코드 기여
 
 ### 이메일
-- **메인테이너 연락**: maintainer@byeolnight.com
-- **보안 이슈**: security@byeolnight.com
+- **메인테이너 연락**: byeolnightservice@gmail.com
+- **보안 이슈**: byeolnightservice@gmail.com
 
 ## ❓ 자주 묻는 질문
 
