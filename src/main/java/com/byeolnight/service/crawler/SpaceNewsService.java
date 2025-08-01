@@ -10,10 +10,12 @@ import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
 
@@ -30,15 +32,31 @@ public class SpaceNewsService {
     private final NewsRepository newsRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final NewsDataService newsDataService;
+    private final RestTemplate restTemplate;
     private final com.byeolnight.service.discussion.DiscussionTopicScheduler discussionTopicScheduler;
     private final com.byeolnight.infrastructure.config.NewsCollectionProperties newsConfig;
+    
+    @Value("${newsdata.api.key}")
+    private String primaryApiKey;
+    
+    @Value("${newsdata.api.key.backup:}")
+    private String backupApiKey;
+    
+    private boolean usingBackupKey = false;
+    
+    private static final String NEWS_API_URL = "https://newsdata.io/api/1/news";
+    
+    // 키워드 상수
+    private static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "태양", "지구", "목성", "토성", "천왕성", "해왕성", "수성", "금성", "명왕성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사", "우주발사", "우주탐사", "성운", "퀘이사", "중성자별", "백색왜성", "적색거성", "초신성", "성단", "성간물질", "암흑물질", "암흑에너지", "빅뱅", "우주론", "외계행성", "외계생명", "SETI", "우주망원경", "허블", "제임스웹", "케플러", "스피처", "찬드라", "컴프턴", "국제우주정거장", "ISS", "아르테미스", "아폴로", "보이저", "카시니", "갈릴레오", "뉴호라이즌스", "파커", "주노", "화성탐사", "달탐사", "목성탐사", "토성탐사", "태양탐사", "소행성탐사", "혜성탐사", "우주쓰레기", "우주날씨", "태양풍", "자기권", "오로라", "일식", "월식", "유성우", "운석", "크레이터", "화산", "대기", "중력", "궤도", "공전", "자전", "조석", "라그랑주점", "중력파", "상대성이론", "양자역학", "끈이론", "다중우주", "우주배경복사", "적색편이", "도플러효과", "허블상수", "우주나이", "우주크기", "관측가능우주", "사건지평선", "특이점", "웜홀"};
+    private static final String[] ENGLISH_KEYWORDS = {"space", "rocket", "satellite", "Mars", "Moon", "Sun", "Earth", "Jupiter", "Saturn", "Uranus", "Neptune", "Mercury", "Venus", "Pluto", "blackhole", "galaxy", "star", "stellar", "comet", "asteroid", "telescope", "astronomy", "aerospace", "spacecraft", "space station", "astronaut", "space launch", "space exploration", "nebula", "quasar", "neutron star", "white dwarf", "red giant", "supernova", "cluster", "interstellar", "dark matter", "dark energy", "big bang", "cosmology", "exoplanet", "extraterrestrial", "SETI", "space telescope", "Hubble", "James Webb", "Kepler", "Spitzer", "Chandra", "Compton", "ISS", "International Space Station", "Artemis", "Apollo", "Voyager", "Cassini", "Galileo", "New Horizons", "Parker", "Juno", "Mars exploration", "lunar exploration", "Jupiter mission", "Saturn mission", "solar mission", "asteroid mission", "comet mission", "space debris", "space weather", "solar wind", "magnetosphere", "aurora", "eclipse", "lunar eclipse", "meteor shower", "meteorite", "crater", "volcano", "atmosphere", "gravity", "orbit", "revolution", "rotation", "tidal", "Lagrange point", "gravitational wave", "relativity", "quantum mechanics", "string theory", "multiverse", "cosmic background", "redshift", "Doppler effect", "Hubble constant", "universe age", "universe size", "observable universe", "event horizon", "singularity", "wormhole"};
+    private static final String[] ALL_KEYWORDS = java.util.stream.Stream.concat(java.util.Arrays.stream(KOREAN_KEYWORDS), java.util.Arrays.stream(ENGLISH_KEYWORDS)).map(String::toLowerCase).toArray(String[]::new);
+    private static final String[] EXCLUDE_KEYWORDS = {"trump", "obama", "democrat", "republican", "politics", "election", "트럼프", "오바마", "정치", "선거", "경제", "주식", "코인", "기상", "weather", "날씨", "예보", "forecast", "예측", "prediction", "시장", "market", "비즈니스", "business", "산업", "industry", "팬데믹", "pandemic", "전염병", "바이러스", "virus", "질병", "disease", "농업", "agriculture", "물류", "logistics", "에너지", "energy", "지속가능", "sustainable", "솔루션", "solution", "성장", "growth"};
     
     @Transactional
     public void collectAndSaveSpaceNews() {
         log.info("한국어 우주 뉴스 수집 시작");
         
-        NewsApiResponseDto response = newsDataService.fetchKoreanSpaceNews();
+        NewsApiResponseDto response = fetchKoreanSpaceNews();
         if (response == null || response.getResults() == null) {
             log.warn("뉴스 데이터를 가져올 수 없습니다");
             return;
@@ -157,14 +175,24 @@ public class SpaceNewsService {
             }
         }
         
-        // 설정된 최소 길이 체크
-        if (checkTitle.length() < newsConfig.getQuality().getMinTitleLength()) {
+        // 설정된 최소 길이 체크 (더 엄격하게)
+        int minTitleLength = Math.max(newsConfig.getQuality().getMinTitleLength(), 20);
+        int minDescLength = Math.max(newsConfig.getQuality().getMinDescriptionLength(), 50);
+        
+        if (checkTitle.length() < minTitleLength) {
             log.debug("제목이 너무 짧음: {}글자 ({})", checkTitle.length(), checkTitle);
             return false;
         }
         
-        if (checkDescription.length() < newsConfig.getQuality().getMinDescriptionLength()) {
+        if (checkDescription.length() < minDescLength) {
             log.debug("설명이 너무 짧음: {}글자", checkDescription.length());
+            return false;
+        }
+        
+        // 추가 품질 체크: 제목에 숫자만 너무 많으면 제외
+        long digitCount = checkTitle.chars().filter(Character::isDigit).count();
+        if (digitCount > checkTitle.length() * 0.3) {
+            log.debug("제목에 숫자가 너무 많음: {}", checkTitle);
             return false;
         }
         
@@ -177,18 +205,16 @@ public class SpaceNewsService {
     private boolean isSpaceRelated(String title, String description) {
         String content = (title + " " + description).toLowerCase();
         
-        // 비우주 키워드 먼저 체크 (정치, 경제 등 제외)
-        String[] excludeKeywords = {"trump", "obama", "democrat", "republican", "politics", "election", 
-                                   "트럼프", "오바마", "정치", "선거", "경제", "주식", "코인"};
-        for (String exclude : excludeKeywords) {
+        // 비우주 키워드 체크
+        for (String exclude : EXCLUDE_KEYWORDS) {
             if (content.contains(exclude)) {
                 log.info("비우주 키워드 '{}' 발견으로 제외", exclude);
                 return false;
             }
         }
         
-        // 캐싱된 키워드 배열 사용 (성능 최적화)
-        String[] allKeywords = newsDataService.getAllSpaceKeywordsCached();
+        // 캐싱된 키워드 배열 사용
+        String[] allKeywords = ALL_KEYWORDS;
         
         int keywordCount = 0;
         List<String> foundKeywords = new ArrayList<>();
@@ -200,7 +226,10 @@ public class SpaceNewsService {
         }
         
         log.info("우주 관련 키워드 {}개 발견: {}", keywordCount, foundKeywords.stream().limit(5).toList());
-        return keywordCount >= newsConfig.getQuality().getMinSpaceKeywords();
+        
+        // 최소 3개 이상의 우주 키워드 필요 (기본 설정보다 엄격)
+        int minKeywords = Math.max(newsConfig.getQuality().getMinSpaceKeywords(), 3);
+        return keywordCount >= minKeywords;
     }
     
     /**
@@ -373,57 +402,47 @@ public class SpaceNewsService {
     }
     
     private String formatNewsContent(NewsApiResponseDto.Result result) {
-        StringBuilder content = new StringBuilder();
+        String imageSection = result.getImageUrl() != null && !result.getImageUrl().trim().isEmpty() 
+            ? "![뉴스 이미지](" + result.getImageUrl() + ")\n\n" : "";
         
-        // 뉴스 이미지 (있는 경우)
-        if (result.getImageUrl() != null && !result.getImageUrl().trim().isEmpty()) {
-            content.append("![뉴스 이미지](").append(result.getImageUrl()).append(")\n\n");
+        String description = result.getDescription();
+        if (description != null && !description.trim().isEmpty() && isEnglishTitle(result.getTitle())) {
+            String translated = translateWithOpenAI(description);
+            description = translated != null ? translated : description;
         }
         
-        // 뉴스 요약 (영어인 경우 번역)
-        if (result.getDescription() != null && !result.getDescription().trim().isEmpty()) {
-            content.append("## 📰 뉴스 요약\n\n");
-            String description = result.getDescription();
-            if (isEnglishTitle(result.getTitle())) {
-                String translatedDesc = translateWithOpenAI(description);
-                description = translatedDesc != null ? translatedDesc : description;
-            }
-            content.append(description).append("\n\n");
-        } else {
-            content.append("## 📰 뉴스 요약\n\n");
-            content.append("이 뉴스는 우주와 천문학 관련 최신 소식을 다룹니다. 자세한 내용은 원문 링크를 통해 확인하세요.\n\n");
-        }
+        String summarySection = description != null && !description.trim().isEmpty()
+            ? "## 📰 뉴스 요약\n\n" + description + "\n\n"
+            : "## 📰 뉴스 요약\n\n이 뉴스는 우주와 천문학 관련 최신 소식을 다룹니다. 자세한 내용은 원문 링크를 통해 확인하세요.\n\n";
         
-        // AI 기반 상세 분석 (원문 크롤링 대신)
-        content.append("## 🤖 AI 분석\n\n");
-        String aiAnalysis = generateAIAnalysis(result);
-        content.append(aiAnalysis).append("\n\n");
+        String sourceInfo = "";
+        if (result.getSourceName() != null) sourceInfo += "**출처:** " + result.getSourceName() + "\n";
+        if (result.getPubDate() != null) sourceInfo += "**발행일:** " + result.getPubDate() + "\n\n";
         
-        content.append("## 📄 상세 내용\n\n");
-        content.append("⚠️ **원문 크롤링 제한**: 저작권 및 기술적 제약으로 원문 내용을 직접 가져올 수 없습니다.\n\n");
-        content.append("💡 **대신 제공**: AI 기반 분석과 요약을 통해 핵심 내용을 파악하실 수 있습니다.\n\n");
-        
-        // 원문 링크
-        content.append("## 🔗 원문 보기\n\n");
-        content.append("[📰 원문 기사 보기](").append(result.getLink()).append(")\n\n");
-        
-        // 출처 정보
-        content.append("---\n\n");
-        if (result.getSourceName() != null) {
-            content.append("**출처:** ").append(result.getSourceName()).append("\n");
-        }
-        
-        if (result.getPubDate() != null) {
-            content.append("**발행일:** ").append(result.getPubDate()).append("\n\n");
-        }
-        
-        // 해시태그
         String hashtags = generateHashtags(result.getTitle(), result.getDescription());
-        if (!hashtags.isEmpty()) {
-            content.append(hashtags);
-        }
         
-        return content.toString();
+        return String.format("""
+            %s%s## 🤖 AI 분석
+            
+            %s
+            
+            ## 📄 상세 내용
+            
+            ⚠️ **원문 크롤링 제한**: 저작권 및 기술적 제약으로 원문 내용을 직접 가져올 수 없습니다.
+            
+            💡 **대신 제공**: AI 기반 분석과 요약을 통해 핵심 내용을 파악하실 수 있습니다.
+            
+            ## 🔗 원문 보기
+            
+            [📰 원문 기사 보기](%s)
+            
+            ---
+            
+            %s%s
+            """, 
+            imageSection, summarySection, generateAIAnalysis(result), result.getLink(), sourceInfo, 
+            hashtags.isEmpty() ? "" : hashtags
+        );
     }
     
     private News convertToNews(NewsApiResponseDto.Result result) {
@@ -460,9 +479,9 @@ public class SpaceNewsService {
         List<String> tags = new ArrayList<>();
         String content = (title + " " + (description != null ? description : "")).toLowerCase();
         
-        // 200개 키워드 기반 해시태그 생성
-        String[] koreanKeywords = newsDataService.getKoreanSpaceKeywords();
-        String[] englishKeywords = newsDataService.getEnglishSpaceKeywords();
+        // 키워드 기반 해시태그 생성
+        String[] koreanKeywords = KOREAN_KEYWORDS;
+        String[] englishKeywords = ENGLISH_KEYWORDS;
         
         // 한국어 키워드 체크
         for (String keyword : koreanKeywords) {
@@ -596,6 +615,141 @@ public class SpaceNewsService {
         return result.getDescription() != null ? 
             result.getDescription().substring(0, Math.min(100, result.getDescription().length())) + "..." : 
             "우주 관련 최신 뉴스";
+    }
+    
+    // NewsDataService에서 이동된 메서드들
+    public NewsApiResponseDto fetchKoreanSpaceNews() {
+        try {
+            int callCount = 4;
+            
+            String koreanQuery = "NASA OR SpaceX OR 우주탐사 OR 화성탐사 OR 달탐사";
+            log.info("한국어 뉴스 수집 키워드: {}", koreanQuery);
+            NewsApiResponseDto koreanNews = fetchMultipleNewsByLanguage("ko", koreanQuery, callCount / 2);
+            
+            String englishQuery = "NASA OR SpaceX OR Mars OR Moon OR space exploration OR astronomy";
+            log.info("영어 뉴스 수집 키워드: {}", englishQuery);
+            NewsApiResponseDto englishNews = fetchMultipleNewsByLanguage("en", englishQuery, callCount / 2);
+            
+            NewsApiResponseDto combinedNews = new NewsApiResponseDto();
+            combinedNews.setStatus("success");
+            combinedNews.setResults(new java.util.ArrayList<>());
+            
+            if (koreanNews != null && koreanNews.getResults() != null) {
+                combinedNews.getResults().addAll(koreanNews.getResults());
+            }
+            if (englishNews != null && englishNews.getResults() != null) {
+                combinedNews.getResults().addAll(englishNews.getResults());
+            }
+            
+            combinedNews.setTotalResults(combinedNews.getResults().size());
+            log.info("총 {}+{} = {}개 뉴스 수집 완료", 
+                    koreanNews != null ? koreanNews.getResults().size() : 0,
+                    englishNews != null ? englishNews.getResults().size() : 0,
+                    combinedNews.getResults().size());
+            
+            return combinedNews;
+            
+        } catch (Exception e) {
+            log.error("NewsData.io API 호출 중 오류 발생", e);
+            return null;
+        }
+    }
+    
+    private NewsApiResponseDto fetchNewsByLanguage(String language, String query, int size) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(NEWS_API_URL)
+                    .queryParam("apikey", getCurrentApiKey())
+                    .queryParam("language", language)
+                    .queryParam("q", query)
+                    .queryParam("category", "science")
+                    .queryParam("size", String.valueOf(size))
+                    .build()
+                    .toUriString();
+            
+            log.info("NewsData.io API 호출 ({}): {}", language, url);
+            
+            NewsApiResponseDto response = restTemplate.getForObject(url, NewsApiResponseDto.class);
+            
+            if (response != null && "success".equals(response.getStatus())) {
+                log.info("{} 뉴스 수집 성공: {}개", language, response.getResults().size());
+                return response;
+            } else {
+                log.warn("{} 뉴스 수집 실패: {}", language, response != null ? response.getStatus() : "null response");
+                return null;
+            }
+            
+        } catch (Exception e) {
+            log.error("{} NewsData.io API 호출 중 오류 발생: {}", language, e.getMessage());
+            
+            if (isQuotaExceededError(e) && !usingBackupKey && !backupApiKey.isEmpty()) {
+                log.warn("기본 API 키 한도 초과, 백업 키로 재시도합니다.");
+                usingBackupKey = true;
+                return fetchNewsByLanguage(language, query, size);
+            }
+            
+            return null;
+        }
+    }
+    
+    private NewsApiResponseDto fetchMultipleNewsByLanguage(String language, String query, int callCount) {
+        NewsApiResponseDto combinedResponse = new NewsApiResponseDto();
+        combinedResponse.setStatus("success");
+        combinedResponse.setResults(new java.util.ArrayList<>());
+        java.util.Set<String> seenUrls = new java.util.HashSet<>();
+        
+        for (int i = 0; i < callCount; i++) {
+            try {
+                String[] keywords = language.equals("ko") ? KOREAN_KEYWORDS : ENGLISH_KEYWORDS;
+                String randomQuery = getRandomSpaceKeywords(keywords, 3);
+                
+                NewsApiResponseDto response = fetchNewsByLanguage(language, randomQuery, 10);
+                if (response != null && response.getResults() != null) {
+                    for (NewsApiResponseDto.Result result : response.getResults()) {
+                        if (result.getLink() != null && !seenUrls.contains(result.getLink())) {
+                            seenUrls.add(result.getLink());
+                            combinedResponse.getResults().add(result);
+                        }
+                    }
+                }
+                
+                if (i < callCount - 1) {
+                    Thread.sleep(200);
+                }
+            } catch (Exception e) {
+                log.warn("{} 뉴스 {}번째 호출 실패", language, i + 1, e);
+            }
+        }
+        
+        combinedResponse.setTotalResults(combinedResponse.getResults().size());
+        log.info("{} 뉴스 {}번 호출 완료: {}개 수집", language, callCount, combinedResponse.getResults().size());
+        return combinedResponse;
+    }
+    
+    private String getRandomSpaceKeywords(String[] keywords, int count) {
+        java.util.Random random = new java.util.Random();
+        java.util.Set<String> selectedKeywords = new java.util.HashSet<>();
+        
+        while (selectedKeywords.size() < count && selectedKeywords.size() < keywords.length) {
+            int randomIndex = random.nextInt(keywords.length);
+            selectedKeywords.add(keywords[randomIndex]);
+        }
+        
+        return String.join(" OR ", selectedKeywords);
+    }
+    
+    private String getCurrentApiKey() {
+        String currentKey = usingBackupKey ? backupApiKey : primaryApiKey;
+        log.debug("현재 사용 중인 API 키: {} (백업 키 사용: {})", 
+                currentKey.substring(0, Math.min(10, currentKey.length())) + "...", usingBackupKey);
+        return currentKey;
+    }
+    
+    private boolean isQuotaExceededError(Exception e) {
+        String errorMessage = e.getMessage().toLowerCase();
+        return errorMessage.contains("quota") || 
+               errorMessage.contains("limit") || 
+               errorMessage.contains("exceeded") ||
+               errorMessage.contains("429");
     }
     
     public long getTodayNewsCount() {

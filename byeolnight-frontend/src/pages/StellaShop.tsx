@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import StellaIcon from '../components/StellaIcon';
 import type { StellaIcon as StellaIconType, UserIcon } from '../types/stellaIcon';
 import { stellaIcons } from '../data/stellaIcons';
+import { stellaIcons as stellaIconsEn } from '../data/stellaIcons_en';
+import { stellaIcons as stellaIconsJa } from '../data/stellaIcons_ja';
 import axios from '../lib/axios';
 
 export default function StellaShop() {
   const { user, refreshUserInfo } = useAuth();
+  const { t, i18n } = useTranslation();
   const [icons, setIcons] = useState<StellaIconType[]>([]);
   const [ownedIcons, setOwnedIcons] = useState<UserIcon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +18,18 @@ export default function StellaShop() {
   const [selectedGrade, setSelectedGrade] = useState<string>('ALL');
 
   const grades = ['ALL', 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
+
+  // 언어별 아이콘 데이터 가져오기
+  const getLocalizedIcons = () => {
+    switch (i18n.language) {
+      case 'en':
+        return stellaIconsEn;
+      case 'ja':
+        return stellaIconsJa;
+      default:
+        return stellaIcons;
+    }
+  };
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -25,20 +41,30 @@ export default function StellaShop() {
     };
 
     fetchAll();
-  }, [user]);
+  }, [user, i18n.language]); // 언어 변경 시도 재로드
 
   const fetchIcons = async () => {
     try {
       const response = await axios.get('/public/shop/icons');
       if (response.data.success) {
-        setIcons(response.data.data);
+        // 서버에서 받은 데이터에 언어별 이름/설명 적용
+        const localizedIcons = getLocalizedIcons();
+        const mergedIcons = response.data.data.map((serverIcon: StellaIconType) => {
+          const localIcon = localizedIcons.find(local => local.id === serverIcon.id);
+          return {
+            ...serverIcon,
+            name: localIcon?.name || serverIcon.name,
+            description: localIcon?.description || serverIcon.description
+          };
+        });
+        setIcons(mergedIcons);
       } else {
         console.error('아이콘 목록 조회 실패:', response.data.message);
-        setIcons(stellaIcons);
+        setIcons(getLocalizedIcons());
       }
     } catch (err) {
       console.error('아이콘 목록 조회 실패:', err);
-      setIcons(stellaIcons);
+      setIcons(getLocalizedIcons());
     }
   };
 
@@ -57,7 +83,7 @@ export default function StellaShop() {
     if (!user) return;
     
     if (user.points < price) {
-      alert('스텔라 포인트가 부족합니다!');
+      alert(t('shop.insufficient_points'));
       return;
     }
 
@@ -65,14 +91,14 @@ export default function StellaShop() {
     try {
       const response = await axios.post(`/member/shop/purchase/${iconId}`);
       if (response.data.success) {
-        alert('아이콘을 성공적으로 구매했습니다!');
+        alert(t('shop.purchase_success'));
         await fetchOwnedIcons();
         await refreshUserInfo();
       } else {
-        alert(response.data.message || '구매에 실패했습니다.');
+        alert(response.data.message || t('shop.purchase_failed'));
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || '구매에 실패했습니다.');
+      alert(err.response?.data?.message || t('shop.purchase_failed'));
     } finally {
       setPurchasing(null);
     }
@@ -86,13 +112,13 @@ export default function StellaShop() {
     try {
       const response = await axios.post(`/member/shop/icons/${iconId}/equip`);
       if (response.data.success) {
-        alert('아이콘을 장착했습니다!');
+        alert(t('shop.equip_success'));
         await refreshUserInfo();
       } else {
-        alert(response.data.message || '장착에 실패했습니다.');
+        alert(response.data.message || t('shop.equip_failed'));
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || '장착에 실패했습니다.');
+      alert(err.response?.data?.message || t('shop.equip_failed'));
     }
   };
 
@@ -110,19 +136,19 @@ export default function StellaShop() {
         {/* 헤더 */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            ⭐ 스텔라 아이콘 상점
+            {t('shop.title')}
           </h1>
-          <p className="text-gray-400 mb-4">특별한 아이콘으로 당신의 개성을 표현해보세요</p>
+          <p className="text-gray-400 mb-4">{t('shop.subtitle')}</p>
           {user ? (
-            <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 inline-block">
+            <div className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 inline-block">
               <p className="text-yellow-400 font-bold text-lg">
-                보유 스텔라: ⭐ {user.points?.toLocaleString() || 0}
+                {t('shop.owned_stella')} {user.points?.toLocaleString() || 0}
               </p>
             </div>
           ) : (
-            <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 inline-block">
+            <div className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 inline-block">
               <p className="text-gray-400 text-lg">
-                🔒 로그인하면 구매 및 장착이 가능합니다
+                {t('shop.login_required_purchase')}
               </p>
             </div>
           )}
@@ -132,12 +158,12 @@ export default function StellaShop() {
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           {grades.map(grade => {
             const gradeInfo = {
-              ALL: { name: '전체', icon: '🌌', color: 'bg-gradient-to-r from-gray-600 to-gray-700' },
-              COMMON: { name: '커몬', icon: '⭐', color: 'bg-gradient-to-r from-slate-600 to-gray-600' },
-              RARE: { name: '레어', icon: '✨', color: 'bg-gradient-to-r from-cyan-600 to-blue-600' },
-              EPIC: { name: '에픽', icon: '🔮', color: 'bg-gradient-to-r from-purple-600 to-violet-600' },
-              LEGENDARY: { name: '레전드', icon: '🌟', color: 'bg-gradient-to-r from-yellow-600 to-orange-600' },
-              MYTHIC: { name: '미스틱', icon: '🌌', color: 'bg-gradient-to-r from-pink-600 to-purple-600' }
+              ALL: { name: t('shop.grades.all'), icon: '🌌', color: 'bg-gradient-to-r from-gray-600 to-gray-700' },
+              COMMON: { name: t('shop.grades.common'), icon: '⭐', color: 'bg-gradient-to-r from-slate-600 to-gray-600' },
+              RARE: { name: t('shop.grades.rare'), icon: '✨', color: 'bg-gradient-to-r from-cyan-600 to-blue-600' },
+              EPIC: { name: t('shop.grades.epic'), icon: '🔮', color: 'bg-gradient-to-r from-purple-600 to-violet-600' },
+              LEGENDARY: { name: t('shop.grades.legendary'), icon: '🌟', color: 'bg-gradient-to-r from-yellow-600 to-orange-600' },
+              MYTHIC: { name: t('shop.grades.mythic'), icon: '🌌', color: 'bg-gradient-to-r from-pink-600 to-purple-600' }
             };
             const info = gradeInfo[grade as keyof typeof gradeInfo];
             return (
@@ -146,8 +172,8 @@ export default function StellaShop() {
                 onClick={() => setSelectedGrade(grade)}
                 className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg ${
                   selectedGrade === grade
-                    ? `${info.color} text-white shadow-xl ring-2 ring-white/50`
-                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 backdrop-blur-sm'
+                    ? `${info.color} text-white shadow-xl ring-2 ring-white ring-opacity-50`
+                    : 'bg-gray-700 bg-opacity-50 text-gray-300 hover:bg-gray-600 hover:bg-opacity-70 backdrop-blur-sm'
                 }`}
               >
                 <span className="mr-2">{info.icon}</span>
@@ -161,11 +187,11 @@ export default function StellaShop() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-            <p className="mt-4 text-gray-400">아이콘을 불러오는 중...</p>
+            <p className="mt-4 text-gray-400">{t('shop.loading_icons')}</p>
           </div>
         ) : icons.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-red-400 text-lg">아이콘 데이터가 없습니다.</p>
+            <p className="text-red-400 text-lg">{t('shop.no_icon_data')}</p>
           </div>
         ) : (
           <>
@@ -177,11 +203,11 @@ export default function StellaShop() {
                 if (gradeIcons.length === 0) return null;
                 
                 const gradeInfo = {
-                  COMMON: { name: '커몬 등급', icon: '⭐', color: 'from-slate-400 to-gray-400', count: gradeIcons.length },
-                  RARE: { name: '레어 등급', icon: '✨', color: 'from-cyan-400 to-blue-400', count: gradeIcons.length },
-                  EPIC: { name: '에픽 등급', icon: '🔮', color: 'from-purple-400 to-violet-400', count: gradeIcons.length },
-                  LEGENDARY: { name: '레전드 등급', icon: '🌟', color: 'from-yellow-400 to-orange-400', count: gradeIcons.length },
-                  MYTHIC: { name: '미스틱 등급', icon: '🌌', color: 'from-pink-400 to-purple-400', count: gradeIcons.length }
+                  COMMON: { name: t('shop.grade_names.common'), icon: '⭐', color: 'from-slate-400 to-gray-400', count: gradeIcons.length },
+                  RARE: { name: t('shop.grade_names.rare'), icon: '✨', color: 'from-cyan-400 to-blue-400', count: gradeIcons.length },
+                  EPIC: { name: t('shop.grade_names.epic'), icon: '🔮', color: 'from-purple-400 to-violet-400', count: gradeIcons.length },
+                  LEGENDARY: { name: t('shop.grade_names.legendary'), icon: '🌟', color: 'from-yellow-400 to-orange-400', count: gradeIcons.length },
+                  MYTHIC: { name: t('shop.grade_names.mythic'), icon: '🌌', color: 'from-pink-400 to-purple-400', count: gradeIcons.length }
                 };
                 const info = gradeInfo[grade as keyof typeof gradeInfo];
                 
@@ -192,13 +218,13 @@ export default function StellaShop() {
                         <h2 className="text-2xl font-bold flex items-center gap-3">
                           <span className="text-3xl">{info.icon}</span>
                           {info.name}
-                          <span className="text-lg text-gray-400">({info.count}개)</span>
+                          <span className="text-lg text-gray-400">({info.count}{t('shop.count_suffix')})</span>
                         </h2>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                       {gradeIcons.map(icon => (
-                        <div key={icon.id} className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842]/80 transition-all duration-300 hover:scale-105">
+                        <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105">
                           <StellaIcon
                             icon={icon}
                             size="large"
@@ -210,17 +236,17 @@ export default function StellaShop() {
                           <div className="mt-4">
                             {!user ? (
                               <button
-                                onClick={() => alert('로그인이 필요합니다!')}
-                                className="w-full bg-gray-600/50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                                onClick={() => alert(t('shop.login_required_alert'))}
+                                className="w-full bg-gray-600 bg-opacity-50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
                               >
-                                🔒 로그인 필요
+                                {t('shop.login_required')}
                               </button>
                             ) : isOwned(icon.id) ? (
                               <button
                                 onClick={() => handleEquip(icon.id)}
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-all duration-200"
                               >
-                                🎯 장착하기
+                                {t('shop.equip')}
                               </button>
                             ) : (
                               <button
@@ -228,7 +254,7 @@ export default function StellaShop() {
                                 disabled={purchasing === icon.id || user.points < icon.price}
                                 className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
                                   user.points < icon.price
-                                    ? 'bg-red-600/50 text-red-300 cursor-not-allowed'
+                                    ? 'bg-red-600 bg-opacity-50 text-red-300 cursor-not-allowed'
                                     : purchasing === icon.id
                                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                     : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
@@ -237,15 +263,15 @@ export default function StellaShop() {
                                 {purchasing === icon.id ? (
                                   <span className="flex items-center justify-center">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    구매중...
+                                    {t('shop.purchasing')}
                                   </span>
                                 ) : user.points < icon.price ? (
-                                  '스텔라 부족'
+                                  t('shop.insufficient_stella')
                                 ) : (
-                                  `⭐ ${icon.price.toLocaleString()} 구매`
+                                  `${t('shop.purchase')} ${icon.price.toLocaleString()}`
                                 )}
                               </button>
-                            )}
+                            )
                           </div>
                         </div>
                       ))}
@@ -257,7 +283,7 @@ export default function StellaShop() {
               // 특정 등급 보기
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                 {filteredIcons.map(icon => (
-                  <div key={icon.id} className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842]/80 transition-all duration-300 hover:scale-105">
+                  <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105">
                     <StellaIcon
                       icon={icon}
                       size="large"
@@ -269,17 +295,17 @@ export default function StellaShop() {
                     <div className="mt-4">
                       {!user ? (
                         <button
-                          onClick={() => alert('로그인이 필요합니다!')}
-                          className="w-full bg-gray-600/50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                          onClick={() => alert(t('shop.login_required_alert'))}
+                          className="w-full bg-gray-600 bg-opacity-50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
                         >
-                          🔒 로그인 필요
+                          {t('shop.login_required')}
                         </button>
                       ) : isOwned(icon.id) ? (
                         <button
                           onClick={() => handleEquip(icon.id)}
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-all duration-200"
                         >
-                          🎯 장착하기
+                          {t('shop.equip')}
                         </button>
                       ) : (
                         <button
@@ -287,7 +313,7 @@ export default function StellaShop() {
                           disabled={purchasing === icon.id || user.points < icon.price}
                           className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
                             user.points < icon.price
-                              ? 'bg-red-600/50 text-red-300 cursor-not-allowed'
+                              ? 'bg-red-600 bg-opacity-50 text-red-300 cursor-not-allowed'
                               : purchasing === icon.id
                               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                               : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
@@ -296,15 +322,15 @@ export default function StellaShop() {
                           {purchasing === icon.id ? (
                             <span className="flex items-center justify-center">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              구매중...
+                              {t('shop.purchasing')}
                             </span>
                           ) : user.points < icon.price ? (
-                            '스텔라 부족'
+                            t('shop.insufficient_stella')
                           ) : (
-                            `⭐ ${icon.price.toLocaleString()} 구매`
+                            `${t('shop.purchase')} ${icon.price.toLocaleString()}`
                           )}
                         </button>
-                      )}
+                      )
                     </div>
                   </div>
                 ))}
@@ -316,8 +342,8 @@ export default function StellaShop() {
         {filteredIcons.length === 0 && !loading && selectedGrade !== 'ALL' && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🚀</div>
-            <p className="text-gray-400 text-lg">해당 등급의 아이콘이 없습니다.</p>
-            <p className="text-gray-500 text-sm mt-2">다른 등급을 선택해보세요!</p>
+            <p className="text-gray-400 text-lg">{t('shop.no_icons_in_grade')}</p>
+            <p className="text-gray-500 text-sm mt-2">{t('shop.try_other_grade')}</p>
           </div>
         )}
       </div>
