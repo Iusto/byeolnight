@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
@@ -27,6 +28,7 @@ class JwtTokenTTLUnitTest {
         ReflectionTestUtils.setField(jwtTokenProvider, "jwtSecret", "testSecretKeyForJwtTokenTesting123456789");
         ReflectionTestUtils.setField(jwtTokenProvider, "accessTokenValidity", Duration.ofMinutes(30));
         ReflectionTestUtils.setField(jwtTokenProvider, "refreshTokenValidity", Duration.ofDays(7));
+        ReflectionTestUtils.setField(jwtTokenProvider, "allowedClockSkew", Duration.ofSeconds(30)); // 누락된 설정 추가
         
         // 테스트 사용자 생성
         testUser = User.builder()
