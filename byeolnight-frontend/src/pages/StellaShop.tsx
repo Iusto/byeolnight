@@ -19,7 +19,6 @@ export default function StellaShop() {
 
   const grades = ['ALL', 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
 
-  // 언어별 아이콘 데이터 가져오기
   const getLocalizedIcons = () => {
     switch (i18n.language) {
       case 'en':
@@ -41,13 +40,12 @@ export default function StellaShop() {
     };
 
     fetchAll();
-  }, [user, i18n.language]); // 언어 변경 시도 재로드
+  }, [user, i18n.language]);
 
   const fetchIcons = async () => {
     try {
       const response = await axios.get('/public/shop/icons');
       if (response.data.success) {
-        // 서버에서 받은 데이터에 언어별 이름/설명 적용
         const localizedIcons = getLocalizedIcons();
         const mergedIcons = response.data.data.map((serverIcon: StellaIconType) => {
           const localIcon = localizedIcons.find(local => local.id === serverIcon.id);
@@ -125,15 +123,29 @@ export default function StellaShop() {
   const filteredIcons = selectedGrade === 'ALL' 
     ? icons 
     : icons.filter(icon => icon.grade === selectedGrade);
-    
 
+  const getButtonClassName = (isSelected: boolean, color: string) => {
+    const baseClasses = 'px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg';
+    if (isSelected) {
+      return `${baseClasses} ${color} text-white shadow-xl ring-2 ring-white ring-opacity-50`;
+    }
+    return `${baseClasses} bg-gray-700 bg-opacity-50 text-gray-300 hover:bg-gray-600 hover:bg-opacity-70 backdrop-blur-sm`;
+  };
 
-
+  const getPurchaseButtonClassName = (canPurchase: boolean, isPurchasing: boolean) => {
+    const baseClasses = 'w-full py-2 px-4 rounded-lg font-medium transition-all duration-200';
+    if (!canPurchase) {
+      return `${baseClasses} bg-red-600 bg-opacity-50 text-red-300 cursor-not-allowed`;
+    }
+    if (isPurchasing) {
+      return `${baseClasses} bg-gray-600 text-gray-400 cursor-not-allowed`;
+    }
+    return `${baseClasses} bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
       <div className="max-w-6xl mx-auto">
-        {/* 헤더 */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             {t('shop.title')}
@@ -154,7 +166,6 @@ export default function StellaShop() {
           )}
         </div>
 
-        {/* 등급 필터 */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           {grades.map(grade => {
             const gradeInfo = {
@@ -170,11 +181,7 @@ export default function StellaShop() {
               <button
                 key={grade}
                 onClick={() => setSelectedGrade(grade)}
-                className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg ${
-                  selectedGrade === grade
-                    ? `${info.color} text-white shadow-xl ring-2 ring-white ring-opacity-50`
-                    : 'bg-gray-700 bg-opacity-50 text-gray-300 hover:bg-gray-600 hover:bg-opacity-70 backdrop-blur-sm'
-                }`}
+                className={getButtonClassName(selectedGrade === grade, info.color)}
               >
                 <span className="mr-2">{info.icon}</span>
                 {info.name}
@@ -183,7 +190,6 @@ export default function StellaShop() {
           })}
         </div>
 
-        {/* 아이콘 그리드 */}
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
@@ -195,9 +201,7 @@ export default function StellaShop() {
           </div>
         ) : (
           <>
-            {/* 등급별 아이콘 표시 */}
             {selectedGrade === 'ALL' ? (
-              // 전체 보기 - 등급별로 그룹화
               ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'].map(grade => {
                 const gradeIcons = icons.filter(icon => icon.grade === grade);
                 if (gradeIcons.length === 0) return null;
@@ -252,13 +256,7 @@ export default function StellaShop() {
                               <button
                                 onClick={() => handlePurchase(icon.id, icon.price)}
                                 disabled={purchasing === icon.id || user.points < icon.price}
-                                className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-                                  user.points < icon.price
-                                    ? 'bg-red-600 bg-opacity-50 text-red-300 cursor-not-allowed'
-                                    : purchasing === icon.id
-                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                                }`}
+                                className={getPurchaseButtonClassName(user.points >= icon.price, purchasing === icon.id)}
                               >
                                 {purchasing === icon.id ? (
                                   <span className="flex items-center justify-center">
@@ -271,7 +269,7 @@ export default function StellaShop() {
                                   `${t('shop.purchase')} ${icon.price.toLocaleString()}`
                                 )}
                               </button>
-                            )
+                            )}
                           </div>
                         </div>
                       ))}
@@ -280,7 +278,6 @@ export default function StellaShop() {
                 );
               })
             ) : (
-              // 특정 등급 보기
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                 {filteredIcons.map(icon => (
                   <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105">
@@ -311,13 +308,7 @@ export default function StellaShop() {
                         <button
                           onClick={() => handlePurchase(icon.id, icon.price)}
                           disabled={purchasing === icon.id || user.points < icon.price}
-                          className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-                            user.points < icon.price
-                              ? 'bg-red-600 bg-opacity-50 text-red-300 cursor-not-allowed'
-                              : purchasing === icon.id
-                              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                              : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                          }`}
+                          className={getPurchaseButtonClassName(user.points >= icon.price, purchasing === icon.id)}
                         >
                           {purchasing === icon.id ? (
                             <span className="flex items-center justify-center">
@@ -330,7 +321,7 @@ export default function StellaShop() {
                             `${t('shop.purchase')} ${icon.price.toLocaleString()}`
                           )}
                         </button>
-                      )
+                      )}
                     </div>
                   </div>
                 ))}

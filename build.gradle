@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.4'
     id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.owasp.dependencycheck' version '8.4.0'
 }
 
 group = 'com.byeolnight'
@@ -68,4 +69,16 @@ tasks.named('test') {
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+// 의존성 보안 검사 설정
+dependencyCheck {
+    format = 'ALL'
+    suppressionFile = 'dependency-check-suppressions.xml'
+    failBuildOnCVSS = 7.0
+    analyzers {
+        assemblyEnabled = false
+        nuspecEnabled = false
+        nugetconfEnabled = false
+    }
 }

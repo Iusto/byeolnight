@@ -8,6 +8,7 @@ import com.byeolnight.domain.repository.NewsRepository;
 import com.byeolnight.domain.repository.post.PostRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
+import com.byeolnight.infrastructure.config.NewsCollectionProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,8 +34,7 @@ public class SpaceNewsService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
-    private final com.byeolnight.service.discussion.DiscussionTopicScheduler discussionTopicScheduler;
-    private final com.byeolnight.infrastructure.config.NewsCollectionProperties newsConfig;
+    private final NewsCollectionProperties newsConfig;
     
     @Value("${newsdata.api.key}")
     private String primaryApiKey;

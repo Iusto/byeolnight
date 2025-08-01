@@ -1,0 +1,124 @@
+name: 배포
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Docker 이미지 빌드 및 푸시
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: Docker Buildx 설정
+      uses: docker/setup-buildx-action@v3
+
+    - name: GitHub Container Registry 로그인
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 백엔드 메타데이터 추출
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: 백엔드 이미지 빌드 및 푸시
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: 프론트엔드 메타데이터 추출
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: 프론트엔드 이미지 빌드 및 푸시
+      uses: docker/build-push-action@v5
+      with:
+        context: ./byeolnight-frontend
+        file: ./byeolnight-frontend/Dockerfile
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    name: 운영 서버 배포
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: 운영 서버 배포
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
+        script: |
+          cd /opt/byeolnight
+          
+          # 새 이미지 pull
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+          
+          # 서비스 재시작
+          docker-compose down
+          docker-compose up -d
+          
+          # 이전 이미지 정리
+          docker image prune -f
+
+  notify:
+    name: 배포 알림
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy]
+    if: always()
+    
+    steps:
+    - name: 배포 성공 알림
+      if: needs.deploy.result == 'success'
+      run: |
+        echo "✅ 배포가 성공적으로 완료되었습니다!"
+        echo "🚀 새 버전이 운영 환경에 반영되었습니다."
+    
+    - name: 배포 실패 알림
+      if: needs.deploy.result == 'failure'
+      run: |
+        echo "❌ 배포가 실패했습니다!"
+        echo "🔍 로그를 확인하여 문제를 해결해주세요."

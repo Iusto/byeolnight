@@ -5,22 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSuggestions } from '../lib/api/suggestion';
 import type { Suggestion, SuggestionCategory, SuggestionStatus } from '../types/suggestion';
 
-// 다국어 지원을 위해 함수로 변경
-  const getCategories = () => ({
-    FEATURE: t('suggestion.categories.FEATURE'),
-    BUG: t('suggestion.categories.BUG'),
-    UI_UX: t('suggestion.categories.UI_UX'),
-    CONTENT: t('suggestion.categories.CONTENT'),
-    OTHER: t('suggestion.categories.OTHER')
-  });
-
-  const getStatuses = () => ({
-    PENDING: t('suggestion.statuses.PENDING'),
-    IN_PROGRESS: t('suggestion.statuses.IN_PROGRESS'),
-    COMPLETED: t('suggestion.statuses.COMPLETED'),
-    REJECTED: t('suggestion.statuses.REJECTED')
-  });
-
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   IN_PROGRESS: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -43,6 +27,22 @@ export default function SuggestionList() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<SuggestionCategory | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<SuggestionStatus | 'ALL'>('ALL');
+
+  // 다국어 지원을 위해 함수로 변경
+  const getCategories = () => ({
+    FEATURE: t('suggestion.categories.FEATURE'),
+    BUG: t('suggestion.categories.BUG'),
+    UI_UX: t('suggestion.categories.UI_UX'),
+    CONTENT: t('suggestion.categories.CONTENT'),
+    OTHER: t('suggestion.categories.OTHER')
+  });
+
+  const getStatuses = () => ({
+    PENDING: t('suggestion.statuses.PENDING'),
+    IN_PROGRESS: t('suggestion.statuses.IN_PROGRESS'),
+    COMPLETED: t('suggestion.statuses.COMPLETED'),
+    REJECTED: t('suggestion.statuses.REJECTED')
+  });
 
   useEffect(() => {
     fetchSuggestions();

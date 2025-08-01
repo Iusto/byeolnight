@@ -1,0 +1,116 @@
+name: PR 검증
+
+on:
+  pull_request:
+    branches: [ master, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-validation:
+    name: PR 유효성 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 전체 히스토리 가져오기
+
+    - name: PR 제목 검증
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        
+        # PR 제목 패턴 검증 (feat:, fix:, docs:, refactor:, test: 등)
+        if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: .+ ]]; then
+          echo "❌ PR 제목이 컨벤션을 따르지 않습니다."
+          echo "올바른 형식: feat: 새로운 기능 추가"
+          echo "올바른 형식: fix(auth): JWT 토큰 갱신 버그 수정"
+          exit 1
+        fi
+        
+        echo "✅ PR 제목이 컨벤션을 따릅니다: $PR_TITLE"
+
+    - name: 변경된 파일 분석
+      id: changed-files
+      uses: tj-actions/changed-files@v42
+      with:
+        files_yaml: |
+          backend:
+            - 'src/**'
+            - 'build.gradle'
+            - 'Dockerfile'
+          frontend:
+            - 'byeolnight-frontend/**'
+          docs:
+            - 'docs/**'
+            - '*.md'
+          config:
+            - 'docker-compose*.yml'
+            - '.github/**'
+
+    - name: 변경 사항 요약
+      run: |
+        echo "## 📊 변경 사항 분석" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ steps.changed-files.outputs.backend_any_changed }}" == "true" ]]; then
+          echo "🔧 **백엔드 변경**: ${{ steps.changed-files.outputs.backend_all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [[ "${{ steps.changed-files.outputs.frontend_any_changed }}" == "true" ]]; then
+          echo "🎨 **프론트엔드 변경**: ${{ steps.changed-files.outputs.frontend_all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [[ "${{ steps.changed-files.outputs.docs_any_changed }}" == "true" ]]; then
+          echo "📚 **문서 변경**: ${{ steps.changed-files.outputs.docs_all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+        fi
+
+  size-check:
+    name: PR 크기 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: PR 크기 분석
+      run: |
+        # 변경된 라인 수 계산
+        CHANGED_LINES=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1 | grep -o '[0-9]\+ insertions\|[0-9]\+ deletions' | grep -o '[0-9]\+' | paste -sd+ | bc)
+        
+        echo "변경된 라인 수: $CHANGED_LINES"
+        
+        # 500라인 이상 변경 시 경고
+        if [ "$CHANGED_LINES" -gt 500 ]; then
+          echo "⚠️ 이 PR은 500라인 이상 변경되었습니다 ($CHANGED_LINES 라인)"
+          echo "더 작은 단위로 나누는 것을 고려해보세요."
+          echo "::warning::Large PR detected ($CHANGED_LINES lines changed)"
+        else
+          echo "✅ 적절한 크기의 PR입니다 ($CHANGED_LINES 라인)"
+        fi
+
+  auto-assign:
+    name: 자동 리뷰어 할당
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    
+    steps:
+    - name: 리뷰어 자동 할당
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // PR 작성자가 아닌 팀원들을 리뷰어로 할당
+          const reviewers = ['reviewer1', 'reviewer2']; // 실제 GitHub 사용자명으로 변경
+          const author = context.payload.pull_request.user.login;
+          const availableReviewers = reviewers.filter(reviewer => reviewer !== author);
+          
+          if (availableReviewers.length > 0) {
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: availableReviewers.slice(0, 2) // 최대 2명
+            });
+          }
