@@ -11,6 +11,8 @@ services:
       - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
       - SPRING_PROFILES_ACTIVE=prod
       - CONFIG_GIT_URI=file:///opt/byeolnight/config-repo
+    volumes:
+      - ./config-repo:/opt/byeolnight/config-repo
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
