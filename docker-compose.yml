@@ -10,7 +10,8 @@ services:
       - SPRING_SECURITY_USER_NAME=config-admin
       - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
       - SPRING_PROFILES_ACTIVE=prod
-      - CONFIG_GIT_URI=file:///opt/byeolnight/config-repo
+      - SPRING_CLOUD_CONFIG_SERVER_GIT_URI=file:///opt/byeolnight/config-repo
+      - SPRING_CLOUD_CONFIG_SERVER_GIT_SEARCH_PATHS=configs
     volumes:
       - ./config-repo:/opt/byeolnight/config-repo
     restart: unless-stopped
