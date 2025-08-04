@@ -14,12 +14,12 @@ services:
     volumes:
       - ./config-repo:/opt/byeolnight/config-repo
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--http-user=config-admin", "--http-password=config-secret-2024", "http://localhost:8888/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    # healthcheck:
+    #   test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--http-user=config-admin", "--http-password=config-secret-2024", "http://localhost:8888/actuator/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 60s
 
   nginx:
     image: nginx:alpine
@@ -45,8 +45,7 @@ services:
   app:
     build: .
     depends_on:
-      config-server:
-        condition: service_healthy
+      - config-server
       mysql:
         condition: service_healthy
       redis:
