@@ -22,7 +22,7 @@ public class NewsBasedDiscussionService {
     private final NewsRepository newsRepository;
     private final RestTemplate restTemplate = new RestTemplate();
     
-    @Value("${openai.api.key:}")
+    @Value("${app.security.external-api.ai.openai-api-key:}")
     private String apiKey;
     
     public String generateNewsBasedDiscussion() {
