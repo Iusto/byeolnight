@@ -45,7 +45,8 @@ services:
   app:
     build: .
     depends_on:
-      - config-server
+      config-server:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
