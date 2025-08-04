@@ -36,10 +36,10 @@ public class SpaceNewsService {
     private final RestTemplate restTemplate;
     private final NewsCollectionProperties newsConfig;
     
-    @Value("${newsdata.api.key}")
+    @Value("${app.security.external-api.ai.newsdata-api-key}")
     private String primaryApiKey;
     
-    @Value("${newsdata.api.key.backup:}")
+    @Value("${app.newsdata.api-key-backup:}")
     private String backupApiKey;
     
     private boolean usingBackupKey = false;

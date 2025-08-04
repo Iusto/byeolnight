@@ -39,10 +39,10 @@ public class CinemaService {
     private static final String[] ALL_KEYWORDS = java.util.stream.Stream.concat(java.util.Arrays.stream(KOREAN_KEYWORDS), java.util.Arrays.stream(ENGLISH_KEYWORDS)).map(String::toLowerCase).toArray(String[]::new);
     private static final String[] MUSIC_KEYWORDS = {"원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans", "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd", "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion", "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core", "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video", "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무", "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu", "가사", "lyrics", "노래", "song", "음악", "music", "앨범", "album", "미발매", "unreleased", "콘서트", "concert", "페스티벌", "festival", "칸타빌레", "cantabile", "더 시즌즈", "the seasons", "박보검", "샘 킴", "sam kim", "오현우", "ohHyunwoo", "일식", "eclipse", "[가사]", "[lyrics]", "kbs", "방송"};
 
-    @Value("${google.api.key:}")
+    @Value("${app.security.external-api.ai.google-api-key:}")
     private String googleApiKey;
     
-    @Value("${openai.api.key:}")
+    @Value("${app.security.external-api.ai.openai-api-key:}")
     private String openaiApiKey;
 
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")

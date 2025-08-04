@@ -24,10 +24,10 @@ public class SystemUserInitializer implements ApplicationRunner {
     private final UserService userService;
     private final StellaIconRepository stellaIconRepository;
 
-    @Value("${system.password.newsbot}")
+    @Value("${app.system.passwords.newsbot}")
     private String newsBotRawPassword;
 
-    @Value("${system.password.system}")
+    @Value("${app.system.passwords.system}")
     private String systemRawPassword;
 
     @Override
