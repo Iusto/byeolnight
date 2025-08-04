@@ -8,7 +8,7 @@ spring:
       uri: ${CONFIG_SERVER_URI:http://localhost:8888}
       username: ${CONFIG_USERNAME:config-admin}
       password: ${CONFIG_PASSWORD:config-secret-2024}
-      fail-fast: true
+      fail-fast: false
       retry:
         initial-interval: 1000
         max-attempts: 6
