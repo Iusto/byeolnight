@@ -15,10 +15,11 @@ services:
       - ./config-repo:/opt/byeolnight/config-repo
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--http-user=config-admin", "--http-password=config-secret-2024", "http://localhost:8888/actuator/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
   nginx:
     image: nginx:alpine
