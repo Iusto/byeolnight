@@ -37,6 +37,12 @@ jobs:
     - name: 백엔드 빌드
       run: ./gradlew build -x test
 
+    - name: Config Server 빌드
+      run: |
+        cd config-server
+        chmod +x ./gradlew
+        ./gradlew build -x test
+
     - name: Docker Buildx 설정
       uses: docker/setup-buildx-action@v3
 
@@ -89,6 +95,27 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Config Server 메타데이터 추출
+      id: meta-config
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config-server
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Config Server 이미지 빌드 및 푸시
+      uses: docker/build-push-action@v5
+      with:
+        context: ./config-server
+        file: ./config-server/Dockerfile
+        push: true
+        tags: ${{ steps.meta-config.outputs.tags }}
+        labels: ${{ steps.meta-config.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
   deploy:
     name: 운영 서버 배포
     runs-on: ubuntu-latest
@@ -106,6 +133,7 @@ jobs:
           cd /opt/byeolnight
           
           # 새 이미지 pull
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config-server:latest
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
           

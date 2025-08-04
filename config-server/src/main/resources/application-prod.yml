@@ -1,0 +1,39 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI:file:///app/config-repo}  # 운영서버에서 별도 설정
+          default-label: main
+          search-paths: configs
+          username: ${CONFIG_GIT_USERNAME:}
+          password: ${CONFIG_GIT_PASSWORD:}
+        encrypt:
+          enabled: true
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME:config-admin}
+      password: ${SPRING_SECURITY_USER_PASSWORD:config-secret-2024}
+
+# 암호화 키 (환경변수에서 주입)
+encrypt:
+  key: ${ENCRYPT_KEY:byeolnight-config-encryption-key-2024}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    org.springframework.cloud.config: INFO
+    root: INFO

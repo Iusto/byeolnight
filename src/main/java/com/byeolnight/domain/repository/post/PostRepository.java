@@ -18,7 +18,7 @@ import java.util.Optional;
 
 
 @Repository
-public interface PostRepository extends JpaRepository<Post, Long> {
+public interface PostRepository extends JpaRepository<Post, Long>, PostRepositoryCustom {
 
     /**
      * [게시판 화면] 카테고리별 최신순 게시글 조회 (블라인드 포함)

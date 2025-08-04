@@ -90,11 +90,31 @@ app:
     cookie:
       secure: ${COOKIE_SECURE:false}  # 개발 환경에서는 false, 운영 환경에서는 true
       domain: ${COOKIE_DOMAIN:}  # 운영 환경에서는 .byeolnight.com, 개발 환경에서는 빈 값
-  jwt:
-    secret: ${JWT_SECRET:defaultSecretKeyForDevelopmentOnlyNotForProduction}
-    access-token-validity: 30m
-    refresh-token-validity: 7d
-    allowed-clock-skew: 5m  # 서버와 클라이언트 간 시간 차이 허용 (5분)
+    jwt:
+      secret: ${JWT_SECRET:defaultSecretKeyForDevelopmentOnlyNotForProduction}
+      access-expiration: 1800000  # 30분 (밀리초)
+      refresh-expiration: 604800000  # 7일 (밀리초)
+    database:
+      password: ${DB_PASSWORD}
+      redis:
+        password: ${REDIS_PASSWORD}
+    external-api:
+      aws:
+        access-key-id: ${CLOUD_AWS_ACCESS_KEY}
+        secret-access-key: ${CLOUD_AWS_SECRET_KEY}
+        region: ${CLOUD_AWS_REGION:ap-northeast-2}
+        s3-bucket-name: ${CLOUD_AWS_S3_BUCKET}
+      email:
+        gmail-username: ${MAIL_USERNAME}
+        gmail-password: ${MAIL_PASSWORD}
+      sms:
+        coolsms-api-key: ${COOLSMS_API_KEY}
+        coolsms-api-secret: ${COOLSMS_API_SECRET}
+        from-number: ${COOLSMS_SENDER}
+      ai:
+        openai-api-key: ${OPENAI_API_KEY}
+        google-api-key: ${GOOGLE_API_KEY}
+        newsdata-api-key: ${NEWSDATA_API_KEY}
 
 # 뉴스 API 설정 (NewsData.io)
 newsdata:
@@ -154,9 +174,6 @@ springdoc:
     doc-expansion: none
     persist-authorization: true
   show-actuator: false
-
-
-
 
 # Cinema 설정
 cinema:

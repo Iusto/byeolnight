@@ -9,6 +9,8 @@ import com.byeolnight.domain.repository.shop.UserIconRepository;
 import com.byeolnight.domain.repository.user.UserRepository;
 import com.byeolnight.dto.shop.StellaIconDataDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
+import com.byeolnight.infrastructure.lock.DistributedLockService;
+import com.byeolnight.service.user.PointService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +32,9 @@ public class StellaShopService {
     private final StellaIconRepository stellaIconRepository;
     private final UserIconRepository userIconRepository;
     private final UserRepository userRepository;
-    private final com.byeolnight.service.user.PointService pointService;
+    private final PointService pointService;
     private final ObjectMapper objectMapper;
+    private final DistributedLockService distributedLockService;
 
     /**
      * 상점 아이콘 목록 조회
@@ -52,30 +55,34 @@ public class StellaShopService {
     }
 
     /**
-     * 아이콘 구매
+     * 아이콘 구매 (분산락 적용)
      */
     @Transactional
     public void purchaseIcon(User user, Long iconId) {
-        StellaIcon icon = stellaIconRepository.findById(iconId)
-                .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
+        String lockKey = "purchase:" + user.getId() + ":" + iconId;
+        
+        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
+            StellaIcon icon = stellaIconRepository.findById(iconId)
+                    .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
 
-        // 구매 가능 여부 확인
-        if (!icon.isAvailable()) {
-            throw new IllegalArgumentException("구매할 수 없는 아이콘입니다.");
-        }
+            // 구매 가능 여부 확인
+            if (!icon.isAvailable()) {
+                throw new IllegalArgumentException("구매할 수 없는 아이콘입니다.");
+            }
 
-        // 중복 구매 확인
-        StellaIcon icon2 = stellaIconRepository.findById(iconId).orElse(null);
-        if (icon2 != null && userIconRepository.existsByUserAndStellaIcon(user, icon2)) {
-            throw new IllegalArgumentException("이미 보유한 아이콘입니다.");
-        }
+            // 중복 구매 확인
+            StellaIcon icon2 = stellaIconRepository.findById(iconId).orElse(null);
+            if (icon2 != null && userIconRepository.existsByUserAndStellaIcon(user, icon2)) {
+                throw new IllegalArgumentException("이미 보유한 아이콘입니다.");
+            }
 
-        // 포인트 확인 및 차감 (PointService에서 처리)
-        pointService.recordIconPurchase(user, icon.getId(), icon.getName(), icon.getPrice());
+            // 포인트 확인 및 차감 (PointService에서 처리)
+            pointService.recordIconPurchase(user, icon.getId(), icon.getName(), icon.getPrice());
 
-        // 보관함에 추가
-        UserIcon userIcon = UserIcon.of(user, icon, icon.getPrice());
-        userIconRepository.save(userIcon);
+            // 보관함에 추가
+            UserIcon userIcon = UserIcon.of(user, icon, icon.getPrice());
+            userIconRepository.save(userIcon);
+        });
     }
 
     /**

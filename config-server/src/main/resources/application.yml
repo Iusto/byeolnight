@@ -1,0 +1,27 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: file:///${user.dir}/config-repo  # 로컬 Git 저장소 사용
+          default-label: main
+          search-paths: configs
+        encrypt:
+          enabled: true
+  security:
+    user:
+      name: config-admin
+      password: config-secret-2024
+
+# 암호화 키 (실제 운영에서는 환경변수로 설정)
+encrypt:
+  key: byeolnight-config-encryption-key-2024
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG

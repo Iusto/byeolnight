@@ -1,6 +1,23 @@
 # Docker Compose 설정 파일 (HTTPS 지원)
 
 services:
+  config-server:
+    image: ghcr.io/iusto/byeolnight-config-server:latest
+    ports:
+      - "8888:8888"
+    environment:
+      - ENCRYPT_KEY=byeolnight-config-encryption-key-2024
+      - SPRING_SECURITY_USER_NAME=config-admin
+      - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
+      - SPRING_PROFILES_ACTIVE=prod
+      - CONFIG_GIT_URI=file:///opt/byeolnight/config-repo
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   nginx:
     image: nginx:alpine
     ports:
@@ -25,15 +42,19 @@ services:
   app:
     build: .
     depends_on:
+      config-server:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
         condition: service_started
-    env_file:
-      - .env
     environment:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - CONFIG_USERNAME=config-admin
+      - CONFIG_PASSWORD=config-secret-2024
+      - SPRING_PROFILES_ACTIVE=prod
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
@@ -42,7 +63,7 @@ services:
   mysql:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: byeolnight9703!@
       MYSQL_DATABASE: byeolnight
       TZ: Asia/Seoul
     command: >
@@ -66,7 +87,7 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --requirepass byeolnight_redis_2025!@ --maxmemory 256mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
 
   frontend:

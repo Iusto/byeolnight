@@ -18,11 +18,11 @@ import com.byeolnight.service.file.S3Service;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.log.DeleteLogService;
 import com.byeolnight.domain.entity.log.DeleteLog;
+import com.byeolnight.infrastructure.lock.DistributedLockService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -45,20 +45,13 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final com.byeolnight.service.notification.NotificationService notificationService;
     private final DeleteLogService deleteLogService;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final DistributedLockService distributedLockService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
-        // 중복 등록 방지를 위한 락 키 생성 (사용자ID + 제목 해시)
         String lockKey = "post_create:" + user.getId() + ":" + dto.getTitle().hashCode();
         
-        // Redis 분산 락 적용 (10초 유지)
-        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", Duration.ofSeconds(10));
-        if (!lockAcquired) {
-            throw new IllegalStateException("동일한 게시글이 이미 등록 중입니다. 잠시 후 다시 시도해주세요.");
-        }
-        
-        try {
+        return distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
             validateAdminCategoryWrite(dto.getCategory(), user);
 
             Post post = Post.builder()
@@ -68,56 +61,53 @@ public class PostService {
                     .writer(user)
                     .build();
         
-        if (dto.getOriginTopicId() != null) {
-            Post originTopic = postRepository.findById(dto.getOriginTopicId())
-                    .orElseThrow(() -> new NotFoundException("원본 토론 주제를 찾을 수 없습니다."));
-            if (!originTopic.isDiscussionTopic()) {
-                throw new IllegalArgumentException("유효하지 않은 토론 주제입니다.");
+            if (dto.getOriginTopicId() != null) {
+                Post originTopic = postRepository.findById(dto.getOriginTopicId())
+                        .orElseThrow(() -> new NotFoundException("원본 토론 주제를 찾을 수 없습니다."));
+                if (!originTopic.isDiscussionTopic()) {
+                    throw new IllegalArgumentException("유효하지 않은 토론 주제입니다.");
+                }
+                post.setOriginTopicId(dto.getOriginTopicId());
             }
-            post.setOriginTopicId(dto.getOriginTopicId());
-        }
-        
-        postRepository.save(post);
+            
+            postRepository.save(post);
 
-        dto.getImages().forEach(image -> {
-            File file = File.of(post, image.originalName(), image.s3Key(), image.url());
-            fileRepository.save(file);
-        });
+            dto.getImages().forEach(image -> {
+                File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+                fileRepository.save(file);
+            });
 
-        certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POST_WRITE);
-        
-        if (dto.getCategory() == Post.Category.IMAGE) {
-            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_UPLOAD);
-        }
+            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POST_WRITE);
+            
+            if (dto.getCategory() == Post.Category.IMAGE) {
+                certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_UPLOAD);
+            }
 
-        pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
-        
-        // 포인트 달성 인증서 체크
-        try {
-            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
-        } catch (Exception e) {
-            System.err.println("포인트 인증서 발급 실패: " + e.getMessage());
-        }
-        
-        if (dto.getCategory() == Post.Category.NOTICE) {
+            pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
+            
+            // 포인트 달성 인증서 체크
             try {
-                notificationService.createNotificationForAllUsers(
-                    com.byeolnight.domain.entity.Notification.NotificationType.NEW_NOTICE,
-                    "새 공지사항이 등록되었습니다",
-                    dto.getTitle(),
-                    "/posts/" + post.getId(),
-                    post.getId()
-                );
+                certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
             } catch (Exception e) {
-                System.err.println("공지사항 알림 전송 실패: " + e.getMessage());
+                System.err.println("포인트 인증서 발급 실패: " + e.getMessage());
             }
-        }
+            
+            if (dto.getCategory() == Post.Category.NOTICE) {
+                try {
+                    notificationService.createNotificationForAllUsers(
+                        com.byeolnight.domain.entity.Notification.NotificationType.NEW_NOTICE,
+                        "새 공지사항이 등록되었습니다",
+                        dto.getTitle(),
+                        "/posts/" + post.getId(),
+                        post.getId()
+                    );
+                } catch (Exception e) {
+                    System.err.println("공지사항 알림 전송 실패: " + e.getMessage());
+                }
+            }
 
             return post.getId();
-        } finally {
-            // 락 해제
-            redisTemplate.delete(lockKey);
-        }
+        });
     }
 
     @Transactional
@@ -203,7 +193,7 @@ public class PostService {
 
         switch (sort) {
             case RECENT -> {
-                List<Post> hotPosts = postRepository.findTopHotPostsByCategory(categoryEnum, threshold, PageRequest.of(0, 4));
+                List<Post> hotPosts = postRepository.findHotPosts(categoryEnum, threshold, 5, 4);
                 Page<Post> recentPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable);
 
                 Set<Long> hotIds = hotPosts.stream().map(Post::getId).collect(Collectors.toSet());
@@ -256,15 +246,8 @@ public class PostService {
         Category categoryEnum = parseCategory(category);
         if (categoryEnum == null) throw new IllegalArgumentException("카테고리 누락");
         
-        Page<Post> searchResults;
-        
-        switch (searchType) {
-            case "title" -> searchResults = postRepository.findByTitleContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
-            case "content" -> searchResults = postRepository.findByContentContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
-            case "titleAndContent" -> searchResults = postRepository.findByTitleOrContentContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
-            case "writer" -> searchResults = postRepository.findByWriterNicknameContainingAndCategoryAndIsDeletedFalse(keyword, categoryEnum, pageable);
-            default -> throw new IllegalArgumentException("지원하지 않는 검색 타입입니다.");
-        }
+        // QueryDSL 동적 검색 사용
+        Page<Post> searchResults = postRepository.searchPosts(keyword, categoryEnum, searchType, pageable);
         
         List<PostResponseDto> dtos = searchResults.getContent().stream()
                 .map(p -> {
@@ -287,7 +270,7 @@ public class PostService {
         LocalDateTime threshold = LocalDateTime.now().minusDays(30);
         Pageable pageable = PageRequest.of(0, size);
 
-        List<Post> hotPosts = postRepository.findTopHotPostsAcrossAllCategories(threshold, pageable);
+        List<Post> hotPosts = postRepository.findHotPosts(null, threshold, 5, size);
 
         return hotPosts.stream()
                 .map(p -> {

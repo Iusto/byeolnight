@@ -19,7 +19,7 @@ class JwtTokenSimpleTest {
     @BeforeEach
     void setUp() {
         // JwtTokenProvider 직접 생성
-        jwtTokenProvider = new JwtTokenProvider(null);
+        jwtTokenProvider = new JwtTokenProvider(null, null);
         
         // 테스트용 설정값 주입
         ReflectionTestUtils.setField(jwtTokenProvider, "jwtSecret", "testSecretKeyForJwtTokenTesting123456789012345678901234567890");

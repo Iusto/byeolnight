@@ -13,6 +13,12 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.0"
+    }
+}
+
 dependencies {
     // Spring Boot Starter
     implementation 'org.springframework.boot:spring-boot-starter-web'               // Web MVC
@@ -20,6 +26,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'         // Spring Security
     implementation 'org.springframework.boot:spring-boot-starter-validation'       // Bean Validation
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'       // Redis
+    implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'            // Redisson (분산락)
     implementation 'org.springframework.boot:spring-boot-starter-websocket'        // WebSocket
 
     // Swagger(OpenAPI)
@@ -54,6 +61,17 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
+    // QueryDSL
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+    annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
+    // Spring Cloud Config (중앙화된 설정 관리)
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     // 테스트 관련
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mockito:mockito-core'
@@ -70,6 +88,21 @@ tasks.named('test') {
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+// QueryDSL 설정
+def querydslDir = "$buildDir/generated/querydsl"
+
+sourceSets {
+    main.java.srcDir querydslDir
+}
+
+compileJava {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+clean {
+    delete file(querydslDir)
 }
 
 // 의존성 보안 검사 설정

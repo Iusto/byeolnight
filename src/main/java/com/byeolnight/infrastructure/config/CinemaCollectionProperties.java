@@ -33,21 +33,31 @@ public class CinemaCollectionProperties extends BaseCollectionProperties {
     @EqualsAndHashCode(callSuper = true)
     public static class Quality extends BaseCollectionProperties.Quality {
         private int maxResults = 20;                // YouTube API 결과 개수
-        private String videoDuration = "medium";    // 비디오 길이
-        private String videoDefinition = "high";    // 비디오 화질
+        private String videoDuration = "medium";    // 비디오 길이 (short/medium/long)
+        private String videoDefinition = "high";    // 비디오 화질 (any/standard/high)
+        private long minViewCount = 10000;          // 최소 조회수 (1만회)
+        private long minLikeCount = 100;            // 최소 좋아요 수
+        private double minEngagementRate = 0.01;    // 최소 참여율 (좋아요/조회수)
     }
     
     @Data
     public static class Youtube {
         private String[] qualityChannels = {
-            "NASA", "SpaceX", "ESA", "National Geographic", 
-            "Discovery", "Science Channel", "Kurzgesagt"
+            "NASA", "SpaceX", "ESA", "European Space Agency",
+            "National Geographic", "Discovery", "Science Channel", 
+            "Kurzgesagt", "Veritasium", "SciShow Space",
+            "Fraser Cain", "Isaac Arthur", "Anton Petrov",
+            "SEA", "Cool Worlds", "Launch Pad Astronomy",
+            "한국항공우주연구원", "KARI", "우주항공청"
         };
         private String[] professionalTerms = {
             "documentary", "science", "research", "mission", 
-            "exploration", "universe", "cosmos"
+            "exploration", "universe", "cosmos", "astrophysics",
+            "cosmology", "observatory", "telescope", "probe"
         };
         private int publishedAfterYears = 2;        // 최근 N년 영상만
+        private String[] preferredLanguages = {"ko", "en"};  // 선호 언어
+        private String[] regionCodes = {"KR", "US", "GB"};   // 지역 코드
     }
     
     // 영화 전용 인스턴스로 오버라이드

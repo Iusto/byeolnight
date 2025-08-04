@@ -7,7 +7,7 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import com.byeolnight.infrastructure.config.SecurityProperties;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -35,22 +35,11 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     private final CustomUserDetailsService customUserDetailsService;
-
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${app.jwt.access-token-validity}")
-    private Duration accessTokenValidity;
-
-    @Value("${app.jwt.refresh-token-validity}")
-    private Duration refreshTokenValidity;
-    
-    @Value("${app.jwt.allowed-clock-skew:5m}")
-    private Duration allowedClockSkew;
+    private final SecurityProperties securityProperties;
 
     // JWT 서명용 키 생성
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        return Keys.hmacShaKeyFor(securityProperties.getSecurity().getJwt().getSecret().getBytes());
     }
 
     /**
@@ -60,7 +49,7 @@ public class JwtTokenProvider {
      */
     public String createAccessToken(User user) {
         Instant now = Instant.now();
-        Instant expiryDate = now.plusMillis(accessTokenValidity.toMillis());
+        Instant expiryDate = now.plusMillis(securityProperties.getSecurity().getJwt().getAccessExpiration());
         
         return Jwts.builder()
                 .setSubject(user.getEmail())
@@ -78,7 +67,7 @@ public class JwtTokenProvider {
      */
     public String createRefreshToken(User user) {
         Instant now = Instant.now();
-        Instant expiryDate = now.plusMillis(refreshTokenValidity.toMillis());
+        Instant expiryDate = now.plusMillis(securityProperties.getSecurity().getJwt().getRefreshExpiration());
         
         return Jwts.builder()
                 .setSubject(user.getEmail())
@@ -96,7 +85,7 @@ public class JwtTokenProvider {
             // 설정에서 가져온 시간 오차(clock skew) 허용 설정 적용
             Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
-                .setAllowedClockSkewSeconds(allowedClockSkew.getSeconds()) // 설정에서 가져온 시간 오차 허용
+                .setAllowedClockSkewSeconds(300) // 5분 시간 오차 허용
                 .build()
                 .parseClaimsJws(token);
             return true;
@@ -136,7 +125,7 @@ public class JwtTokenProvider {
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
-                .setAllowedClockSkewSeconds(allowedClockSkew.getSeconds()) // 설정에서 가져온 시간 오차 허용
+                .setAllowedClockSkewSeconds(300) // 5분 시간 오차 허용
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -173,7 +162,7 @@ public class JwtTokenProvider {
      * refresh 토큰 유효기간 getter
      */
     public long getRefreshTokenValidity() {
-        return refreshTokenValidity.toMillis();
+        return securityProperties.getSecurity().getJwt().getRefreshExpiration();
     }
 
     /**

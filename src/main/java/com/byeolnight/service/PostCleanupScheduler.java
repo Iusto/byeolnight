@@ -24,7 +24,7 @@ public class PostCleanupScheduler {
     private final S3Service s3Service;
     private final CommentRepository commentRepository;
 
-    @Scheduled(cron = "0 0 3 * * *") // 매일 새벽 3시
+    @Scheduled(cron = "0 0 8 * * *") // 매일 8시
     @Transactional
     public void cleanupExpiredPosts() {
         log.info("만료된 게시글 정리 작업 시작");

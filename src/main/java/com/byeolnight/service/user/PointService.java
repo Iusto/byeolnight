@@ -3,6 +3,8 @@ package com.byeolnight.service.user;
 import com.byeolnight.domain.entity.user.*;
 import com.byeolnight.domain.repository.user.*;
 import com.byeolnight.dto.user.PointHistoryDto;
+import com.byeolnight.infrastructure.lock.DistributedLockService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,8 +27,8 @@ public class PointService {
     private final PointHistoryRepository pointHistoryRepository;
     private final DailyAttendanceRepository dailyAttendanceRepository;
     private final UserRepository userRepository;
-    private final jakarta.persistence.EntityManager entityManager;
-    private final com.byeolnight.domain.repository.shop.UserIconRepository userIconRepository;
+    private final EntityManager entityManager;
+    private final DistributedLockService distributedLockService;
 
     // 포인트 상수
     private static final int DAILY_ATTENDANCE_POINTS = 10;
@@ -36,47 +38,51 @@ public class PointService {
     private static final int VALID_REPORT_POINTS = 10;
 
     /**
-     * 출석 체크 포인트 지급
+     * 출석 체크 포인트 지급 (분산락 적용)
      */
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Transactional
     public boolean checkDailyAttendance(User user) {
-        LocalDate today = LocalDate.now();
-        log.info("=== 출석 체크 시작 - 사용자: {}, 날짜: {} ===", user.getNickname(), today);
+        String lockKey = "attendance:" + user.getId() + ":" + LocalDate.now();
         
-        try {
-            // 엔티티 매니저 캠시 플러시 및 새로고침
-            entityManager.flush();
-            entityManager.clear();
+        return distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
+            LocalDate today = LocalDate.now();
+            log.info("=== 출석 체크 시작 - 사용자: {}, 날짜: {} ===", user.getNickname(), today);
             
-            // 사용자 정보 새로고침
-            User refreshedUser = userRepository.findById(user.getId())
-                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-            
-            // 이미 출석했는지 다시 한번 확인 (동시성 문제 방지)
-            boolean alreadyAttended = dailyAttendanceRepository.existsByUserAndAttendanceDate(refreshedUser, today);
-            log.info("출석 여부 확인 결과: {}", alreadyAttended);
-            
-            if (alreadyAttended) {
-                log.info("사용자 {}는 이미 오늘({}) 출석했습니다.", refreshedUser.getNickname(), today);
-                return false; // 이미 출석함
+            try {
+                // 엔티티 매니저 캠시 플러시 및 새로고침
+                entityManager.flush();
+                entityManager.clear();
+                
+                // 사용자 정보 새로고침
+                User refreshedUser = userRepository.findById(user.getId())
+                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                
+                // 이미 출석했는지 다시 한번 확인 (동시성 문제 방지)
+                boolean alreadyAttended = dailyAttendanceRepository.existsByUserAndAttendanceDate(refreshedUser, today);
+                log.info("출석 여부 확인 결과: {}", alreadyAttended);
+                
+                if (alreadyAttended) {
+                    log.info("사용자 {}는 이미 오늘({}) 출석했습니다.", refreshedUser.getNickname(), today);
+                    return false; // 이미 출석함
+                }
+
+                // 출석 기록 생성 (유니크 제약조건으로 중복 방지)
+                DailyAttendance attendance = DailyAttendance.of(refreshedUser, today);
+                DailyAttendance savedAttendance = dailyAttendanceRepository.save(attendance);
+                log.info("출석 기록 저장 완료 - ID: {}", savedAttendance.getId());
+
+                // 포인트 지급
+                awardPoints(refreshedUser, PointHistory.PointType.DAILY_ATTENDANCE, DAILY_ATTENDANCE_POINTS, "매일 출석 보상", null);
+                
+                log.info("사용자 {}에게 출석 포인트 {}점 지급 완료", refreshedUser.getNickname(), DAILY_ATTENDANCE_POINTS);
+                return true;
+                
+            } catch (Exception e) {
+                // 중복 키 예외 등이 발생한 경우 (이미 출석한 경우)
+                log.error("사용자 {}의 출석 처리 중 예외 발생: {}", user.getNickname(), e.getMessage(), e);
+                return false;
             }
-
-            // 출석 기록 생성 (유니크 제약조건으로 중복 방지)
-            DailyAttendance attendance = DailyAttendance.of(refreshedUser, today);
-            DailyAttendance savedAttendance = dailyAttendanceRepository.save(attendance);
-            log.info("출석 기록 저장 완료 - ID: {}", savedAttendance.getId());
-
-            // 포인트 지급
-            awardPoints(refreshedUser, PointHistory.PointType.DAILY_ATTENDANCE, DAILY_ATTENDANCE_POINTS, "매일 출석 보상", null);
-            
-            log.info("사용자 {}에게 출석 포인트 {}점 지급 완료", refreshedUser.getNickname(), DAILY_ATTENDANCE_POINTS);
-            return true;
-            
-        } catch (Exception e) {
-            // 중복 키 예외 등이 발생한 경우 (이미 출석한 경우)
-            log.error("사용자 {}의 출석 처리 중 예외 발생: {}", user.getNickname(), e.getMessage(), e);
-            return false;
-        }
+        });
     }
 
     /**
@@ -315,43 +321,47 @@ public class PointService {
     }
 
     /**
-     * 포인트 지급 공통 메서드
+     * 포인트 지급 공통 메서드 (분산락 적용)
      */
     @Transactional
     private void awardPoints(User user, PointHistory.PointType type, int amount, String description, String referenceId) {
-        log.info("포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
-                user.getNickname(), type, amount, description);
+        String lockKey = "points:" + user.getId();
         
-        try {
-            // 사용자 엔티티 새로고침 (영속성 컨텍스트에서 관리되도록)
-            User managedUser = userRepository.findById(user.getId())
-                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
+            log.info("포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
+                    user.getNickname(), type, amount, description);
             
-            // 포인트 이력 저장
-            PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
-            pointHistoryRepository.save(history);
-            log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
-
-            // 사용자 포인트 업데이트
-            int beforePoints = managedUser.getPoints();
-            managedUser.increasePoints(amount);
-            userRepository.save(managedUser);
-            log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
-            
-            // 포인트 달성 인증서 체크
             try {
-                com.byeolnight.service.certificate.CertificateService certificateService = 
-                    com.byeolnight.infrastructure.config.ApplicationContextProvider
-                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                certificateService.checkAndIssueCertificates(managedUser, 
-                    com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
-            } catch (Exception certError) {
-                log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
+                // 사용자 엔티티 새로고침 (영속성 컨텍스트에서 관리되도록)
+                User managedUser = userRepository.findById(user.getId())
+                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                
+                // 포인트 이력 저장
+                PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
+                pointHistoryRepository.save(history);
+                log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
+
+                // 사용자 포인트 업데이트
+                int beforePoints = managedUser.getPoints();
+                managedUser.increasePoints(amount);
+                userRepository.save(managedUser);
+                log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
+                
+                // 포인트 달성 인증서 체크
+                try {
+                    com.byeolnight.service.certificate.CertificateService certificateService = 
+                        com.byeolnight.infrastructure.config.ApplicationContextProvider
+                            .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                    certificateService.checkAndIssueCertificates(managedUser, 
+                        com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+                } catch (Exception certError) {
+                    log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
+                }
+                
+            } catch (Exception e) {
+                log.error("포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);
+                throw e;
             }
-            
-        } catch (Exception e) {
-            log.error("포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);
-            throw e;
-        }
+        });
     }
 }

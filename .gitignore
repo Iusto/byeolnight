@@ -242,6 +242,17 @@ test-results/
 .amazonq/
 .cursor/
 
+# Config Server 관련
+config-server/build/
+config-repo/  # 민감한 설정 파일 전체 제외
+*.md.tmp
+*-analysis.md
+*-summary.md
+*-retrospective.md
+start-*.bat
+encrypt-values.md
+config-server-test.md
+
 # 기타
 *.zip
 *.tar.gz

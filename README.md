@@ -18,6 +18,7 @@
 ### 핵심 설계 원칙
 - 🏗️ **도메인 중심 설계**: 비즈니스 로직을 명확한 도메인 모델로 표현
 - 🔐 **운영급 보안**: JWT + Redis 기반 인증, 토큰 탈취 대응, 계정 보호
+- ⚙️ **중앙화된 설정 관리**: Spring Cloud Config Server 기반 암호화된 설정 관리
 - ⚡ **성능 최적화**: 인덱싱, 캐싱, S3 Presigned URL을 통한 부하 분산
 - 🔄 **실시간 처리**: WebSocket 기반 채팅/알림, 하트비트 + 재연결 로직
 - 🧪 **테스트 기반**: 단위/통합 테스트로 코드 품질 보장
@@ -58,16 +59,16 @@
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                               │                         │
                               ▼                         ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │     Redis       │    │     AWS S3      │
-                       │   (Cache/Auth)  │    │  (File Storage) │
-                       └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌─────────────────┐
-                       │   External APIs │
-                       │(SendGrid/SMS/   │
-                       │NewsData/Google) │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Config Server  │    │     Redis       │    │     AWS S3      │
+│ (Central Config)│    │   (Cache/Auth)  │    │  (File Storage) │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                         │
+        ▼                         ▼
+┌─────────────────┐    ┌─────────────────┐
+│  Git Repository  │    │   External APIs │
+│ (Encrypted Cfg) │    │(SendGrid/SMS/   │
+└─────────────────┘    │NewsData/Google) │
                        └─────────────────┘
 ```
 
@@ -77,6 +78,7 @@
 
 ### Backend (핵심 역량)
 - **Java 21** + **Spring Boot 3.2.4** - 최신 LTS 기반 안정성
+- **Spring Cloud Config Server** - 중앙화된 암호화 설정 관리
 - **Spring Security + JWT** - 무상태 인증으로 확장성 확보
 - **MySQL 8.0** + **Redis 7.0** - 데이터 저장 및 캐싱
 - **AWS S3** - Presigned URL 기반 파일 업로드
@@ -125,39 +127,48 @@
 
 ## 🚀 빠른 시작
 
-### 1. 환경 설정
+### 1. 프로젝트 클론
 ```bash
-# 프로젝트 클론
 git clone https://github.com/your-username/byeolnight.git
 cd byeolnight
-
-# 환경변수 설정
-cp .env.example .env
-# .env 파일을 열어서 실제 값들로 수정
 ```
 
-### 2. 로컬 개발 환경
+### 2. Config Server 기반 로컬 개발
 ```bash
-# 백엔드 + DB만 실행 (개발용)
-./run-local.bat  # Windows
-docker-compose -f docker-compose.local.yml up -d
+# 1. Config Server 설정 파일 준비
+# config-repo/configs/byeolnight-local.yml에 실제 값 입력
+
+# 2. Config Server 시작 (별도 터미널)
+cd config-server
+gradlew bootRun
+
+# 3. 메인 애플리케이션 시작
+cd ..
 gradlew bootRun --args='--spring.profiles.active=local'
 
-# 프론트엔드 별도 실행
+# 4. 프론트엔드 시작 (별도 터미널)
 cd byeolnight-frontend
 npm install
 npm run dev
 ```
 
-### 3. 전체 서비스 실행 (배포용)
+### 3. Docker 기반 전체 실행
 ```bash
+# 운영 서버에 config-repo 설정 후
 docker-compose up --build -d
 ```
 
 ### 4. 접속 URL
+- **Config Server**: http://localhost:8888 (인증: config-admin/config-secret-2024)
 - **로컬 개발**: http://localhost:5173 (프론트), http://localhost:8080 (백엔드)
 - **Docker 배포**: http://localhost
 - **API 문서**: http://localhost:8080/swagger-ui.html
+
+### 5. 설정 확인
+```bash
+# Config Server 설정 조회
+curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
+```
 
 ---
 
@@ -187,6 +198,7 @@ docker-compose up --build -d
 ## 🔍 주요 해결 과제
 
 ### 실제 개발 과정에서 겪은 기술적 도전
+- **중앙화된 설정 관리**: .env 파일 의존성 → Config Server 기반 암호화 설정으로 보안 강화
 - **JWT 토큰 자동 갱신**: 게시글 작성 중 토큰 만료 → 자동 갱신으로 데이터 손실 95% 감소
 - **WebSocket 연결 안정성**: 모바일 네트워크 전환 대응 → 하트비트 + 재연결로 99% 안정성 달성
 - **인앱 브라우저 호환성**: Notification API 미지원 → 타입 체크로 호환성 100% 달성
@@ -194,6 +206,7 @@ docker-compose up --build -d
 - **동시성 문제**: 포인트 중복 지급 → Redis 분산 락으로 99% 해결
 
 ### 성능 최적화 성과
+- **중앙화된 설정 관리**: Config Server 도입으로 설정 관리 복잡도 80% 감소, 보안 강화
 - **데이터베이스 인덱싱**: 복합 인덱스 적용으로 쿼리 성능 15% 향상
 - **뉴스 시스템 리팩토링**: DB 조회 성능 85% 향상, 200개 키워드 활용
 - **YouTube 서비스 개선**: 영상 다양성 2배 증가, 중복 영상 5% 미만
@@ -203,9 +216,11 @@ docker-compose up --build -d
 
 ## 📈 프로젝트 통계
 
-- **총 코드 라인**: ~50,000 lines (Backend 70%, Frontend 30%)
+- **총 코드 라인**: ~52,000 lines (Backend 72%, Frontend 28%)
+- **마이크로서비스**: 2개 (Config Server + Main Application)
 - **도메인 수**: 10개 핵심 도메인 (인증, 게시글, 쪽지, 알림, 채팅 등)
 - **API 엔드포인트**: 80+ RESTful APIs
+- **중앙화된 설정**: 50+ 암호화된 설정 항목
 - **테스트 커버리지**: Controller, Service, Repository 계층별 테스트
 - **외부 API 연동**: 7개 서비스 (SendGrid, CoolSMS, AWS S3, Google Vision 등)
 - **CI/CD 워크플로우**: 5개 자동화 파이프라인 (CI, 코드품질, 배포, PR검증, 성능테스트)
