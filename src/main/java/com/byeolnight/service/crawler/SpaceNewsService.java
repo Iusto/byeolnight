@@ -42,6 +42,9 @@ public class SpaceNewsService {
     @Value("${app.newsdata.api-key-backup:}")
     private String backupApiKey;
     
+    @Value("${app.security.external-api.ai.openai-api-key}")
+    private String openaiApiKey;
+    
     private boolean usingBackupKey = false;
     
     private static final String NEWS_API_URL = "https://newsdata.io/api/1/news";
@@ -327,8 +330,7 @@ public class SpaceNewsService {
     
     private String translateWithOpenAI(String englishTitle) {
         // OpenAI API 키 체크
-        String apiKey = System.getProperty("openai.api.key", System.getenv("OPENAI_API_KEY"));
-        if (apiKey == null || apiKey.trim().isEmpty()) {
+        if (openaiApiKey == null || openaiApiKey.trim().isEmpty()) {
             log.debug("OpenAI API 키가 설정되지 않아 번역 스킵");
             return null;
         }
@@ -338,7 +340,7 @@ public class SpaceNewsService {
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
+            headers.setBearerAuth(openaiApiKey);
             
             String prompt = String.format("""
                 다음 영어 뉴스 제목을 자연스럽고 정확한 한국어로 번역해주세요:
@@ -346,9 +348,10 @@ public class SpaceNewsService {
                 "%s"
                 
                 요구사항:
-                - 우주/과학 전문 용어는 정확하게 번역
+                - 우주/과학 전문 용어는 정확하게 번역 (예: asteroid → 소행성, meteor shower → 유성우)
                 - 자연스럽고 읽기 쉬운 한국어로 번역
-                - 번역문만 반환 (설명 없이)
+                - 뉴스 제목답게 간결하고 임팩트 있게 번역
+                - 번역문만 반환 (설명이나 따옴표 없이)
                 """, englishTitle);
             
             Map<String, Object> requestBody = Map.of(
@@ -379,7 +382,7 @@ public class SpaceNewsService {
                 }
             }
         } catch (Exception e) {
-            log.warn("번역 실패: {}", englishTitle, e);
+            log.warn("번역 실패: {} - 오류: {}", englishTitle, e.getMessage());
         }
         
         return null;
@@ -510,8 +513,7 @@ public class SpaceNewsService {
      * AI 기반 뉴스 상세 분석 생성
      */
     private String generateAIAnalysis(NewsApiResponseDto.Result result) {
-        String apiKey = System.getProperty("openai.api.key", System.getenv("OPENAI_API_KEY"));
-        if (apiKey == null || apiKey.trim().isEmpty()) {
+        if (openaiApiKey == null || openaiApiKey.trim().isEmpty()) {
             return "현재 이용 가능한 정보를 바탕으로 한 분석입니다. 더 자세한 내용은 원문 링크를 통해 확인하세요.";
         }
         
@@ -519,7 +521,7 @@ public class SpaceNewsService {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
+            headers.setBearerAuth(openaiApiKey);
             
             String content = result.getTitle() + "\n" + (result.getDescription() != null ? result.getDescription() : "");
             String prompt = String.format("""
@@ -528,16 +530,18 @@ public class SpaceNewsService {
                 "%s"
                 
                 요구사항:
-                - 주요 내용 3-4개 포인트로 정리
+                - 핵심 내용을 3-4개 포인트로 정리
                 - 과학적 의미와 중요성 설명
                 - 일반인이 이해하기 쉬운 언어로 설명
-                - 200자 내외로 작성
+                - 미래 영향이나 의미가 있다면 언급
+                - 250자 내외로 작성
+                - 이모지나 특수문자 사용 금지
                 """, content);
             
             Map<String, Object> requestBody = Map.of(
                 "model", "gpt-4o-mini",
                 "messages", List.of(Map.of("role", "user", "content", prompt)),
-                "max_tokens", 250,
+                "max_tokens", 300,
                 "temperature", 0.4
             );
             
@@ -550,11 +554,13 @@ public class SpaceNewsService {
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
                 if (!choices.isEmpty()) {
                     Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    return ((String) message.get("content")).trim();
+                    String analysis = ((String) message.get("content")).trim();
+                    log.info("AI 분석 성공: {}", result.getTitle());
+                    return analysis;
                 }
             }
         } catch (Exception e) {
-            log.warn("AI 분석 생성 실패: {}", result.getTitle(), e);
+            log.warn("AI 분석 생성 실패: {} - 오류: {}", result.getTitle(), e.getMessage());
         }
         
         return "현재 이용 가능한 정보를 바탕으로 한 분석입니다. 더 자세한 내용은 원문 링크를 통해 확인하세요.";
@@ -564,8 +570,7 @@ public class SpaceNewsService {
      * AI 기반 뉴스 요약 생성
      */
     private String generateSummary(NewsApiResponseDto.Result result) {
-        String apiKey = System.getProperty("openai.api.key", System.getenv("OPENAI_API_KEY"));
-        if (apiKey == null || apiKey.trim().isEmpty()) {
+        if (openaiApiKey == null || openaiApiKey.trim().isEmpty()) {
             return result.getDescription() != null ? 
                 result.getDescription().substring(0, Math.min(100, result.getDescription().length())) + "..." : 
                 "우주 관련 최신 뉴스";
@@ -575,7 +580,7 @@ public class SpaceNewsService {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
+            headers.setBearerAuth(openaiApiKey);
             
             String content = result.getTitle() + " " + (result.getDescription() != null ? result.getDescription() : "");
             String prompt = String.format("""
@@ -605,11 +610,13 @@ public class SpaceNewsService {
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
                 if (!choices.isEmpty()) {
                     Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    return ((String) message.get("content")).trim();
+                    String summary = ((String) message.get("content")).trim();
+                    log.info("요약 생성 성공: {}", result.getTitle());
+                    return summary;
                 }
             }
         } catch (Exception e) {
-            log.warn("요약 생성 실패: {}", result.getTitle(), e);
+            log.warn("요약 생성 실패: {} - 오류: {}", result.getTitle(), e.getMessage());
         }
         
         return result.getDescription() != null ? 
