@@ -55,7 +55,7 @@ public class ChatController {
             
             // ✅ 채팅 금지 사용자 확인 - 메시지 저장 및 전송 전에 먼저 확인
             if (adminChatService.isUserBanned(user.getNickname())) {
-                log.warn("채팅 금지된 사용자의 메시지 차단: {}", user.getNickname());
+                log.warn("밴된 사용자 채팅 시도 차단: {} - 메시지: {}", user.getNickname(), chatMessage.getMessage());
                 // 사용자에게 금지 상태 알림
                 messagingTemplate.convertAndSendToUser(user.getNickname(), "/queue/ban-notification", 
                     java.util.Map.of("error", "채팅이 제한되어 메시지를 보낼 수 없습니다."));

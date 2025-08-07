@@ -172,7 +172,6 @@ public class AdminChatService {
             if (ban.isExpired()) {
                 ban.unban();
                 chatBanRepository.save(ban);
-                log.info("만료된 채팅 금지 즉시 해제: {}", username);
                 return false;
             }
             return true;
@@ -193,7 +192,6 @@ public class AdminChatService {
             if (ban.isExpired()) {
                 ban.unban();
                 chatBanRepository.save(ban);
-                log.info("만료된 채팅 금지 즉시 해제: {}", username);
                 result.put("banned", false);
             } else {
                 result.put("banned", true);
@@ -205,7 +203,7 @@ public class AdminChatService {
                 long remainingMinutes = java.time.Duration.between(LocalDateTime.now(), ban.getBannedUntil()).toMinutes();
                 result.put("remainingMinutes", Math.max(0, remainingMinutes));
                 
-                log.info("사용자 {} 밴 상태: 남은 시간 {}분", username, remainingMinutes);
+
             }
         } else {
             result.put("banned", false);
