@@ -56,7 +56,7 @@ export default function PostEdit() {
       console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
       setImages(prev => [...prev, imageData]);
       
-      return imageData.url;
+      return imageData; // imageData 전체를 반환
     } catch (error) {
       console.error('클립보드 이미지 업로드 실패:', error);
       console.error('오류 상세:', error.response?.status, error.response?.data);
@@ -134,8 +134,8 @@ export default function PostEdit() {
         return;
       }
       
-      const imageUrl = await uploadClipboardImage(imageFile);
-      if (!imageUrl) {
+      const imageData = await uploadClipboardImage(imageFile);
+      if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
       
@@ -144,10 +144,10 @@ export default function PostEdit() {
       if (instance) {
         console.log('TUI Editor 인스턴스를 통한 이미지 삽입');
         // 현재 커서 위치에 이미지 마크다운 삽입
-        instance.insertText(`![클립보드 이미지](${imageUrl})`);
+        instance.insertText(`![클립보드 이미지](${imageData.url})`);
       } else {
         console.log('상태 업데이트를 통한 이미지 삽입');
-        setContent(prev => prev + `![클립보드 이미지](${imageUrl})\n`);
+        setContent(prev => prev + `![클립보드 이미지](${imageData.url})\n`);
       }
     } catch (error: any) {
       console.error('클립보드 이미지 업로드 실패:', error);
@@ -361,7 +361,13 @@ export default function PostEdit() {
           s3Key: img.s3Key || '',
           url: img.url
         }));
+        console.log('기존 이미지 로드:', existingImages);
         setImages(existingImages);
+        
+        // 이미지 상태 업데이트 후 로그 출력
+        setTimeout(() => {
+          console.log('이미지 상태 업데이트 후:', images.length, '개');
+        }, 100);
         
         // ReactQuill에 콘텐츠 설정은 state로 처리됨
       } catch (err) {
@@ -653,8 +659,12 @@ export default function PostEdit() {
                         alt={image.originalName}
                         className="w-full h-24 object-cover rounded-lg shadow-md"
                         onError={(e) => {
-                          console.error('이미진 로드 실패:', image.url);
+                          console.error('이미지 로드 실패:', image.url);
+                          // 기본 이미지로 대체
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo=';
+                        }}
+                        onLoad={() => {
+                          console.log('이미지 로드 성공:', image.url);
                         }}
                       />
                       <button

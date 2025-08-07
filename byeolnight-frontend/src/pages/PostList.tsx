@@ -415,6 +415,10 @@ export default function PostList() {
           if (url.startsWith('"') && url.endsWith('"')) {
             url = url.substring(1, url.length - 1);
           }
+          // via.placeholder.com URL 필터링
+          if (url.includes('via.placeholder.com')) {
+            continue;
+          }
           return url;
         }
       }
@@ -428,6 +432,10 @@ export default function PostList() {
       for (const regex of urlRegexes) {
         const match = content.match(regex);
         if (match && match[1]) {
+          // via.placeholder.com URL 필터링
+          if (match[1].includes('via.placeholder.com')) {
+            continue;
+          }
           return match[1];
         }
       }
@@ -435,7 +443,7 @@ export default function PostList() {
       // S3 URL 형태 처리
       const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
       const s3Match = content.match(s3Regex);
-      if (s3Match) {
+      if (s3Match && !s3Match[0].includes('via.placeholder.com')) {
         return s3Match[0];
       }
       
@@ -457,8 +465,19 @@ export default function PostList() {
                 src={imgSrc} 
                 alt={post.title} 
                 className="w-full h-full object-cover"
-                onError={() => {
+                onError={(e) => {
+                  console.log('이미지 로드 실패:', imgSrc);
                   setFailedImages(prev => new Set(prev).add(post.id));
+                  // 기본 이미지로 대체하지 않고 오류 상태만 설정
+                  e.currentTarget.style.display = 'none';
+                }}
+                onLoad={() => {
+                  // 이미지 로드 성공 시 실패 목록에서 제거
+                  setFailedImages(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(post.id);
+                    return newSet;
+                  });
                 }}
               />
             ) : (
@@ -476,6 +495,13 @@ export default function PostList() {
                   onChange={(e) => handlePostSelect(post.id, e.target.checked)}
                   className="w-4 h-4"
                 />
+              </div>
+            )}
+            
+            {/* 이미지 로드 실패 표시 */}
+            {imgSrc && hasImageFailed && (
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center">
+                <span className="text-4xl">🌌</span>
               </div>
             )}
             
