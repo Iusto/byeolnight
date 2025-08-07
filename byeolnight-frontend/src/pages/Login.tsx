@@ -28,75 +28,20 @@ export default function Login() {
   // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
     console.log('=== 에러 메시지 디버깅 ===');
-    console.log('원본 서버 메시지:', serverMessage);
+    console.log('원본 서버 메시지:', JSON.stringify(serverMessage));
     console.log('메시지 타입:', typeof serverMessage);
-    console.log('메시지 길이:', serverMessage?.length);
     
     if (!serverMessage) {
-      console.log('서버 메시지 없음 - 기본 에러 반환');
       return t('auth.login_default_error')
     }
     
-    // 특별한 서버 메시지 (이모지 포함) - 우선 처리
-    if (serverMessage.includes('🔒') || 
-        serverMessage.includes('🚫') ||
-        serverMessage.includes('⚠️')) {
-      console.log('이모지 포함 메시지 - 그대로 반환');
-      return serverMessage
-    }
-    
-    // 계정 상태 관련 에러
-    if (serverMessage.includes('BANNED')) {
-      console.log('계정 차단 에러');
-      return t('auth.account_banned')
-    }
-    if (serverMessage.includes('SUSPENDED')) {
-      console.log('계정 정지 에러');
-      return t('auth.account_suspended')
-    }
-    if (serverMessage.includes('WITHDRAWN')) {
-      console.log('계정 탈퇴 에러');
-      return t('auth.account_withdrawn')
-    }
-    
-    // 인증 실패 관련 에러
-    if (serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다') ||
-        serverMessage.includes('Invalid credentials') || 
-        serverMessage.includes('Bad credentials') ||
-        serverMessage.includes('Authentication failed') ||
-        /\(\d+\/\d+\)/.test(serverMessage)) {
-      console.log('인증 실패 에러');
+    // 인증 실패 관련 에러 - 가장 먼저 체크
+    if (serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다')) {
+      console.log('✅ 인증 실패 에러 매칭됨');
       return t('auth.invalid_credentials')
     }
     
-    // 네트워크 에러
-    if (serverMessage.includes('Network Error') || 
-        serverMessage.includes('ERR_NETWORK') ||
-        serverMessage.includes('Failed to fetch')) {
-      console.log('네트워크 에러');
-      return t('auth.network_error')
-    }
-    
-    // 로그인 유지 옵션 관련 에러
-    if (serverMessage.includes('로그인 유지 옵션이 비활성화') ||
-        serverMessage.includes('remember me disabled') ||
-        serverMessage.includes('Remember me option disabled')) {
-      console.log('로그인 유지 옵션 비활성화 에러');
-      return t('auth.remember_me_disabled')
-    }
-    
-    // 서버 에러 (5xx)
-    if (serverMessage.includes('Internal Server Error') ||
-        serverMessage.includes('Server Error') ||
-        serverMessage.includes('500') ||
-        serverMessage.includes('502') ||
-        serverMessage.includes('503')) {
-      console.log('서버 에러');
-      return t('auth.server_error')
-    }
-    
-    console.log('조건에 맞지 않음 - 서버 메시지 그대로 반환:', serverMessage);
-    // 기본적으로 서버 메시지 그대로 반환
+    console.log('❌ 조건에 맞지 않음 - 서버 메시지 그대로 반환');
     return serverMessage
   }
 
@@ -111,11 +56,8 @@ export default function Login() {
       
     } catch (err: any) {
       console.log('=== 로그인 에러 상세 분석 ===');
-      console.log('전체 에러 객체:', err);
-      console.log('err.response:', err.response);
-      console.log('err.response?.data:', err.response?.data);
-      console.log('err.response?.data?.message:', err.response?.data?.message);
-      console.log('err.message:', err.message);
+      console.log('전체 에러 객체:', JSON.stringify(err, null, 2));
+      console.log('err.response:', JSON.stringify(err.response, null, 2));
       
       // 서버에서 보낸 구체적인 에러 메시지 추출
       const serverMessage = err.response?.data?.message || err.message || t('auth.login_default_error')
