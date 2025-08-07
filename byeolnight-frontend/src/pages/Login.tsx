@@ -7,7 +7,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher'
 export default function Login() {
   const navigate = useNavigate()
   const { login, user } = useAuth()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -91,7 +91,15 @@ export default function Login() {
             {t('auth.home_button')}
           </button>
           <h2 className="text-2xl font-bold">{t('auth.login_title')}</h2>
-          <LanguageSwitcher />
+          <select 
+            value={i18n.language} 
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            className="px-2 py-1 rounded bg-[#2a2e44] border border-gray-600 text-white text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+          >
+            <option value="ko">🇰🇷</option>
+            <option value="ja">🇯🇵</option>
+            <option value="en">🇺🇸</option>
+          </select>
         </div>
         <form onSubmit={handleLogin} className="space-y-5">
           <input
