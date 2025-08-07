@@ -74,7 +74,7 @@ public class AuthService {
                 .orElseThrow(() -> {
                     auditSignupLogRepository.save(AuditSignupLog.failure(email, ip, "존재하지 않는 이메일"));
                     // log.info("로그인 시도 실패: 존재하지 않는 이메일 - {}", email);
-                    return new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
+                    return new BadCredentialsException("존재하지 않는 아이디입니다.");
                 });
 
         // 계정 상태 확인
@@ -117,7 +117,7 @@ public class AuthService {
             }
 
             // 기본 실패 메시지 (1-4회)
-            throw new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다. (" + failCount + "/10)");
+            throw new BadCredentialsException("비밀번호가 올바르지 않습니다. (" + failCount + "/10)");
         }
     }
 

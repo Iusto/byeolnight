@@ -26,7 +26,6 @@ import SuggestionCreate from './pages/SuggestionCreate';
 import SuggestionDetail from './pages/SuggestionDetail';
 import SuggestionEdit from './pages/SuggestionEdit';
 import MessagesPage from './pages/MessagesPage';
-import MonitoringDashboard from './components/MonitoringDashboard';
 
 // 정적 파일 경로 확인 함수
 const isStaticFilePath = (pathname: string): boolean => {
@@ -44,9 +43,7 @@ function App() {
   }
   
   return (
-    <>
-      <MonitoringDashboard />
-      <Routes>
+    <Routes>
       {/* 독립적인 페이지들 (Layout 없음) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
@@ -83,7 +80,6 @@ function App() {
         <Route path="/unauthorized" element={<Unauthorized />} />
       </Route>
     </Routes>
-    </>
   )
 }
 

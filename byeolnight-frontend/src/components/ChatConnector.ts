@@ -1,76 +1,127 @@
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-export let stompClient: Client | null = null;
-let isConnected = false; // ✅ 중복 연결 방지용 flag
+interface ChatConnectorCallbacks {
+  onMessage: (msg: any) => void;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onError: () => void;
+  onBanNotification?: (banData: any) => void;
+  onAdminUpdate?: (data: any) => void;
+}
 
-export const connectChat = (onMessage: (msg: any) => void) => {
-  if (stompClient && isConnected) {
-    console.log('🟡 이미 WebSocket 연결됨');
-    return;
-  }
+class ChatConnector {
+  private client: Client | null = null;
+  private isConnected = false;
+  private callbacks: ChatConnectorCallbacks | null = null;
+  private retryCount = 0;
+  private maxRetries = 3;
 
-  const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
-  // SockJS는 HTTP/HTTPS 프로토콜을 사용
-  const socketUrl = wsUrl;
-
-  // 클라이언트 IP 가져오기
-  const clientIp = sessionStorage.getItem('clientIp') || 'unknown';
-  
-  stompClient = new Client({
-    webSocketFactory: () => new SockJS(wsUrl),
-    reconnectDelay: 5000,
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
-    connectHeaders: {
-      'X-Client-IP': clientIp,
-      'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`
+  connect(callbacks: ChatConnectorCallbacks, userNickname?: string) {
+    if (this.client && this.isConnected) {
+      return;
     }
-  });
 
-  stompClient.onConnect = () => {
-    isConnected = true;
-    console.log('🟢 WebSocket 연결 완료');
+    this.callbacks = callbacks;
+    const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
+    const token = localStorage.getItem('accessToken');
+    
+    this.client = new Client({
+      webSocketFactory: () => new SockJS(wsUrl),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+      onConnect: () => this.handleConnect(userNickname),
+      onStompError: () => this.handleError(),
+      onWebSocketError: () => this.handleError(),
+      onDisconnect: () => this.handleDisconnect()
+    });
 
-    stompClient?.subscribe('/topic/public', (message) => {
+    this.client.activate();
+  }
+
+  private handleConnect(userNickname?: string) {
+    this.isConnected = true;
+    this.retryCount = 0;
+    this.callbacks?.onConnect();
+
+    if (!this.client) return;
+
+    // 공개 채팅 구독
+    this.client.subscribe('/topic/public', (message) => {
       const body = JSON.parse(message.body);
-      onMessage(body);
+      this.callbacks?.onMessage(body);
     });
 
-    stompClient?.subscribe('/user/queue/init', (message) => {
-      const history = JSON.parse(message.body);
-      if (Array.isArray(history)) {
-        history.forEach(onMessage);
-      }
+    // 관리자 업데이트 구독
+    this.client.subscribe('/topic/admin/chat-update', (message) => {
+      const data = JSON.parse(message.body);
+      this.callbacks?.onAdminUpdate?.(data);
     });
 
-    stompClient?.publish({ destination: '/app/chat.init', body: '' });
-  };
+    // 사용자별 알림 구독
+    if (userNickname) {
+      this.client.subscribe(`/queue/user.${userNickname}.ban`, (message) => {
+        const banData = JSON.parse(message.body);
+        this.callbacks?.onBanNotification?.(banData);
+      });
 
-  stompClient.activate();
-};
-
-export const sendMessage = (message: any) => {
-  if (stompClient?.connected) {
-    const clientIp = sessionStorage.getItem('clientIp') || 'unknown';
-    stompClient.publish({ 
-      destination: '/app/chat.send', 
-      body: JSON.stringify(message),
-      headers: {
-        'X-Client-IP': clientIp
-      }
-    });
-  } else {
-    console.warn('❌ WebSocket 연결되지 않음');
+      this.client.subscribe(`/user/queue/ban-notification`, (message) => {
+        const errorData = JSON.parse(message.body);
+        this.callbacks?.onBanNotification?.(errorData);
+      });
+    }
   }
-};
 
-export const disconnectChat = () => {
-  if (stompClient?.connected) {
-    stompClient.onDisconnect = () => {
-      console.log('🔌 WebSocket 연결 해제');
-      isConnected = false;
-    };
-    stompClient.deactivate();
+  private handleError() {
+    this.isConnected = false;
+    this.callbacks?.onError();
+    
+    if (this.retryCount < this.maxRetries) {
+      this.retryCount++;
+      setTimeout(() => {
+        if (this.callbacks) {
+          this.connect(this.callbacks);
+        }
+      }, 3000 * this.retryCount);
+    }
   }
-};
+
+  private handleDisconnect() {
+    this.isConnected = false;
+    this.callbacks?.onDisconnect();
+  }
+
+  sendMessage(message: { roomId: string; sender: string; message: string }) {
+    if (!this.client?.connected) {
+      throw new Error('WebSocket이 연결되어 있지 않습니다.');
+    }
+
+    this.client.publish({
+      destination: '/app/chat.send',
+      body: JSON.stringify(message)
+    });
+  }
+
+  disconnect() {
+    if (this.client?.connected) {
+      this.client.deactivate();
+    }
+    this.isConnected = false;
+    this.callbacks = null;
+  }
+
+  get connected() {
+    return this.isConnected && this.client?.connected;
+  }
+
+  retryConnection() {
+    this.retryCount = 0;
+    if (this.callbacks) {
+      this.connect(this.callbacks);
+    }
+  }
+}
+
+export default new ChatConnector();

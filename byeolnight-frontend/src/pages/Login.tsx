@@ -36,12 +36,27 @@ export default function Login() {
       await login(email, password, rememberMe)
       setLoginSuccess(true)
     } catch (err: any) {
-      let errorMessage = '로그인에 실패했습니다.'
+      let errorMessage = t('auth.login_default_error')
       
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message
-      } else if (err.message) {
-        errorMessage = err.message
+      const serverMessage = err.response?.data?.message || err.message
+      
+      if (serverMessage) {
+        // 존재하지 않는 아이디
+        if (serverMessage.includes('존재하지 않는 아이디')) {
+          errorMessage = t('auth.user_not_found')
+        }
+        // 비밀번호 오류
+        else if (serverMessage.includes('비밀번호가 올바르지 않습니다')) {
+          errorMessage = serverMessage // 시도 횟수 포함해서 그대로 사용
+        }
+        // 이모지 포함 메시지는 그대로 사용
+        else if (serverMessage.includes('🔒') || serverMessage.includes('🚫') || serverMessage.includes('⚠️')) {
+          errorMessage = serverMessage
+        }
+        // 기타 서버 메시지
+        else {
+          errorMessage = serverMessage
+        }
       }
       
       setError(errorMessage)

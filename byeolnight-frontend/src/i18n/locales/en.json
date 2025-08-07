@@ -55,6 +55,8 @@
     "account_suspended": "This account has been temporarily suspended. Please contact the administrator.",
     "account_withdrawn": "This account has been withdrawn. Please create a new account.",
     "invalid_credentials": "Email or password is incorrect.",
+    "invalid_password": "Password is incorrect.",
+    "user_not_found": "User ID does not exist.",
     "network_error": "Network error occurred. Please try again.",
     "remember_me_disabled": "Remember me option is disabled.",
     "server_error": "Server error occurred. Please try again later.",

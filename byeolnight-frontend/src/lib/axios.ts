@@ -1,95 +1,121 @@
 import axios from 'axios';
 
+// 환경 변수 설정
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://byeolnight.com/api';
+const REQUEST_TIMEOUT = 30000;
+
+// Axios 인스턴스 생성
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://byeolnight.com/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // 쿠키 포함 (Refresh Token용)
-  timeout: 30000, // 기본 타임아웃 30초로 설정 (모바일 환경 대응)
+  withCredentials: true,
+  timeout: REQUEST_TIMEOUT,
 });
 
-// FormData를 사용할 때 Content-Type 헤더를 자동으로 설정하도록 함
-instance.defaults.transformRequest = [
-  function(data, headers) {
-    // FormData인 경우 Content-Type 헤더 삭제 (브라우저가 자동으로 설정)
-    if (data instanceof FormData) {
-      console.log('파일 업로드 요청 감지 - FormData 사용');
-      delete headers['Content-Type'];
-      return data;
-    }
-    // 이미 문자열이면 그대로 반환
-    if (typeof data === 'string') return data;
-    // 객체면 JSON.stringify로 변환
-    if (typeof data === 'object' && data !== null) {
-      return JSON.stringify(data);
-    }
-    return data;
-  }
-];
+// 토큰 갱신 상태 관리
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
-console.log('Axios baseURL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
-
-// 클라이언트 IP 추출 함수
-const getClientIp = async (): Promise<string> => {
+// 로그인 유지 옵션 확인 (안전한 Storage 접근)
+const getRememberMeOption = (): boolean => {
   try {
-    // 안전한 방법으로 IP 가져오기
-    return 'client-ip';
-  } catch (error) {
-    console.warn('IP 조회 실패:', error);
-    return 'unknown';
+    return localStorage.getItem('rememberMe') === 'true' || 
+           sessionStorage.getItem('rememberMe') === 'true';
+  } catch {
+    return true; // 인앱브라우저 대응
   }
 };
 
-// 요청 인터셉터 (인앱 브라우저 호환)
+// 대기열 처리
+const processQueue = (error: any) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    error ? reject(error) : resolve(null);
+  });
+  failedQueue = [];
+};
+
+// Storage 정리
+const clearAuthStorage = () => {
+  try {
+    localStorage.removeItem('rememberMe');
+    sessionStorage.removeItem('rememberMe');
+  } catch {
+    // 인앱브라우저에서 Storage 접근 실패 시 무시
+  }
+};
+
+// 토큰 갱신 시도
+const refreshToken = async () => {
+  const response = await axios.post(`${API_BASE_URL}/auth/token/refresh`, {}, {
+    withCredentials: true
+  });
+  
+  if (!response.data.success) {
+    throw new Error('토큰 갱신 실패');
+  }
+  
+  return response;
+};
+
+// 요청 인터셉터
 instance.interceptors.request.use(
-  async (config) => {
-    // 쿠키 기반 인증이므로 별도 헤더 추가 불필요
-    // withCredentials: true로 쿠키가 자동 전송됨
-    console.log(`API 요청: ${config.url} (쿠키 기반 인증)`);
+  (config) => {
+    // FormData 처리
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// 토큰 갱신 중복 방지를 위한 변수
-let isRefreshing = false;
-let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
-
-const processQueue = (error: any) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(null);
-    }
-  });
-  
-  failedQueue = [];
-};
-
-// 응답 인터셉터 임시 비활성화 (디버깅용)
+// 응답 인터셉터
 instance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    console.log('axios 인터셉터에서 에러 발생:', error.response?.data?.message);
-    return Promise.reject(error);
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // 401 에러가 아니거나 이미 재시도한 경우
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // 로그인 유지 옵션이 비활성화된 경우
+    if (!getRememberMeOption()) {
+      return Promise.reject(error);
+    }
+
+    // 토큰 갱신 중인 경우 대기열에 추가
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then(() => instance(originalRequest))
+        .catch(err => Promise.reject(err));
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    try {
+      await refreshToken();
+      processQueue(null);
+      return instance(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError);
+      clearAuthStorage();
+      
+      // 로그인 페이지가 아닌 경우 리다이렉트
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      
+      return Promise.reject(error);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
-
-// IP 초기화 함수 (앱 시작 시 호출)
-export const initializeClientIp = async () => {
-  if (!sessionStorage.getItem('clientIp')) {
-    try {
-      const clientIp = await getClientIp();
-      sessionStorage.setItem('clientIp', clientIp);
-      console.log('클라이언트 IP 초기화:', clientIp);
-    } catch (error) {
-      console.warn('IP 초기화 실패:', error);
-    }
-  }
-};
 
 export default instance;
