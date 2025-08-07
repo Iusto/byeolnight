@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         console.log('로그인 완료');
       } else {
-        throw new Error('로그인에 실패했습니다.');
+        throw new Error(res.data?.message || 'Login failed');
       }
     } catch (err: any) {
       console.error('로그인 에러 상세:', {
@@ -157,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       // 서버에서 온 구체적인 에러 메시지 전달
-      const errorMessage = err?.response?.data?.message || '로그인에 실패했습니다.';
+      const errorMessage = err?.response?.data?.message || err?.message || 'Authentication failed';
       throw new Error(errorMessage);
     }
   };

@@ -44,7 +44,7 @@ export default function Login() {
     if (serverMessage.includes('Invalid credentials') || 
         serverMessage.includes('Bad credentials') ||
         serverMessage.includes('Authentication failed') ||
-        serverMessage.includes('이메일 또는 비밀번호') ||
+        serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다') ||
         serverMessage.includes('잘못된 이메일') ||
         serverMessage.includes('잘못된 비밀번호')) {
       return t('auth.invalid_credentials')
