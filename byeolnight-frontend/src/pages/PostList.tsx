@@ -399,31 +399,29 @@ export default function PostList() {
     const extractFirstImageUrl = (content: string) => {
       if (!content) return null;
       
-      // 다양한 형태의 이미지 태그 처리 (큰따옴표, 작은따옴표 모두 지원)
+      // 다양한 형태의 이미지 태그 처리
       const imgRegexes = [
-        /<img[^>]+src="([^"]+)"/i,  // 큰따옴표
-        /<img[^>]+src='([^']+)'/i,   // 작은따옴표
-        /<img[^>]+src=([^\s>]+)/i    // 따옴표 없는 경우
+        /<img[^>]+src="([^"]+)"/i,
+        /<img[^>]+src='([^']+)'/i,
+        /<img[^>]+src=([^\s>]+)/i
       ];
       
-      // 이미지 태그 처리
       for (const regex of imgRegexes) {
         const match = content.match(regex);
         if (match && match[1]) {
-          // 따옴표 제거 처리
           let url = match[1];
           if (url.startsWith('"') && url.endsWith('"')) {
             url = url.substring(1, url.length - 1);
           }
-          // via.placeholder.com URL 필터링
-          if (url.includes('via.placeholder.com')) {
+          // via.placeholder.com URL 완전 차단
+          if (url.includes('via.placeholder') || url.includes('placeholder.com')) {
             continue;
           }
           return url;
         }
       }
       
-      // 이미지 URL이 직접 포함되어 있는 경우 처리
+      // 이미지 URL 직접 처리
       const urlRegexes = [
         /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp))/i,
         /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)[^\s]*)/i
@@ -431,19 +429,15 @@ export default function PostList() {
       
       for (const regex of urlRegexes) {
         const match = content.match(regex);
-        if (match && match[1]) {
-          // via.placeholder.com URL 필터링
-          if (match[1].includes('via.placeholder.com')) {
-            continue;
-          }
+        if (match && match[1] && !match[1].includes('placeholder')) {
           return match[1];
         }
       }
       
-      // S3 URL 형태 처리
+      // S3 URL 처리
       const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
       const s3Match = content.match(s3Regex);
-      if (s3Match && !s3Match[0].includes('via.placeholder.com')) {
+      if (s3Match && !s3Match[0].includes('placeholder')) {
         return s3Match[0];
       }
       
@@ -460,19 +454,15 @@ export default function PostList() {
       >
         <Link to={`/posts/${post.id}`} className="block h-full">
           <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
-            {imgSrc && !hasImageFailed ? (
+            {imgSrc && !hasImageFailed && !imgSrc.includes('placeholder') ? (
               <img 
                 src={imgSrc} 
                 alt={post.title} 
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  console.log('이미지 로드 실패:', imgSrc);
+                onError={() => {
                   setFailedImages(prev => new Set(prev).add(post.id));
-                  // 기본 이미지로 대체하지 않고 오류 상태만 설정
-                  e.currentTarget.style.display = 'none';
                 }}
                 onLoad={() => {
-                  // 이미지 로드 성공 시 실패 목록에서 제거
                   setFailedImages(prev => {
                     const newSet = new Set(prev);
                     newSet.delete(post.id);

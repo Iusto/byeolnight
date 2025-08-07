@@ -354,7 +354,14 @@ export default function PostEdit() {
           url: img.url
         }));
         console.log('기존 이미지 로드:', existingImages);
+        
+        // 이미지 상태 업데이트
         setImages(existingImages);
+        
+        // 이미지 상태 업데이트 후 로그 출력
+        setTimeout(() => {
+          console.log('이미지 상태 업데이트 후 개수:', existingImages.length);
+        }, 100);
         
         // ReactQuill에 콘텐츠 설정은 state로 처리됨
       } catch (err) {

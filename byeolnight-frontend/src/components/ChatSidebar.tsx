@@ -291,16 +291,16 @@ export default function ChatSidebar() {
 
   // 사용자 채팅 금지 상태 확인
   const checkBanStatus = async () => {
-    if (!user) return;
+    if (!user) {
+      setBanStatus(null);
+      return;
+    }
     
     try {
-      const response = await axios.get('/admin/chat/ban-status');
+      const response = await axios.get('/member/chat/ban-status');
       const banData = response.data;
       
-      console.log('채팅 금지 상태 확인:', banData); // 디버깅용
-      
       if (banData.banned) {
-        // 금지 종료 시간 설정
         setBanStatus({
           banned: true,
           reason: banData.reason,
@@ -313,8 +313,12 @@ export default function ChatSidebar() {
         setError('');
       }
     } catch (error) {
+      // 401 오류는 로그인하지 않은 사용자이므로 무시
+      if (error.response?.status === 401) {
+        setBanStatus(null);
+        return;
+      }
       console.error('채팅 금지 상태 확인 실패:', error);
-      // 에러가 발생해도 금지 상태는 초기화
       setBanStatus(null);
     }
   };

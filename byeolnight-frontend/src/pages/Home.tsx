@@ -226,6 +226,10 @@ export default function Home() {
     for (const match of imgMatches) {
       if (match && match[1]) {
         const url = match[1].trim();
+        // via.placeholder.com URL 완전 차단
+        if (url.includes('via.placeholder') || url.includes('placeholder.com')) {
+          continue;
+        }
         // 유효한 URL인지 간단 검증
         if (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:')) {
           return url;
