@@ -209,7 +209,6 @@ public class AdminChatService {
             }
         } else {
             result.put("banned", false);
-            log.info("사용자 {} 밴 상태: 비활성", username);
         }
         
         return result;

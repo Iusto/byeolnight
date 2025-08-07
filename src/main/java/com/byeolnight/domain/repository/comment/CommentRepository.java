@@ -1,6 +1,8 @@
 package com.byeolnight.domain.repository.comment;
 
 import com.byeolnight.domain.entity.comment.Comment;
+import com.byeolnight.domain.entity.user.User;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,19 +36,15 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     long countByPostId(@Param("postId") Long postId);
 
     // 사용자별 댓글 수 조회
-    long countByWriter(com.byeolnight.domain.entity.user.User writer);
+    long countByWriter(User writer);
     
     // 사용자별 댓글 수 조회 (블라인드/삭제된 댓글 제외)
-    long countByWriterAndDeletedFalseAndBlindedFalse(com.byeolnight.domain.entity.user.User writer);
-    
-    // 사용자가 받은 댓글 좋아요 수 조회 (현재 좋아요 기능 미구현으로 0 반환)
-    @Query("SELECT 0")
-    long countLikesByUser(@Param("userId") Long userId);
+    long countByWriterAndDeletedFalseAndBlindedFalse(User writer);
     
     /**
      * 사용자별 작성 댓글 조회
      */
-    org.springframework.data.domain.Page<Comment> findByWriterOrderByCreatedAtDesc(com.byeolnight.domain.entity.user.User writer, org.springframework.data.domain.Pageable pageable);
+    Page<Comment> findByWriterOrderByCreatedAtDesc(User writer, org.springframework.data.domain.Pageable pageable);
     
     /**
      * 블라인드 처리된 댓글 조회

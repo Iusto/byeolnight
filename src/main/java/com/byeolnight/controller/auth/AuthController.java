@@ -14,6 +14,7 @@ import com.byeolnight.service.auth.AuthService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PhoneAuthService;
 import com.byeolnight.service.auth.TokenService;
+import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -49,17 +50,10 @@ public class AuthController {
     private String cookieDomain;
 
     private final AuthService authService;
-    private final EmailAuthService emailAuthService;
-    private final PhoneAuthService phoneAuthService;
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenService tokenService;
     private final UserService userService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
-    private final com.byeolnight.service.user.PointService pointService;
-    private final com.byeolnight.service.user.MissionService missionService;
-    private final SmsRateLimitService smsRateLimitService;
-    private final AuthRateLimitService authRateLimitService;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
