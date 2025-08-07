@@ -63,8 +63,11 @@ export default function PostCreate() {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
       
-      // 검열 통과한 이미지만 목록에 추가
-      setUploadedImages(prev => [...prev, imageData]);
+      // 검열 통과한 이미지만 목록에 추가 (중복 방지)
+      setUploadedImages(prev => {
+        const exists = prev.some(img => img.url === imageData.url);
+        return exists ? prev : [...prev, imageData];
+      });
       console.log('검열 통과된 클립보드 이미지 추가');
       
       return imageData.url;
@@ -137,7 +140,7 @@ export default function PostCreate() {
             }
             
             // 검열 통과한 이미지만 에디터에 삽입
-            insertImageToEditor(imageData, '클립보드 이미지');
+            insertImageToEditor(imageData.url, '클립보드 이미지');
           } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', error);
             // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
@@ -159,8 +162,10 @@ export default function PostCreate() {
     }
   };
   
-  // 에디터에 이미지 삽입 함수
-  const insertImageToEditor = (imageUrl: string, altText: string) => {
+  // 에디터에 이미지 삽입 함수 (오버로드 지원)
+  const insertImageToEditor = (imageData: FileDto | string, altText: string) => {
+    const imageUrl = typeof imageData === 'string' ? imageData : imageData.url;
+    
     // URL 검증
     if (!isValidImageUrl(imageUrl)) {
       setValidationAlert({
@@ -279,12 +284,15 @@ export default function PostCreate() {
         throw new Error('유효하지 않은 이미지 URL입니다.');
       }
       
-      // 검열 통과한 이미지만 목록에 추가
-      setUploadedImages(prev => [...prev, imageData]);
+      // 검열 통과한 이미지만 목록에 추가 (중복 방지)
+      setUploadedImages(prev => {
+        const exists = prev.some(img => img.url === imageData.url);
+        return exists ? prev : [...prev, imageData];
+      });
       console.log('검열 통과된 이미지 목록 업데이트');
 
       // 이미지를 에디터에 삽입
-      insertImageToEditor(imageData.url, imageData.originalName || '검열 통과된 이미지');
+      insertImageToEditor(imageData, imageData.originalName || '검열 통과된 이미지');
       
     } catch (error: any) {
       console.error('이미지 업로드 오류:', error);
@@ -307,17 +315,19 @@ export default function PostCreate() {
   const removeImage = (index: number) => {
     const imageToRemove = uploadedImages[index];
     if (imageToRemove) {
-      if (!isMarkdownMode && editorRef.current?.getInstance) {
-        // TUI Editor의 인스턴스를 통해 현재 콘텐츠 가져오기
+      // TUI Editor에서 해당 이미지 제거
+      if (editorRef.current?.getInstance) {
         const instance = editorRef.current.getInstance();
         if (instance) {
           const currentContent = instance.getMarkdown();
-          // 마크다운 형식의 이미지 제거
-          const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+          // 마크다운 형식의 이미지 제거 (URL 이스케이프 처리)
+          const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'gi');
-          const newContent = currentContent.replace(imgRegex, '');
+          const newContent = currentContent.replace(imgRegex, '').replace(/\n\n+/g, '\n\n'); // 빈 줄 정리
           // 업데이트된 콘텐츠 적용
           instance.setMarkdown(newContent);
+          // content state도 업데이트
+          setContent(newContent);
         }
       }
     }
@@ -517,6 +527,15 @@ export default function PostCreate() {
                       tempDiv.innerHTML = newContent;
                       const textContent = tempDiv.textContent || tempDiv.innerText || '';
                       setContentLength(textContent.length);
+                      
+                      // 에디터에서 삭제된 이미지 감지 및 썸네일 목록에서 제거
+                      const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
+                        .map(match => match.match(/\(([^)]+)\)/)?.[1])
+                        .filter(Boolean);
+                      
+                      setUploadedImages(prev => 
+                        prev.filter(image => currentImageUrls.includes(image.url))
+                      );
                     }}
                     placeholder={t('home.content_placeholder')}
                     height="500px"

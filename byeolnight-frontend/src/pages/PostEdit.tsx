@@ -26,6 +26,8 @@ export default function PostEdit() {
   const [images, setImages] = useState<FileDto[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [contentLength, setContentLength] = useState(0);
+  const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
 
   const editorRef = useRef<any>(null);
   
@@ -35,6 +37,10 @@ export default function PostEdit() {
   const isMobile = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
+
+  // 이미지 URL 정규식
+  const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+  const isValidImageUrl = (url: string): boolean => IMAGE_URL_REGEX.test(url);
 
   // 클립보드 이미지 업로드 함수
   const uploadClipboardImage = async (file: File) => {
@@ -157,6 +163,43 @@ export default function PostEdit() {
   
   // 파일 선택 입력 요소를 참조하기 위한 ref 추가
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 에디터에 이미지 삽입 함수 (오버로드 지원)
+  const insertImageToEditor = (imageData: FileDto | string, altText: string) => {
+    const imageUrl = typeof imageData === 'string' ? imageData : imageData.url;
+    
+    // URL 검증
+    if (!isValidImageUrl(imageUrl)) {
+      setValidationAlert({
+        message: '유효하지 않은 이미지 URL입니다.',
+        type: 'error'
+      });
+      return;
+    }
+    
+    // TUI Editor에 이미지 삽입
+    try {
+      if (editorRef.current?.getInstance) {
+        const instance = editorRef.current.getInstance();
+        if (instance) {
+          instance.exec('addImage', { imageUrl, altText });
+          setTimeout(() => {
+            const newContent = instance.getMarkdown();
+            setContent(newContent);
+          }, 100);
+        }
+      } else {
+        setContent(prev => prev + `![${altText}](${imageUrl})\n`);
+      }
+    } catch (error) {
+      console.error('이미지 삽입 중 오류:', error);
+      setContent(prev => prev + `![${altText}](${imageUrl})\n`);
+      setValidationAlert({
+        message: '이미지 삽입 중 오류가 발생했습니다.',
+        type: 'error'
+      });
+    }
+  };
   
   const handleImageUpload = () => {
     console.log('이미지 업로드 버튼 클릭');
@@ -363,6 +406,12 @@ export default function PostEdit() {
           console.log('이미지 상태 업데이트 후 개수:', existingImages.length);
         }, 100);
         
+        // 콘텐츠 길이 계산
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = post.content;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        setContentLength(textContent.length);
+        
         // ReactQuill에 콘텐츠 설정은 state로 처리됨
       } catch (err) {
         console.error('게시글 로드 실패:', err);
@@ -558,11 +607,36 @@ export default function PostEdit() {
                   value={content}
                   onChange={(newContent) => {
                     setContent(newContent);
+                    // HTML 태그를 제외한 순수 텍스트 길이 계산
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newContent;
+                    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                    setContentLength(textContent.length);
+                    
+                    // 에디터에서 삭제된 이미지 감지 및 썸네일 목록에서 제거
+                    const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
+                      .map(match => match.match(/\(([^)]+)\)/)?.[1])
+                      .filter(Boolean);
+                    
+                    setImages(prev => 
+                      prev.filter(image => currentImageUrls.includes(image.url))
+                    );
                   }}
                   placeholder={t('home.content_placeholder')}
                   height="500px"
                   handleImageUpload={handleImageUpload}
                 />
+                <div className="text-right text-sm mt-1">
+                  <span className={`${contentLength > 45000 ? (contentLength > 50000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
+                    {contentLength}/50,000자
+                    {contentLength > 45000 && contentLength <= 50000 && (
+                      <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
+                    )}
+                    {contentLength > 50000 && (
+                      <span className="text-red-400 ml-1">(제한 초과)</span>
+                    )}
+                  </span>
+                </div>
               </div>
               
               {/* YouTube 영상 미리보기 */}
@@ -635,6 +709,29 @@ export default function PostEdit() {
                 </div>
               </div>
             )}
+            
+            {/* 검열 결과 알림 */}
+            {validationAlert && (
+              <div className={`p-4 ${validationAlert.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : validationAlert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : 'bg-green-500/10 border-green-500/20 text-green-400'} border rounded-xl text-sm flex items-center gap-3 animate-fadeIn`}>
+                <div className={`${validationAlert.type === 'error' ? 'text-red-400' : validationAlert.type === 'warning' ? 'text-yellow-400' : 'text-green-400'} text-xl`}>
+                  {validationAlert.type === 'error' ? '⚠️' : validationAlert.type === 'warning' ? '⚠️' : '✅'}
+                </div>
+                <div>
+                  <div className="font-medium">{validationAlert.message}</div>
+                  {validationAlert.type === 'error' && (
+                    <div className="text-xs mt-1">
+                      이미지가 자동으로 삭제되었습니다. 다른 이미지를 사용해주세요.
+                    </div>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setValidationAlert(null)} 
+                  className="ml-auto text-sm hover:text-white transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
             {/* 이미지 미리보기 */}
             {images.length > 0 && (
@@ -642,7 +739,7 @@ export default function PostEdit() {
                 <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   업로드된 이미지:
                   <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
-                    ✓ 검열 완료
+                    ✓ 안전한 이미지만 표시됨
                   </span>
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -672,7 +769,7 @@ export default function PostEdit() {
                         {image.originalName}
                       </div>
                       <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
-                        ✓ 검열완료
+                        ✓ 안전한 이미지
                       </div>
                     </div>
                   ))}
