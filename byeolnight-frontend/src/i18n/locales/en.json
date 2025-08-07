@@ -50,7 +50,12 @@
     "forgot_password": "Forgot your password?",
     "no_account": "Don't have an account?",
     "signup_link": "Sign up",
-    "login_default_error": "Login failed."
+    "login_default_error": "Login failed.",
+    "account_banned": "This account has been banned. Please contact the administrator.",
+    "account_suspended": "This account has been temporarily suspended. Please contact the administrator.",
+    "account_withdrawn": "This account has been withdrawn. Please create a new account.",
+    "invalid_credentials": "Email or password is incorrect.",
+    "network_error": "Network error occurred. Please try again."
   },
   "common": {
     "confirm": "Confirm",

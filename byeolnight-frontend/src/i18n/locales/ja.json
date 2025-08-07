@@ -50,7 +50,12 @@
     "forgot_password": "パスワードをお忘れですか？",
     "no_account": "アカウントをお持ちでないですか？",
     "signup_link": "会員登録",
-    "login_default_error": "ログインに失敗しました。"
+    "login_default_error": "ログインに失敗しました。",
+    "account_banned": "このアカウントは利用停止されています。管理者にお問い合わせください。",
+    "account_suspended": "このアカウントは一時停止されています。管理者にお問い合わせください。",
+    "account_withdrawn": "このアカウントは退会されています。新しいアカウントを作成してください。",
+    "invalid_credentials": "メールまたはパスワードが正しくありません。",
+    "network_error": "ネットワークエラーが発生しました。再度お試しください。"
   },
   "common": {
     "confirm": "確認",

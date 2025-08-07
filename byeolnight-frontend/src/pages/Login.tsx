@@ -27,36 +27,55 @@ export default function Login() {
 
   // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
+    console.log('Server error message:', serverMessage); // 디버깅용
+    
     // 계정 상태 관련 에러
     if (serverMessage.includes('BANNED')) {
-      return '해당 계정은 이용 정지된 상태입니다. 관리자에게 문의하세요.'
+      return t('auth.account_banned')
     }
     if (serverMessage.includes('SUSPENDED')) {
-      return '해당 계정은 일시 정지된 상태입니다. 관리자에게 문의하세요.'
+      return t('auth.account_suspended')
     }
     if (serverMessage.includes('WITHDRAWN')) {
-      return '해당 계정은 탈퇴된 상태입니다. 새로운 계정을 만들어 주세요.'
+      return t('auth.account_withdrawn')
     }
     
-    // 계정 잠금 관련 에러
-    if (serverMessage.includes('계정이 잠겨 있습니다')) {
-      return serverMessage // 서버에서 온 메시지 그대로 사용 (이모지 포함)
-    }
-    if (serverMessage.includes('비밀번호가 10회 이상 틀렸습니다')) {
-      return serverMessage // 서버에서 온 메시지 그대로 사용
+    // 인증 실패 관련 에러
+    if (serverMessage.includes('Invalid credentials') || 
+        serverMessage.includes('Bad credentials') ||
+        serverMessage.includes('Authentication failed') ||
+        serverMessage.includes('이메일 또는 비밀번호') ||
+        serverMessage.includes('잘못된 이메일') ||
+        serverMessage.includes('잘못된 비밀번호')) {
+      return t('auth.invalid_credentials')
     }
     
-    // IP 차단 관련 에러
-    if (serverMessage.includes('IP가 차단되었습니다') || serverMessage.includes('차단된 IP')) {
-      return serverMessage // 서버에서 온 메시지 그대로 사용 (이모지 포함)
+    // 네트워크 에러
+    if (serverMessage.includes('Network Error') || 
+        serverMessage.includes('ERR_NETWORK') ||
+        serverMessage.includes('Failed to fetch')) {
+      return t('auth.network_error')
+    }
+    
+    // 계정 잠금 관련 에러 (서버 메시지 그대로 - 이모지 포함)
+    if (serverMessage.includes('계정이 잠겨 있습니다') ||
+        serverMessage.includes('🔒') ||
+        serverMessage.includes('🚫')) {
+      return serverMessage
+    }
+    
+    // IP 차단 관련 에러 (서버 메시지 그대로 - 이모지 포함)
+    if (serverMessage.includes('IP가 차단되었습니다') || 
+        serverMessage.includes('차단된 IP')) {
+      return serverMessage
     }
     
     // 경고 메시지 (⚠️ 이모지 포함)
     if (serverMessage.includes('⚠️ 경고')) {
-      return serverMessage // 서버에서 온 경고 메시지 그대로 사용
+      return serverMessage
     }
     
-    // 기본 에러 메시지 그대로 반환 (서버 메시지가 없으면 다국어 기본 메시지)
+    // 기본 에러 메시지
     return serverMessage || t('auth.login_default_error')
   }
 

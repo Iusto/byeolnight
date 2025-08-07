@@ -50,7 +50,12 @@
     "forgot_password": "비밀번호를 잊으셨나요?",
     "no_account": "계정이 없으신가요?",
     "signup_link": "회원가입",
-    "login_default_error": "로그인에 실패했습니다."
+    "login_default_error": "로그인에 실패했습니다.",
+    "account_banned": "해당 계정은 이용 정지된 상태입니다. 관리자에게 문의하세요.",
+    "account_suspended": "해당 계정은 일시 정지된 상태입니다. 관리자에게 문의하세요.",
+    "account_withdrawn": "해당 계정은 탈퇴된 상태입니다. 새로운 계정을 만들어 주세요.",
+    "invalid_credentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
+    "network_error": "네트워크 오류가 발생했습니다. 다시 시도해주세요."
   },
   "common": {
     "confirm": "확인",
