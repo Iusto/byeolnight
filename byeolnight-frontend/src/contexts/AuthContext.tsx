@@ -62,6 +62,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('사용자 정보 설정 성공 (인앱브라우저 호환):', userData.nickname);
       return true;
     } catch (err: any) {
+      // 401 오류는 비로그인 상태이므로 조용히 처리
+      if (err?.response?.status === 401) {
+        console.log('비로그인 상태 - 사용자 정보 없음');
+        setUser(null);
+        return false;
+      }
+      
       console.error('내 정보 조회 실패:', {
         message: err?.message,
         status: err?.response?.status,
@@ -200,6 +207,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // 쿠키에서 토큰 존재 여부 확인
+  const hasAuthCookie = () => {
+    return document.cookie.includes('accessToken') || document.cookie.includes('refreshToken');
+  };
+
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initializeAuth = async () => {
@@ -207,23 +219,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('인증 상태 확인 (쿠키 기반):', { rememberMe });
       
-      // 쿠키에 토큰이 있는지 확인하기 위해 사용자 정보 조회 시도
-      console.log('쿠키 토큰으로 사용자 정보 조회 시도');
-      const success = await fetchMyInfo();
-      
-      if (!success && rememberMe) {
-        console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
-        try {
-          const refreshSuccess = await refreshToken();
-          if (!refreshSuccess) {
-            console.log('토큰 갱신 실패 - 재시도');
-            // 잠시 대기 후 한 번 더 시도
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await refreshToken();
+      // 쿠키에 토큰이 있을 때만 사용자 정보 조회
+      if (hasAuthCookie()) {
+        console.log('쿠키 토큰 발견 - 사용자 정보 조회 시도');
+        const success = await fetchMyInfo();
+        
+        if (!success && rememberMe) {
+          console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
+          try {
+            const refreshSuccess = await refreshToken();
+            if (!refreshSuccess) {
+              console.log('토큰 갱신 실패 - 재시도');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              await refreshToken();
+            }
+          } catch (refreshError) {
+            console.log('초기 토큰 갱신 실패 - 비로그인 상태로 유지');
           }
-        } catch (refreshError) {
-          console.log('초기 토큰 갱신 실패 - 비로그인 상태로 유지');
         }
+      } else {
+        console.log('쿠키에 토큰 없음 - 비로그인 상태');
+        setUser(null);
       }
       
       setLoading(false);
