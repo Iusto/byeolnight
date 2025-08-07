@@ -7,19 +7,16 @@ spring:
   cloud:
     config:
       server:
-        git:
-          uri: ${CONFIG_GIT_URI:file:///opt/byeolnight/config-repo}
-          default-label: main
-          search-paths: configs
+        native:
+          search-locations: file:///opt/byeolnight/config-repo/configs
         encrypt:
-          enabled: true
+          enabled: false
   security:
     user:
       name: ${SPRING_SECURITY_USER_NAME:config-admin}
       password: ${SPRING_SECURITY_USER_PASSWORD:config-secret-2024}
-
-encrypt:
-  key: ${ENCRYPT_KEY:byeolnight-config-encryption-key-2024}
+  profiles:
+    active: native
 
 management:
   endpoints:
