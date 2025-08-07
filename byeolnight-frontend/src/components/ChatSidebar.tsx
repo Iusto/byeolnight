@@ -288,6 +288,7 @@ export default function ChatSidebar() {
 
   // 사용자 채팅 금지 상태 확인
   const checkBanStatus = async () => {
+    // 로그인하지 않은 사용자는 API 호출하지 않음
     if (!user) {
       setBanStatus(null);
       return;
@@ -310,11 +311,6 @@ export default function ChatSidebar() {
         setError('');
       }
     } catch (error) {
-      // 401 오류는 로그인하지 않은 사용자이므로 무시
-      if (error.response?.status === 401) {
-        setBanStatus(null);
-        return;
-      }
       console.error('채팅 금지 상태 확인 실패:', error);
       setBanStatus(null);
     }
@@ -328,23 +324,21 @@ export default function ChatSidebar() {
     setConnecting(true);
     connect();
     
+    let statusInterval: NodeJS.Timeout;
+    
     // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
       checkBanStatus();
       // 주기적으로 금지 상태 확인 (1분마다)
-      const statusInterval = setInterval(checkBanStatus, 60000);
-      
-      return () => {
-        clearInterval(statusInterval);
-        if (stompClientRef.current) {
-          stompClientRef.current.deactivate();
-        }
-      };
+      statusInterval = setInterval(checkBanStatus, 60000);
     } else {
       setBanStatus(null);
     }
 
     return () => {
+      if (statusInterval) {
+        clearInterval(statusInterval);
+      }
       if (stompClientRef.current) {
         stompClientRef.current.deactivate();
       }
@@ -377,8 +371,10 @@ export default function ChatSidebar() {
   const sendMessage = async () => {
     if (!input.trim() || !user) return;
 
-    // 메시지 전송 전 실시간 밴 상태 재확인
-    await checkBanStatus();
+    // 로그인한 사용자만 밴 상태 재확인
+    if (user) {
+      await checkBanStatus();
+    }
     
     // 제재된 사용자는 메시지 전송 불가
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {

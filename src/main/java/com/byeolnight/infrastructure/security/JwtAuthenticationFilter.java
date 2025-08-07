@@ -55,6 +55,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return false;
     }
+    
+    /**
+     * 로그 레벨을 낮춰야 하는 경로인지 확인
+     */
+    private boolean isLowLogLevel(String uri) {
+        return uri.contains("/health") || 
+               uri.contains("/actuator") || 
+               uri.contains("/favicon.ico") || 
+               uri.contains("/chat/ban-status");
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -100,9 +110,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.debug("🪪 추출된 토큰: {}", token);
 
         if (token == null) {
-            // 헬스체크 요청은 로그 레벨 낮춤
-            if (uri.contains("/health") || uri.contains("/actuator") || uri.contains("/favicon.ico")) {
-                log.debug("헬스체크 요청: {}", uri);
+            // 특정 경로는 로그 레벨 낮춤
+            if (isLowLogLevel(uri)) {
+                log.debug("인증 불필요 또는 예상된 요청: {}", uri);
             } else {
                 log.warn("❌ 토큰이 없음 (쿠키 및 헤더 모두 부재): {}", uri);
             }
