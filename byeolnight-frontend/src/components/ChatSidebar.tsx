@@ -113,9 +113,6 @@ export default function ChatSidebar() {
                 setRemainingTime(0);
               }
             });
-            
-            // WebSocket 연결 후 즉시 금지 상태 확인
-            checkBanStatus();
           }
         },
         onStompError: (frame) => {
@@ -331,25 +328,23 @@ export default function ChatSidebar() {
     setConnecting(true);
     connect();
     
-    let statusInterval: NodeJS.Timeout;
-    
     // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
       checkBanStatus();
       // 주기적으로 금지 상태 확인 (1분마다)
-      statusInterval = setInterval(() => {
-        if (user) { // 인터벌 실행 시점에도 user 상태 재확인
-          checkBanStatus();
+      const statusInterval = setInterval(checkBanStatus, 60000);
+      
+      return () => {
+        clearInterval(statusInterval);
+        if (stompClientRef.current) {
+          stompClientRef.current.deactivate();
         }
-      }, 60000);
+      };
     } else {
       setBanStatus(null);
     }
 
     return () => {
-      if (statusInterval) {
-        clearInterval(statusInterval);
-      }
       if (stompClientRef.current) {
         stompClientRef.current.deactivate();
       }
@@ -379,9 +374,12 @@ export default function ChatSidebar() {
     // 메시지는 유지하고 제재 상태만 기록
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim() || !user) return;
 
+    // 메시지 전송 전 실시간 밴 상태 재확인
+    await checkBanStatus();
+    
     // 제재된 사용자는 메시지 전송 불가
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {
       const reason = banStatus?.reason || '채팅이 제한되었습니다.';

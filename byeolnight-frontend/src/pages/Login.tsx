@@ -56,7 +56,6 @@ export default function Login() {
         serverMessage.includes('Invalid credentials') || 
         serverMessage.includes('Bad credentials') ||
         serverMessage.includes('Authentication failed') ||
-        serverMessage.includes('로그인 유지 옵션이 비활성화됨') ||
         /\(\d+\/\d+\)/.test(serverMessage)) {
       return t('auth.invalid_credentials')
     }
