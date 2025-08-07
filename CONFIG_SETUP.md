@@ -18,9 +18,8 @@ cd config-server && ./gradlew bootRun &
 git clone https://github.com/your-username/byeolnight.git /opt/byeolnight
 cd /opt/byeolnight
 
-# 환경변수 설정
-cp .env.example .env
-nano .env  # 실제 값으로 변경
+# Config Repository 클론 (별도 Private Repository)
+git clone https://github.com/your-username/byeolnight-config.git config-repo
 ```
 
 ### 2. 배포 방법
@@ -37,19 +36,33 @@ git push origin master
 ./scripts/deploy-prod.sh
 ```
 
-### 3. 설정 암호화
+### 3. 설정 변경
 ```bash
-# 민감한 정보 암호화
-./scripts/encrypt-config.sh "암호화할_값"
+# Config Repository에서 설정 변경
+cd config-repo
+nano configs/byeolnight-prod.yml
+git add . && git commit -m "Update config" && git push
+
+# 애플리케이션에서 설정 새로고침
+curl -X POST -u admin:password http://localhost:8080/api/admin/config/refresh
 ```
 
 ## 📋 파일 구조
 - `docker-compose.local.yml` - 로컬 개발용
 - `docker-compose.yml` - 운영 배포용
-- `.env.example` - 환경변수 템플릿
-- `config-repo/` - 설정 파일들 (별도 관리)
+- `config-repo/` - 설정 파일들 (별도 Private Repository)
+- `scripts/encrypt-config.sh` - 설정 암호화 도구
+
+## 🔧 설정 암호화
+```bash
+# 민감한 정보 암호화
+./scripts/encrypt-config.sh "암호화할_값"
+
+# 결과를 config-repo/configs/byeolnight-prod.yml에 추가
+property: '{cipher}암호화된값'
+```
 
 ## 🔧 트러블슈팅
 - Config Server 연결 실패 → 포트 8888 확인
-- 배포 실패 → `.env` 파일 확인
-- 서비스 상태 → `docker-compose logs -f`
+- 배포 실패 → `docker-compose logs -f`
+- 설정 로드 실패 → Config Repository 경로 확인
