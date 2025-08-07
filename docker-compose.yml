@@ -8,11 +8,10 @@ services:
     ports:
       - "8888:8888"
     environment:
-      - ENCRYPT_KEY=byeolnight-config-encryption-key-2024
+      - SPRING_PROFILES_ACTIVE=native
       - SPRING_SECURITY_USER_NAME=config-admin
       - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
-      - SPRING_PROFILES_ACTIVE=prod
-      - CONFIG_GIT_URI=file:///opt/byeolnight/config-repo
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/config-repo/configs
     volumes:
       - ./config-repo:/app/config-repo
     restart: unless-stopped
