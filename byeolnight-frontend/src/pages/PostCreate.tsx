@@ -5,7 +5,7 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import TuiEditor, { isHandlingImageUpload } from '../components/TuiEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
-import { parseMarkdown } from '../utils/markdownParser';
+
 import { uploadImage } from '../lib/s3Upload';
 
 // 이미지 URL 정규식
@@ -16,8 +16,7 @@ const isValidImageUrl = (url: string): boolean => {
   return IMAGE_URL_REGEX.test(url);
 };
 
-// 개발 환경에서 API 경로 로깅
-console.log('API 기본 URL:', import.meta.env.VITE_API_BASE_URL || '/api');
+
 
 interface FileDto {
   originalName: string;
@@ -38,8 +37,7 @@ export default function PostCreate() {
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>([]);
   const [isImageValidating, setIsImageValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // 마크다운 모드 사용하지 않음
-  const isMarkdownMode = false;
+
   const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
   const editorRef = useRef<any>(null);
   
@@ -85,39 +83,12 @@ export default function PostCreate() {
     }
   };
   
-  // URL로 이미지 제거 (안전한 방식으로 수정)
-  const removeImageByUrl = (imageUrl: string) => {
-    // 업로드된 이미지 목록에서 제거
-    setUploadedImages(prev => prev.filter(img => img.url !== imageUrl));
-    
-    // 에디터에서 이미지 제거 - 마크다운 모드일 경우
-    if (isMarkdownMode) {
-      setContent(prev => {
-        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
-        const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)|<img[^>]*src=\"${escapedUrl}\"[^>]*>(<br>)?`, 'gi');
-        return prev.replace(imgRegex, '');
-      });
-      return;
-    }
-    
-    // 에디터 모드일 경우 - 안전한 방식으로 제거
-    try {
-      // 현재 콘텐츠를 문자열로 처리
-      setContent(prev => {
-        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
-        const imgRegex = new RegExp(`<img[^>]*src=\"${escapedUrl}\"[^>]*>(<br>)?`, 'gi');
-        return prev.replace(imgRegex, '');
-      });
-    } catch (error) {
-      console.error('이미지 제거 중 오류:', error);
-    }
-  };
+
   
-  // 클립보드 붙여넣기 이벤트 핸들러 (개선된 버전)
+  // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = async (event: ClipboardEvent) => {
     // TUI Editor가 자체적으로 클립보드 이벤트를 처리하도록 허용
-    if (!isMarkdownMode && document.activeElement?.closest('.toastui-editor-ww-container')) {
-      // TUI Editor가 활성화된 상태에서는 기본 처리 허용
+    if (document.activeElement?.closest('.toastui-editor-ww-container')) {
       return;
     }
     
@@ -166,7 +137,7 @@ export default function PostCreate() {
             }
             
             // 검열 통과한 이미지만 에디터에 삽입
-            insertImageToEditor(imageData.url, '클립보드 이미지');
+            insertImageToEditor(imageData, '클립보드 이미지');
           } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', error);
             // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
@@ -188,26 +159,10 @@ export default function PostCreate() {
     }
   };
   
-  // 에디터에 이미지 삽입 함수 (TUI Editor용으로 수정)
+  // 에디터에 이미지 삽입 함수
   const insertImageToEditor = (imageUrl: string, altText: string) => {
-    console.log('이미지 삽입 시도:', imageUrl);
-    
-    // URL에 마지막 부분에 붙어있는 텍스트 제거 (예: .jpg링크그대로만뜨고 이미지가 안뜨)
-    if (imageUrl.includes('링크그대로만뜨고') || imageUrl.includes('이미지가 안뜨')) {
-      const urlParts = imageUrl.split('.');
-      const extension = urlParts[urlParts.length - 1].toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension.startsWith(ext))) {
-        // 확장자 뒤에 붙어있는 텍스트 제거
-        const extensionEndIndex = imageUrl.lastIndexOf('.' + extension) + extension.length + 1;
-        imageUrl = imageUrl.substring(0, extensionEndIndex);
-        console.log('수정된 URL:', imageUrl);
-      }
-    }
-    
     // URL 검증
     if (!isValidImageUrl(imageUrl)) {
-      console.error('유효하지 않은 이미지 URL:', imageUrl);
-      // alert 제거하고 ValidationAlert로 대체
       setValidationAlert({
         message: '유효하지 않은 이미지 URL입니다.',
         type: 'error'
@@ -215,39 +170,23 @@ export default function PostCreate() {
       return;
     }
     
-    // 마크다운 모드일 경우 마크다운 형식으로 추가
-    if (isMarkdownMode) {
-      setContent(prev => prev + `![${altText}](${imageUrl})\n`);
-      return;
-    }
-    
     // TUI Editor에 이미지 삽입
     try {
-      if (editorRef.current && editorRef.current.getInstance) {
-        // TUI Editor API 사용
+      if (editorRef.current?.getInstance) {
         const instance = editorRef.current.getInstance();
         if (instance) {
-          // 이미지 태그 삽입 - 이미지가 정상적으로 표시되도록 수정
           instance.exec('addImage', { imageUrl, altText });
-          console.log('이미지 삽입 성공 (TUI Editor - addImage 메서드)');
-          
-          // 에디터 내용 갱신
           setTimeout(() => {
             const newContent = instance.getMarkdown();
             setContent(newContent);
-            console.log('에디터 내용 갱신');
           }, 100);
         }
       } else {
-        // 에디터 참조가 없는 경우 상태 업데이트
         setContent(prev => prev + `![${altText}](${imageUrl})\n`);
-        console.log('이미지 삽입 성공 (상태 업데이트)');
       }
     } catch (error) {
       console.error('이미지 삽입 중 오류:', error);
-      // 오류 발생 시 상태 업데이트로 폴백
       setContent(prev => prev + `![${altText}](${imageUrl})\n`);
-      // alert 제거하고 ValidationAlert로 대체
       setValidationAlert({
         message: '이미지 삽입 중 오류가 발생했습니다.',
         type: 'error'
@@ -308,7 +247,10 @@ export default function PostCreate() {
     // 파일 형식 검사
     const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!validImageTypes.includes(file.type)) {
-      alert('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
+      setValidationAlert({
+        message: '지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)',
+        type: 'error'
+      });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -377,9 +319,6 @@ export default function PostCreate() {
           // 업데이트된 콘텐츠 적용
           instance.setMarkdown(newContent);
         }
-      } else {
-        // 마크다운 모드일 경우 기존 방식 사용
-        removeImageByUrl(imageToRemove.url);
       }
     }
     // 이미지 배열에서 해당 이미지 제거
@@ -426,8 +365,8 @@ export default function PostCreate() {
         return;
       }
 
-      // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
-      const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
+      // HTML 보안 검증
+      const finalContent = sanitizeHtml(content);
       
       const response = await axios.post('/member/posts', {
         title,
@@ -567,65 +506,34 @@ export default function PostCreate() {
                 </div>
               </div>
               <div className="rounded-xl overflow-hidden border border-slate-600/50 quill-wrapper">
-                {isMarkdownMode ? (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        maxLength={10000}
-                        placeholder="마크다운으로 작성해보세요...&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;---&#10;[링크](URL)"
-                        className="w-full h-96 px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 resize-none font-mono text-sm"
-                      />
-                      <div className={`text-xs mt-1 ${content.length > 9000 ? (content.length > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
-                        {content.length}/10,000자
-                        {content.length > 9000 && content.length <= 10000 && (
-                          <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
-                        )}
-                        {content.length > 10000 && (
-                          <span className="text-red-400 ml-1">(제한 초과)</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                      <h3 className="text-sm font-medium text-gray-300 mb-3">📝 마크다운 미리보기:</h3>
-                      <div 
-                        className="prose prose-invert max-w-none min-h-[100px] p-3 bg-slate-900/30 rounded-lg border border-slate-600/30"
-                        dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
-                      />
-                    </div>
+                <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+                  <TuiEditor
+                    ref={editorRef}
+                    value={content}
+                    onChange={(newContent) => {
+                      setContent(newContent);
+                      // HTML 태그를 제외한 순수 텍스트 길이 계산
+                      const tempDiv = document.createElement('div');
+                      tempDiv.innerHTML = newContent;
+                      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                      setContentLength(textContent.length);
+                    }}
+                    placeholder={t('home.content_placeholder')}
+                    height="500px"
+                    handleImageUpload={handleImageUpload}
+                  />
+                  <div className="text-right text-sm mt-1">
+                    <span className={`${contentLength > 9000 ? (contentLength > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
+                      {contentLength}/10,000자
+                      {contentLength > 9000 && contentLength <= 10000 && (
+                        <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
+                      )}
+                      {contentLength > 10000 && (
+                        <span className="text-red-400 ml-1">(제한 초과)</span>
+                      )}
+                    </span>
                   </div>
-                ) : (
-                  <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
-                    {/* TUI 에디터로 교체 */}
-                    <TuiEditor
-                      ref={editorRef}
-                      value={content}
-                      onChange={(newContent) => {
-                        setContent(newContent);
-                        // HTML 태그를 제외한 순수 텍스트 길이 계산
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = newContent;
-                        const textContent = tempDiv.textContent || tempDiv.innerText || '';
-                        setContentLength(textContent.length);
-                      }}
-                      placeholder={t('home.content_placeholder')}
-                      height="500px"
-                      handleImageUpload={handleImageUpload}
-                    />
-                    <div className="text-right text-sm mt-1">
-                      <span className={`${contentLength > 9000 ? (contentLength > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
-                        {contentLength}/10,000자
-                        {contentLength > 9000 && contentLength <= 10000 && (
-                          <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
-                        )}
-                        {contentLength > 10000 && (
-                          <span className="text-red-400 ml-1">(제한 초과)</span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
               
               {/* YouTube 영상 미리보기 */}
@@ -667,20 +575,10 @@ export default function PostCreate() {
                 </div>
               )}
               <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                {isMarkdownMode ? (
-                  <>
-                    📝 마크다운 모드: # 제목, **굵게**, *기울임*, - 리스트, --- 구분선, [링크](URL)<br/>
-                    🎨 실시간 미리보기로 결과를 확인하며 작성하세요!<br/>
-                    🔄 언제든 "마크다운 OFF" 버튼으로 리치 에디터로 전환 가능합니다
-                  </>
-                ) : (
-                  <>
-                    🎨 {t('home.editor_info_1')}<br/>
-                    🖼️ {t('home.editor_info_2')}<br/>
-                    🛡️ {t('home.editor_info_3')}<br/>
-                    🎬 {t('home.editor_info_4')}
-                  </>
-                )}
+                🎨 {t('home.editor_info_1')}<br/>
+                🖼️ {t('home.editor_info_2')}<br/>
+                🛡️ {t('home.editor_info_3')}<br/>
+                🎬 {t('home.editor_info_4')}
               </div>
             </div>
           

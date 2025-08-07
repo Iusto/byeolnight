@@ -51,34 +51,3 @@ export function parseMarkdown(text: string): string {
   return html;
 }
 
-// ReactQuill에서 사용할 마크다운 변환 함수
-export function convertMarkdownInQuill(content: string): string {
-  // 마크다운 패턴이 있는지 확인
-  const hasMarkdown = /^(#{1,3}\s|---$|\*\*.*\*\*|\*[^*]+\*|^-\s|\[.*\]\(.*\))/m.test(content);
-  
-  if (hasMarkdown) {
-    return parseMarkdown(content);
-  }
-  
-  return content;
-}
-
-/**
- * 마크다운 텍스트에서 첫 번째 문단만 추출하는 함수
- * @param text 마크다운 텍스트
- * @param maxLength 최대 길이 (기본값: 100)
- * @returns 추출된 첫 번째 문단
- */
-export function extractFirstParagraph(text: string, maxLength: number = 100): string {
-  if (!text) return '';
-  
-  // 첫 번째 줄바꿈이나 빈 줄까지의 텍스트 추출
-  const firstParagraph = text.split(/\n\s*\n/)[0].trim();
-  
-  // 최대 길이로 제한
-  if (firstParagraph.length > maxLength) {
-    return firstParagraph.substring(0, maxLength) + '...';
-  }
-  
-  return firstParagraph;
-}

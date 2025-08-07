@@ -5,7 +5,7 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import TuiEditor, { isHandlingImageUpload } from '../components/TuiEditor';
 import { sanitizeHtml } from '../utils/htmlSanitizer';
-import { parseMarkdown } from '../utils/markdownParser';
+
 import { uploadImage } from '../lib/s3Upload';
 
 interface FileDto {
@@ -26,7 +26,7 @@ export default function PostEdit() {
   const [images, setImages] = useState<FileDto[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const isMarkdownMode = false;
+
   const editorRef = useRef<any>(null);
   
   const [isImageValidating, setIsImageValidating] = useState(false);
@@ -215,8 +215,8 @@ export default function PostEdit() {
           
           // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
           const isMobileDevice = isMobile();
-          if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getInstance) {
-            console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
+          if (isMobileDevice || !editorRef.current || !editorRef.current.getInstance) {
+            console.log('상태 업데이트를 통한 이미지 삽입 (모바일 모드)');
             setContent(prev => prev + `![${imageData.originalName || '이미지'}](${imageData.url})\n`);
           } else {
             // PC에서는 에디터 참조 사용
@@ -253,7 +253,7 @@ export default function PostEdit() {
   const removeImage = (index: number) => {
     const imageToRemove = images[index];
     if (imageToRemove) {
-      if (!isMarkdownMode && editorRef.current?.getInstance) {
+      if (editorRef.current?.getInstance) {
         // TUI Editor의 인스턴스를 통해 현재 콘텐츠 가져오기
         const instance = editorRef.current.getInstance();
         if (instance) {
@@ -268,22 +268,14 @@ export default function PostEdit() {
         }
       } else {
         try {
-          // 게시글 내용에서도 해당 이미지 제거 - 모바일 환경 고려하여 안전하게 처리
           setContent(prev => {
-            // 이미지 URL을 안전하게 이스케이프
             const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            
-            // HTML 태그와 마크다운 형식 모두 처리하는 정규식
             const imgRegex = new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>(<br>)?|!\[[^\]]*\]\(${escapedUrl}\)`, 'gi');
-            
-            // 이미지 태그 제거 후 내용 반환
             const newContent = prev.replace(imgRegex, '');
-            console.log('이미지 제거 후 콘텐츠 길이:', newContent.length);
-            return newContent || prev; // 빈 문자열이 되면 원래 내용 유지
+            return newContent || prev;
           });
         } catch (error) {
           console.error('이미지 제거 중 오류 발생:', error);
-          // 오류 발생 시 이미지만 제거하고 내용은 유지
         }
       }
     }
@@ -364,11 +356,6 @@ export default function PostEdit() {
         console.log('기존 이미지 로드:', existingImages);
         setImages(existingImages);
         
-        // 이미지 상태 업데이트 후 로그 출력
-        setTimeout(() => {
-          console.log('이미지 상태 업데이트 후:', images.length, '개');
-        }, 100);
-        
         // ReactQuill에 콘텐츠 설정은 state로 처리됨
       } catch (err) {
         console.error('게시글 로드 실패:', err);
@@ -415,8 +402,8 @@ export default function PostEdit() {
       return;
     }
     
-    // 마크다운 모드인 경우 HTML로 변환 후 보안 검증
-    const finalContent = sanitizeHtml(isMarkdownMode ? parseMarkdown(content) : content);
+    // HTML 보안 검증
+    const finalContent = sanitizeHtml(content);
     
     // 콘텐츠에서 실제 사용된 이미지 URL 추출
     const usedImageUrls = new Set<string>();
