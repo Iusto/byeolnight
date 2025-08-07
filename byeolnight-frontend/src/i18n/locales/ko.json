@@ -37,7 +37,20 @@
     "login_success": "로그인 성공",
     "login_failed": "로그인 실패",
     "signup_success": "회원가입 성공",
-    "logout_success": "로그아웃 되었습니다"
+    "logout_success": "로그아웃 되었습니다",
+    "login_title": "🔐 로그인",
+    "home_button": "← 홈",
+    "home_tooltip": "홈으로 돌아가기",
+    "email_placeholder": "이메일",
+    "password_placeholder": "비밀번호",
+    "remember_me": "로그인 상태 유지",
+    "caps_lock_warning": "Caps Lock이 켜져 있습니다",
+    "login_button": "🌌 로그인",
+    "login_loading": "🌠 로그인 중...",
+    "forgot_password": "비밀번호를 잊으셨나요?",
+    "no_account": "계정이 없으신가요?",
+    "signup_link": "회원가입",
+    "login_default_error": "로그인에 실패했습니다."
   },
   "common": {
     "confirm": "확인",

@@ -37,7 +37,20 @@
     "login_success": "ログイン成功",
     "login_failed": "ログイン失敗",
     "signup_success": "会員登録成功",
-    "logout_success": "ログアウトしました"
+    "logout_success": "ログアウトしました",
+    "login_title": "🔐 ログイン",
+    "home_button": "← ホーム",
+    "home_tooltip": "ホームに戻る",
+    "email_placeholder": "メール",
+    "password_placeholder": "パスワード",
+    "remember_me": "ログイン状態を保持",
+    "caps_lock_warning": "Caps Lockがオンになっています",
+    "login_button": "🌌 ログイン",
+    "login_loading": "🌠 ログイン中...",
+    "forgot_password": "パスワードをお忘れですか？",
+    "no_account": "アカウントをお持ちでないですか？",
+    "signup_link": "会員登録",
+    "login_default_error": "ログインに失敗しました。"
   },
   "common": {
     "confirm": "確認",

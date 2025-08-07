@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function Login() {
   const navigate = useNavigate()
   const { login, user } = useAuth()
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -53,8 +56,8 @@ export default function Login() {
       return serverMessage // 서버에서 온 경고 메시지 그대로 사용
     }
     
-    // 기본 에러 메시지 그대로 반환
-    return serverMessage
+    // 기본 에러 메시지 그대로 반환 (서버 메시지가 없으면 다국어 기본 메시지)
+    return serverMessage || t('auth.login_default_error')
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -67,7 +70,9 @@ export default function Login() {
       setLoginSuccess(true)
       
     } catch (err: any) {
-      const errorMessage = getErrorMessage(err.message || '로그인에 실패했습니다.')
+      // 서버에서 보낸 구체적인 에러 메시지 추출
+      const serverMessage = err.response?.data?.message || err.message || t('auth.login_default_error')
+      const errorMessage = getErrorMessage(serverMessage)
       setError(errorMessage)
     } finally {
       setLoading(false) // 끝날 때 false
@@ -81,17 +86,17 @@ export default function Login() {
           <button
             onClick={() => navigate('/')}
             className="text-gray-400 hover:text-white hover:bg-purple-600/50 px-2 py-1 rounded transition-colors"
-            title="홈으로 돌아가기"
+            title={t('auth.home_tooltip')}
           >
-            ← 홈
+            {t('auth.home_button')}
           </button>
-          <h2 className="text-2xl font-bold">🔐 로그인</h2>
-          <div className="w-12"></div>
+          <h2 className="text-2xl font-bold">{t('auth.login_title')}</h2>
+          <LanguageSwitcher />
         </div>
         <form onSubmit={handleLogin} className="space-y-5">
           <input
             type="email"
-            placeholder="이메일"
+            placeholder={t('auth.email_placeholder')}
             className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -102,7 +107,7 @@ export default function Login() {
           <div className="relative">
             <input
               type="password"
-              placeholder="비밀번호"
+              placeholder={t('auth.password_placeholder')}
               className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -128,7 +133,7 @@ export default function Login() {
             {capsLockOn && (
               <div className="absolute -bottom-6 left-0 text-xs text-yellow-400 flex items-center gap-1">
                 <span>⚠️</span>
-                <span>Caps Lock이 켜져 있습니다</span>
+                <span>{t('auth.caps_lock_warning')}</span>
               </div>
             )}
           </div>
@@ -142,7 +147,7 @@ export default function Login() {
               className="w-4 h-4 text-purple-600 bg-[#2a2e44] border-gray-600 rounded focus:ring-purple-500"
             />
             <label htmlFor="rememberMe" className="text-sm text-gray-300">
-              로그인 상태 유지
+              {t('auth.remember_me')}
             </label>
           </div>
 
@@ -167,7 +172,7 @@ export default function Login() {
                 : 'bg-purple-700 hover:bg-purple-800 text-white'
             }`}
           >
-            {loading ? '🌠 로그인 중...' : '🌌 로그인'}
+            {loading ? t('auth.login_loading') : t('auth.login_button')}
           </button>
         </form>
         
@@ -176,15 +181,15 @@ export default function Login() {
             onClick={() => navigate('/reset-password')}
             className="text-purple-400 hover:text-purple-300 text-sm underline"
           >
-            비밀번호를 잊으셨나요?
+            {t('auth.forgot_password')}
           </button>
           <div className="text-gray-400 text-sm">
-            계정이 없으신가요?{' '}
+            {t('auth.no_account')}{' '}
             <button
               onClick={() => navigate('/signup')}
               className="text-purple-400 hover:text-purple-300 underline"
             >
-              회원가입
+              {t('auth.signup_link')}
             </button>
           </div>
         </div>

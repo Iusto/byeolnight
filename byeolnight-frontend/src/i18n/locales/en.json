@@ -37,7 +37,20 @@
     "login_success": "Login successful",
     "login_failed": "Login failed",
     "signup_success": "Sign up successful",
-    "logout_success": "Logged out"
+    "logout_success": "Logged out",
+    "login_title": "🔐 Login",
+    "home_button": "← Home",
+    "home_tooltip": "Back to home",
+    "email_placeholder": "Email",
+    "password_placeholder": "Password",
+    "remember_me": "Remember me",
+    "caps_lock_warning": "Caps Lock is on",
+    "login_button": "🌌 Login",
+    "login_loading": "🌠 Logging in...",
+    "forgot_password": "Forgot your password?",
+    "no_account": "Don't have an account?",
+    "signup_link": "Sign up",
+    "login_default_error": "Login failed."
   },
   "common": {
     "confirm": "Confirm",
