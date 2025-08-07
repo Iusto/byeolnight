@@ -25,23 +25,14 @@ export default function Login() {
     }
   }, [user, navigate]);
 
-  // 에러 메시지를 사용자 친화적으로 변환하는 함수
   const getErrorMessage = (serverMessage: string): string => {
-    console.log('=== 에러 메시지 디버깅 ===');
-    console.log('원본 서버 메시지:', JSON.stringify(serverMessage));
-    console.log('메시지 타입:', typeof serverMessage);
+    console.log('원본 서버 메시지:', serverMessage);
     
     if (!serverMessage) {
       return t('auth.login_default_error')
     }
     
-    // 인증 실패 관련 에러 - 가장 먼저 체크
-    if (serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다')) {
-      console.log('✅ 인증 실패 에러 매칭됨');
-      return t('auth.invalid_credentials')
-    }
-    
-    console.log('❌ 조건에 맞지 않음 - 서버 메시지 그대로 반환');
+    // 서버 메시지를 그대로 반환 (일단 단순화)
     return serverMessage
   }
 
@@ -156,15 +147,8 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className={`text-sm text-center p-3 rounded ${
-              error.includes('⚠️ 경고') 
-                ? 'text-yellow-300 bg-yellow-900/20 border border-yellow-600/30' 
-                : error.includes('🔒') || error.includes('🚫')
-                ? 'text-red-300 bg-red-900/20 border border-red-600/30'
-                : 'text-red-400'
-            }`}>
-              <div>에러 메시지: {error}</div>
-              <div className="text-xs mt-1 opacity-70">디버깅용 - 실제 배포시 제거</div>
+            <div className="text-sm text-center p-3 rounded text-red-400">
+              {error}
             </div>
           )}
 
