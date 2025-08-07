@@ -124,6 +124,8 @@ public class GoogleVisionService {
     }
     
     private boolean isLevelSafe(String level) {
-        return "VERY_UNLIKELY".equals(level) || "UNLIKELY".equals(level);
+        // 우주 관련 이미지의 특성을 고려하여 POSSIBLE까지 허용
+        // LIKELY나 VERY_LIKELY만 차단
+        return !"LIKELY".equals(level) && !"VERY_LIKELY".equals(level);
     }
 }

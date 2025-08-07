@@ -26,8 +26,8 @@ export function parseMarkdown(text: string): string {
   // 5. 링크 [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #60a5fa; text-decoration: underline;" target="_blank">$1</a>');
   
-  // 6. 이미지: ![alt](url)
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; margin: 16px 0; border-radius: 8px;" />');
+  // 6. 이미지: ![alt](url) - 더 안전한 정규식 사용
+  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; margin: 16px 0; border-radius: 8px; display: block;" loading="lazy" />');
   
   // 7. 리스트 (- item)
   html = html.replace(/^- (.+)$/gm, '<li style="color: #e5e7eb; margin: 4px 0; padding-left: 8px;">$1</li>');

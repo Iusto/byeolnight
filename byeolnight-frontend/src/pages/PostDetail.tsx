@@ -568,6 +568,28 @@ export default function PostDetail() {
                 children={post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')}
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
+                components={{
+                  img: ({ node, ...props }) => (
+                    <img
+                      {...props}
+                      style={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        margin: '16px 0',
+                        borderRadius: '8px',
+                        display: 'block',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                      }}
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error('마크다운 이미지 로드 실패:', props.src);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                      onClick={() => props.src && window.open(props.src, '_blank')}
+                      className="cursor-pointer hover:opacity-90 transition-opacity"
+                    />
+                  )
+                }}
               />
             </div>
             

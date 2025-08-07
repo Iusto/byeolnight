@@ -213,6 +213,7 @@ export default function PostEdit() {
           }
           
           // 모바일에서는 에디터 참조 대신 상태 업데이트 사용
+          const isMobileDevice = isMobile();
           if (isMobileDevice || isMarkdownMode || !editorRef.current || !editorRef.current.getInstance) {
             console.log('상태 업데이트를 통한 이미지 삽입 (모바일 또는 마크다운 모드)');
             setContent(prev => prev + `![${imageData.originalName || '이미지'}](${imageData.url})\n`);

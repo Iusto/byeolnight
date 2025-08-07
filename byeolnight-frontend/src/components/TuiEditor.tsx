@@ -67,69 +67,50 @@ const TuiEditor = forwardRef(({
     }
   };
 
-  // 이미지 업로드 처리 함수
+  // 이미지 업로드 처리 함수 - 간소화 및 안정성 개선
   const onUploadImage = async (blob: Blob, callback: Function) => {
     try {
       isHandlingImageUpload.current = true;
-
       document.dispatchEvent(new CustomEvent('imageValidating', { detail: { validating: true } }));
-      const resetTimer = setTimeout(() => {
-        isHandlingImageUpload.current = false;
-      }, 2000);
 
-      if (blob.type.startsWith('image/')) {
-        const file = new File([blob], `clipboard-image-${Date.now()}.${blob.type.split('/')[1] || 'png'}`, {
-          type: blob.type
-        });
-
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('needsModeration', 'true');
-          const token = localStorage.getItem('accessToken');
-
-          const moderationResponse = await fetch('/api/files/moderate-direct', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-          });
-
-          if (!moderationResponse.ok) {
-            throw new Error('이미지 검열 실패: ' + moderationResponse.statusText);
-          }
-
-          const moderationResult = await moderationResponse.json();
-          if (moderationResult.data?.isSafe === false) {
-            alert('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
-            throw new Error('부적절한 이미지 감지');
-          }
-
-          let cleanUrl = moderationResult.data.url;
-          const extension = cleanUrl.split('.').pop()?.toLowerCase();
-          if (['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => extension?.startsWith(ext))) {
-            const endIdx = cleanUrl.lastIndexOf('.' + extension) + extension.length + 1;
-            cleanUrl = cleanUrl.substring(0, endIdx);
-          }
-
-          if (!isValidImageUrl(cleanUrl)) throw new Error('유효하지 않은 이미지 URL');
-
-          callback(cleanUrl, '검열 통과된 이미지');
-          return true;
-        } catch (error) {
-          console.error('이미지 업로드 검열 오류:', error);
-          throw error;
-        }
+      // 파일 크기 체크 (10MB 제한)
+      if (blob.size > 10 * 1024 * 1024) {
+        alert('파일 크기는 10MB를 초과할 수 없습니다.');
+        return false;
       }
 
-      if (handleImageUpload) handleImageUpload();
-    } catch (error) {
-      console.error('이미지 업로드 오류:', error);
+      // 이미지 타입 체크
+      if (!blob.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return false;
+      }
+
+      const file = new File([blob], `clipboard-image-${Date.now()}.${blob.type.split('/')[1] || 'png'}`, {
+        type: blob.type
+      });
+
+      // 통합된 uploadImage 함수 사용
+      const imageData = await uploadImage(file);
+      
+      if (imageData && imageData.url && isValidImageUrl(imageData.url)) {
+        callback(imageData.url, imageData.originalName || '업로드된 이미지');
+        return true;
+      } else {
+        throw new Error('이미지 업로드 실패');
+      }
+    } catch (error: any) {
+      console.error('TUI Editor 이미지 업로드 오류:', error);
+      
+      // 사용자에게 오류 메시지 표시 (uploadImage에서 이미 표시되므로 중복 방지)
+      if (!error.message?.includes('부적절한 이미지')) {
+        alert(error.message || '이미지 업로드에 실패했습니다.');
+      }
+      
+      return false;
     } finally {
+      isHandlingImageUpload.current = false;
       document.dispatchEvent(new CustomEvent('imageValidating', { detail: { validating: false } }));
     }
-
-    if (isHandlingImageUpload.current) return true;
-    return false;
   };
 
   return (
