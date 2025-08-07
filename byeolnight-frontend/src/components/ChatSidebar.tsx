@@ -94,10 +94,8 @@ export default function ChatSidebar() {
           if (user) {
             client.subscribe(`/queue/user.${user.nickname}.ban`, (message) => {
               const banData = JSON.parse(message.body);
-              console.log('WebSocket으로 받은 금지 알림:', banData);
               
               if (banData.banned) {
-                // 금지 종료 시간 계산
                 const endTime = new Date().getTime() + (banData.duration * 60 * 1000);
                 const newBanStatus = {
                   banned: true,
@@ -105,11 +103,9 @@ export default function ChatSidebar() {
                   duration: banData.duration,
                   bannedUntil: new Date(endTime).toISOString()
                 };
-                console.log('WebSocket 밴 상태 설정:', newBanStatus);
                 setBanStatus(newBanStatus);
                 setError(`채팅이 제한되었습니다: ${banData.reason}`);
               } else {
-                console.log('WebSocket 밴 해제');
                 setError('');
                 setBanStatus(null);
                 setRemainingTime(0);
@@ -250,13 +246,10 @@ export default function ChatSidebar() {
     prevMessagesLength.current = messages.length;
   }, [messages]);
 
-  // 채팅 금지 타이머
   useEffect(() => {
-    console.log('타이머 useEffect 실행 - banStatus:', banStatus);
     let interval: NodeJS.Timeout;
     
     if (banStatus?.banned && banStatus.bannedUntil) {
-      console.log('bannedUntil 기반 타이머 시작:', banStatus.bannedUntil);
       interval = setInterval(() => {
         const now = new Date().getTime();
         const endTime = new Date(banStatus.bannedUntil!).getTime();
@@ -271,9 +264,7 @@ export default function ChatSidebar() {
         }
       }, 1000);
     } else if (banStatus?.banned && banStatus.duration) {
-      // 백엔드에서 받은 남은 시간(분)을 초로 변환
       const initialSeconds = banStatus.duration * 60;
-      console.log('duration 기반 타이머 시작:', initialSeconds, '초');
       setRemainingTime(initialSeconds);
       
       interval = setInterval(() => {
@@ -301,23 +292,15 @@ export default function ChatSidebar() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // 사용자 채팅 금지 상태 확인
   const checkBanStatus = async () => {
-    // 로그인하지 않은 사용자는 API 호출하지 않음
     if (!user) {
-      console.log('사용자 미로그인 - 밴 상태 확인 스킵');
       setBanStatus(null);
       return;
     }
     
     try {
-      console.log('밴 상태 API 호출 시작:', user.nickname);
       const response = await axios.get('/member/chat/ban-status');
-      console.log('밴 상태 API 응답 전체:', response);
-      console.log('밴 상태 API 응답 데이터:', response.data);
-      
-      const banData = response.data?.data || response.data; // CommonResponse 구조 처리
-      console.log('처리된 밴 데이터:', banData);
+      const banData = response.data?.data || response.data;
       
       if (banData && banData.banned === true) {
         const newBanStatus = {
@@ -326,18 +309,13 @@ export default function ChatSidebar() {
           duration: banData.remainingMinutes || 0,
           bannedUntil: banData.bannedUntil
         };
-        console.log('밴 상태 설정 시도:', newBanStatus);
         setBanStatus(newBanStatus);
         setError(`채팅이 제한되었습니다.`);
-        console.log('밴 상태 설정 완료');
       } else {
-        console.log('밴 상태 아님 - 해제');
         setBanStatus(null);
         setError('');
       }
     } catch (error) {
-      console.error('채팅 금지 상태 확인 실패:', error);
-      console.error('에러 응답:', error.response?.data);
       setBanStatus(null);
     }
   };
@@ -352,15 +330,10 @@ export default function ChatSidebar() {
     
     let statusInterval: NodeJS.Timeout;
     
-    // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
-      console.log('🔑 사용자 로그인됨, 밴 상태 확인 시작:', user.nickname);
-      // 즉시 밴 상태 확인
-      setTimeout(() => checkBanStatus(), 1000); // 1초 후 실행
-      // 주기적으로 금지 상태 확인 (10초마다로 더 단축)
-      statusInterval = setInterval(checkBanStatus, 10000);
+      checkBanStatus();
+      statusInterval = setInterval(checkBanStatus, 30000);
     } else {
-      console.log('❌ 사용자 미로그인');
       setBanStatus(null);
     }
 
@@ -398,49 +371,26 @@ export default function ChatSidebar() {
   };
 
   const sendMessage = async () => {
-    console.log('🚀 메시지 전송 시도:', input);
-    
-    if (!input.trim()) {
-      console.log('❌ 빈 메시지');
-      return;
-    }
-    
-    if (!user) {
-      console.log('❌ 사용자 미로그인');
-      return;
-    }
+    if (!input.trim() || !user) return;
 
     const client = stompClientRef.current;
-    if (!client) {
-      console.log('❌ WebSocket 클라이언트 없음');
-      setError('채팅 서버 연결이 없습니다.');
-      return;
-    }
-    
-    if (!client.connected) {
-      console.log('❌ WebSocket 연결 안됨');
+    if (!client || !client.connected) {
       setError('채팅 서버에 연결되어 있지 않습니다.');
       return;
     }
 
-    console.log('✅ 기본 조건 통과, 메시지 전송 시도');
     setError('');
 
-    try {
-      client.publish({
-        destination: '/app/chat.send',
-        body: JSON.stringify({
-          roomId: 'public',
-          sender: user.nickname,
-          message: input,
-        }),
-      });
-      console.log('✅ 메시지 전송 완료');
-      setInput('');
-    } catch (error) {
-      console.error('❌ 메시지 전송 실패:', error);
-      setError('메시지 전송에 실패했습니다.');
-    }
+    client.publish({
+      destination: '/app/chat.send',
+      body: JSON.stringify({
+        roomId: 'public',
+        sender: user.nickname,
+        message: input,
+      }),
+    });
+
+    setInput('');
   };
 
   return (
@@ -616,8 +566,8 @@ export default function ChatSidebar() {
         )}
       </div>
 
-      {/* 밴 상태가 있으면 무조건 표시 */}
-      {banStatus && (
+      {/* 채팅 금지 상태 표시 */}
+      {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) && (
         <div className="mb-2 p-3 bg-red-900/50 border border-red-500 rounded-lg animate-pulse">
           <div className="text-red-300 text-sm font-semibold flex items-center justify-between">
             <span>🚫 채팅이 제한되었습니다</span>
@@ -630,9 +580,11 @@ export default function ChatSidebar() {
           <div className="text-red-200 text-xs mt-1">
             사유: {banStatus?.reason || '관리자에 의한 제재'}
           </div>
-          <div className="text-red-200 text-xs mt-1">
-            밴 상태: {JSON.stringify(banStatus)}
-          </div>
+          {remainingTime > 0 && (
+            <div className="text-red-200 text-xs mt-1">
+              남은 시간: {Math.floor(remainingTime / 60)}분 {remainingTime % 60}초
+            </div>
+          )}
         </div>
       )}
 
