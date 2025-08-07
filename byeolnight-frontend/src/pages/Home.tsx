@@ -55,7 +55,7 @@ export default function Home() {
       });
 
     // 별 사진 게시판
-    axios.get('/public/posts', { params: { category: 'IMAGE', sort: 'recent', size: 4 } })
+    axios.get('/public/posts', { params: { category: 'IMAGE', sort: 'recent', size: 8 } })
       .then(res => {
         console.log('별 사진 응답:', res.data);
         const content = res.data?.success ? res.data.data?.content || [] : [];
