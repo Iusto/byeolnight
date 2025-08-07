@@ -29,6 +29,17 @@ export default function Login() {
   const getErrorMessage = (serverMessage: string): string => {
     console.log('Server error message:', serverMessage); // 디버깅용
     
+    if (!serverMessage) {
+      return t('auth.login_default_error')
+    }
+    
+    // 특별한 서버 메시지 (이모지 포함) - 우선 처리
+    if (serverMessage.includes('🔒') || 
+        serverMessage.includes('🚫') ||
+        serverMessage.includes('⚠️')) {
+      return serverMessage
+    }
+    
     // 계정 상태 관련 에러
     if (serverMessage.includes('BANNED')) {
       return t('auth.account_banned')
@@ -41,12 +52,12 @@ export default function Login() {
     }
     
     // 인증 실패 관련 에러
-    if (serverMessage.includes('Invalid credentials') || 
+    if (serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다') ||
+        serverMessage.includes('Invalid credentials') || 
         serverMessage.includes('Bad credentials') ||
         serverMessage.includes('Authentication failed') ||
-        serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다') ||
-        serverMessage.includes('잘못된 이메일') ||
-        serverMessage.includes('잘못된 비밀번호')) {
+        serverMessage.includes('로그인 유지 옵션이 비활성화됨') ||
+        /\(\d+\/\d+\)/.test(serverMessage)) {
       return t('auth.invalid_credentials')
     }
     
@@ -57,26 +68,8 @@ export default function Login() {
       return t('auth.network_error')
     }
     
-    // 계정 잠금 관련 에러 (서버 메시지 그대로 - 이모지 포함)
-    if (serverMessage.includes('계정이 잠겨 있습니다') ||
-        serverMessage.includes('🔒') ||
-        serverMessage.includes('🚫')) {
-      return serverMessage
-    }
-    
-    // IP 차단 관련 에러 (서버 메시지 그대로 - 이모지 포함)
-    if (serverMessage.includes('IP가 차단되었습니다') || 
-        serverMessage.includes('차단된 IP')) {
-      return serverMessage
-    }
-    
-    // 경고 메시지 (⚠️ 이모지 포함)
-    if (serverMessage.includes('⚠️ 경고')) {
-      return serverMessage
-    }
-    
-    // 기본 에러 메시지
-    return serverMessage || t('auth.login_default_error')
+    // 기본적으로 서버 메시지 그대로 반환
+    return serverMessage
   }
 
   const handleLogin = async (e: React.FormEvent) => {

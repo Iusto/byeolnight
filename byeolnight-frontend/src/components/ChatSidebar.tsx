@@ -331,28 +331,29 @@ export default function ChatSidebar() {
     setConnecting(true);
     connect();
     
+    let statusInterval: NodeJS.Timeout;
+    
     // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
       checkBanStatus();
-      // 주기적으로 금지 상태 확인 (30초마다)
-      const statusInterval = setInterval(checkBanStatus, 30000);
-      return () => {
-        clearInterval(statusInterval);
-        if (stompClientRef.current) {
-          stompClientRef.current.deactivate();
+      // 주기적으로 금지 상태 확인 (1분마다)
+      statusInterval = setInterval(() => {
+        if (user) { // 인터벌 실행 시점에도 user 상태 재확인
+          checkBanStatus();
         }
-      };
+      }, 60000);
     } else {
       setBanStatus(null);
     }
 
     return () => {
+      if (statusInterval) {
+        clearInterval(statusInterval);
+      }
       if (stompClientRef.current) {
         stompClientRef.current.deactivate();
       }
     };
-
-    // cleanup은 위에서 처리됨
   }, [user]); // user 상태 변경 시 재실행
 
   // 관리자 권한 확인

@@ -1,6 +1,6 @@
 # 08. 배포 가이드
 
-> 로컬 개발부터 운영 배포까지의 전체 과정을 단계별로 설명합니다.
+> Spring Cloud Config Server 기반 중앙화된 설정 관리를 통한 로컬 개발부터 운영 배포까지의 전체 과정을 설명합니다.
 
 ## 🚀 배포 환경 구성
 
@@ -8,9 +8,9 @@
 
 | 환경 | 목적 | 구성 | 접근 방법 |
 |------|------|------|-----------|
-| **Local** | 개발 및 디버깅 | Backend + DB만 Docker, Frontend는 Vite 개발서버 | `./run-local.bat` |
-| **Docker** | 통합 테스트 및 배포 | 전체 서비스 컨테이너화 | `docker-compose up` |
-| **Production** | 실제 운영 | AWS EC2 + RDS + S3 | GitHub Actions 자동 배포 |
+| **Local** | 개발 및 디버깅 | Config Server + Backend + DB, Frontend는 Vite 개발서버 | Config Server 먼저 시작 후 애플리케이션 실행 |
+| **Docker** | 통합 테스트 및 배포 | 전체 서비스 컨테이너화 (Config Server 포함) | `docker-compose up` |
+| **Production** | 실제 운영 | AWS EC2 + RDS + S3 + Config Server | GitHub Actions 자동 배포 |
 
 ## 🛠️ 로컬 개발 환경 설정
 
@@ -23,109 +23,170 @@
 - Git
 ```
 
-### 2. 프로젝트 설정
+### 2. Config Server 기반 프로젝트 설정
 ```bash
 # 1. 저장소 클론
 git clone https://github.com/your-username/byeolnight.git
 cd byeolnight
 
-# 2. 환경변수 설정
-cp .env.example .env
-# .env 파일을 열어서 실제 값들로 수정
+# 2. Config Server 설정 파일 준비
+# config-repo/configs/byeolnight-local.yml 파일에 실제 설정 값 입력
+# (암호화된 값은 {cipher}로 시작)
 
-# 3. 로컬 개발 환경 실행 (권장)
-./run-local.bat  # Windows
-# 또는
-chmod +x run-local.sh && ./run-local.sh  # Linux/Mac
+# 3. Config Server 먼저 시작 (별도 터미널)
+cd config-server
+gradlew bootRun
+
+# 4. 메인 애플리케이션 시작 (별도 터미널)
+cd ..
+gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
-### 3. 환경변수 설정 (.env 파일)
-```bash
-# 데이터베이스 설정
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=byeolnight
-DB_USERNAME=root
-DB_PASSWORD=your_strong_password
+### 3. Config Server 설정 파일 구성
 
-# Redis 설정
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
+#### config-repo/configs/byeolnight-local.yml
+```yaml
+# 데이터베이스 설정
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/byeolnight
+    username: root
+    password: '{cipher}AQA...암호화된_패스워드'
+  
+  # Redis 설정
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: '{cipher}AQB...암호화된_패스워드'
 
 # JWT 설정
-JWT_SECRET=your_very_long_and_secure_jwt_secret_key_here
-JWT_ACCESS_TOKEN_EXPIRATION=1800000  # 30분
-JWT_REFRESH_TOKEN_EXPIRATION=604800000  # 7일
+jwt:
+  secret: '{cipher}AQC...암호화된_시크릿키'
+  access-token-expiration: 1800000  # 30분
+  refresh-token-expiration: 604800000  # 7일
 
 # AWS S3 설정
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=ap-northeast-2
-AWS_S3_BUCKET=your-s3-bucket-name
+aws:
+  access-key-id: '{cipher}AQD...암호화된_액세스키'
+  secret-access-key: '{cipher}AQE...암호화된_시크릿키'
+  region: ap-northeast-2
+  s3:
+    bucket: your-s3-bucket-name
 
-# 이메일 설정 (SendGrid)
-SENDGRID_API_KEY=your_sendgrid_api_key
-SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+# 이메일 설정
+sendgrid:
+  api-key: '{cipher}AQF...암호화된_API키'
+  from-email: noreply@yourdomain.com
 
-# Gmail SMTP (백업)
-GMAIL_USERNAME=your_gmail@gmail.com
-GMAIL_PASSWORD=your_app_password
+gmail:
+  username: your_gmail@gmail.com
+  password: '{cipher}AQG...암호화된_앱패스워드'
 
-# SMS 설정 (CoolSMS)
-COOLSMS_API_KEY=your_coolsms_api_key
-COOLSMS_API_SECRET=your_coolsms_secret
-COOLSMS_FROM_NUMBER=your_phone_number
+# SMS 설정
+coolsms:
+  api-key: '{cipher}AQH...암호화된_API키'
+  api-secret: '{cipher}AQI...암호화된_시크릿'
+  from-number: your_phone_number
 
 # 외부 API 설정
-NEWSDATA_API_KEY=your_newsdata_api_key
-GOOGLE_VISION_API_KEY=your_google_vision_api_key
-OPENAI_API_KEY=your_openai_api_key
-CLAUDE_API_KEY=your_claude_api_key
+newsdata:
+  api-key: '{cipher}AQJ...암호화된_API키'
+
+google:
+  vision:
+    api-key: '{cipher}AQK...암호화된_API키'
+
+openai:
+  api-key: '{cipher}AQL...암호화된_API키'
+
+claude:
+  api-key: '{cipher}AQM...암호화된_API키'
+```
+
+#### 설정 값 암호화 방법
+```bash
+# Config Server의 암호화 엔드포인트 사용
+curl -u config-admin:config-secret-2024 \
+  -X POST http://localhost:8888/encrypt \
+  -d "your_secret_value"
+
+# 응답으로 받은 암호화된 값을 {cipher}접두사와 함께 설정 파일에 입력
 ```
 
 ### 4. 로컬 실행 방법
 
-#### 방법 1: 개발 모드 (권장)
+#### 방법 1: Config Server 기반 개발 모드 (권장)
 ```bash
-# 백엔드 + DB만 Docker로 실행
-docker-compose -f docker-compose.local.yml up -d
+# 1. Config Server 시작 (첫 번째 터미널)
+cd config-server
+gradlew bootRun
 
-# 백엔드 Spring Boot 실행
-./gradlew bootRun --args='--spring.profiles.active=local'
+# 2. 데이터베이스 서비스만 Docker로 실행 (두 번째 터미널)
+docker-compose -f docker-compose.local.yml up -d mysql redis
 
-# 프론트엔드 개발 서버 실행 (별도 터미널)
+# 3. 메인 애플리케이션 시작 (세 번째 터미널)
+cd ..
+gradlew bootRun --args='--spring.profiles.active=local'
+
+# 4. 프론트엔드 개발 서버 실행 (네 번째 터미널)
 cd byeolnight-frontend
 npm install
 npm run dev
 ```
 
-#### 방법 2: 전체 Docker 실행
+#### 방법 2: 전체 Docker 실행 (Config Server 포함)
 ```bash
-# 전체 서비스 컨테이너로 실행
+# config-repo 설정 완료 후 전체 서비스 컨테이너로 실행
 docker-compose up --build -d
 ```
 
 ### 5. 접속 URL
+- **Config Server**: http://localhost:8888 (인증: config-admin/config-secret-2024)
 - **개발 모드**: 
   - Frontend: http://localhost:5173
   - Backend: http://localhost:8080
   - API 문서: http://localhost:8080/swagger-ui.html
 - **Docker 모드**: http://localhost
 
+### 6. Config Server 설정 확인
+```bash
+# 현재 적용된 설정 조회
+curl -u config-admin:config-secret-2024 \
+  http://localhost:8888/byeolnight/local
+
+# 특정 프로퍼티 값 확인
+curl -u config-admin:config-secret-2024 \
+  http://localhost:8888/byeolnight/local/master
+```
+
 ## 🐳 Docker 배포
 
-### Docker Compose 구성
+### Docker Compose 구성 (Config Server 포함)
 
 ```yaml
 # docker-compose.yml (운영용)
 version: '3.8'
 services:
+  config-server:
+    build: ./config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    volumes:
+      - ./config-repo:/app/config-repo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: your_strong_password
+      MYSQL_DATABASE: byeolnight
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -133,7 +194,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass your_redis_password
     ports:
       - "6379:6379"
 
@@ -141,9 +202,14 @@ services:
     build: .
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
     depends_on:
-      - mysql
-      - redis
+      config-server:
+        condition: service_healthy
+      mysql:
+        condition: service_started
+      redis:
+        condition: service_started
     ports:
       - "8080:8080"
 
@@ -160,11 +226,21 @@ volumes:
 
 ### 배포 명령어
 ```bash
-# 전체 서비스 빌드 및 실행
+# Config Server 설정 파일 준비 확인
+ls -la config-repo/configs/
+
+# 전체 서비스 빌드 및 실행 (Config Server 먼저 시작)
 docker-compose up --build -d
 
-# 로그 확인
+# Config Server 상태 확인
+docker-compose logs config-server
+curl -u config-admin:config-secret-2024 http://localhost:8888/actuator/health
+
+# 전체 로그 확인
 docker-compose logs -f
+
+# 특정 서비스 로그 확인
+docker-compose logs -f backend
 
 # 서비스 중지
 docker-compose down
@@ -191,7 +267,7 @@ docker-compose down -v
                     └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### EC2 인스턴스 설정
+### EC2 인스턴스 설정 (Config Server 기반)
 
 ```bash
 # 1. EC2 인스턴스 접속
@@ -210,8 +286,16 @@ sudo chmod +x /usr/local/bin/docker-compose
 # 4. 프로젝트 배포
 git clone https://github.com/your-username/byeolnight.git
 cd byeolnight
-cp .env.example .env
-# .env 파일 수정 (운영 환경 값으로)
+
+# 5. Config Server 설정 파일 준비
+# config-repo/configs/byeolnight-docker.yml 파일에 운영 환경 설정 입력
+# (모든 민감한 정보는 암호화하여 저장)
+
+# 6. Config Server 먼저 시작하여 상태 확인
+docker-compose up -d config-server
+docker-compose logs config-server
+
+# 7. 전체 서비스 시작
 docker-compose up --build -d
 ```
 
@@ -343,26 +427,48 @@ DEPLOY_HOST=your-ec2-public-ip
 DEPLOY_USER=ubuntu
 DEPLOY_SSH_KEY=your-private-key-content
 
-# 추가 설정 (Spring Cloud Config Server로 중앙화됨)
-# 민감한 정보는 서버의 config-repo에서 관리
+# Config Server 관련 설정
+CONFIG_SERVER_USERNAME=config-admin
+CONFIG_SERVER_PASSWORD=config-secret-2024
+CONFIG_ENCRYPT_KEY=your-config-encryption-key
+
+# 주의: 모든 민감한 설정은 Config Server의 config-repo에서 암호화하여 관리
+# GitHub Secrets는 배포 관련 정보만 저장
 ```
 
-### 배포 프로세스
+### 배포 프로세스 (Config Server 포함)
 
 1. **코드 푸시** → `master` 브랜치
-2. **자동 빌드** → Java 21 + Gradle 빌드
-3. **Docker 이미지** → 3개 서비스 이미지 생성
+2. **자동 빌드** → Java 21 + Gradle 빌드 (Config Server + Main App)
+3. **Docker 이미지** → 3개 서비스 이미지 생성 (Config Server, Backend, Frontend)
 4. **GHCR 푸시** → GitHub Container Registry에 저장
-5. **서버 배포** → SSH로 운영 서버 접속하여 배포
-6. **서비스 재시작** → docker-compose로 무중단 배포
+5. **Config 검증** → Config Server 설정 파일 유효성 검사
+6. **서버 배포** → SSH로 운영 서버 접속하여 배포
+7. **서비스 재시작** → Config Server 먼저 시작 후 나머지 서비스 순차 시작
 
 ## 🔍 배포 후 확인사항
 
-### 헬스체크 엔드포인트
+### Config Server 상태 확인
+
+```bash
+# Config Server 헬스체크
+curl -u config-admin:config-secret-2024 http://your-domain:8888/actuator/health
+
+# 설정 조회 테스트
+curl -u config-admin:config-secret-2024 http://your-domain:8888/byeolnight/docker
+
+# 암호화/복호화 테스트
+curl -u config-admin:config-secret-2024 -X POST http://your-domain:8888/encrypt -d "test"
+```
+
+### 애플리케이션 헬스체크 엔드포인트
 
 ```bash
 # 백엔드 상태 확인
 curl http://your-domain/api/health
+
+# Config Server 연결 확인
+curl http://your-domain/actuator/configprops
 
 # 데이터베이스 연결 확인
 curl http://your-domain/api/health/db
@@ -374,14 +480,20 @@ curl http://your-domain/api/health/redis
 ### 로그 모니터링
 
 ```bash
+# Config Server 로그 확인
+docker-compose logs -f config-server
+
 # 애플리케이션 로그 확인
 docker-compose logs -f backend
+
+# Config Server 설정 로딩 로그 확인
+docker-compose logs config-server | grep "Located property source"
 
 # 에러 로그만 필터링
 docker-compose logs backend | grep ERROR
 
-# 실시간 로그 모니터링
-tail -f /var/log/byeolnight/application.log
+# 전체 서비스 로그 실시간 모니터링
+docker-compose logs -f
 ```
 
 ### 성능 모니터링
@@ -399,9 +511,45 @@ docker exec -it redis_container redis-cli INFO memory
 
 ## 🚨 트러블슈팅
 
-### 자주 발생하는 문제들
+### Config Server 관련 문제
 
-#### 1. 메모리 부족 오류
+#### 1. Config Server 연결 실패
+```bash
+# Config Server 상태 확인
+docker-compose logs config-server
+curl -u config-admin:config-secret-2024 http://localhost:8888/actuator/health
+
+# 애플리케이션에서 Config Server 연결 확인
+curl http://localhost:8080/actuator/configprops | grep "spring.cloud.config"
+```
+
+#### 2. 설정 파일 로딩 실패
+```bash
+# config-repo 디렉토리 권한 확인
+ls -la config-repo/configs/
+
+# 설정 파일 문법 검증
+yaml-lint config-repo/configs/byeolnight-docker.yml
+
+# Config Server 로그에서 설정 로딩 확인
+docker-compose logs config-server | grep "Located property source"
+```
+
+#### 3. 암호화/복호화 문제
+```bash
+# 암호화 키 설정 확인
+docker-compose exec config-server env | grep ENCRYPT_KEY
+
+# 수동 암호화 테스트
+curl -u config-admin:config-secret-2024 -X POST http://localhost:8888/encrypt -d "test_value"
+
+# 복호화 테스트
+curl -u config-admin:config-secret-2024 -X POST http://localhost:8888/decrypt -d "AQA..."
+```
+
+### 일반적인 배포 문제
+
+#### 4. 메모리 부족 오류
 ```bash
 # 해결: EC2 인스턴스 타입 업그레이드 또는 스왑 메모리 추가
 sudo fallocate -l 2G /swapfile
@@ -410,36 +558,58 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-#### 2. 데이터베이스 연결 실패
+#### 5. 데이터베이스 연결 실패
 ```bash
 # 해결: 보안 그룹 및 방화벽 설정 확인
 sudo ufw allow 3306
 # RDS 보안 그룹에서 EC2 보안 그룹 허용
 ```
 
-#### 3. SSL 인증서 갱신 실패
+#### 6. 서비스 시작 순서 문제
 ```bash
-# 해결: Certbot 자동 갱신 설정
-sudo crontab -e
-# 다음 라인 추가: 0 12 * * * /usr/bin/certbot renew --quiet
+# Config Server 먼저 시작 후 다른 서비스 시작
+docker-compose up -d config-server
+# Config Server 준비 완료 확인 후
+docker-compose up -d
 ```
 
-## 📊 배포 체크리스트
+### 성능 최적화 팁
 
-### 배포 전 확인사항
-- [ ] 모든 테스트 통과 확인
-- [ ] 환경변수 설정 완료
-- [ ] 데이터베이스 마이그레이션 스크립트 준비
-- [ ] SSL 인증서 유효성 확인
-- [ ] 백업 계획 수립
+#### Config Server 최적화
+```bash
+# Config Server JVM 옵션 설정
+JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
 
-### 배포 후 확인사항
-- [ ] 헬스체크 엔드포인트 정상 응답
-- [ ] 주요 기능 동작 확인 (로그인, 게시글 작성 등)
-- [ ] 로그 에러 없음 확인
-- [ ] 성능 지표 정상 범위 확인
-- [ ] 모니터링 알람 설정 확인
+# Config Server 캐시 설정 확인
+curl -u config-admin:config-secret-2024 http://localhost:8888/actuator/env | grep cache
+```
+
+#### 애플리케이션 최적화
+```bash
+# Config 새로고침 없이 설정 변경 적용
+curl -X POST http://localhost:8080/actuator/refresh
+
+# Config Server 연결 풀 설정 확인
+curl http://localhost:8080/actuator/metrics/http.client.requests
+```
 
 ---
 
-👉 다음 문서: [09. 로드맵](./09_roadmap.md)
+## 📝 배포 체크리스트
+
+### 배포 전 확인사항
+- [ ] Config Server 설정 파일 준비 완료
+- [ ] 민감한 정보 암호화 완료
+- [ ] 데이터베이스 마이그레이션 스크립트 준비
+- [ ] 외부 API 키 유효성 확인
+- [ ] SSL 인증서 유효기간 확인
+
+### 배포 후 확인사항
+- [ ] Config Server 정상 동작 확인
+- [ ] 애플리케이션 헬스체크 통과
+- [ ] 데이터베이스 연결 정상
+- [ ] Redis 연결 정상
+- [ ] 외부 API 연동 정상
+- [ ] 로그 모니터링 설정 완료
+
+이 가이드를 통해 Spring Cloud Config Server 기반의 안전하고 확장 가능한 배포 환경을 구축할 수 있습니다.
