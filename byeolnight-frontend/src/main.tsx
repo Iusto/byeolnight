@@ -1,7 +1,6 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import { initializeClientIp } from './lib/axios'
 import App from './App'
 import './index.css'
 import './styles/stellar-animations.css'
@@ -21,9 +20,6 @@ if (isStaticFilePath(window.location.pathname)) {
   console.log('정적 파일 경로 감지:', window.location.pathname);
   // 아무것도 렌더링하지 않고 종료
 } else {
-  // 앱 시작 시 클라이언트 IP 초기화
-  initializeClientIp();
-
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
