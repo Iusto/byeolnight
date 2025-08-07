@@ -314,24 +314,30 @@ export default function PostCreate() {
   
   const removeImage = (index: number) => {
     const imageToRemove = uploadedImages[index];
-    if (imageToRemove) {
-      // TUI Editor에서 해당 이미지 제거
+    if (!imageToRemove) return;
+    
+    // 에디터에서 해당 이미지 제거
+    try {
       if (editorRef.current?.getInstance) {
         const instance = editorRef.current.getInstance();
         if (instance) {
           const currentContent = instance.getMarkdown();
-          // 마크다운 형식의 이미지 제거 (URL 이스케이프 처리)
+          // URL을 정규식에서 안전하게 사용하기 위해 이스케이프
           const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // 마크다운 이미지 패턴 제거
           const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'gi');
-          const newContent = currentContent.replace(imgRegex, '').replace(/\n\n+/g, '\n\n'); // 빈 줄 정리
-          // 업데이트된 콘텐츠 적용
+          const newContent = currentContent.replace(imgRegex, '').replace(/\n\n+/g, '\n\n');
+          
+          // 에디터와 상태 모두 업데이트
           instance.setMarkdown(newContent);
-          // content state도 업데이트
           setContent(newContent);
         }
       }
+    } catch (error) {
+      console.error('에디터에서 이미지 제거 중 오류:', error);
     }
-    // 이미지 배열에서 해당 이미지 제거
+    
+    // 썸네일 목록에서 이미지 제거
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -528,14 +534,21 @@ export default function PostCreate() {
                       const textContent = tempDiv.textContent || tempDiv.innerText || '';
                       setContentLength(textContent.length);
                       
-                      // 에디터에서 삭제된 이미지 감지 및 썸네일 목록에서 제거
-                      const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
-                        .map(match => match.match(/\(([^)]+)\)/)?.[1])
-                        .filter(Boolean);
-                      
-                      setUploadedImages(prev => 
-                        prev.filter(image => currentImageUrls.includes(image.url))
-                      );
+                      // 에디터에서 삭제된 이미지 감지 및 썸네일 목록에서 제거 (양방향 동기화)
+                      try {
+                        const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
+                          .map(match => {
+                            const urlMatch = match.match(/\(([^)]+)\)/);
+                            return urlMatch ? urlMatch[1] : null;
+                          })
+                          .filter(Boolean);
+                        
+                        setUploadedImages(prev => 
+                          prev.filter(image => currentImageUrls.includes(image.url))
+                        );
+                      } catch (error) {
+                        console.error('이미지 동기화 중 오류:', error);
+                      }
                     }}
                     placeholder={t('home.content_placeholder')}
                     height="500px"
