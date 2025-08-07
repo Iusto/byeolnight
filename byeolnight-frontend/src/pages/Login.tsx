@@ -29,31 +29,24 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true) // 시작 시 true
+    setLoading(true)
     setError('')
 
     try {
       await login(email, password, rememberMe)
       setLoginSuccess(true)
-      
     } catch (err: any) {
-      console.log('=== 로그인 에러 상세 분석 ===');
-      console.log('err 전체:', err);
-      console.log('err.response:', err.response);
-      console.log('err.response?.data:', err.response?.data);
-      console.log('err.response?.data?.message:', err.response?.data?.message);
-      console.log('err.message:', err.message);
-      console.log('t 함수 타입:', typeof t);
-      console.log('t("auth.login_default_error"):', t('auth.login_default_error'));
+      let errorMessage = '로그인에 실패했습니다.'
       
-      // 서버에서 보낸 구체적인 에러 메시지 추출
-      const serverMessage = err.response?.data?.message || err.message || 'DEFAULT_ERROR'
-      console.log('최종 서버 메시지:', serverMessage);
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.message) {
+        errorMessage = err.message
+      }
       
-      // 임시로 단순하게 처리
-      setError(serverMessage)
+      setError(errorMessage)
     } finally {
-      setLoading(false) // 끝날 때 false
+      setLoading(false)
     }
   }
 

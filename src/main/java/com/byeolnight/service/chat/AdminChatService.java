@@ -189,16 +189,27 @@ public class AdminChatService {
         
         if (activeBan.isPresent()) {
             ChatBan ban = activeBan.get();
-            result.put("banned", true);
-            result.put("reason", ban.getReason());
-            result.put("bannedUntil", ban.getBannedUntil());
-            result.put("bannedBy", ban.getBannedBy());
-            
-            // 남은 시간 계산 (분 단위)
-            long remainingMinutes = java.time.Duration.between(LocalDateTime.now(), ban.getBannedUntil()).toMinutes();
-            result.put("remainingMinutes", Math.max(0, remainingMinutes));
+            // 만료된 밴은 즉시 비활성화
+            if (ban.isExpired()) {
+                ban.unban();
+                chatBanRepository.save(ban);
+                log.info("만료된 채팅 금지 즉시 해제: {}", username);
+                result.put("banned", false);
+            } else {
+                result.put("banned", true);
+                result.put("reason", ban.getReason());
+                result.put("bannedUntil", ban.getBannedUntil());
+                result.put("bannedBy", ban.getBannedBy());
+                
+                // 남은 시간 계산 (분 단위)
+                long remainingMinutes = java.time.Duration.between(LocalDateTime.now(), ban.getBannedUntil()).toMinutes();
+                result.put("remainingMinutes", Math.max(0, remainingMinutes));
+                
+                log.info("사용자 {} 밴 상태: 남은 시간 {}분", username, remainingMinutes);
+            }
         } else {
             result.put("banned", false);
+            log.info("사용자 {} 밴 상태: 비활성", username);
         }
         
         return result;

@@ -114,6 +114,7 @@ public class ChatController {
     public ResponseEntity<CommonResponse<java.util.Map<String, Object>>> getChatBanStatus(
             @AuthenticationPrincipal User user) {
         java.util.Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
+        log.info("사용자 {} 밴 상태 조회: {}", user.getNickname(), banStatus);
         return ResponseEntity.ok(CommonResponse.success(banStatus));
     }
 }

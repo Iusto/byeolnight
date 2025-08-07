@@ -105,9 +105,11 @@ export default function ChatSidebar() {
                   duration: banData.duration,
                   bannedUntil: new Date(endTime).toISOString()
                 };
+                console.log('WebSocket 밴 상태 설정:', newBanStatus);
                 setBanStatus(newBanStatus);
                 setError(`채팅이 제한되었습니다: ${banData.reason}`);
               } else {
+                console.log('WebSocket 밴 해제');
                 setError('');
                 setBanStatus(null);
                 setRemainingTime(0);
@@ -121,7 +123,7 @@ export default function ChatSidebar() {
               setError(errorData.error || '채팅이 제한되어 메시지를 보낼 수 없습니다.');
               
               // 현재 밴 상태 다시 확인
-              checkBanStatus();
+              setTimeout(() => checkBanStatus(), 500); // 약간의 지연 후 확인
             });
           }
         },
@@ -250,9 +252,11 @@ export default function ChatSidebar() {
 
   // 채팅 금지 타이머
   useEffect(() => {
+    console.log('타이머 useEffect 실행 - banStatus:', banStatus);
     let interval: NodeJS.Timeout;
     
     if (banStatus?.banned && banStatus.bannedUntil) {
+      console.log('bannedUntil 기반 타이머 시작:', banStatus.bannedUntil);
       interval = setInterval(() => {
         const now = new Date().getTime();
         const endTime = new Date(banStatus.bannedUntil!).getTime();
@@ -269,6 +273,7 @@ export default function ChatSidebar() {
     } else if (banStatus?.banned && banStatus.duration) {
       // 백엔드에서 받은 남은 시간(분)을 초로 변환
       const initialSeconds = banStatus.duration * 60;
+      console.log('duration 기반 타이머 시작:', initialSeconds, '초');
       setRemainingTime(initialSeconds);
       
       interval = setInterval(() => {
@@ -306,19 +311,24 @@ export default function ChatSidebar() {
     
     try {
       const response = await axios.get('/member/chat/ban-status');
-      const banData = response.data;
+      const banData = response.data?.data || response.data; // CommonResponse 구조 처리
+      
+      console.log('밴 상태 확인 응답:', banData); // 디버깅용
       
       if (banData.banned) {
-        setBanStatus({
+        const newBanStatus = {
           banned: true,
           reason: banData.reason,
           duration: banData.remainingMinutes,
           bannedUntil: banData.bannedUntil
-        });
+        };
+        setBanStatus(newBanStatus);
         setError(`채팅이 제한되었습니다.`);
+        console.log('밴 상태 설정됨:', newBanStatus);
       } else {
         setBanStatus(null);
         setError('');
+        console.log('밴 상태 해제됨');
       }
     } catch (error) {
       console.error('채팅 금지 상태 확인 실패:', error);
@@ -338,9 +348,10 @@ export default function ChatSidebar() {
     
     // 로그인한 사용자만 채팅 금지 상태 확인
     if (user) {
+      console.log('사용자 로그인됨, 밴 상태 확인 시작:', user.nickname);
       checkBanStatus();
-      // 주기적으로 금지 상태 확인 (1분마다)
-      statusInterval = setInterval(checkBanStatus, 60000);
+      // 주기적으로 금지 상태 확인 (30초마다로 단축)
+      statusInterval = setInterval(checkBanStatus, 30000);
     } else {
       setBanStatus(null);
     }
@@ -382,12 +393,15 @@ export default function ChatSidebar() {
     if (!input.trim() || !user) return;
 
     // ✅ 메시지 전송 전 밴 상태 실시간 확인
+    console.log('메시지 전송 전 밴 상태 확인');
     await checkBanStatus();
     
     // 제재된 사용자는 메시지 전송 불가
+    console.log('전송 전 밴 상태 체크:', banStatus?.banned, bannedUsers.has(user.nickname));
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {
       const reason = banStatus?.reason || '채팅이 제한되었습니다.';
       setError(reason + ' 관리자에게 문의하세요.');
+      console.log('메시지 전송 차단됨:', reason);
       return;
     }
 
@@ -552,7 +566,8 @@ export default function ChatSidebar() {
         )}
       </div>
 
-      {/* 채팅 금지 상태 표시 */}
+      {/* 채팅 금지 상태 표시 - 디버깅 정보 추가 */}
+      {console.log('UI 렌더링 - banStatus:', banStatus, 'bannedUsers:', bannedUsers, 'user:', user?.nickname)}
       {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) && (
         <div className="mb-2 p-3 bg-red-900/50 border border-red-500 rounded-lg animate-pulse">
           <div className="text-red-300 text-sm font-semibold flex items-center justify-between">

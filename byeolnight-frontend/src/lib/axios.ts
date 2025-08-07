@@ -108,7 +108,9 @@ instance.interceptors.response.use(
         const rememberMe = getSafeRememberMe();
         
         if (!rememberMe) {
-          throw new Error('로그인 유지 옵션이 비활성화됨');
+          console.log('로그인 유지 옵션 비활성화 - 토큰 갱신 시도 안함');
+          processQueue(error);
+          return Promise.reject(error);
         }
 
         console.log('토큰 갱신 시도 (쿠키 기반)');
@@ -140,12 +142,22 @@ instance.interceptors.response.use(
         }
         
         // 로그인 유지 옵션이 있었는데 토큰 갱신에 실패한 경우만 리다이렉트
-        if (rememberMe && window.location.pathname !== '/login') {
+        const getSafeRememberMeAgain = (): boolean => {
+          try {
+            const localStorage_value = localStorage.getItem('rememberMe');
+            const sessionStorage_value = sessionStorage.getItem('rememberMe');
+            return localStorage_value === 'true' || sessionStorage_value === 'true';
+          } catch (storageError) {
+            return true;
+          }
+        };
+        
+        if (getSafeRememberMeAgain() && window.location.pathname !== '/login') {
           console.log('토큰 갱신 실패, 로그인 페이지로 이동');
           window.location.href = '/login';
         }
         
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       } finally {
         isRefreshing = false;
       }
