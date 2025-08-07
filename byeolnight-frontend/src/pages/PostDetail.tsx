@@ -583,7 +583,8 @@ export default function PostDetail() {
                       loading="lazy"
                       onError={(e) => {
                         console.error('마크다운 이미지 로드 실패:', props.src);
-                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
+                        e.currentTarget.onerror = null;
                       }}
                       onClick={() => props.src && window.open(props.src, '_blank')}
                       className="cursor-pointer hover:opacity-90 transition-opacity"

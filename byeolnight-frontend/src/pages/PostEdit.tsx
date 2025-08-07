@@ -69,11 +69,7 @@ export default function PostEdit() {
   
   // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = async (event: ClipboardEvent) => {
-    // TUI Editor가 활성화된 상태에서는 기본 처리 허용
-    if (!isMarkdownMode && document.activeElement?.closest('.toastui-editor-ww-container')) {
-      console.log('TUI Editor가 활성화된 상태 - 기본 처리 허용');
-      return;
-    }
+    console.log('클립보드 붙여넣기 이벤트 발생');
     
     // TUI Editor에서 이미지 업로드를 처리 중이면 중복 처리 방지
     if (isHandlingImageUpload.current) {
@@ -82,75 +78,80 @@ export default function PostEdit() {
     }
     
     const items = event.clipboardData?.items;
-    if (!items) return;
+    if (!items || items.length === 0) {
+      console.log('클립보드 데이터 없음');
+      return;
+    }
     
     // 모바일 환경 감지
     const isMobileDevice = isMobile();
     console.log('클립보드 붙여넣기 - 모바일 환경:', isMobileDevice);
     
-    // 모바일에서 클립보드 접근 제한 있을 수 있음
-    if (isMobileDevice && items.length === 0) {
-      console.log('모바일에서 클립보드 접근 제한 감지');
-      return;
-    }
-    
     console.log('클립보드 데이터 감지:', items.length, '개 항목');
+    
+    // 이미지 파일 찾기
+    let imageFile: File | null = null;
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      console.log('클립보드 항목 형식:', item.type);
+      console.log('클립보드 항목 형식:', item.type, item.kind);
       
-      // 이미지 파일인지 확인
-      if (item.type.indexOf('image') !== -1) {
-        event.preventDefault();
-        const file = item.getAsFile();
-        if (file) {
-          console.log('클립보드에서 이미지 감지:', file.name, file.type, file.size);
-          
-          // 파일 크기 체크 (10MB 제한으로 변경)
-          if (file.size > 10 * 1024 * 1024) {
-            // alert 제거하고 setError로 대체
-            setError('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
-            return;
-          }
-          
-          try {
-            // 모바일에서는 클립보드 붙여넣기 제한
-            if (isMobileDevice) {
-              // alert 제거하고 setError로 대체
-              setError('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
-              return;
-            }
-            
-            const imageUrl = await uploadClipboardImage(file);
-            if (!imageUrl) {
-              throw new Error('이미지 URL을 받지 못했습니다.');
-            }
-            
-            // TUI Editor에 이미지 삽입
-            if (editorRef.current && editorRef.current.getInstance && !isMarkdownMode) {
-              console.log('TUI 에디터를 통한 이미지 삽입');
-              const instance = editorRef.current.getInstance();
-              if (instance) {
-                instance.insertText(`![클립보드 이미지](${imageUrl})`);
-              }
-            } else {
-              // 폴백: 에디터 참조를 사용할 수 없거나 마크다운 모드인 경우 마크다운 형식 사용
-              console.log('상태 업데이트를 통한 이미지 삽입');
-              setContent(prev => prev + `![클립보드 이미지](${imageUrl})\n`);
-            }
-          } catch (error: any) {
-            console.error('클립보드 이미지 업로드 실패:', error);
-            // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-            // alert 제거 - s3Upload.ts에서 이미 오류 메시지가 표시됨
-            setError(error.message || '이미지 업로드에 실패했습니다.');
-          }
+      // 이미지 파일인지 확인 (더 엄격한 검사)
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        imageFile = item.getAsFile();
+        if (imageFile) {
+          console.log('클립보드에서 이미지 감지:', imageFile.name, imageFile.type, imageFile.size);
+          break;
         }
-        break;
       }
+    }
+    
+    if (!imageFile) {
+      console.log('클립보드에 이미지 없음');
+      return;
+    }
+    
+    // 이미지가 있으면 기본 동작 방지
+    event.preventDefault();
+    
+    // 파일 크기 체크 (10MB 제한)
+    if (imageFile.size > 10 * 1024 * 1024) {
+      setError('파일 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
+      return;
+    }
+    
+    // 파일 형식 검사
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validImageTypes.includes(imageFile.type)) {
+      setError('지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)');
+      return;
+    }
+    
+    try {
+      // 모바일에서는 클립보드 붙여넣기 제한
+      if (isMobileDevice) {
+        setError('모바일에서는 이미지 붙여넣기가 제한될 수 있습니다. 이미지 버튼을 사용해주세요.');
+        return;
+      }
+      
+      const imageUrl = await uploadClipboardImage(imageFile);
+      if (!imageUrl) {
+        throw new Error('이미지 URL을 받지 못했습니다.');
+      }
+      
+      // 이미지 삽입 - TUI Editor 인스턴스를 통해 직접 삽입
+      const instance = editorRef.current?.getInstance();
+      if (instance) {
+        console.log('TUI Editor 인스턴스를 통한 이미지 삽입');
+        // 현재 커서 위치에 이미지 마크다운 삽입
+        instance.insertText(`![클립보드 이미지](${imageUrl})`);
+      } else {
+        console.log('상태 업데이트를 통한 이미지 삽입');
+        setContent(prev => prev + `![클립보드 이미지](${imageUrl})\n`);
+      }
+    } catch (error: any) {
+      console.error('클립보드 이미지 업로드 실패:', error);
+      setError(error.message || '이미지 업로드에 실패했습니다.');
     }
   };
   
@@ -354,7 +355,13 @@ export default function PostEdit() {
         setTitle(post.title);
         setContent(post.content);
         setCategory(post.category);
-        setImages(post.images || []);
+        // 기존 이미지들을 FileDto 형식으로 변환하여 설정
+        const existingImages = (post.images || []).map(img => ({
+          originalName: img.originalName || '기존 이미지',
+          s3Key: img.s3Key || '',
+          url: img.url
+        }));
+        setImages(existingImages);
         
         // ReactQuill에 콘텐츠 설정은 state로 처리됨
       } catch (err) {

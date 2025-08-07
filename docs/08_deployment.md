@@ -229,65 +229,132 @@ sudo certbot certonly --standalone -d yourdomain.com
 docker-compose restart frontend
 ```
 
-## 🔄 CI/CD 파이프라인 (GitHub Actions)
+## 🔄 GitHub Actions 자동 배포
 
-### .github/workflows/deploy.yml
+### 현재 CI/CD 파이프라인 구조
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Code Push     │    │  GitHub Actions │    │   Production    │
+│   (master)      │───►│   Workflows     │───►│     Server      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │ Container       │
+                    │ Registry        │
+                    │ (GHCR)          │
+                    └─────────────────┘
+```
+
+### 자동화된 워크플로우 (5개)
+
+1. **CI 테스트** (`.github/workflows/ci.yml`)
+   - 코드 푸시 시 자동 테스트 실행
+   - 백엔드 + 프론트엔드 빌드 검증
+
+2. **코드 품질 검사** (`.github/workflows/code-quality.yml`)
+   - CodeQL 보안 스캔
+   - 의존성 취약점 검사
+
+3. **자동 배포** (`.github/workflows/deploy.yml`)
+   - `master` 브랜치 푸시 시 운영 서버 자동 배포
+   - Docker 이미지 빌드 및 GHCR 푸시
+   - SSH를 통한 운영 서버 배포
+
+4. **PR 검증** (`.github/workflows/pr-check.yml`)
+   - Pull Request 제목 컨벤션 체크
+   - PR 크기 검증
+   - 자동 리뷰어 할당
+
+5. **성능 테스트** (`.github/workflows/performance.yml`)
+   - 주기적 부하 테스트
+   - Lighthouse 성능 측정
+
+### 실제 배포 워크플로우
 
 ```yaml
-name: Deploy to AWS EC2
+# .github/workflows/deploy.yml (실제 파일 기준)
+name: 배포
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
+  workflow_dispatch:  # 수동 실행 가능
 
 jobs:
-  deploy:
+  build-and-push:
+    name: Docker 이미지 빌드 및 푸시
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
       
-    - name: Set up JDK 21
-      uses: actions/setup-java@v3
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
         
-    - name: Run tests
-      run: ./gradlew test
+    - name: 백엔드 빌드
+      run: ./gradlew build -x test
       
-    - name: Build application
-      run: ./gradlew build
-      
-    - name: Build Docker image
+    - name: Config Server 빌드
       run: |
-        docker build -t byeolnight-backend .
-        docker build -t byeolnight-frontend ./byeolnight-frontend
+        cd config-server
+        chmod +x ./gradlew
+        ./gradlew build -x test
         
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.5
+    - name: GitHub Container Registry 로그인
+      uses: docker/login-action@v3
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
-        key: ${{ secrets.EC2_SSH_KEY }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 백엔드/프론트엔드/Config Server 이미지 빌드 및 푸시
+      # 3개 서비스 이미지 동시 빌드
+      
+  deploy:
+    name: 운영 서버 배포
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: 운영 서버 배포
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
         script: |
-          cd /home/ec2-user/byeolnight
-          git pull origin main
+          cd /opt/byeolnight
+          docker pull ghcr.io/iusto/byeolnight-config-server:latest
+          docker pull ghcr.io/iusto/byeolnight-backend:latest
+          docker pull ghcr.io/iusto/byeolnight-frontend:latest
           docker-compose down
-          docker-compose up --build -d
+          docker-compose up -d
 ```
 
 ### GitHub Secrets 설정
 
 ```bash
 # Repository Settings > Secrets and variables > Actions에서 설정
-EC2_HOST=your-ec2-public-ip
-EC2_SSH_KEY=your-private-key-content
-DB_PASSWORD=your-production-db-password
-JWT_SECRET=your-production-jwt-secret
-# ... 기타 운영 환경 변수들
+DEPLOY_HOST=your-ec2-public-ip
+DEPLOY_USER=ubuntu
+DEPLOY_SSH_KEY=your-private-key-content
+
+# 추가 설정 (Spring Cloud Config Server로 중앙화됨)
+# 민감한 정보는 서버의 config-repo에서 관리
 ```
+
+### 배포 프로세스
+
+1. **코드 푸시** → `master` 브랜치
+2. **자동 빌드** → Java 21 + Gradle 빌드
+3. **Docker 이미지** → 3개 서비스 이미지 생성
+4. **GHCR 푸시** → GitHub Container Registry에 저장
+5. **서버 배포** → SSH로 운영 서버 접속하여 배포
+6. **서비스 재시작** → docker-compose로 무중단 배포
 
 ## 🔍 배포 후 확인사항
 

@@ -390,6 +390,9 @@ export default function PostList() {
     );
   };
   
+  // 이미지 로드 실패 상태 관리
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+
   // 이미지 게시글 아이템 렌더링
   const renderImagePostItem = (post: Post) => {
     // 게시글 내용에서 첫 번째 이미지 URL 추출
@@ -440,6 +443,7 @@ export default function PostList() {
     };
     
     const imgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    const hasImageFailed = failedImages.has(post.id);
     
     return (
       <div 
@@ -448,16 +452,13 @@ export default function PostList() {
       >
         <Link to={`/posts/${post.id}`} className="block h-full">
           <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
-            {imgSrc ? (
+            {imgSrc && !hasImageFailed ? (
               <img 
                 src={imgSrc} 
                 alt={post.title} 
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  // 이미지 로드 오류 시 기본 이미지로 대체
-                  console.log('이미지 로드 오류:', imgSrc);
-                  e.currentTarget.onerror = null; // 무한 루프 방지
-                  e.currentTarget.src = 'https://via.placeholder.com/300x300?text=우주+이미지';
+                onError={() => {
+                  setFailedImages(prev => new Set(prev).add(post.id));
                 }}
               />
             ) : (
