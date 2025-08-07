@@ -31,7 +31,7 @@ export default function MonitoringDashboard() {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 2000); // 2초마다 업데이트
+    const interval = setInterval(fetchStats, 5000); // 5초마다 업데이트
 
     return () => clearInterval(interval);
   }, [isVisible]);
@@ -65,7 +65,9 @@ export default function MonitoringDashboard() {
             <div className="text-green-400">총 요청: {stats.totalRequests.toLocaleString()}</div>
             <div className="text-blue-400">HTTP: {stats.httpRequests.toLocaleString()}</div>
             <div className="text-yellow-400">WebSocket: {stats.wsRequests.toLocaleString()}</div>
-            <div className="text-red-400">밴상태: {stats.banStatusRequests.toLocaleString()}</div>
+            <div className={`${stats.banStatusRequests > 0 ? 'text-red-400' : 'text-green-400'}`}>
+              밴상태: {stats.banStatusRequests.toLocaleString()} {stats.banStatusRequests === 0 ? '✓' : '⚠️'}
+            </div>
           </div>
           
           <div className="border-t border-gray-600 pt-2">

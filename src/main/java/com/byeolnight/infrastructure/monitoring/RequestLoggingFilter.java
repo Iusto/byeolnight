@@ -28,26 +28,31 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         
         String uri = request.getRequestURI();
         String method = request.getMethod();
-        long count = requestCount.incrementAndGet();
         
-        // 요청 타입별 분류
-        if (uri.contains("/ws") || uri.contains("/sockjs")) {
-            wsRequestCount.incrementAndGet();
-        } else {
-            httpRequestCount.incrementAndGet();
+        // 모니터링 요청은 카운트에서 제외
+        if (!uri.contains("/monitoring/stats")) {
+            long count = requestCount.incrementAndGet();
+            
+            // 요청 타입별 분류
+            if (uri.contains("/ws") || uri.contains("/sockjs")) {
+                wsRequestCount.incrementAndGet();
+            } else {
+                httpRequestCount.incrementAndGet();
+            }
+            
+            // 채팅 밴 상태 요청 카운트
+            if (uri.contains("/chat/ban-status")) {
+                long banCount = banStatusRequestCount.incrementAndGet();
+                log.info("🚨 BAN_STATUS_REQUEST #{} - {} {}", banCount, method, uri);
+            }
+            
+            // 매 50번째 요청마다 상세 통계 출력
+            if (count % 50 == 0) {
+                log.info("📊 총:{}, HTTP:{}, WS:{}, 밴상태:{}", 
+                    count, httpRequestCount.get(), wsRequestCount.get(), banStatusRequestCount.get());
+            }
         }
-        
-        // 채팅 밴 상태 요청 카운트
-        if (uri.contains("/chat/ban-status")) {
-            long banCount = banStatusRequestCount.incrementAndGet();
-            log.info("🚨 BAN_STATUS_REQUEST #{} - {} {}", banCount, method, uri);
-        }
-        
-        // 매 50번째 요청마다 상세 통계 출력
-        if (count % 50 == 0) {
-            log.info("📊 총:{}, HTTP:{}, WS:{}, 밴상태:{}", 
-                count, httpRequestCount.get(), wsRequestCount.get(), banStatusRequestCount.get());
-        }
+
         
         filterChain.doFilter(request, response);
     }

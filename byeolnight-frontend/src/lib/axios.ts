@@ -68,103 +68,13 @@ const processQueue = (error: any) => {
   failedQueue = [];
 };
 
-// 응답 인터셉터 (인앱 브라우저 호환)
+// 응답 인터셉터 임시 비활성화 (디버깅용)
 instance.interceptors.response.use(
   (response) => {
     return response;
   },
-  async (error) => {
-    const originalRequest = error.config;
-
-    // 401 에러이고 토큰 갱신을 시도하지 않은 경우
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(() => {
-          return instance(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        // 로그인 유지 옵션 확인 (인앱 브라우저 호환)
-        const getSafeRememberMe = (): boolean => {
-          try {
-            const localStorage_value = localStorage.getItem('rememberMe');
-            const sessionStorage_value = sessionStorage.getItem('rememberMe');
-            return localStorage_value === 'true' || sessionStorage_value === 'true';
-          } catch (storageError) {
-            console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
-            // 인앱브라우저에서는 기본적으로 로그인 유지 활성화
-            return true;
-          }
-        };
-        
-        const rememberMe = getSafeRememberMe();
-        
-        if (!rememberMe) {
-          console.log('로그인 유지 옵션 비활성화 - 토큰 갱신 시도 안함');
-          processQueue(error);
-          return Promise.reject(error);
-        }
-
-        console.log('토큰 갱신 시도 (쿠키 기반)');
-        
-        // Refresh Token으로 새 Access Token 요청 (쿠키 기반)
-        const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'https://byeolnight.com/api'}/auth/token/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
-        if (refreshResponse.data.success) {
-          console.log('토큰 갱신 성공 (쿠키로 자동 저장됨)');
-          processQueue(null);
-          return instance(originalRequest);
-        } else {
-          throw new Error('새 토큰을 받지 못했습니다.');
-        }
-      } catch (refreshError) {
-        console.warn('토큰 갱신 실패:', refreshError);
-        processQueue(refreshError);
-        
-        // Storage 안전하게 정리
-        try {
-          localStorage.removeItem('rememberMe');
-          sessionStorage.removeItem('rememberMe');
-        } catch (storageError) {
-          console.warn('Storage 정리 실패 (인앱브라우저):', storageError);
-        }
-        
-        // 로그인 유지 옵션이 있었는데 토큰 갱신에 실패한 경우만 리다이렉트
-        const getSafeRememberMeAgain = (): boolean => {
-          try {
-            const localStorage_value = localStorage.getItem('rememberMe');
-            const sessionStorage_value = sessionStorage.getItem('rememberMe');
-            return localStorage_value === 'true' || sessionStorage_value === 'true';
-          } catch (storageError) {
-            return true;
-          }
-        };
-        
-        if (getSafeRememberMeAgain() && window.location.pathname !== '/login') {
-          console.log('토큰 갱신 실패, 로그인 페이지로 이동');
-          window.location.href = '/login';
-        }
-        
-        return Promise.reject(error);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    // 401 에러이지만 로그인 유지 옵션이 없는 경우 그냥 에러 반환
-    console.log('401 에러이지만 로그인 유지 옵션 없음 - 에러 반환');
+  (error) => {
+    console.log('axios 인터셉터에서 에러 발생:', error.response?.data?.message);
     return Promise.reject(error);
   }
 );
