@@ -399,6 +399,15 @@ export default function PostList() {
     const extractFirstImageUrl = (content: string) => {
       if (!content) return null;
       
+      // placeholder URL 차단 함수
+      const isPlaceholderUrl = (url: string) => {
+        return url.includes('via.placeholder') || 
+               url.includes('placeholder.com') || 
+               url.includes('placeholder') ||
+               url.includes('%EC%9A%B0%EC%A3%BC') || // '우주' 인코딩
+               url.includes('text=');
+      };
+      
       // 다양한 형태의 이미지 태그 처리
       const imgRegexes = [
         /<img[^>]+src="([^"]+)"/i,
@@ -413,8 +422,9 @@ export default function PostList() {
           if (url.startsWith('"') && url.endsWith('"')) {
             url = url.substring(1, url.length - 1);
           }
-          // via.placeholder.com URL 완전 차단
-          if (url.includes('via.placeholder') || url.includes('placeholder.com')) {
+          // placeholder URL 완전 차단
+          if (isPlaceholderUrl(url)) {
+            console.log('Placeholder URL 차단됨:', url);
             continue;
           }
           return url;
@@ -429,7 +439,7 @@ export default function PostList() {
       
       for (const regex of urlRegexes) {
         const match = content.match(regex);
-        if (match && match[1] && !match[1].includes('placeholder')) {
+        if (match && match[1] && !isPlaceholderUrl(match[1])) {
           return match[1];
         }
       }
@@ -437,15 +447,22 @@ export default function PostList() {
       // S3 URL 처리
       const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
       const s3Match = content.match(s3Regex);
-      if (s3Match && !s3Match[0].includes('placeholder')) {
+      if (s3Match && !isPlaceholderUrl(s3Match[0])) {
         return s3Match[0];
       }
       
       return null;
     };
     
-    const imgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    const rawImgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    // placeholder URL 완전 차단
+    const imgSrc = rawImgSrc && !rawImgSrc.includes('placeholder') && !rawImgSrc.includes('via.placeholder') ? rawImgSrc : null;
     const hasImageFailed = failedImages.has(post.id);
+    
+    // 디버그: placeholder URL 감지 시 로그 출력
+    if (rawImgSrc && rawImgSrc !== imgSrc) {
+      console.log('Placeholder URL 감지되어 차단됨:', rawImgSrc);
+    }
     
     return (
       <div 
@@ -454,13 +471,16 @@ export default function PostList() {
       >
         <Link to={`/posts/${post.id}`} className="block h-full">
           <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
-            {imgSrc && !hasImageFailed && !imgSrc.includes('placeholder') ? (
+            {imgSrc && !hasImageFailed && !imgSrc.includes('placeholder') && !imgSrc.includes('via.placeholder') ? (
               <img 
                 src={imgSrc} 
                 alt={post.title} 
                 className="w-full h-full object-cover"
-                onError={() => {
+                onError={(e) => {
+                  console.log('이미지 로드 실패:', imgSrc);
                   setFailedImages(prev => new Set(prev).add(post.id));
+                  // 이미지 src를 빈 문자열로 설정하여 추가 요청 방지
+                  e.currentTarget.src = '';
                 }}
                 onLoad={() => {
                   setFailedImages(prev => {
