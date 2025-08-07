@@ -14,7 +14,7 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
       - CONFIG_GIT_URI=file:///opt/byeolnight/config-repo
     volumes:
-      - ./config-repo:/opt/byeolnight/config-repo:ro
+      - ./config-repo:/app/config-repo
     restart: unless-stopped
     networks:
       - byeolnight-network

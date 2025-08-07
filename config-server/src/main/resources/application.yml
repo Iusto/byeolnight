@@ -8,7 +8,7 @@ spring:
     config:
       server:
         native:
-          search-locations: file:///opt/byeolnight/config-repo/configs
+          search-locations: file:///app/config-repo/configs
         encrypt:
           enabled: false
   security:
