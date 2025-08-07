@@ -13,6 +13,7 @@ import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.user.MissionService;
+import com.byeolnight.service.chat.AdminChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,11 +37,13 @@ public class UserController {
     private final UserService userService;
     private final PointService pointService;
     private final MissionService missionService;
+    private final AdminChatService adminChatService;
 
-    public UserController(UserService userService, PointService pointService, MissionService missionService) {
+    public UserController(UserService userService, PointService pointService, MissionService missionService, AdminChatService adminChatService) {
         this.userService = userService;
         this.pointService = pointService;
         this.missionService = missionService;
+        this.adminChatService = adminChatService;
     }
 
     @SecurityRequirement(name = "bearerAuth")
@@ -183,5 +186,18 @@ public class UserController {
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         UserIdDto userIdDto = UserIdDto.builder().id(user.getId()).build();
         return ResponseEntity.ok(CommonResponse.success(userIdDto));
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "채팅 금지 상태 조회", description = "현재 사용자의 채팅 금지 상태를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    @GetMapping("/chat/ban-status")
+    public ResponseEntity<CommonResponse<java.util.Map<String, Object>>> getChatBanStatus(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        java.util.Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
+        return ResponseEntity.ok(CommonResponse.success(banStatus));
     }
 }

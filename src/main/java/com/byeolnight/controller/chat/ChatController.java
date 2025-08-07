@@ -17,16 +17,18 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
-@Controller
+@RestController
 @Tag(name = "💬 채팅 API", description = "WebSocket 기반 실시간 채팅 API")
 public class ChatController {
 
@@ -101,5 +103,13 @@ public class ChatController {
             @RequestParam(defaultValue = "20") int limit) {
         List<ChatMessageDto> messages = chatService.getMessagesBefore(roomId, beforeId, limit);
         return ResponseEntity.ok(CommonResponse.success(messages));
+    }
+
+    @Operation(summary = "채팅 금지 상태 조회", description = "현재 사용자의 채팅 금지 상태를 조회합니다.")
+    @GetMapping("/api/member/chat/ban-status")
+    public ResponseEntity<CommonResponse<java.util.Map<String, Object>>> getChatBanStatus(
+            @AuthenticationPrincipal User user) {
+        java.util.Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
+        return ResponseEntity.ok(CommonResponse.success(banStatus));
     }
 }
