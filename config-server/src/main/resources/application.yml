@@ -9,6 +9,9 @@ spring:
       server:
         native:
           search-locations: file:///app/config-repo/configs
+        git:
+          uri: file:///tmp/config-repo
+          clone-on-start: false
         encrypt:
           enabled: false
   security:
