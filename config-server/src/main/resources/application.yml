@@ -8,30 +8,21 @@ spring:
     config:
       server:
         git:
-          uri: file:///${user.dir}/config-repo  # 로컬 Git 저장소 사용
+          uri: ${CONFIG_GIT_URI:file:///opt/byeolnight/config-repo}
           default-label: main
           search-paths: configs
         encrypt:
           enabled: true
   security:
     user:
-      name: config-admin
-      password: config-secret-2024
+      name: ${SPRING_SECURITY_USER_NAME:config-admin}
+      password: ${SPRING_SECURITY_USER_PASSWORD:config-secret-2024}
 
-# 암호화 키 (실제 운영에서는 환경변수로 설정)
 encrypt:
-  key: byeolnight-config-encryption-key-2024
+  key: ${ENCRYPT_KEY:byeolnight-config-encryption-key-2024}
 
-# Actuator 설정 (헬스체크용)
 management:
   endpoints:
     web:
       exposure:
         include: health,info
-  endpoint:
-    health:
-      show-details: when-authorized
-
-logging:
-  level:
-    org.springframework.cloud.config: DEBUG

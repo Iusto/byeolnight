@@ -1,161 +1,23 @@
+# Config Server에서 관리되는 설정들은 제거하고 기본 설정만 유지
 spring:
   jackson:
     time-zone: Asia/Seoul
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
-
   task:
     scheduling:
       enabled: true
-
   jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        jdbc:
-          lob:
-            non_contextual_creation: true
-        # 세션 관리 개선
-        current_session_context_class: thread
-        # 영속성 컨텍스트 관리 개선
-        enable_lazy_load_no_trans: true
     open-in-view: false
-
   web:
     resources:
       static-locations: classpath:/static/
       add-mappings: true
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
-
-send:
-  from: ${MAIL_FROM}
-
-coolsms:
-  api-key: ${COOLSMS_API_KEY}
-  api-secret: ${COOLSMS_API_SECRET}
-  sender-number: ${COOLSMS_SENDER}
-
 server:
   port: 8080
-
-# 사이트 설정
-site:
-  base-url: ${SITE_BASE_URL:https://byeolnight.com}
-
-cloud:
-  aws:
-    s3:
-      bucket: ${CLOUD_AWS_S3_BUCKET}
-    credentials:
-      access-key: ${CLOUD_AWS_ACCESS_KEY}
-      secret-key: ${CLOUD_AWS_SECRET_KEY}
-    region:
-      static: ${CLOUD_AWS_REGION:ap-northeast-2}
-    stack:
-      auto: false
-
-# 애플리케이션 보안 설정
-app:
-  security:
-    max-login-attempts: 10
-    ip-block-duration: 1h
-    password-reset-validity: 30m
-    cookie:
-      secure: ${COOKIE_SECURE:false}  # 개발 환경에서는 false, 운영 환경에서는 true
-      domain: ${COOKIE_DOMAIN:}  # 운영 환경에서는 .byeolnight.com, 개발 환경에서는 빈 값
-    jwt:
-      secret: ${JWT_SECRET:defaultSecretKeyForDevelopmentOnlyNotForProduction}
-      access-expiration: 1800000  # 30분 (밀리초)
-      refresh-expiration: 604800000  # 7일 (밀리초)
-    database:
-      password: ${DB_PASSWORD}
-      redis:
-        password: ${REDIS_PASSWORD}
-    external-api:
-      aws:
-        access-key-id: ${CLOUD_AWS_ACCESS_KEY}
-        secret-access-key: ${CLOUD_AWS_SECRET_KEY}
-        region: ${CLOUD_AWS_REGION:ap-northeast-2}
-        s3-bucket-name: ${CLOUD_AWS_S3_BUCKET}
-      email:
-        gmail-username: ${MAIL_USERNAME}
-        gmail-password: ${MAIL_PASSWORD}
-      sms:
-        coolsms-api-key: ${COOLSMS_API_KEY}
-        coolsms-api-secret: ${COOLSMS_API_SECRET}
-        from-number: ${COOLSMS_SENDER}
-      ai:
-        openai-api-key: ${OPENAI_API_KEY}
-        google-api-key: ${GOOGLE_API_KEY}
-        newsdata-api-key: ${NEWSDATA_API_KEY}
-
-# 뉴스 API 설정 (NewsData.io)
-newsdata:
-  api:
-    key: ${NEWSDATA_API_KEY:pub_3f5037199ae44a6b91c8bbee100fb76b}
-    url: ${NEWSDATA_API_URL:https://newsdata.io/api/1/news}
-
-# 뉴스 수집 설정
-news:
-  collection:
-    max-posts: 1
-    similarity-threshold: 0.6
-    similarity-check-days: 7
-  quality:
-    min-title-length: 10
-    min-description-length: 30
-    min-space-keywords: 1
-    max-hashtags: 8
-
-# OpenAI API 설정
-openai:
-  api:
-    key: ${OPENAI_API_KEY}
-
-# Google API 설정 (YouTube, Vision API 등)
-google:
-  api:
-    key: ${GOOGLE_API_KEY:}
-
-# YouTube 서비스 설정
-youtube:
-  search:
-    max-results: 12
-    keyword-count: 3
-
-# 관리자, 봇
-system:
-  password:
-    newsbot: ${SYSTEM_PASSWORD_NEWSBOT}
-    system: ${SYSTEM_PASSWORD_SYSTEM}
-
 # Swagger/OpenAPI 설정
 springdoc:
   api-docs:
@@ -174,19 +36,3 @@ springdoc:
     doc-expansion: none
     persist-authorization: true
   show-actuator: false
-
-# Cinema 설정
-cinema:
-  collection:
-    max-posts: 1
-    similarity-check-days: 30
-    similarity-threshold: 0.7
-    keyword-count: 3
-    retry-count: 3
-  quality:
-    min-title-length: 10
-    min-description-length: 50
-    max-results: 20
-    video-duration: medium  # short 제외 (어느정도 길이 있는 영상)
-    video-definition: any
-    published-after-years: 2  # 2년 이내 영상

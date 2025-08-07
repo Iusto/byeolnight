@@ -4,8 +4,14 @@
 # 환경 설정 파일
 .env*
 !.env.example
+!.env.*.template
 application-production.yml
 application-staging.yml
+
+# 운영 환경 설정 파일 (새로 추가)
+.env.prod
+.env.staging
+.env.local
 
 # 인증서 및 키 파일
 *.key
@@ -25,7 +31,14 @@ aws-exports.js
 # 민감한 설정 디렉토리
 secrets/
 config/secrets/
+
+# Config Repository (실제 설정값 포함)
 config-repo/
+!config-repo/configs/*.template
+
+# 암호화 관련 임시 파일
+temp_encrypted.txt
+encrypted_values.txt
 
 # ========================================
 # 🏗️ 빌드 및 컴파일 결과물
@@ -171,7 +184,14 @@ yarn.lock
 # ========================================
 # Docker
 docker-compose.override.yml
-docker-compose.local.yml
+# docker-compose.local.yml은 개발용이므로 포함 가능
+
+# Docker 이미지 파일
+*.tar.gz
+*.tar
+backend.tar.gz
+config-server.tar.gz
+frontend.tar.gz
 
 # Terraform
 *.tfstate*
@@ -213,6 +233,14 @@ test-results/
 config-server/build/
 encrypt-values.md
 config-server-test.md
+
+# 배포 스크립트 실행 결과
+deploy-*.log
+hotfix-*.log
+
+# 스크립트 임시 파일
+scripts/*.log
+scripts/temp_*
 
 # 개발 임시 파일
 *.md.tmp

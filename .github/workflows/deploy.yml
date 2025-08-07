@@ -132,14 +132,23 @@ jobs:
         script: |
           cd /opt/byeolnight
           
+          # Config Repository 업데이트 (Git 기반)
+          if [ -d "config-repo" ]; then
+            cd config-repo && git pull origin main && cd ..
+          fi
+          
           # 새 이미지 pull
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config-server:latest
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
           
-          # 서비스 재시작
-          docker-compose down
-          docker-compose up -d
+          # 서비스 재시작 (환경변수 파일 사용)
+          docker-compose -f docker-compose.prod.yml --env-file .env.prod down
+          docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+          
+          # 서비스 상태 확인
+          sleep 30
+          docker-compose -f docker-compose.prod.yml ps
           
           # 이전 이미지 정리
           docker image prune -f

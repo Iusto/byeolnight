@@ -1,26 +1,32 @@
-# Docker Compose 설정 파일 (HTTPS 지원)
+# 운영 배포용
+# 사용법: docker-compose up -d
 
 services:
   config-server:
-    image: ghcr.io/iusto/byeolnight-config-server:latest
+    build:
+      context: ./config-server
     ports:
       - "8888:8888"
     environment:
-      - ENCRYPT_KEY=byeolnight-config-encryption-key-2024
-      - SPRING_SECURITY_USER_NAME=config-admin
-      - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
+      - ENCRYPT_KEY=${ENCRYPT_KEY:-byeolnight-config-encryption-key-2024}
+      - SPRING_SECURITY_USER_NAME=${CONFIG_USERNAME:-config-admin}
+      - SPRING_SECURITY_USER_PASSWORD=${CONFIG_PASSWORD:-config-secret-2024}
       - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_CLOUD_CONFIG_SERVER_GIT_URI=file:///opt/byeolnight/config-repo
-      - SPRING_CLOUD_CONFIG_SERVER_GIT_SEARCH_PATHS=configs
+      # Git Repository 사용 (운영 환경)
+      - CONFIG_GIT_URI=${CONFIG_GIT_URI:-file:///opt/byeolnight/config-repo}
+      - CONFIG_GIT_USERNAME=${CONFIG_GIT_USERNAME:-}
+      - CONFIG_GIT_PASSWORD=${CONFIG_GIT_PASSWORD:-}
     volumes:
-      - ./config-repo:/opt/byeolnight/config-repo
+      - ./config-repo:/opt/byeolnight/config-repo:ro
     restart: unless-stopped
-    # healthcheck:
-    #   test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--http-user=config-admin", "--http-password=config-secret-2024", "http://localhost:8888/actuator/health"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 5
-    #   start_period: 60s
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--http-user=${CONFIG_USERNAME:-config-admin}", "--http-password=${CONFIG_PASSWORD:-config-secret-2024}", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - byeolnight-network
 
   nginx:
     image: nginx:alpine
@@ -35,6 +41,8 @@ services:
       - app
       - frontend
     restart: unless-stopped
+    networks:
+      - byeolnight-network
 
   certbot:
     image: certbot/certbot
@@ -47,7 +55,7 @@ services:
     build: .
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -56,18 +64,20 @@ services:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
-      - CONFIG_USERNAME=config-admin
-      - CONFIG_PASSWORD=config-secret-2024
+      - CONFIG_USERNAME=${CONFIG_USERNAME:-config-admin}
+      - CONFIG_PASSWORD=${CONFIG_PASSWORD:-config-secret-2024}
       - SPRING_PROFILES_ACTIVE=prod
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
       - /etc/localtime:/etc/localtime:ro
+    networks:
+      - byeolnight-network
 
   mysql:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: byeolnight9703!@
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-byeolnight9703!@}
       MYSQL_DATABASE: byeolnight
       TZ: Asia/Seoul
     command: >
@@ -77,7 +87,7 @@ services:
       --innodb-flush-log-at-trx-commit=2
       --default-time-zone='+09:00'
     ports:
-      - "3306:3306"  # 외부 접근을 위해 포트 노출
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -86,13 +96,17 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - byeolnight-network
 
   redis:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    command: redis-server --requirepass byeolnight_redis_2025!@ --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --requirepass ${REDIS_PASSWORD:-byeolnight_redis_2025!@} --maxmemory 256mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
+    networks:
+      - byeolnight-network
 
   frontend:
     build:
@@ -103,7 +117,13 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    networks:
+      - byeolnight-network
 
 volumes:
   mysql_data:
   redis_data:
+
+networks:
+  byeolnight-network:
+    driver: bridge
