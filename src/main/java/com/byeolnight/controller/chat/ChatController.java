@@ -62,7 +62,6 @@ public class ChatController {
                 return; // 메시지 전송 차단
             }
         } else {
-            log.warn("⚠️ principal is null or invalid. fallback to sender from payload: {}", chatMessage.getSender());
             return; // 인증되지 않은 사용자는 메시지 전송 불가
         }
 
@@ -75,7 +74,8 @@ public class ChatController {
         if (principal != null) {
             chatMessage.setSender(principal.getName());
         } else {
-            log.warn("⚠️ principal is null. fallback to sender from payload: {}", chatMessage.getSender());
+            // 인증되지 않은 사용자는 DM 전송 불가
+            return;
         }
 
         chatService.save(chatMessage);

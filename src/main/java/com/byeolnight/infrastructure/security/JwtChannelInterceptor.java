@@ -38,9 +38,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
             }
             
-            String token = accessor.getFirstNativeHeader("Authorization");
-            if (token != null && token.startsWith("Bearer ")) {
-                token = token.substring(7);
+            // HttpOnly 쿠키에서 토큰 추출
+            String token = extractTokenFromCookie(accessor);
+            if (token != null) {
                 try {
                     if (jwtTokenProvider.validate(token)) {
                         Authentication auth = jwtTokenProvider.getAuthentication(token);
@@ -55,6 +55,20 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         return message;
+    }
+    
+    private String extractTokenFromCookie(StompHeaderAccessor accessor) {
+        String cookieHeader = accessor.getFirstNativeHeader("Cookie");
+        if (cookieHeader != null) {
+            String[] cookies = cookieHeader.split(";");
+            for (String cookie : cookies) {
+                String[] parts = cookie.trim().split("=", 2);
+                if (parts.length == 2 && "accessToken".equals(parts[0])) {
+                    return parts[1];
+                }
+            }
+        }
+        return null;
     }
     
     private String extractClientIpFromHeaders(StompHeaderAccessor accessor) {
