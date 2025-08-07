@@ -113,6 +113,16 @@ export default function ChatSidebar() {
                 setRemainingTime(0);
               }
             });
+            
+            // ✅ 채팅 금지 상태에서 메시지 전송 시도 시 알림 구독
+            client.subscribe(`/user/queue/ban-notification`, (message) => {
+              const errorData = JSON.parse(message.body);
+              console.log('채팅 금지 에러 알림:', errorData);
+              setError(errorData.error || '채팅이 제한되어 메시지를 보낼 수 없습니다.');
+              
+              // 현재 밴 상태 다시 확인
+              checkBanStatus();
+            });
           }
         },
         onStompError: (frame) => {
@@ -371,10 +381,8 @@ export default function ChatSidebar() {
   const sendMessage = async () => {
     if (!input.trim() || !user) return;
 
-    // 로그인한 사용자만 밴 상태 재확인
-    if (user) {
-      await checkBanStatus();
-    }
+    // ✅ 메시지 전송 전 밴 상태 실시간 확인
+    await checkBanStatus();
     
     // 제재된 사용자는 메시지 전송 불가
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {
@@ -388,6 +396,9 @@ export default function ChatSidebar() {
       setError('채팅 서버에 연결되어 있지 않습니다.');
       return;
     }
+
+    // ✅ 에러 상태 초기화 (정상 전송 시)
+    setError('');
 
     client.publish({
       destination: '/app/chat.send',

@@ -3,6 +3,8 @@ import axios from '../lib/axios';
 
 interface MonitoringStats {
   totalRequests: number;
+  httpRequests: number;
+  wsRequests: number;
   banStatusRequests: number;
   memory: {
     used: number;
@@ -61,7 +63,9 @@ export default function MonitoringDashboard() {
         <div className="space-y-2">
           <div>
             <div className="text-green-400">총 요청: {stats.totalRequests.toLocaleString()}</div>
-            <div className="text-red-400">밴상태 요청: {stats.banStatusRequests.toLocaleString()}</div>
+            <div className="text-blue-400">HTTP: {stats.httpRequests.toLocaleString()}</div>
+            <div className="text-yellow-400">WebSocket: {stats.wsRequests.toLocaleString()}</div>
+            <div className="text-red-400">밴상태: {stats.banStatusRequests.toLocaleString()}</div>
           </div>
           
           <div className="border-t border-gray-600 pt-2">

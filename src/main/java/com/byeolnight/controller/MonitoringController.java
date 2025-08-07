@@ -21,6 +21,8 @@ public class MonitoringController {
         
         // 요청 통계
         stats.put("totalRequests", RequestLoggingFilter.getTotalRequests());
+        stats.put("httpRequests", RequestLoggingFilter.getHttpRequests());
+        stats.put("wsRequests", RequestLoggingFilter.getWsRequests());
         stats.put("banStatusRequests", RequestLoggingFilter.getBanStatusRequests());
         
         // 메모리 사용량

@@ -53,13 +53,17 @@ public class ChatController {
         if (principal instanceof Authentication auth && auth.getPrincipal() instanceof User user) {
             chatMessage.setSender(user.getNickname());  // ✅ 이메일 대신 닉네임 사용
             
-            // 채팅 금지 사용자 확인
+            // ✅ 채팅 금지 사용자 확인 - 메시지 저장 및 전송 전에 먼저 확인
             if (adminChatService.isUserBanned(user.getNickname())) {
                 log.warn("채팅 금지된 사용자의 메시지 차단: {}", user.getNickname());
+                // 사용자에게 금지 상태 알림
+                messagingTemplate.convertAndSendToUser(user.getNickname(), "/queue/ban-notification", 
+                    java.util.Map.of("error", "채팅이 제한되어 메시지를 보낼 수 없습니다."));
                 return; // 메시지 전송 차단
             }
         } else {
             log.warn("⚠️ principal is null or invalid. fallback to sender from payload: {}", chatMessage.getSender());
+            return; // 인증되지 않은 사용자는 메시지 전송 불가
         }
 
         chatService.save(chatMessage, clientIp);

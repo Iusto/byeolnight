@@ -25,34 +25,7 @@ export default function Login() {
     }
   }, [user, navigate]);
 
-  const getErrorMessage = (serverMessage: string): string => {
-    if (!serverMessage) {
-      return t('auth.login_default_error')
-    }
-    
-    // 이모지가 포함된 메시지는 그대로 반환 (서버에서 이미 다국어 처리됨)
-    if (serverMessage.includes('🔒') || serverMessage.includes('🚫') || serverMessage.includes('⚠️')) {
-      return serverMessage
-    }
-    
-    // 기본 인증 실패 메시지 처리
-    if (serverMessage.includes('이메일 또는 비밀번호가 올바르지 않습니다')) {
-      return serverMessage // 시도 횟수 포함해서 그대로 반환
-    }
-    
-    // 계정 상태 메시지 처리
-    if (serverMessage.includes('해당 계정은 로그인할 수 없습니다')) {
-      return serverMessage
-    }
-    
-    // 네트워크 에러
-    if (serverMessage.includes('Network Error') || serverMessage.includes('ERR_NETWORK')) {
-      return t('auth.network_error')
-    }
-    
-    // 기본적으로 서버 메시지 그대로 반환
-    return serverMessage
-  }
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,18 +38,20 @@ export default function Login() {
       
     } catch (err: any) {
       console.log('=== 로그인 에러 상세 분석 ===');
+      console.log('err 전체:', err);
+      console.log('err.response:', err.response);
+      console.log('err.response?.data:', err.response?.data);
       console.log('err.response?.data?.message:', err.response?.data?.message);
       console.log('err.message:', err.message);
+      console.log('t 함수 타입:', typeof t);
+      console.log('t("auth.login_default_error"):', t('auth.login_default_error'));
       
       // 서버에서 보낸 구체적인 에러 메시지 추출
-      const serverMessage = err.response?.data?.message || err.message || t('auth.login_default_error')
+      const serverMessage = err.response?.data?.message || err.message || 'DEFAULT_ERROR'
       console.log('최종 서버 메시지:', serverMessage);
       
-      const errorMessage = getErrorMessage(serverMessage)
-      console.log('변환된 에러 메시지:', errorMessage);
-      console.log('setError에 전달되는 값:', errorMessage);
-      
-      setError(errorMessage)
+      // 임시로 단순하게 처리
+      setError(serverMessage)
     } finally {
       setLoading(false) // 끝날 때 false
     }

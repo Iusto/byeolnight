@@ -164,8 +164,20 @@ public class AdminChatService {
 
     // 사용자가 채팅 금지 상태인지 확인
     public boolean isUserBanned(String username) {
-        return chatBanRepository.findByUsernameAndIsActiveTrueAndBannedUntilAfter(username, LocalDateTime.now())
-                .isPresent();
+        Optional<ChatBan> activeBan = chatBanRepository.findByUsernameAndIsActiveTrueAndBannedUntilAfter(username, LocalDateTime.now());
+        
+        if (activeBan.isPresent()) {
+            ChatBan ban = activeBan.get();
+            // 만료된 밴은 즉시 비활성화
+            if (ban.isExpired()) {
+                ban.unban();
+                chatBanRepository.save(ban);
+                log.info("만료된 채팅 금지 즉시 해제: {}", username);
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     // 사용자 채팅 금지 상태 상세 정보 조회
