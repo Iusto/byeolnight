@@ -24,14 +24,14 @@ class ChatConnector {
 
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
-    const token = localStorage.getItem('accessToken');
     
+    // HttpOnly 쿠키 방식이므로 토큰 헤더 제거, 쿠키 자동 전달
     this.client = new Client({
       webSocketFactory: () => new SockJS(wsUrl),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+      // connectHeaders 제거 - 쿠키가 자동으로 전달됨
       onConnect: () => this.handleConnect(userNickname),
       onStompError: () => this.handleError(),
       onWebSocketError: () => this.handleError(),
@@ -118,6 +118,7 @@ class ChatConnector {
 
   retryConnection() {
     this.retryCount = 0;
+    this.disconnect(); // 기존 연결 완전 종료
     if (this.callbacks) {
       this.connect(this.callbacks);
     }
