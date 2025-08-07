@@ -16,8 +16,8 @@ import java.util.Map;
 public class GoogleVisionService {
     
     private RestTemplate restTemplate;
-    
-    @Value("${google.api.key:}")
+
+    @Value("${app.security.external-api.ai.google-api-key}")
     private String googleApiKey;
     
     public GoogleVisionService(RestTemplate restTemplate) {
