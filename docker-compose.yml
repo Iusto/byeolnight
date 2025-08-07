@@ -2,6 +2,23 @@
 # 사용법: docker-compose up -d
 
 services:
+  config-server:
+    build:
+      context: ./config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - ENCRYPT_KEY=byeolnight-config-encryption-key-2024
+      - SPRING_SECURITY_USER_NAME=config-admin
+      - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
+      - SPRING_PROFILES_ACTIVE=prod
+      - CONFIG_GIT_URI=file:///opt/byeolnight/config-repo
+    volumes:
+      - ./config-repo:/opt/byeolnight/config-repo:ro
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
   nginx:
     image: nginx:alpine
     ports:
@@ -28,6 +45,8 @@ services:
   app:
     build: .
     depends_on:
+      config-server:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
@@ -35,6 +54,9 @@ services:
     environment:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - CONFIG_USERNAME=config-admin
+      - CONFIG_PASSWORD=config-secret-2024
       - SPRING_PROFILES_ACTIVE=prod
     restart: unless-stopped
     volumes:
