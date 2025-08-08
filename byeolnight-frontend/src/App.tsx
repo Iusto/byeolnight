@@ -26,6 +26,7 @@ import SuggestionCreate from './pages/SuggestionCreate';
 import SuggestionDetail from './pages/SuggestionDetail';
 import SuggestionEdit from './pages/SuggestionEdit';
 import MessagesPage from './pages/MessagesPage';
+import OAuthCallback from './pages/OAuthCallback';
 
 // 정적 파일 경로 확인 함수
 const isStaticFilePath = (pathname: string): boolean => {
@@ -48,6 +49,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/reset-password" element={<PasswordReset />} />
+      <Route path="/oauth/callback" element={<OAuthCallback />} />
       
       {/* Layout이 적용되는 페이지들 */}
       <Route element={<Layout />}>

@@ -76,7 +76,6 @@ public class UserService {
     private final PointService pointService;
     private final UserIconRepository userIconRepository;
     private final com.byeolnight.service.auth.EmailAuthService emailAuthService;
-    private final com.byeolnight.service.auth.PhoneAuthService phoneAuthService;
 
     /**
      * 회원가입 처리

@@ -60,7 +60,8 @@
     "network_error": "네트워크 오류가 발생했습니다. 다시 시도해주세요.",
     "remember_me_disabled": "로그인 유지 옵션이 비활성화되었습니다.",
     "server_error": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-    "unknown_error": "알 수 없는 오류가 발생했습니다."
+    "unknown_error": "알 수 없는 오류가 발생했습니다.",
+    "or_login_with": "또는 다음으로 로그인"
   },
   "common": {
     "confirm": "확인",
