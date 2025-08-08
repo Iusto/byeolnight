@@ -4,6 +4,7 @@ import com.byeolnight.domain.repository.comment.CommentRepository;
 import com.byeolnight.infrastructure.config.SecurityProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -43,20 +44,32 @@ public class S3Service {
         this.securityProperties = securityProperties;
     }
 
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucketName;
+    
+    @Value("${cloud.aws.credentials.access-key}")
+    private String accessKey;
+    
+    @Value("${cloud.aws.credentials.secret-key}")
+    private String secretKey;
+    
+    @Value("${cloud.aws.region.static}")
+    private String region;
+    
     private String getBucketName() {
-        return securityProperties.getSecurity().getExternalApi().getAws().getS3BucketName();
+        return bucketName;
     }
     
     private String getAccessKey() {
-        return securityProperties.getSecurity().getExternalApi().getAws().getAccessKeyId();
+        return accessKey;
     }
     
     private String getSecretKey() {
-        return securityProperties.getSecurity().getExternalApi().getAws().getSecretAccessKey();
+        return secretKey;
     }
     
     private String getRegion() {
-        return securityProperties.getSecurity().getExternalApi().getAws().getRegion();
+        return region;
     }
 
     public Map<String, String> generatePresignedUrl(String originalFilename, String contentTypeParam) {

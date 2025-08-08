@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: config-server
+  profiles:
+    active: native
+  security:
+    user:
+      name: config-admin
+      password: config-secret-2024
   cloud:
     config:
       server:
@@ -12,14 +18,13 @@ spring:
         git:
           uri: file:///tmp/config-repo
           clone-on-start: false
-        encrypt:
-          enabled: false
-  security:
-    user:
-      name: ${SPRING_SECURITY_USER_NAME:config-admin}
-      password: ${SPRING_SECURITY_USER_PASSWORD:config-secret-2024}
-  profiles:
-    active: native
+      encrypt:
+        enabled: true
+
+# 암호화 설정
+encrypt:
+  key: byeolnight-config-encryption-key-2025!@#$%^&*()
+  fail-on-error: false
 
 management:
   endpoints:

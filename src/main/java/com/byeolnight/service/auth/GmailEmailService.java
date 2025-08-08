@@ -15,7 +15,7 @@ public class GmailEmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${send.from}")
+    @Value("${app.security.external-api.email.mail-from}")
     private String fromEmail;
 
     public void send(String to, String subject, String body) {

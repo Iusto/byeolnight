@@ -16,11 +16,11 @@ public class CoolSmsService {
 
     private final DefaultMessageService messageService;
 
-    @Value("${app.security.external-api.coolsms.sender-number}")
+    @Value("${app.security.external-api.sms.from-number}")
     private String from;
 
-    public CoolSmsService(@Value("${app.security.external-api.coolsms.api-key}") String apiKey,
-                          @Value("${app.security.external-api.coolsms.api-secret}") String apiSecret) {
+    public CoolSmsService(@Value("${app.security.external-api.sms.coolsms-api-key}") String apiKey,
+                          @Value("${app.security.external-api.sms.coolsms-api-secret}") String apiSecret) {
         this.messageService = NurigoApp.INSTANCE.initialize(apiKey, apiSecret, "https://api.coolsms.co.kr");
     }
 
