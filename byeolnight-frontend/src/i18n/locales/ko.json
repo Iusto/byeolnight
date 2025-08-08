@@ -118,6 +118,34 @@
     "login_to_chat": "로그인 후 채팅에 참여하세요!",
     "connecting_chat": "채팅 연결 중...",
     "login_required_message": "메시지 전송은 로그인 후 가능합니다",
+    "chat": {
+      "realtime_chat": "실시간 채팅",
+      "connection_failed": "채팅 서버 연결 실패",
+      "banned": "채팅이 제한되었습니다",
+      "banned_status": "채팅이 제한되었습니다",
+      "contact_admin": "관리자에게 문의하세요",
+      "send_failed": "메시지 전송에 실패했습니다",
+      "admin_dashboard": "관리자 대시보드",
+      "admin": "관리",
+      "loading_history": "이전 메시지 로드 중...",
+      "no_messages": "아직 채팅 내역이 없습니다",
+      "send_first_message": "첫 번째 메시지를 보내보세요!",
+      "login_to_chat": "로그인 후 채팅에 참여하세요!",
+      "message_blinded": "이 메시지는 관리자에 의해 블라인드 처리되었습니다",
+      "connecting": "채팅 연결 중...",
+      "connected": "채팅 연결 완료",
+      "retry_connection": "연결 재시도",
+      "chat_restricted": "채팅이 제한되었습니다",
+      "reason": "사유",
+      "admin_restriction": "관리자에 의한 제재",
+      "remaining_time": "남은 시간",
+      "minutes": "분",
+      "seconds": "초",
+      "chat_suspended": "채팅정지당한 상태입니다",
+      "placeholder": "별빛처럼 속삭이세요...",
+      "send": "전송",
+      "login_required": "메시지 전송은 로그인 후 가능합니다"
+    },
     "view_all": "전체보기",
     "footer_text": "우주를 사랑하는 커뮤니티",
     "discussion": "토론",
@@ -222,9 +250,7 @@
     "share_free_space_stories": "우주에 대한 자유로운 이야기를 나눠보세요",
     "check_important_notices": "중요한 공지사항을 확인하세요"
   },
-  "suggestion": {
-    
-  },
+
   "shop": {
     "title": "⭐ 스텔라 아이콘 상점",
     "subtitle": "특별한 아이콘으로 당신의 개성을 표현해보세요",

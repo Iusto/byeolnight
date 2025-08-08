@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../contexts/AuthContext';
 import axios from '../lib/axios';
 import AdminChatControls from './AdminChatControls';
@@ -22,6 +23,7 @@ interface BanStatus {
 
 export default function ChatSidebar() {
   const { user } = useContext(AuthContext);
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
@@ -56,7 +58,7 @@ export default function ChatSidebar() {
       onError: () => {
         setConnecting(false);
         setConnected(false);
-        setError('채팅 서버 연결 실패');
+        setError(t('home.chat.connection_failed'));
       },
       onBanNotification: (banData) => {
         if (banData.banned) {
@@ -68,7 +70,7 @@ export default function ChatSidebar() {
             bannedUntil: new Date(endTime).toISOString()
           };
           setBanStatus(newBanStatus);
-          setError(`채팅이 제한되었습니다: ${banData.reason}`);
+          setError(`${t('home.chat.banned')}: ${banData.reason}`);
         } else {
           setBanStatus(null);
           setError('');
@@ -176,7 +178,7 @@ export default function ChatSidebar() {
           bannedUntil: banData.bannedUntil
         };
         setBanStatus(newBanStatus);
-        setError(`채팅이 제한되었습니다.`);
+        setError(t('home.chat.banned_status'));
       } else {
         setBanStatus(null);
         setError('');
@@ -190,8 +192,8 @@ export default function ChatSidebar() {
     if (!input.trim() || !user) return;
 
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {
-      const reason = banStatus?.reason || '채팅이 제한되었습니다.';
-      setError(reason + ' 관리자에게 문의하세요.');
+      const reason = banStatus?.reason || t('home.chat.banned_status');
+      setError(reason + ' ' + t('home.chat.contact_admin'));
       return;
     }
 
@@ -204,7 +206,7 @@ export default function ChatSidebar() {
       setInput('');
       setError('');
     } catch (error) {
-      setError('메시지 전송에 실패했습니다.');
+      setError(t('home.chat.send_failed'));
     }
   };
 
@@ -299,7 +301,7 @@ export default function ChatSidebar() {
       }
       chatConnector.disconnect();
     };
-  }, [user]);
+  }, [user, i18n.language]);
 
   return (
     <div className="space-y-4">
@@ -310,14 +312,14 @@ export default function ChatSidebar() {
 
       <div className="bg-[#1f2336]/70 backdrop-blur-md p-4 rounded-xl h-[600px] flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-purple-300">💬 실시간 채팅</h3>
+          <h3 className="text-lg font-semibold text-purple-300">💬 {t('home.chat.realtime_chat')}</h3>
           {isAdmin && (
             <button
               onClick={() => setShowAdminDashboard(!showAdminDashboard)}
               className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors"
-              title="관리자 대시보드"
+              title={t('home.chat.admin_dashboard')}
             >
-              🛡️ 관리
+              🛡️ {t('home.chat.admin')}
             </button>
           )}
         </div>
@@ -335,18 +337,18 @@ export default function ChatSidebar() {
           >
             {loadingHistory && (
               <div className="text-center py-2">
-                <div className="text-purple-400 text-sm">이전 메시지 로드 중...</div>
+                <div className="text-purple-400 text-sm">{t('home.chat.loading_history')}</div>
               </div>
             )}
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                 <div className="text-center">
                   <div className="text-2xl mb-2">🌌</div>
-                  <p>아직 채팅 내역이 없습니다.</p>
+                  <p>{t('home.chat.no_messages')}</p>
                   {user ? (
-                    <p>첫 번째 메시지를 보내보세요!</p>
+                    <p>{t('home.chat.send_first_message')}</p>
                   ) : (
-                    <p>로그인 후 채팅에 참여하세요!</p>
+                    <p>{t('home.chat.login_to_chat')}</p>
                   )}
                 </div>
               </div>
@@ -387,7 +389,7 @@ export default function ChatSidebar() {
                       <div>
                         {msg.isBlinded ? (
                           <span className="text-gray-400 italic">
-                            🙈 이 메시지는 관리자에 의해 블라인드 처리되었습니다.
+                            🙈 {t('home.chat.message_blinded')}
                           </span>
                         ) : (
                           msg.message
@@ -411,13 +413,13 @@ export default function ChatSidebar() {
             {connecting && (
               <>
                 <div className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></div>
-                <span className="text-yellow-300">채팅 연결 중...</span>
+                <span className="text-yellow-300">{t('home.chat.connecting')}</span>
               </>
             )}
             {connected && !connecting && !error && (
               <>
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-green-400">채팅 연결 완료</span>
+                <span className="text-green-400">{t('home.chat.connected')}</span>
               </>
             )}
             {error && !connecting && (
@@ -431,7 +433,7 @@ export default function ChatSidebar() {
             <button
               onClick={handleRetryConnection}
               className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition-colors"
-              title="연결 재시도"
+              title={t('home.chat.retry_connection')}
             >
               🔄
             </button>
@@ -441,7 +443,7 @@ export default function ChatSidebar() {
         {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) && (
           <div className="mb-2 p-3 bg-red-900/50 border border-red-500 rounded-lg animate-pulse">
             <div className="text-red-300 text-sm font-semibold flex items-center justify-between">
-              <span>🚫 채팅이 제한되었습니다</span>
+              <span>🚫 {t('home.chat.chat_restricted')}</span>
               {remainingTime > 0 && (
                 <span className="text-orange-300 font-mono text-lg">
                   {formatTime(remainingTime)}
@@ -449,11 +451,11 @@ export default function ChatSidebar() {
               )}
             </div>
             <div className="text-red-200 text-xs mt-1">
-              사유: {banStatus?.reason || '관리자에 의한 제재'}
+              {t('home.chat.reason')}: {banStatus?.reason || t('home.chat.admin_restriction')}
             </div>
             {remainingTime > 0 && (
               <div className="text-red-200 text-xs mt-1">
-                남은 시간: {Math.floor(remainingTime / 60)}분 {remainingTime % 60}초
+                {t('home.chat.remaining_time')}: {Math.floor(remainingTime / 60)}{t('home.chat.minutes')} {remainingTime % 60}{t('home.chat.seconds')}
               </div>
             )}
           </div>
@@ -468,7 +470,7 @@ export default function ChatSidebar() {
                   ? 'bg-red-900/30 border border-red-500 cursor-not-allowed' 
                   : 'bg-black/30'
               }`}
-              placeholder={(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? `채팅정지당한 상태입니다` : '별빛처럼 속삭이세요...'}
+              placeholder={(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? t('home.chat.chat_suspended') : t('home.chat.placeholder')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
@@ -483,14 +485,14 @@ export default function ChatSidebar() {
               } text-white`}
               disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
             >
-              {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? '금지됨' : '전송'}
+              {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? t('home.chat.banned') : t('home.chat.send')}
             </button>
           </div>
         ) : (
           <input
             type="text"
             className="w-full px-3 py-2 rounded bg-black/30 text-gray-400 cursor-not-allowed"
-            placeholder="메시지 전송은 로그인 후 가능합니다"
+            placeholder={t('home.chat.login_required')}
             disabled
           />
         )}
