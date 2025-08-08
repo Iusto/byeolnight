@@ -1,15 +1,17 @@
 package com.byeolnight.service.comment;
 
-import com.byeolnight.domain.entity.comment.Comment;
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.comment.CommentLikeRepository;
-import com.byeolnight.domain.repository.comment.CommentRepository;
-import com.byeolnight.domain.repository.post.PostRepository;
+import com.byeolnight.entity.Notification;
+import com.byeolnight.entity.comment.Comment;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.entity.comment.CommentLike;
+import com.byeolnight.repository.comment.CommentLikeRepository;
+import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.dto.comment.CommentDto;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.user.PointService;
@@ -82,7 +84,7 @@ public class CommentService {
                 if (!parentComment.getWriter().getId().equals(user.getId())) {
                     notificationService.createNotification(
                         parentComment.getWriter().getId(),
-                        com.byeolnight.domain.entity.Notification.NotificationType.REPLY_ON_COMMENT,
+                        Notification.NotificationType.REPLY_ON_COMMENT,
                         "댓글에 답글이 달렸습니다",
                         user.getNickname() + "님이 회원님의 댓글에 답글을 달았습니다.",
                         "/posts/" + post.getId(),
@@ -94,7 +96,7 @@ public class CommentService {
                 if (!post.getWriter().getId().equals(user.getId())) {
                     notificationService.createNotification(
                         post.getWriter().getId(),
-                        com.byeolnight.domain.entity.Notification.NotificationType.COMMENT_ON_POST,
+                        Notification.NotificationType.COMMENT_ON_POST,
                         "게시글에 댓글이 달렸습니다",
                         user.getNickname() + "님이 회원님의 게시글에 댓글을 달았습니다.",
                         "/posts/" + post.getId(),
@@ -209,8 +211,8 @@ public class CommentService {
             return false;
         } else {
             // 좋아요 추가
-            com.byeolnight.domain.entity.comment.CommentLike like = 
-                com.byeolnight.domain.entity.comment.CommentLike.builder()
+            CommentLike like =
+                CommentLike.builder()
                     .comment(comment)
                     .user(user)
                     .build();

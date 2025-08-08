@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 환경 변수 설정
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://byeolnight.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const REQUEST_TIMEOUT = 30000;
 
 // Axios 인스턴스 생성

@@ -1,5 +1,6 @@
 package com.byeolnight.controller.admin;
 
+import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.discussion.DiscussionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +33,7 @@ public class AdminDiscussionController {
     @PostMapping("/generate-topic")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResponse<String>> generateDiscussionTopic(
-            @AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
+            @AuthenticationPrincipal User admin
     ) {
         discussionService.generateDiscussionTopicManually(admin);
         return ResponseEntity.ok(CommonResponse.success("토론 주제가 성공적으로 생성되었습니다."));

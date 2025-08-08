@@ -1,8 +1,8 @@
 package com.byeolnight.service.post;
 
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.post.PostRepository;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import org.junit.jupiter.api.BeforeEach;

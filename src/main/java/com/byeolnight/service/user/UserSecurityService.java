@@ -1,8 +1,8 @@
 package com.byeolnight.service.user;
 
-import com.byeolnight.domain.entity.log.AuditSignupLog;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
+import com.byeolnight.entity.log.AuditSignupLog;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.log.AuditSignupLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;

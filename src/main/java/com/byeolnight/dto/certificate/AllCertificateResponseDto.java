@@ -1,6 +1,6 @@
 package com.byeolnight.dto.certificate;
 
-import com.byeolnight.domain.entity.certificate.Certificate;
+import com.byeolnight.entity.certificate.Certificate;
 import com.byeolnight.service.certificate.CertificateService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;

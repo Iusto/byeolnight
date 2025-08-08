@@ -1,6 +1,6 @@
 package com.byeolnight.controller.user;
 
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.user.PointHistoryDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.user.PointService;

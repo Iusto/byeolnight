@@ -1,7 +1,8 @@
 package com.byeolnight.service.file;
 
-import com.byeolnight.domain.repository.comment.CommentRepository;
+import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.infrastructure.config.SecurityProperties;
+import com.byeolnight.repository.post.PostRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,13 +30,13 @@ import java.util.stream.Collectors;
 public class S3Service {
 
     private final GoogleVisionService googleVisionService;
-    private final com.byeolnight.domain.repository.post.PostRepository postRepository;
+    private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final SecurityProperties securityProperties;
     
     @Autowired
     public S3Service(GoogleVisionService googleVisionService,
-                    @Lazy com.byeolnight.domain.repository.post.PostRepository postRepository,
+                    @Lazy PostRepository postRepository,
                     @Lazy CommentRepository commentRepository,
                     SecurityProperties securityProperties) {
         this.googleVisionService = googleVisionService;

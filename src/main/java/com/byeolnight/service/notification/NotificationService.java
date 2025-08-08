@@ -1,9 +1,9 @@
 package com.byeolnight.service.notification;
 
-import com.byeolnight.domain.entity.Notification;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.NotificationRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.Notification;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.NotificationRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.notification.NotificationDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;

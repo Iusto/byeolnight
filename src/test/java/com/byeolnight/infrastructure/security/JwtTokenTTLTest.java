@@ -1,8 +1,8 @@
 package com.byeolnight.infrastructure.security;
 
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.entity.user.User.Role;
-import com.byeolnight.domain.entity.user.User.UserStatus;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.entity.user.User.Role;
+import com.byeolnight.entity.user.User.UserStatus;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,8 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;

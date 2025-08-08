@@ -1,7 +1,7 @@
 package com.byeolnight.dto.comment;
 
-import com.byeolnight.domain.entity.comment.Comment;
-import com.byeolnight.domain.entity.comment.CommentReport;
+import com.byeolnight.entity.comment.Comment;
+import com.byeolnight.entity.comment.CommentReport;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

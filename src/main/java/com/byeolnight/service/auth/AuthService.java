@@ -1,21 +1,24 @@
 package com.byeolnight.service.auth;
 
-import com.byeolnight.domain.entity.log.AuditLoginLog;
-import com.byeolnight.domain.entity.log.AuditSignupLog;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.log.AuditLoginLogRepository;
-import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
+import com.byeolnight.entity.log.AuditLoginLog;
+import com.byeolnight.entity.log.AuditSignupLog;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.log.AuditLoginLogRepository;
+import com.byeolnight.repository.log.AuditSignupLogRepository;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 
 /**
  * 인증 관련 비즈니스 로직을 처리하는 서비스
@@ -27,11 +30,13 @@ public class AuthService {
 
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final TokenService tokenService;
+    private final RedisSessionService redisSessionService;
     private final AuditLoginLogRepository auditLoginLogRepository;
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final com.byeolnight.service.user.UserSecurityService userSecurityService;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final PasswordEncoder passwordEncoder;
+    private final OAuth2UserInfoFactory oAuth2UserInfoFactory;
 
     /**
      * 로그인 인증 처리
@@ -59,7 +64,7 @@ public class AuthService {
         certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.LOGIN);
 
         // 토큰 생성 및 저장
-        return createTokens(user);
+        return createTokens(user, ip, request.getHeader("User-Agent"));
     }
 
     private void validateIpNotBlocked(String ip) {
@@ -121,15 +126,50 @@ public class AuthService {
         }
     }
 
-    private LoginResult createTokens(User user) {
-        String accessToken = jwtTokenProvider.createAccessToken(user);
-        String refreshToken = jwtTokenProvider.createRefreshToken(user);
-        long refreshTokenValidity = jwtTokenProvider.getRefreshTokenValidity();
+    public User findOrCreateOAuthUser(String registrationId, OAuth2User oAuth2User) {
+        OAuth2UserInfoFactory.OAuth2UserInfo userInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(registrationId, oAuth2User);
+        
+        return userService.findByEmail(userInfo.getEmail())
+                .orElseGet(() -> createOAuthUser(userInfo));
+    }
 
-        // Refresh Token을 Redis에 저장
-        tokenService.saveRefreshToken(user.getEmail(), refreshToken, refreshTokenValidity);
+    private User createOAuthUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo) {
+        User user = User.builder()
+                .email(userInfo.getEmail())
+                .password(passwordEncoder.encode("OAUTH_USER_" + System.currentTimeMillis()))
+                .nickname("")
+                .profileImageUrl(userInfo.getImageUrl())
+                .role(User.Role.USER)
+                .emailVerified(true)
+                .build();
+        
+        return userService.save(user);
+    }
 
-        return new LoginResult(accessToken, refreshToken, refreshTokenValidity);
+    public boolean needsNicknameSetup(Long userId) {
+        User user = userService.findById(userId);
+        return user.getNickname() == null || user.getNickname().trim().isEmpty();
+    }
+
+    public String[] loginUser(User user, String clientInfo, String ipAddress, HttpServletResponse response) {
+        String[] tokens = jwtTokenProvider.generateTokens(user.getId(), clientInfo, ipAddress);
+        
+        // HttpOnly 쿠키로 Refresh Token 설정
+        Cookie refreshCookie = new Cookie("refreshToken", tokens[1]);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/auth");
+        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        refreshCookie.setAttribute("SameSite", "Lax");
+        response.addCookie(refreshCookie);
+        
+        return tokens;
+    }
+
+    private LoginResult createTokens(User user, String ipAddress, String userAgent) {
+        String[] tokens = jwtTokenProvider.generateTokens(user.getId(), userAgent, ipAddress);
+        
+        return new LoginResult(tokens[0], tokens[1], 7 * 24 * 60 * 60 * 1000L);
     }
 
     /**

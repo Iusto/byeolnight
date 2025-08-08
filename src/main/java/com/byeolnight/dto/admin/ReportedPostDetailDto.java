@@ -1,6 +1,7 @@
 package com.byeolnight.dto.admin;
 
-import com.byeolnight.domain.entity.post.Post;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.post.PostReport;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,7 +42,7 @@ public class ReportedPostDetailDto {
         private LocalDateTime reportedAt;
     }
     
-    public static ReportedPostDetailDto of(Post post, long reportCount, List<String> reportReasons, List<com.byeolnight.domain.entity.post.PostReport> reports) {
+    public static ReportedPostDetailDto of(Post post, long reportCount, List<String> reportReasons, List<PostReport> reports) {
         List<ReportDetail> reportDetails = reports.stream()
                 .map(report -> ReportDetail.builder()
                         .reportId(report.getId())

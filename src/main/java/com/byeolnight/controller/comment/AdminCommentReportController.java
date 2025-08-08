@@ -1,7 +1,7 @@
 package com.byeolnight.controller.comment;
 
-import com.byeolnight.domain.entity.comment.CommentReport;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.comment.CommentReport;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.comment.CommentReportDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.comment.CommentReportService;

@@ -1,7 +1,6 @@
 package com.byeolnight.repository.user;
 
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

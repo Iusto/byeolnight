@@ -1,14 +1,18 @@
 package com.byeolnight.service.user;
 
-import com.byeolnight.domain.entity.log.AuditSignupLog;
-import com.byeolnight.domain.entity.log.NicknameChangeHistory;
-import com.byeolnight.domain.entity.token.PasswordResetToken;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.comment.CommentRepository;
-import com.byeolnight.domain.repository.log.AuditSignupLogRepository;
-import com.byeolnight.domain.repository.log.NicknameChangeHistoryRepository;
-import com.byeolnight.domain.repository.PasswordResetTokenRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.log.AuditSignupLog;
+import com.byeolnight.entity.log.NicknameChangeHistory;
+import com.byeolnight.entity.shop.StellaIcon;
+import com.byeolnight.entity.shop.UserIcon;
+import com.byeolnight.entity.token.PasswordResetToken;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.entity.certificate.UserCertificate;
+import com.byeolnight.repository.MessageRepository;
+import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.log.AuditSignupLogRepository;
+import com.byeolnight.repository.log.NicknameChangeHistoryRepository;
+import com.byeolnight.repository.PasswordResetTokenRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserSignUpRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
@@ -18,6 +22,9 @@ import com.byeolnight.dto.certificate.CertificateDto;
 import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.dto.comment.CommentDto;
 import com.byeolnight.dto.message.MessageDto;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.shop.StellaIconRepository;
+import com.byeolnight.repository.shop.UserIconRepository;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.comment.CommentService;
@@ -57,17 +64,17 @@ public class UserService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final GmailEmailService gmailEmailService;
     private final UserSecurityService userSecurityService;
-    private final com.byeolnight.domain.repository.post.PostRepository postRepository;
+    private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final EncryptionUtil encryptionUtil;
     private final CertificateService certificateService;
     private final PostService postService;
     private final CommentService commentService;
     private final MessageService messageService;
-    private final com.byeolnight.domain.repository.shop.StellaIconRepository stellaIconRepository;
-    private final com.byeolnight.domain.repository.MessageRepository messageRepository;
+    private final StellaIconRepository stellaIconRepository;
+    private final MessageRepository messageRepository;
     private final PointService pointService;
-    private final com.byeolnight.domain.repository.shop.UserIconRepository userIconRepository;
+    private final UserIconRepository userIconRepository;
     private final com.byeolnight.service.auth.EmailAuthService emailAuthService;
     private final com.byeolnight.service.auth.PhoneAuthService phoneAuthService;
 
@@ -85,12 +92,7 @@ public class UserService {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 닉네임"));
                 throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
             }
-            // 핸드폰번호 중복 검사
-            String phoneHash = encryptionUtil.hashPhone(dto.getPhone());
-            if (userRepository.existsByPhoneHash(phoneHash)) {
-                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 핸드폰번호"));
-                throw new IllegalArgumentException("이미 사용 중인 핸드폰번호입니다.");
-            }
+            // phone 인증 제거됨
             if (!dto.getPassword().equals(dto.getConfirmPassword())) {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "비밀번호 불일치"));
                 throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
@@ -99,10 +101,7 @@ public class UserService {
                 auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "비밀번호 정책 위반"));
                 throw new IllegalArgumentException("비밀번호는 8자 이상이며, 영문/숫자/특수문자를 포함해야 합니다.");
             }
-            if (!isValidPhoneNumber(dto.getPhone())) {
-                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "잘못된 전화번호 형식"));
-                throw new IllegalArgumentException("올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)");
-            }
+            // phone 검증 제거됨
             
             // 이메일 인증 확인
             if (!emailAuthService.isAlreadyVerified(dto.getEmail())) {
@@ -110,24 +109,19 @@ public class UserService {
                 throw new IllegalArgumentException("이메일 인증을 완료해주세요.");
             }
             
-            // 휴대폰 인증 확인
-            if (!phoneAuthService.isAlreadyVerified(dto.getPhone())) {
-                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "휴대폰 인증 미완료"));
-                throw new IllegalArgumentException("휴대폰 인증을 완료해주세요.");
-            }
+            // phone 인증 제거됨
 
             User user = User.builder()
                     .email(dto.getEmail())
                     .password(passwordEncoder.encode(dto.getPassword()))
                     .nickname(dto.getNickname())
-                    .phone(encryptionUtil.encrypt(dto.getPhone())) // 전화번호 암호화
-                    .phoneHash(phoneHash) // 전화번호 해시값
+
+                    // phone 필드 제거됨
                     .nicknameChanged(false)
                     .nicknameUpdatedAt(LocalDateTime.now())
                     .role(User.Role.USER)
                     .status(User.UserStatus.ACTIVE)
                     .emailVerified(false)
-                    .phoneVerified(false)
                     .loginFailCount(0)
                     .level(1)
                     .points(0)
@@ -139,7 +133,6 @@ public class UserService {
             
             // 회원가입 완료 후 인증 상태 삭제
             emailAuthService.clearVerification(dto.getEmail());
-            phoneAuthService.clearVerification(dto.getPhone());
             
             auditSignupLogRepository.save(AuditSignupLog.success(dto.getEmail(), ipAddress));
             return user.getId();
@@ -466,7 +459,7 @@ public class UserService {
         }
 
         // 직접 StellaIcon 조회
-        com.byeolnight.domain.entity.shop.StellaIcon icon = stellaIconRepository.findById(user.getEquippedIconId())
+        StellaIcon icon = stellaIconRepository.findById(user.getEquippedIconId())
                 .orElse(null);
         
         if (icon == null) {
@@ -486,7 +479,7 @@ public class UserService {
     public String getDecryptedPhone(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        return encryptionUtil.decrypt(user.getPhone());
+        return null; // phone 필드 제거됨
     }
 
     /**
@@ -501,12 +494,11 @@ public class UserService {
         for (User user : users) {
             try {
                 // 이미 암호화된 데이터인지 확인 (복호화 시도)
-                encryptionUtil.decrypt(user.getPhone());
+                // phone 필드 제거됨
                 // 복호화가 성공하면 이미 암호화된 데이터
             } catch (Exception e) {
                 // 복호화 실패 = 평문 데이터로 간주하고 암호화 수행
-                String encryptedPhone = encryptionUtil.encrypt(user.getPhone());
-                user.setEncryptedPhone(encryptedPhone);
+                // phone 필드 제거됨
                 migratedCount++;
             }
         }
@@ -551,7 +543,7 @@ public class UserService {
         // 대표 인증서 조회
         List<String> representativeCertificates = new java.util.ArrayList<>();
         try {
-            com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+            UserCertificate repCert =
                 certificateService.getRepresentativeCertificate(user);
             if (repCert != null) {
                 representativeCertificates.add(repCert.getCertificateType().getName());
@@ -581,7 +573,7 @@ public class UserService {
     public void grantDefaultAsteroidIcon(User user) {
         try {
             // 소행성 아이콘 조회 (한글명 우선, 영어명 대체)
-            com.byeolnight.domain.entity.shop.StellaIcon asteroidIcon = stellaIconRepository.findByName("소행성")
+            StellaIcon asteroidIcon = stellaIconRepository.findByName("소행성")
                     .or(() -> stellaIconRepository.findByName("Asteroid"))
                     .orElse(null);
             
@@ -595,7 +587,7 @@ public class UserService {
             
             if (!alreadyOwns) {
                 // 소행성 아이콘 부여 (무료로 지급)
-                com.byeolnight.domain.entity.shop.UserIcon userIcon = com.byeolnight.domain.entity.shop.UserIcon.builder()
+                UserIcon userIcon = UserIcon.builder()
                         .user(user)
                         .stellaIcon(asteroidIcon)
                         .purchasePrice(0) // 기본 아이콘은 무료
@@ -710,5 +702,13 @@ public class UserService {
         user.resetNicknameChangeRestriction();
         
         log.info("관리자 {}가 사용자 {}에게 닉네임 변경권을 수여했습니다.", admin.getNickname(), user.getNickname());
+    }
+
+    /**
+     * 사용자 저장 (OAuth 사용자 생성용)
+     */
+    @Transactional
+    public User save(User user) {
+        return userRepository.save(user);
     }
 }

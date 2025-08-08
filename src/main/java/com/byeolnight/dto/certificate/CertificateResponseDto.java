@@ -1,7 +1,7 @@
 package com.byeolnight.dto.certificate;
 
-import com.byeolnight.domain.entity.certificate.Certificate;
-import com.byeolnight.domain.entity.certificate.UserCertificate;
+import com.byeolnight.entity.certificate.Certificate;
+import com.byeolnight.entity.certificate.UserCertificate;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

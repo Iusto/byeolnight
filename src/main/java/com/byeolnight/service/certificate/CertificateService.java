@@ -1,16 +1,17 @@
 package com.byeolnight.service.certificate;
 
-import com.byeolnight.domain.entity.certificate.Certificate;
-import com.byeolnight.domain.entity.certificate.UserCertificate;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.SuggestionRepository;
-import com.byeolnight.domain.repository.chat.ChatParticipationRepository;
-import com.byeolnight.domain.repository.comment.CommentRepository;
-import com.byeolnight.domain.repository.certificate.UserCertificateRepository;
-import com.byeolnight.domain.repository.post.PostReportRepository;
-import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.user.DailyAttendanceRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.certificate.Certificate;
+import com.byeolnight.entity.certificate.UserCertificate;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.repository.SuggestionRepository;
+import com.byeolnight.repository.chat.ChatParticipationRepository;
+import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.certificate.UserCertificateRepository;
+import com.byeolnight.repository.post.PostReportRepository;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.DailyAttendanceRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.certificate.CertificateDto;
 import com.byeolnight.infrastructure.config.ApplicationContextProvider;
 import lombok.RequiredArgsConstructor;
@@ -93,7 +94,7 @@ public class CertificateService {
     // 🌌 별 관측 매니아 인증서 (IMAGE 게시판에 사진 5장 이상 업로드)
     private void checkStarObserver(User user) {
         if (!hasUserCertificate(user, Certificate.CertificateType.STAR_OBSERVER)) {
-            long imagePostCount = postRepository.countByWriterAndCategoryAndIsDeletedFalse(user, com.byeolnight.domain.entity.post.Post.Category.IMAGE);
+            long imagePostCount = postRepository.countByWriterAndCategoryAndIsDeletedFalse(user, Post.Category.IMAGE);
             if (imagePostCount >= 5) {
                 issueCertificate(user, Certificate.CertificateType.STAR_OBSERVER);
             }

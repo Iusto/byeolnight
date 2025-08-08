@@ -4,7 +4,7 @@ import com.byeolnight.dto.admin.IpBlockRequestDto;
 import com.byeolnight.dto.admin.UserStatusChangeRequestDto;
 import com.byeolnight.dto.admin.PointAwardRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
-import com.byeolnight.service.post.PostService;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -59,7 +59,7 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/users/{id}/lock")
     public ResponseEntity<Void> lockUser(@PathVariable Long id, 
-                                        @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser) {
+                                        @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
         // 자기 자신의 계정은 잠금할 수 없음
         if (currentUser.getId().equals(id)) {
             return ResponseEntity.badRequest().build();
@@ -77,7 +77,7 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/users/{id}/unlock")
     public ResponseEntity<Void> unlockUser(@PathVariable Long id, 
-                                          @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser) {
+                                          @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
         userService.unlockUserAccount(id);
         return ResponseEntity.ok().build();
     }
@@ -98,7 +98,7 @@ public class AdminUserController {
     public ResponseEntity<Void> changeUserStatus(
             @PathVariable Long userId,
             @RequestBody UserStatusChangeRequestDto request,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
     ) {
         // 자기 자신의 계정 상태는 변경할 수 없음
         if (currentUser.getId().equals(userId)) {
@@ -118,7 +118,7 @@ public class AdminUserController {
     public ResponseEntity<Void> forceWithdrawUser(
             @PathVariable Long userId,
             @RequestParam(required = false) String reason,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
     ) {
         // 자기 자신의 계정은 탈퇴시킬 수 없음
         if (currentUser.getId().equals(userId)) {
@@ -193,7 +193,7 @@ public class AdminUserController {
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> awardPoints(
             @PathVariable Long userId,
             @RequestBody @jakarta.validation.Valid PointAwardRequestDto request,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
     ) {
         try {
             pointService.awardPointsByAdmin(userId, request.getPoints(), request.getReason(), currentUser.getId());
@@ -277,7 +277,7 @@ public class AdminUserController {
     @PostMapping("/users/{userId}/nickname-change-ticket")
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> grantNicknameChangeTicket(
             @PathVariable Long userId,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User currentUser
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
     ) {
         try {
             userService.grantNicknameChangeTicket(userId, currentUser.getId());

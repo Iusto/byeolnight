@@ -1,11 +1,13 @@
 package com.byeolnight.service.post;
 
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.post.PostBlindLog;
-import com.byeolnight.domain.entity.post.PostReport;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.post.*;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.post.PostBlindLog;
+import com.byeolnight.entity.post.PostReport;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.post.PostBlindLogRepository;
+import com.byeolnight.repository.post.PostReportRepository;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

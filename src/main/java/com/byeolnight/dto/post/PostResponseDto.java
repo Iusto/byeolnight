@@ -1,6 +1,8 @@
 package com.byeolnight.dto.post;
 
-import com.byeolnight.domain.entity.post.Post;
+import com.byeolnight.entity.file.File;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.certificate.UserCertificate;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,7 +50,7 @@ public class PostResponseDto {
         private String url;
     }
 
-    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount, java.util.List<com.byeolnight.domain.entity.file.File> files) {
+    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount, java.util.List<File> files) {
         // writer null 체크
         String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
         Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
@@ -70,7 +72,7 @@ public class PostResponseDto {
                 com.byeolnight.service.certificate.CertificateService certificateService = 
                     com.byeolnight.infrastructure.config.ApplicationContextProvider
                         .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                UserCertificate repCert =
                     certificateService.getRepresentativeCertificate(post.getWriter());
                 if (repCert != null) {
                     writerCertificates.add(repCert.getCertificateType().getName());
@@ -123,7 +125,7 @@ public class PostResponseDto {
                 com.byeolnight.service.certificate.CertificateService certificateService = 
                     com.byeolnight.infrastructure.config.ApplicationContextProvider
                         .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                UserCertificate repCert =
                     certificateService.getRepresentativeCertificate(post.getWriter());
                 if (repCert != null) {
                     writerCertificates.add(repCert.getCertificateType().getName());

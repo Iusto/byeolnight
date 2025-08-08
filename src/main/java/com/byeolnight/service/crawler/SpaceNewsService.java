@@ -1,12 +1,12 @@
 package com.byeolnight.service.crawler;
 
-import com.byeolnight.domain.entity.News;
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.post.Post.Category;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.NewsRepository;
-import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.News;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.post.Post.Category;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.NewsRepository;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
 import com.byeolnight.infrastructure.config.NewsCollectionProperties;
 import lombok.RequiredArgsConstructor;

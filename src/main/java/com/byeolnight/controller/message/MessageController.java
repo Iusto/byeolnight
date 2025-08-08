@@ -2,7 +2,7 @@ package com.byeolnight.controller.message;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.dto.message.MessageDto;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.service.message.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

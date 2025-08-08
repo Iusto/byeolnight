@@ -1,11 +1,10 @@
 package com.byeolnight.service.admin;
 
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.post.PostReport;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.comment.CommentReportRepository;
-import com.byeolnight.domain.repository.post.PostReportRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.post.PostReport;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.post.PostReportRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.admin.ReportedPostDetailDto;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.PointService;

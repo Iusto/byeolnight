@@ -1,7 +1,7 @@
 package com.byeolnight.dto.user;
 
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.entity.user.User.UserStatus;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.entity.user.User.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

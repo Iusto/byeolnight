@@ -10,11 +10,11 @@ package com.byeolnight.infrastructure.config;
  * - Order(3)으로 사용자 데이터 로드 후 실행
  */
 
-import com.byeolnight.domain.entity.certificate.Certificate;
-import com.byeolnight.domain.entity.certificate.UserCertificate;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.certificate.UserCertificateRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.certificate.Certificate;
+import com.byeolnight.entity.certificate.UserCertificate;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.certificate.UserCertificateRepository;
+import com.byeolnight.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

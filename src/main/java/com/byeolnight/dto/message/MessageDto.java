@@ -1,7 +1,7 @@
 package com.byeolnight.dto.message;
 
-import com.byeolnight.domain.entity.Message;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.Message;
+import com.byeolnight.entity.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

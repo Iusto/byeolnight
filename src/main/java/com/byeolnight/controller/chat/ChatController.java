@@ -1,10 +1,9 @@
 // ✅ ChatController.java
 package com.byeolnight.controller.chat;
 
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.chat.ChatMessageDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
-import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.ChatService;
 import com.byeolnight.service.chat.AdminChatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +17,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;

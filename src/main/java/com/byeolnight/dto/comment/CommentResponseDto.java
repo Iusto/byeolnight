@@ -1,6 +1,8 @@
 package com.byeolnight.dto.comment;
 
-import com.byeolnight.domain.entity.comment.Comment;
+import com.byeolnight.entity.comment.Comment;
+import com.byeolnight.entity.certificate.UserCertificate;
+import com.byeolnight.entity.user.User;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -28,7 +30,7 @@ public class CommentResponseDto {
         return from(comment, null);
     }
     
-    public static CommentResponseDto from(Comment comment, com.byeolnight.domain.entity.user.User currentUser) {
+    public static CommentResponseDto from(Comment comment, User currentUser) {
         // writer 정보 상세 체크
         String writerName;
         if (comment.getWriter() != null) {
@@ -59,7 +61,7 @@ public class CommentResponseDto {
                 com.byeolnight.service.certificate.CertificateService certificateService = 
                     com.byeolnight.infrastructure.config.ApplicationContextProvider
                         .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                UserCertificate repCert =
                     certificateService.getRepresentativeCertificate(comment.getWriter());
                 if (repCert != null) {
                     writerCertificates.add(repCert.getCertificateType().getName());
@@ -95,7 +97,7 @@ public class CommentResponseDto {
                 .build();
     }
     
-    public static CommentResponseDto fromForAdmin(Comment comment, com.byeolnight.domain.entity.user.User currentUser) {
+    public static CommentResponseDto fromForAdmin(Comment comment, User currentUser) {
         // writer 정보 상세 체크
         String writerName;
         if (comment.getWriter() != null) {
@@ -126,7 +128,7 @@ public class CommentResponseDto {
                 com.byeolnight.service.certificate.CertificateService certificateService = 
                     com.byeolnight.infrastructure.config.ApplicationContextProvider
                         .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                com.byeolnight.domain.entity.certificate.UserCertificate repCert = 
+                UserCertificate repCert =
                     certificateService.getRepresentativeCertificate(comment.getWriter());
                 if (repCert != null) {
                     writerCertificates.add(repCert.getCertificateType().getName());

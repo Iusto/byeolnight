@@ -1,8 +1,11 @@
 package com.byeolnight.service.chat;
 
-import com.byeolnight.domain.entity.chat.ChatMessage;
-import com.byeolnight.domain.repository.chat.ChatMessageRepository;
+import com.byeolnight.entity.chat.ChatMessage;
+import com.byeolnight.repository.chat.ChatMessageRepository;
 import com.byeolnight.dto.chat.ChatMessageDto;
+import com.byeolnight.entity.chat.ChatParticipation;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -18,8 +21,8 @@ public class ChatService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatMessageRepository chatMessageRepository;
-    private final com.byeolnight.domain.repository.chat.ChatParticipationRepository chatParticipationRepository;
-    private final com.byeolnight.domain.repository.user.UserRepository userRepository;
+    private final com.byeolnight.repository.chat.ChatParticipationRepository chatParticipationRepository;
+    private final UserRepository userRepository;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
 
     public void sendMessage(ChatMessageDto dto) {
@@ -155,15 +158,15 @@ public class ChatService {
         }
         
         try {
-            com.byeolnight.domain.entity.user.User user = userRepository.findByNickname(nickname).orElse(null);
+            User user = userRepository.findByNickname(nickname).orElse(null);
             if (user == null) {
                 return;
             }
             
             java.time.LocalDate today = java.time.LocalDate.now();
-            com.byeolnight.domain.entity.chat.ChatParticipation participation = 
+            ChatParticipation participation =
                 chatParticipationRepository.findByUserAndParticipationDate(user, today)
-                    .orElse(com.byeolnight.domain.entity.chat.ChatParticipation.of(user, today));
+                    .orElse(ChatParticipation.of(user, today));
             
             if (participation.getId() == null) {
                 chatParticipationRepository.save(participation);

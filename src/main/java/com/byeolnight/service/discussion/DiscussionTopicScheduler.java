@@ -1,9 +1,9 @@
 package com.byeolnight.service.discussion;
 
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.ai.NewsBasedDiscussionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +87,7 @@ public class DiscussionTopicScheduler {
                             .email("system@byeolnight.com")
                             .nickname("별 헤는 밤")
                             .password(systemRawPassword)
-                            .phone("000-0000-0000")
+
                             .role(User.Role.ADMIN)
                             .build();
                     return userRepository.save(systemUser);

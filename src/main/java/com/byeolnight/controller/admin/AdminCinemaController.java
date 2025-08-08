@@ -1,5 +1,6 @@
 package com.byeolnight.controller.admin;
 
+import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.cinema.CinemaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +25,7 @@ public class AdminCinemaController {
     @PostMapping("/generate-post")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResponse<String>> generateCinemaPost(
-            @AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
+            @AuthenticationPrincipal User admin
     ) {
         try {
             if (admin == null) {

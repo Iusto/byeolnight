@@ -1,5 +1,6 @@
 package com.byeolnight.controller.comment;
 
+import com.byeolnight.entity.user.User;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.comment.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,8 +28,8 @@ public class AdminCommentController {
     @GetMapping("/comments/blinded")
     public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getBlindedComments(
             org.springframework.security.core.Authentication authentication) {
-        com.byeolnight.domain.entity.user.User currentUser = 
-            (com.byeolnight.domain.entity.user.User) authentication.getPrincipal();
+        User currentUser =
+            (User) authentication.getPrincipal();
         List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getBlindedComments(currentUser);
         return ResponseEntity.ok(comments);
     }
@@ -55,8 +56,8 @@ public class AdminCommentController {
     public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getPostCommentsForAdmin(
             @PathVariable Long postId,
             org.springframework.security.core.Authentication authentication) {
-        com.byeolnight.domain.entity.user.User currentUser = 
-            (com.byeolnight.domain.entity.user.User) authentication.getPrincipal();
+        User currentUser =
+            (User) authentication.getPrincipal();
         List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getPostCommentsForAdmin(postId, currentUser);
         return ResponseEntity.ok(comments);
     }
@@ -66,8 +67,8 @@ public class AdminCommentController {
     @GetMapping("/comments/deleted")
     public ResponseEntity<List<com.byeolnight.dto.comment.CommentResponseDto>> getDeletedComments(
             org.springframework.security.core.Authentication authentication) {
-        com.byeolnight.domain.entity.user.User currentUser = 
-            (com.byeolnight.domain.entity.user.User) authentication.getPrincipal();
+        User currentUser =
+            (User) authentication.getPrincipal();
         List<com.byeolnight.dto.comment.CommentResponseDto> comments = commentService.getDeletedComments(currentUser);
         return ResponseEntity.ok(comments);
     }

@@ -1,9 +1,9 @@
 package com.byeolnight.service.chat;
 
-import com.byeolnight.domain.entity.chat.ChatBan;
-import com.byeolnight.domain.entity.chat.ChatMessage;
-import com.byeolnight.domain.repository.chat.ChatBanRepository;
-import com.byeolnight.domain.repository.chat.ChatMessageRepository;
+import com.byeolnight.entity.chat.ChatBan;
+import com.byeolnight.entity.chat.ChatMessage;
+import com.byeolnight.repository.chat.ChatBanRepository;
+import com.byeolnight.repository.chat.ChatMessageRepository;
 import com.byeolnight.dto.admin.ChatStatsDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +13,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.concurrent.TimeUnit;
 
 import java.time.LocalDateTime;
 import java.util.*;

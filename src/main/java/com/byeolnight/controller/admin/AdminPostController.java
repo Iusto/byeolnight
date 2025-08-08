@@ -1,6 +1,7 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.post.PostResponseDto;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.admin.AdminReportPostService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +46,7 @@ public class AdminPostController {
     @PatchMapping("/{postId}/blind")
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> blindPost(
             @PathVariable Long postId,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User admin
     ) {
         postService.blindPostByAdmin(postId, admin.getId());
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("블라인드 처리가 완료되었습니다."));

@@ -1,6 +1,6 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.domain.entity.Suggestion;
+import com.byeolnight.entity.Suggestion;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.dto.suggestion.SuggestionDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;

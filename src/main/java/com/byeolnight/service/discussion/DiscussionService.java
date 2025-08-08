@@ -1,7 +1,8 @@
 package com.byeolnight.service.discussion;
 
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.repository.post.PostRepository;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.dto.post.PostResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -85,7 +86,7 @@ public class DiscussionService {
      * 관리자 수동 토론 주제 생성
      */
     @Transactional
-    public void generateDiscussionTopicManually(com.byeolnight.domain.entity.user.User admin) {
+    public void generateDiscussionTopicManually(User admin) {
         discussionTopicScheduler.generateDailyDiscussionTopic();
     }
 }

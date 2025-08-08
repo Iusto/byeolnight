@@ -3,8 +3,7 @@ package com.byeolnight.controller.post;
 import com.byeolnight.service.comment.CommentService;
 import com.byeolnight.service.comment.CommentReportService;
 import com.byeolnight.dto.comment.CommentRequestDto;
-import com.byeolnight.dto.comment.CommentResponseDto;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/member/comments")

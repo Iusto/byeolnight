@@ -1,11 +1,12 @@
 package com.byeolnight.service.suggestion;
 
-import com.byeolnight.domain.entity.Suggestion;
+import com.byeolnight.entity.Suggestion;
 
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.SuggestionRepository;
+import com.byeolnight.entity.Notification;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.SuggestionRepository;
 
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.suggestion.SuggestionDto;
 import com.byeolnight.infrastructure.exception.SuggestionNotFoundException;
 import com.byeolnight.infrastructure.exception.SuggestionAccessDeniedException;
@@ -196,7 +197,7 @@ public class SuggestionService {
             
             notificationService.createNotification(
                 suggestion.getAuthor().getId(),
-                com.byeolnight.domain.entity.Notification.NotificationType.SUGGESTION_RESPONSE,
+                Notification.NotificationType.SUGGESTION_RESPONSE,
                 "건의사항 답변 알림",
                 notificationMessage,
                 "/suggestions/" + suggestion.getId(),

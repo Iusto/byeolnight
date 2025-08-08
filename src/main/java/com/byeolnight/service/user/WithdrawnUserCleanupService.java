@@ -1,7 +1,7 @@
 package com.byeolnight.service.user;
 
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

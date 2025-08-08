@@ -1,9 +1,10 @@
 package com.byeolnight.service;
 
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.repository.comment.CommentRepository;
-import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.file.FileRepository;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.comment.Comment;
+import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.file.FileRepository;
 import com.byeolnight.service.file.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,7 +73,7 @@ public class PostCleanupScheduler {
     
     private void cleanupExpiredComments(LocalDateTime threshold) {
         try {
-            List<com.byeolnight.domain.entity.comment.Comment> expiredComments = 
+            List<Comment> expiredComments =
                 commentRepository.findExpiredDeletedComments(threshold);
             
             if (expiredComments.isEmpty()) {
@@ -83,7 +84,7 @@ public class PostCleanupScheduler {
             log.info("정리 대상 댓글 수: {}", expiredComments.size());
             
             int deletedCount = 0;
-            for (com.byeolnight.domain.entity.comment.Comment comment : expiredComments) {
+            for (Comment comment : expiredComments) {
                 try {
                     commentRepository.delete(comment);
                     deletedCount++;

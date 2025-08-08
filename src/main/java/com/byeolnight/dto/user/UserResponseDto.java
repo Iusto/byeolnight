@@ -1,6 +1,6 @@
 package com.byeolnight.dto.user;
 
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -41,7 +41,7 @@ public class UserResponseDto {
                 .id(user.getId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
-                .phone(user.getPhone())
+
                 .role(user.getRole().name())
                 .nicknameChanged(user.isNicknameChanged())
                 .nicknameUpdatedAt(user.getNicknameUpdatedAt())

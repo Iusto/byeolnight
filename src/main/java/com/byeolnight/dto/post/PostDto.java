@@ -1,6 +1,6 @@
 package com.byeolnight.dto.post;
 
-import com.byeolnight.domain.entity.post.Post;
+import com.byeolnight.entity.post.Post;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,8 +1,8 @@
 package com.byeolnight.service.message;
 
-import com.byeolnight.domain.entity.Message;
-import com.byeolnight.domain.entity.log.DeleteLog;
-import com.byeolnight.domain.repository.MessageRepository;
+import com.byeolnight.entity.Message;
+import com.byeolnight.entity.log.DeleteLog;
+import com.byeolnight.repository.MessageRepository;
 import com.byeolnight.service.log.DeleteLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

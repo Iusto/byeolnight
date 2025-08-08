@@ -1,12 +1,11 @@
 package com.byeolnight.service.shop;
 
-import com.byeolnight.domain.entity.shop.StellaIcon;
-import com.byeolnight.domain.entity.shop.StellaIconGrade;
-import com.byeolnight.domain.entity.shop.UserIcon;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.shop.StellaIconRepository;
-import com.byeolnight.domain.repository.shop.UserIconRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.shop.StellaIcon;
+import com.byeolnight.entity.shop.UserIcon;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.shop.StellaIconRepository;
+import com.byeolnight.repository.shop.UserIconRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.shop.StellaIconDataDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.infrastructure.lock.DistributedLockService;

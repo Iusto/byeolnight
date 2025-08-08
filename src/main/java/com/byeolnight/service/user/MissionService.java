@@ -1,10 +1,10 @@
 package com.byeolnight.service.user;
 
-import com.byeolnight.domain.entity.user.DailyAttendance;
-import com.byeolnight.domain.entity.user.PointHistory;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.user.DailyAttendanceRepository;
-import com.byeolnight.domain.repository.user.PointHistoryRepository;
+import com.byeolnight.entity.user.DailyAttendance;
+import com.byeolnight.entity.user.PointHistory;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.user.DailyAttendanceRepository;
+import com.byeolnight.repository.user.PointHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

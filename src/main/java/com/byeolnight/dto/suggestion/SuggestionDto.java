@@ -1,6 +1,6 @@
 package com.byeolnight.dto.suggestion;
 
-import com.byeolnight.domain.entity.Suggestion;
+import com.byeolnight.entity.Suggestion;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

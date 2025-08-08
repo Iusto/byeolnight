@@ -2,7 +2,7 @@ package com.byeolnight.controller.notification;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.dto.notification.NotificationDto;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.service.notification.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

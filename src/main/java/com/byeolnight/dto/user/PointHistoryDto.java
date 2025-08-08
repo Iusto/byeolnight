@@ -1,6 +1,6 @@
 package com.byeolnight.dto.user;
 
-import com.byeolnight.domain.entity.user.PointHistory;
+import com.byeolnight.entity.user.PointHistory;
 import lombok.Builder;
 import lombok.Getter;
 

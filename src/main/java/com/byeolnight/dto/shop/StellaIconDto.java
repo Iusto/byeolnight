@@ -1,6 +1,6 @@
 package com.byeolnight.dto.shop;
 
-import com.byeolnight.domain.entity.shop.StellaIcon;
+import com.byeolnight.entity.shop.StellaIcon;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

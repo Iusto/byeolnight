@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import com.byeolnight.domain.entity.post.Post.Category;
+import com.byeolnight.entity.post.Post.Category;
 
 import java.util.List;
 

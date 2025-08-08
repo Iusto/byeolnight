@@ -1,8 +1,8 @@
 package com.byeolnight.controller.shop;
 
-import com.byeolnight.domain.entity.shop.StellaIcon;
-import com.byeolnight.domain.entity.shop.UserIcon;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.shop.StellaIcon;
+import com.byeolnight.entity.shop.UserIcon;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.shop.StellaIconDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.shop.StellaShopService;

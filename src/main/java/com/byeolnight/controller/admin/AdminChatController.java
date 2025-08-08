@@ -2,6 +2,7 @@ package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.admin.ChatBanRequestDto;
 import com.byeolnight.dto.admin.ChatStatsDto;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.AdminChatService;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -31,7 +32,7 @@ public class AdminChatController {
     @PostMapping("/blind/{messageId}")
     public ResponseEntity<Void> blindMessage(
             @PathVariable String messageId,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User admin
     ) {
         adminChatService.blindMessage(messageId, admin.getId());
         return ResponseEntity.ok().build();
@@ -52,7 +53,7 @@ public class AdminChatController {
     @PostMapping("/ban")
     public ResponseEntity<Void> banUser(
             @RequestBody ChatBanRequestDto request,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User admin,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User admin,
             jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
         String adminIp = IpUtil.getClientIp(httpRequest);
@@ -101,7 +102,7 @@ public class AdminChatController {
     @Operation(summary = "사용자 채팅 금지 상태 확인", description = "현재 로그인한 사용자의 채팅 금지 상태를 확인합니다.")
     @GetMapping("/ban-status")
     public ResponseEntity<Map<String, Object>> getBanStatus(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.byeolnight.domain.entity.user.User user
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User user
     ) {
         Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
         return ResponseEntity.ok(banStatus);

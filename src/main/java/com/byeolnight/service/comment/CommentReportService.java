@@ -1,11 +1,11 @@
 package com.byeolnight.service.comment;
 
-import com.byeolnight.domain.entity.comment.Comment;
-import com.byeolnight.domain.entity.comment.CommentReport;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.comment.CommentReportRepository;
-import com.byeolnight.domain.repository.comment.CommentRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.comment.Comment;
+import com.byeolnight.entity.comment.CommentReport;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.comment.CommentReportRepository;
+import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.comment.CommentReportDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.certificate.CertificateService;

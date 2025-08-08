@@ -1,6 +1,6 @@
 package com.byeolnight.infrastructure.security;
 
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

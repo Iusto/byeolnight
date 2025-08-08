@@ -1,6 +1,6 @@
 package com.byeolnight.dto.notification;
 
-import com.byeolnight.domain.entity.Notification;
+import com.byeolnight.entity.Notification;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

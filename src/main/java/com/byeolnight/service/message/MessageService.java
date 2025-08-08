@@ -1,14 +1,14 @@
 package com.byeolnight.service.message;
 
-import com.byeolnight.domain.entity.Message;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.MessageRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.Message;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.MessageRepository;
+import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.message.MessageDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.log.DeleteLogService;
-import com.byeolnight.domain.entity.log.DeleteLog;
+import com.byeolnight.entity.log.DeleteLog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

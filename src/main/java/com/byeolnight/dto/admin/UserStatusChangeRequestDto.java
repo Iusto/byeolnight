@@ -1,6 +1,6 @@
 package com.byeolnight.dto.admin;
 
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

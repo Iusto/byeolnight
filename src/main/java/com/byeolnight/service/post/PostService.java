@@ -1,30 +1,32 @@
 package com.byeolnight.service.post;
 
-import com.byeolnight.domain.entity.file.File;
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.post.Post.Category;
-import com.byeolnight.domain.entity.post.PostLike;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.comment.CommentRepository;
-import com.byeolnight.domain.repository.file.FileRepository;
-import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
-import com.byeolnight.domain.repository.post.PostLikeRepository;
+import com.byeolnight.entity.Notification;
+import com.byeolnight.entity.file.File;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.post.Post.Category;
+import com.byeolnight.entity.post.PostLike;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.entity.comment.Comment;
+import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.file.FileRepository;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.UserRepository;
+import com.byeolnight.repository.post.PostLikeRepository;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
+import com.byeolnight.repository.post.PostReportRepository;
 import com.byeolnight.service.file.S3Service;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.log.DeleteLogService;
-import com.byeolnight.domain.entity.log.DeleteLog;
+import com.byeolnight.entity.log.DeleteLog;
 import com.byeolnight.infrastructure.lock.DistributedLockService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,7 +40,7 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final FileRepository fileRepository;
     private final UserRepository userRepository;
-    private final com.byeolnight.domain.repository.post.PostReportRepository postReportRepository;
+    private final PostReportRepository postReportRepository;
     private final S3Service s3Service;
     private final com.byeolnight.service.certificate.CertificateService certificateService;
     private final PointService pointService;
@@ -95,7 +97,7 @@ public class PostService {
             if (dto.getCategory() == Post.Category.NOTICE) {
                 try {
                     notificationService.createNotificationForAllUsers(
-                        com.byeolnight.domain.entity.Notification.NotificationType.NEW_NOTICE,
+                        Notification.NotificationType.NEW_NOTICE,
                         "새 공지사항이 등록되었습니다",
                         dto.getTitle(),
                         "/posts/" + post.getId(),
@@ -432,7 +434,7 @@ public class PostService {
 
     @Transactional
     public void restoreComment(Long commentId) {
-        com.byeolnight.domain.entity.comment.Comment comment = commentRepository.findById(commentId)
+        Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다."));
         comment.restore();
     }

@@ -1,7 +1,7 @@
 package com.byeolnight.service.ai;
 
-import com.byeolnight.domain.entity.News;
-import com.byeolnight.domain.repository.NewsRepository;
+import com.byeolnight.entity.News;
+import com.byeolnight.repository.NewsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

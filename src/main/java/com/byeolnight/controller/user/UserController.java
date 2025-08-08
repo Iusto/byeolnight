@@ -1,7 +1,7 @@
 package com.byeolnight.controller.user;
 
 import com.byeolnight.service.user.UserService;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
 import com.byeolnight.dto.user.UserResponseDto;
 import com.byeolnight.dto.user.PointStatusDto;

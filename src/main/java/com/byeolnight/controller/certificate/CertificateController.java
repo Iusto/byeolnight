@@ -1,7 +1,7 @@
 package com.byeolnight.controller.certificate;
 
-import com.byeolnight.domain.entity.certificate.Certificate;
-import com.byeolnight.domain.entity.user.User;
+import com.byeolnight.entity.certificate.Certificate;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.certificate.AllCertificateResponseDto;
 import com.byeolnight.dto.certificate.CertificateResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;

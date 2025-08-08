@@ -1,11 +1,11 @@
 package com.byeolnight.service.cinema;
 
-import com.byeolnight.domain.entity.Cinema;
-import com.byeolnight.domain.entity.post.Post;
-import com.byeolnight.domain.entity.user.User;
-import com.byeolnight.domain.repository.CinemaRepository;
-import com.byeolnight.domain.repository.post.PostRepository;
-import com.byeolnight.domain.repository.user.UserRepository;
+import com.byeolnight.entity.Cinema;
+import com.byeolnight.entity.post.Post;
+import com.byeolnight.entity.user.User;
+import com.byeolnight.repository.CinemaRepository;
+import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.UserRepository;
 
 import com.byeolnight.infrastructure.config.CinemaCollectionProperties;
 import lombok.RequiredArgsConstructor;

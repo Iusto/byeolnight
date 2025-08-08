@@ -1,9 +1,13 @@
 package com.byeolnight.service.user;
 
-import com.byeolnight.domain.entity.user.*;
-import com.byeolnight.domain.repository.user.*;
 import com.byeolnight.dto.user.PointHistoryDto;
+import com.byeolnight.entity.user.DailyAttendance;
+import com.byeolnight.entity.user.PointHistory;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.lock.DistributedLockService;
+import com.byeolnight.repository.user.DailyAttendanceRepository;
+import com.byeolnight.repository.user.PointHistoryRepository;
+import com.byeolnight.repository.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +15,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
