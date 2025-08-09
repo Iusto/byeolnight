@@ -177,7 +177,11 @@ export default function Login() {
         {/* OAuth 로그인 버튼들 */}
         <div className="space-y-3">
           <button
-            onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/oauth2/authorization/google`}
+            onClick={() => {
+              const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+              const oauthUrl = baseUrl.replace('/api', '') + '/oauth2/authorization/google';
+              window.location.href = oauthUrl;
+            }}
             className="w-full flex items-center justify-center gap-3 py-2 px-4 bg-white text-gray-700 rounded hover:bg-gray-50 transition-colors border"
             disabled={loading}
           >
@@ -191,7 +195,11 @@ export default function Login() {
           </button>
 
           <button
-            onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/oauth2/authorization/kakao`}
+            onClick={() => {
+              const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+              const oauthUrl = baseUrl.replace('/api', '') + '/oauth2/authorization/kakao';
+              window.location.href = oauthUrl;
+            }}
             className="w-full flex items-center justify-center gap-3 py-2 px-4 bg-[#FEE500] text-[#191919] rounded hover:bg-[#FDD835] transition-colors"
             disabled={loading}
           >
@@ -202,7 +210,11 @@ export default function Login() {
           </button>
 
           <button
-            onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/oauth2/authorization/naver`}
+            onClick={() => {
+              const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+              const oauthUrl = baseUrl.replace('/api', '') + '/oauth2/authorization/naver';
+              window.location.href = oauthUrl;
+            }}
             className="w-full flex items-center justify-center gap-3 py-2 px-4 bg-[#03C75A] text-white rounded hover:bg-[#02B351] transition-colors"
             disabled={loading}
           >
