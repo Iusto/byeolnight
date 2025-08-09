@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -52,7 +53,6 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
-    private final NicknameRequiredFilter nicknameRequiredFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -71,7 +71,7 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(contentCachingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(nicknameRequiredFilter, JwtAuthenticationFilter.class)
+                .addFilterAfter(nicknameRequiredFilter(), JwtAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler())
@@ -122,5 +122,11 @@ public class SecurityConfig {
         return (request, response, accessDeniedException) -> {
             SecurityUtils.writeAuthErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, "접근 권한이 없습니다.");
         };
+    }
+
+    @Bean
+    @Lazy
+    public NicknameRequiredFilter nicknameRequiredFilter() {
+        return new NicknameRequiredFilter();
     }
 }
