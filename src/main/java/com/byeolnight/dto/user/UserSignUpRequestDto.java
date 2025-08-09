@@ -25,7 +25,4 @@ public class UserSignUpRequestDto {
 
     @NotBlank
     private String nickname;
-
-    @NotBlank
-    private String phone;
 }

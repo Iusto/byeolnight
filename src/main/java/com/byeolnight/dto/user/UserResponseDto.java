@@ -12,7 +12,6 @@ public class UserResponseDto {
     private final Long id;
     private final String email;
     private final String nickname;
-    private final String phone;
     private final String role;
     private final boolean nicknameChanged;
     private final LocalDateTime nicknameUpdatedAt;
@@ -21,13 +20,12 @@ public class UserResponseDto {
     private final String equippedIconName;
 
     @Builder
-    public UserResponseDto(Long id, String email, String nickname, String phone, String role, 
+    public UserResponseDto(Long id, String email, String nickname, String role, 
                           boolean nicknameChanged, LocalDateTime nicknameUpdatedAt, int points,
                           Long equippedIconId, String equippedIconName) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
-        this.phone = phone;
         this.role = role;
         this.nicknameChanged = nicknameChanged;
         this.nicknameUpdatedAt = nicknameUpdatedAt;

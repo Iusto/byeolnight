@@ -57,16 +57,5 @@ public class EncryptionUtil {
         }
     }
 
-    /**
-     * 전화번호 해시값 생성 (중복 검사용)
-     */
-    public String hashPhone(String phone) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest((phone + secretKey).getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hash);
-        } catch (Exception e) {
-            throw new RuntimeException("해시 생성 중 오류가 발생했습니다.", e);
-        }
-    }
+
 }

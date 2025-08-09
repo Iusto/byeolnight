@@ -166,27 +166,7 @@ public class UserService {
         return exists;
     }
 
-    /**
-     * 핸드폰번호 중복 검사
-     */
-    public boolean isPhoneDuplicated(String phone) {
-        String phoneHash = encryptionUtil.hashPhone(phone);
-        return userRepository.existsByPhoneHash(phoneHash);
-    }
 
-    /**
-     * 전화번호 형식 검증
-     */
-    public boolean isValidPhoneNumber(String phone) {
-        if (phone == null || phone.trim().isEmpty()) {
-            return false;
-        }
-        
-        // 한국 휴대폰 번호 형식 검증
-        // 010-1234-5678, 011-123-4567, 016-123-4567, 017-123-4567, 018-123-4567, 019-123-4567 형식
-        String phonePattern = "^01[0-9]-\\d{3,4}-\\d{4}$";
-        return phone.matches(phonePattern);
-    }
 
 
 
@@ -472,38 +452,7 @@ public class UserService {
                 .build();
     }
 
-    /**
-     * 사용자의 복호화된 전화번호 조회 (관리자 또는 본인만 가능)
-     */
-    public String getDecryptedPhone(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        return null; // phone 필드 제거됨
-    }
 
-    /**
-     * 기존 평문 전화번호를 암호화하여 마이그레이션 (관리자 전용)
-     * 주의: 이 메서드는 한 번만 실행해야 합니다.
-     */
-    @Transactional
-    public void migratePhoneEncryption() {
-        List<User> users = userRepository.findAll();
-        int migratedCount = 0;
-        
-        for (User user : users) {
-            try {
-                // 이미 암호화된 데이터인지 확인 (복호화 시도)
-                // phone 필드 제거됨
-                // 복호화가 성공하면 이미 암호화된 데이터
-            } catch (Exception e) {
-                // 복호화 실패 = 평문 데이터로 간주하고 암호화 수행
-                // phone 필드 제거됨
-                migratedCount++;
-            }
-        }
-        
-        System.out.println("전화번호 암호화 마이그레이션 완료: " + migratedCount + "건 처리");
-    }
 
     /**
      * 사용자 프로필 조회 (인증서, 아이콘, 통계 포함)

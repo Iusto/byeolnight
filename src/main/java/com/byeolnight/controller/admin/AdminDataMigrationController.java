@@ -24,19 +24,6 @@ public class AdminDataMigrationController {
     private final UserService userService;
     private final StellaShopService stellaShopService;
 
-    @Operation(summary = "전화번호 암호화 마이그레이션", description = "기존 전화번호를 암호화합니다. (주의: 한 번만 실행)")
-    @PostMapping("/encrypt-phones")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> migratePhoneEncryption() {
-        try {
-            userService.migratePhoneEncryption();
-            return ResponseEntity.ok("전화번호 암호화 마이그레이션이 완료되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body("마이그레이션 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
     @Operation(summary = "스텔라 아이콘 초기화", description = "전체 44개 스텔라 아이콘을 초기화합니다.")
     @PostMapping("/init-stella-icons")
     @PreAuthorize("hasRole('ADMIN')")

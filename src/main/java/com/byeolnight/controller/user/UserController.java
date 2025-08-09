@@ -57,9 +57,6 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<CommonResponse<UserResponseDto>> getCurrentUser(
             @Parameter(hidden = true) @AuthenticationPrincipal User user) {
-        // 복호화된 전화번호를 가져와서 UserResponseDto 생성
-        String decryptedPhone = userService.getDecryptedPhone(user.getId());
-        
         // 장착된 아이콘 정보 조회
         com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
         
@@ -67,7 +64,6 @@ public class UserController {
                 .id(user.getId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
-                .phone(decryptedPhone) // 복호화된 전화번호 사용
                 .role(user.getRole().name())
                 .nicknameChanged(user.isNicknameChanged())
                 .nicknameUpdatedAt(user.getNicknameUpdatedAt())

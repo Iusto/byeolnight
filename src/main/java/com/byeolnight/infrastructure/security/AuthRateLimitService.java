@@ -22,18 +22,9 @@ public class AuthRateLimitService {
         return checkEmailLimit(email) && checkIpAuthLimit(clientIp);
     }
     
-    public boolean isSmsAuthAllowed(String phone, String clientIp) {
-        return checkPhoneLimit(phone) && checkIpAuthLimit(clientIp);
-    }
-    
     private boolean checkEmailLimit(String email) {
         return checkRateLimit("email_auth_1h:" + email, 5, 60, 60) &&
                checkRateLimit("email_auth_1d:" + email, 10, 1440, 1440);
-    }
-    
-    private boolean checkPhoneLimit(String phone) {
-        return checkRateLimit("phone_auth_1h:" + phone, 3, 60, 60) &&
-               checkRateLimit("phone_auth_1d:" + phone, 5, 1440, 1440);
     }
     
     private boolean checkIpAuthLimit(String clientIp) {
@@ -71,8 +62,7 @@ public class AuthRateLimitService {
     }
     
     public void clearAuthLimit(String target) {
-        String[] prefixes = {"email_auth_1h:", "email_auth_1d:", "phone_auth_1h:", 
-                           "phone_auth_1d:", "auth_total_1h:", "auth_total_1d:"};
+        String[] prefixes = {"email_auth_1h:", "email_auth_1d:", "auth_total_1h:", "auth_total_1d:"};
         
         for (String prefix : prefixes) {
             redisTemplate.delete(prefix + target);
