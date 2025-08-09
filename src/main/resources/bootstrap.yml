@@ -16,6 +16,19 @@ spring:
         multiplier: 1.1
       request-connect-timeout: 5000
       request-read-timeout: 10000
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: placeholder
+            client-secret: placeholder
+          kakao:
+            client-id: placeholder
+            client-secret: placeholder
+          naver:
+            client-id: placeholder
+            client-secret: placeholder
 
 management:
   endpoints:
