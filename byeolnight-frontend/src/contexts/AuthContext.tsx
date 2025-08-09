@@ -28,51 +28,14 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 쿠키에서 토큰 존재 여부 확인
-  const hasAuthCookie = () => {
-    try {
-      console.log('🍪 전체 쿠키 내용:', document.cookie)
-      console.log('🍪 쿠키 길이:', document.cookie.length)
-      
-      const cookies = document.cookie.split(';');
-      console.log('🍪 분리된 쿠키들:', cookies)
-      
-      const accessTokenCookie = cookies.find(cookie => 
-        cookie.trim().startsWith('accessToken='));
-      
-      const hasToken = accessTokenCookie && 
-        accessTokenCookie.split('=')[1] && 
-        accessTokenCookie.split('=')[1].trim() !== '';
-      
-      console.log('🍪 쿠키 토큰 확인:', { 
-        cookie: document.cookie, 
-        accessTokenCookie,
-        hasToken 
-      });
-      return !!hasToken;
-    } catch (error) {
-      console.error('쿠키 확인 실패:', error);
-      return false;
-    }
-  };
-
   const fetchMyInfo = async () => {
-    console.log('🔍 fetchMyInfo 시작 - HttpOnly 쿠키 기반 요청');
-    
-    // HttpOnly 쿠키는 JavaScript에서 읽을 수 없으므로 바로 API 요청
-
     try {
-      console.log('🌐 내 정보 조회 시도 - 쿠키 기반 인증');
-      
       const res = await axios.get('/member/users/me');
-      console.log('내 정보 응답 성공:', res.data);
       const userData = res.data?.success ? res.data.data : null;
       
       if (!userData) {
@@ -89,169 +52,94 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
         }
       } catch (certErr) {
-        console.log('대표 인증서 조회 실패 (정상)', certErr);
+        // 대표 인증서 조회 실패는 무시
       }
       
       setUser(userData);
-      console.log('사용자 정보 설정 성공 (인앱브라우저 호환):', userData.nickname);
       return true;
     } catch (err: any) {
-      // 401 오류는 비로그인 상태이므로 조용히 처리
       if (err?.response?.status === 401) {
-        console.log('비로그인 상태 - 사용자 정보 없음');
         setUser(null);
         return false;
       }
       
-      console.error('내 정보 조회 실패:', {
-        message: err?.message,
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        data: err?.response?.data
-      });
       setUser(null);
       return false;
     }
   };
 
-  // 토큰 갱신 함수
   const refreshToken = async (): Promise<boolean> => {
     try {
       const res = await axios.post('/auth/token/refresh');
-      console.log('토큰 갱신 응답:', res.data);
       
-      // 쿠키 기반이므로 별도 저장 불필요
       if (res.data?.success) {
-        console.log('토큰 갱신 성공 - 쿠키로 자동 저장됨');
-        
-        // 토큰 갱신 후 사용자 정보 가져오기
         await fetchMyInfo();
         return true;
       }
       return false;
     } catch (error) {
-      console.error('토큰 갱신 실패:', error);
       return false;
     }
   };
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
-    console.log('🚨 AuthContext login 함수 호출됨!', { email, rememberMe })
     try {
-      console.log('로그인 요청 시작 (인앱브라우저 호환):', { email, rememberMe });
-      
-      const loginData = {
-        email: email,
-        password: password
-      };
-      
-      console.log('로그인 요청 데이터:', JSON.stringify(loginData));
-      
+      const loginData = { email, password };
       const res = await axios.post('/auth/login', loginData);
-      
-      console.log('로그인 응답:', res.data);
 
       if (res.data?.success) {
-        console.log('로그인 성공 - 쿠키로 토큰 자동 저장됨');
-        
-        // 로그인 유지 옵션을 안전하게 저장 (인앱브라우저 호환)
         const safeSetRememberMe = (value: boolean) => {
           try {
             if (value) {
               localStorage.setItem('rememberMe', 'true');
-              sessionStorage.setItem('rememberMe', 'true'); // 백업
+              sessionStorage.setItem('rememberMe', 'true');
             } else {
               localStorage.removeItem('rememberMe');
               sessionStorage.removeItem('rememberMe');
             }
           } catch (storageError) {
-            console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
-            // 인앱브라우저에서는 기본적으로 로그인 유지 활성화
-            if (value) {
-              console.log('인앱브라우저 - 기본 로그인 유지 활성화');
-            }
+            // Storage 접근 실패 시 무시
           }
         };
         
         safeSetRememberMe(rememberMe);
         
-        // HttpOnly 쿠키로 토큰이 자동 저장됨
-        console.log('🍪 HttpOnly 쿠키로 토큰 자동 저장됨');
-
-        console.log('🚀 로그인 성공 - 사용자 정보 가져오기 시도');
-        
-        // 토큰 저장 후 잠시 대기
+        // 사용자 정보 조회 시도
         await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // 최대 3번 재시도
-        let userInfoSuccess = false;
-        for (let i = 0; i < 3; i++) {
-          console.log(`🔄 사용자 정보 조회 시도 ${i + 1}/3`);
-          userInfoSuccess = await fetchMyInfo();
-          
-          if (userInfoSuccess) {
-            console.log('✅ 사용자 정보 조회 성공');
-            break;
-          }
-          
-          if (i < 2) {
-            console.warn(`⚠️ 사용자 정보 조회 실패 - ${500 * (i + 1)}ms 후 재시도`);
-            await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
-          }
-        }
-        
-        console.log('✅ 로그인 완료 - 사용자 정보 조회:', userInfoSuccess ? '성공' : '실패');
+        await fetchMyInfo();
       } else {
         throw new Error(res.data?.message || 'Login failed');
       }
     } catch (err: any) {
-      console.error('로그인 에러 상세:', {
-        message: err?.message,
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        data: err?.response?.data
-      });
-      
-      // 서버에서 온 구체적인 에러 메시지 전달
       const errorMessage = err?.response?.data?.message || err?.message || 'Authentication failed';
       throw new Error(errorMessage);
     }
   };
 
   const logout = async () => {
-    console.log('🚪 로그아웃 함수 호출됨');
     try {
-      console.log('🌐 백엔드 로그아웃 API 호출 시작');
-      // 백엔드 로그아웃 API 호출
-      const response = await axios.post('/auth/logout');
-      console.log('✅ 로그아웃 API 응답:', response.data);
+      await axios.post('/auth/logout');
     } catch (error) {
-      console.error('❌ 로그아웃 API 호출 실패:', error);
+      // 로그아웃 API 실패는 무시
     } finally {
-      console.log('🧹 로컬 상태 정리 시작');
-      // 로컬 상태 정리
       try {
         localStorage.removeItem('rememberMe');
         sessionStorage.removeItem('rememberMe');
       } catch (storageError) {
-        console.warn('Storage 접근 실패:', storageError);
+        // Storage 접근 실패 시 무시
       }
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');
-      console.log('✅ 로그아웃 완료');
     }
   };
 
-  // 안전한 rememberMe 값 가져오기 (인앱브라우저 호환)
   const getSafeRememberMe = (): boolean => {
     try {
       const localStorage_value = localStorage.getItem('rememberMe');
       const sessionStorage_value = sessionStorage.getItem('rememberMe');
       return localStorage_value === 'true' || sessionStorage_value === 'true';
     } catch (storageError) {
-      console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
-      // 인앱브라우저에서는 기본적으로 로그인 유지 활성화
       return true;
     }
   };
@@ -259,33 +147,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('인증 상태 확인 (HttpOnly 쿠키 기반)');
-      
-      // HttpOnly 쿠키는 JavaScript에서 확인할 수 없으므로 바로 API 요청
-      const success = await fetchMyInfo();
-      
-      if (!success) {
-        console.log('사용자 정보 조회 실패 - 비로그인 상태');
-        setUser(null);
-      }
-      
+      await fetchMyInfo();
       setLoading(false);
     };
 
     initializeAuth();
   }, []);
 
-  // 주기적으로 토큰 갱신 (로그인 유지 옵션이 있는 경우)
+  // 주기적으로 토큰 갱신
   useEffect(() => {
     const rememberMe = getSafeRememberMe();
     
     if (user && rememberMe) {
-      // 25분마다 토큰 갱신 시도 (Access Token이 30분이므로)
       const interval = setInterval(async () => {
         try {
           await refreshToken();
         } catch (refreshError) {
-          console.log('주기적 토큰 갱신 실패:', refreshError);
+          // 토큰 갱신 실패 시 무시
         }
       }, 25 * 60 * 1000);
 
@@ -294,14 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const refreshUserInfo = async () => {
-    if (!hasAuthCookie()) {
-      console.log('토큰이 없어 사용자 정보 새로고침 생략');
-      setUser(null);
-      return;
-    }
-    console.log('사용자 정보 새로고침 시작');
-    const success = await fetchMyInfo();
-    console.log('사용자 정보 새로고침 결과:', success);
+    await fetchMyInfo();
   };
 
   return (

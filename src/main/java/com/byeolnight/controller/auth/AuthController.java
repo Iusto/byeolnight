@@ -62,6 +62,7 @@ public class AuthController {
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
             
             // Access Token도 HttpOnly 쿠키로 설정
+            log.info("🍪 secureCookie 값: {}", secureCookie);
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
                     .secure(secureCookie)
@@ -75,9 +76,7 @@ public class AuthController {
             
             ResponseCookie accessCookie = accessCookieBuilder.build();
 
-            // 토큰을 응답 본문에 명시적으로 포함 (중요: 프론트엔드에서 사용)
             TokenResponseDto tokenResponse = new TokenResponseDto(result.getAccessToken(), true);
-            log.info("로그인 성공: 토큰을 응답 본문에 포함 (길이: {})", result.getAccessToken().length());
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())

@@ -2,11 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-console.log('🚨🚨🚨 Login.tsx 파일 로드됨!')
-
 export default function Login() {
-  console.log('🚨🚨🚨 Login 컴포넌트 시작!')
-  
   const navigate = useNavigate()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
@@ -15,11 +11,9 @@ export default function Login() {
   const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('🚨🚨🚨 handleSubmit 호출됨!')
     e.preventDefault()
     
     if (!email || !password) {
-      console.log('🚨 이메일 또는 비밀번호 없음')
       return
     }
     
@@ -27,13 +21,9 @@ export default function Login() {
     setError('')
     
     try {
-      console.log('🚨 login 함수 호출 시작')
       await login(email, password, false)
-      console.log('🚨 login 함수 완료')
-      console.log('🍪 쿠키:', document.cookie)
       navigate('/', { replace: true })
     } catch (err: any) {
-      console.error('🚨 로그인 에러:', err)
       setError(err.message || '로그인 실패')
     } finally {
       setLoading(false)
@@ -71,7 +61,6 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            onClick={() => console.log('🚨 버튼 클릭됨!')}
             className="w-full py-2 rounded bg-purple-700 hover:bg-purple-800 text-white disabled:bg-gray-600"
           >
             {loading ? '로그인 중...' : '로그인'}

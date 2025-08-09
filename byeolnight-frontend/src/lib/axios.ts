@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-// 환경 변수 설정
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// API 기본 URL 설정
+// 개발: .env.local 파일 사용
+// 배포: 상대 경로 사용 (같은 도메인)
+const API_BASE_URL = import.meta.env.DEV 
+  ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080')
+  : '/api';
 const REQUEST_TIMEOUT = 30000;
 
 // Axios 인스턴스 생성
@@ -68,7 +72,6 @@ instance.interceptors.request.use(
     }
     
     // HttpOnly 쿠키는 브라우저가 자동으로 전송 (withCredentials: true)
-    console.log('🍪 요청 URL:', config.url, 'withCredentials:', config.withCredentials);
     
     return config;
   },
