@@ -36,12 +36,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 쿠키에서 토큰 존재 여부 확인
   const hasAuthCookie = () => {
     try {
-      const hasToken = document.cookie.includes('accessToken=');
+      const cookies = document.cookie.split(';');
+      const accessTokenCookie = cookies.find(cookie => 
+        cookie.trim().startsWith('accessToken='));
+      
+      const hasToken = accessTokenCookie && 
+        accessTokenCookie.split('=')[1] && 
+        accessTokenCookie.split('=')[1].trim() !== '';
+      
       console.log('🍪 쿠키 토큰 확인:', { 
         cookie: document.cookie, 
+        accessTokenCookie,
         hasToken 
       });
-      return hasToken;
+      return !!hasToken;
     } catch (error) {
       console.error('쿠키 확인 실패:', error);
       return false;
@@ -52,6 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 토큰이 없으면 요청하지 않음
     const cookieExists = hasAuthCookie();
     console.log('🔍 fetchMyInfo 시작 - 쿠키 존재:', cookieExists);
+    console.log('🍪 전체 쿠키:', document.cookie);
     
     if (!cookieExists) {
       console.log('❌ 토큰이 없어 사용자 정보 조회 생략');
@@ -168,25 +177,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // 토큰은 쿠키로 저장되므로 바로 사용자 정보 가져오기
         console.log('🚀 로그인 성공 - 사용자 정보 가져오기 시도');
         
-        // 잠시 대기 후 쿠키 설정 확인
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // 쿠키 설정을 위해 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 200));
         
-        let userInfoSuccess = await fetchMyInfo();
-        
-        if (!userInfoSuccess) {
-          console.warn('⚠️ 사용자 정보 조회 실패 - 재시도');
-          // 잠시 대기 후 재시도
-          await new Promise(resolve => setTimeout(resolve, 500));
+        // 최대 3번 재시도
+        let userInfoSuccess = false;
+        for (let i = 0; i < 3; i++) {
+          console.log(`🔄 사용자 정보 조회 시도 ${i + 1}/3`);
           userInfoSuccess = await fetchMyInfo();
-          console.log('🔄 재시도 결과:', userInfoSuccess);
+          
+          if (userInfoSuccess) {
+            console.log('✅ 사용자 정보 조회 성공');
+            break;
+          }
+          
+          if (i < 2) {
+            console.warn(`⚠️ 사용자 정보 조회 실패 - ${500 * (i + 1)}ms 후 재시도`);
+            await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+          }
         }
         
-        // 사용자 정보 설정이 실패한 경우에도 로그인은 성공으로 처리
-        if (!userInfoSuccess) {
-          console.warn('⚠️ 사용자 정보 설정 실패했지만 로그인은 성공');
-        }
-        
-        console.log('✅ 로그인 완료 - 사용자 상태:', user?.nickname || '정보 없음');
+        console.log('✅ 로그인 완료 - 사용자 정보 조회:', userInfoSuccess ? '성공' : '실패');
       } else {
         throw new Error(res.data?.message || 'Login failed');
       }

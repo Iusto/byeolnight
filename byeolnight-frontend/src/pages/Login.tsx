@@ -36,6 +36,7 @@ export default function Login() {
       console.log('🔑 로그인 시도 시작:', { email, rememberMe })
       await login(email, password, rememberMe)
       console.log('✅ 로그인 성공 - 홈페이지로 이동')
+      console.log('🍪 현재 쿠키:', document.cookie)
       setLoginSuccess(true)
       // 로그인 성공 시 즉시 홈페이지로 이동
       navigate('/', { replace: true })
