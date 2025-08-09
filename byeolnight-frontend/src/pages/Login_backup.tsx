@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-console.log('🚨🚨🚨 Login.tsx 파일 로드됨!')
+// 즉시 실행되는 로그
+console.log('🚨🚨🚨 NEW Login.tsx 파일 로드됨!')
 
 export default function Login() {
-  console.log('🚨🚨🚨 Login 컴포넌트 시작!')
+  console.log('🚨🚨🚨 NEW Login 컴포넌트 실행됨!')
   
   const navigate = useNavigate()
   const { login } = useAuth()

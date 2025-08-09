@@ -36,7 +36,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 쿠키에서 토큰 존재 여부 확인
   const hasAuthCookie = () => {
     try {
+      console.log('🍪 전체 쿠키 내용:', document.cookie)
+      console.log('🍪 쿠키 길이:', document.cookie.length)
+      
       const cookies = document.cookie.split(';');
+      console.log('🍪 분리된 쿠키들:', cookies)
+      
       const accessTokenCookie = cookies.find(cookie => 
         cookie.trim().startsWith('accessToken='));
       
