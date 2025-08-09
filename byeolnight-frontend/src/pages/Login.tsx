@@ -4,19 +4,24 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 
+console.log('🚨🚨🚨 Login.tsx 파일 로드됨!')
+
 export default function Login() {
-  console.log('🏠 Login 컴포넌트 렌더링됨')
-  
-  const navigate = useNavigate()
-  const { login, user } = useAuth()
-  const { t, i18n, ready } = useTranslation()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [loginSuccess, setLoginSuccess] = useState(false)
-  const [capsLockOn, setCapsLockOn] = useState(false)
+  try {
+    console.log('🚨🚨🚨 Login 컴포넌트 시작!')
+    
+    const navigate = useNavigate()
+    const { login, user } = useAuth()
+    const { t, i18n, ready } = useTranslation()
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [rememberMe, setRememberMe] = useState(false)
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [loginSuccess, setLoginSuccess] = useState(false)
+    const [capsLockOn, setCapsLockOn] = useState(false)
+    
+    console.log('🚨 상태 초기화 완료')
   
 
   
@@ -29,25 +34,41 @@ export default function Login() {
 
 
 
-  const handleLogin = async (e: React.FormEvent) => {
-    console.log('🚨 handleLogin 함수 호출됨!')
-    e.preventDefault()
-    console.log('🚨 preventDefault 완료')
-    setLoading(true)
-    console.log('🚨 setLoading(true) 완료')
-    setError('')
-    console.log('🚨 setError(\'\') 완료')
-
+  const handleLogin = (e: React.FormEvent) => {
     try {
-      console.log('🔑 로그인 시도 시작:', { email, rememberMe })
-      await login(email, password, rememberMe)
-      console.log('✅ 로그인 성공 - 홈페이지로 이동')
-      console.log('🍪 현재 쿠키:', document.cookie)
+      console.log('🚨🚨🚨 handleLogin 함수 호출됨!')
+      e.preventDefault()
+      console.log('🚨 preventDefault 완료')
+      
+      console.log('🚨 로그인 데이터:', { email, password: password ? '있음' : '없음', rememberMe })
+      
+      setLoading(true)
+      setError('')
+      
+      console.log('🚨 performLogin 호출 전')
+      performLogin()
+      console.log('🚨 performLogin 호출 후')
+    } catch (err) {
+      console.error('🚨 handleLogin 에러:', err)
+    }
+  }
+  
+  const performLogin = async () => {
+    try {
+      console.log('🔑 performLogin 시작')
+      console.log('🔑 login 함수 호출 전')
+      
+      const result = await login(email, password, rememberMe)
+      
+      console.log('✅ login 함수 완료:', result)
+      console.log('🍪 쿠키 확인:', document.cookie)
+      
       setLoginSuccess(true)
-      // 로그인 성공 시 즉시 홈페이지로 이동
+      console.log('🏠 navigate 호출 전')
       navigate('/', { replace: true })
+      console.log('🏠 navigate 호출 후')
     } catch (err: any) {
-      console.error('❌ 로그인 실패:', err)
+      console.error('❌ performLogin 에러:', err)
       let errorMessage = t('auth.login_default_error')
       
       const serverMessage = err.response?.data?.message || err.message
@@ -102,10 +123,7 @@ export default function Login() {
             </select>
           </div>
         </div>
-        <form onSubmit={(e) => {
-          console.log('🚨 form onSubmit 호출됨!')
-          handleLogin(e)
-        }} className="space-y-5">
+        <form onSubmit={handleLogin} className="space-y-5">
           <input
             type="email"
             placeholder={t('auth.email_placeholder')}
@@ -261,4 +279,8 @@ export default function Login() {
       </div>
     </div>
   )
+  } catch (componentError) {
+    console.error('🚨 Login 컴포넌트 에러:', componentError)
+    return <div>로그인 컴포넌트 로드 에러</div>
+  }
 }
