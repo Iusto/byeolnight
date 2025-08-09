@@ -41,6 +41,9 @@ public class AuthController {
     
     @Value("${app.security.cookie.domain:}")
     private String cookieDomain;
+    
+    @Value("${spring.profiles.active:unknown}")
+    private String activeProfile;
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
@@ -62,10 +65,15 @@ public class AuthController {
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
             
             // Access Token도 HttpOnly 쿠키로 설정
-            log.info("🍪 쿠키 설정 확인 - secureCookie: {}, cookieDomain: '{}'", secureCookie, cookieDomain);
+            log.info("🍪 Config 설정 확인 - profile: {}, secureCookie: {}, cookieDomain: '{}'", activeProfile, secureCookie, cookieDomain);
+            
+            // 임시로 HTTPS 환경에서는 강제로 secure=true 설정
+            boolean forceSecure = "prod".equals(activeProfile) || secureCookie;
+            log.info("🍪 강제 Secure 설정: {}", forceSecure);
+            
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
-                    .secure(secureCookie)
+                    .secure(forceSecure)
                     .sameSite("Lax")
                     .path("/")
                     .maxAge(1800);

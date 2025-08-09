@@ -7,7 +7,7 @@
 !.env.*.template
 application-production.yml
 application-staging.yml
-
+.eslintrc.yml
 # 운영 환경 설정 파일 (새로 추가)
 .env.prod
 .env.staging
