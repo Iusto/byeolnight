@@ -65,7 +65,7 @@ public class AuthController {
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
                     .secure(secureCookie)
-                    .sameSite("None")
+                    .sameSite("Lax")
                     .path("/")
                     .maxAge(1800);
             
@@ -142,7 +142,7 @@ public class AuthController {
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", newAccessToken)
                     .httpOnly(true)
                     .secure(secureCookie)
-                    .sameSite("None")
+                    .sameSite("Lax")
                     .path("/")
                     .maxAge(1800);
             
@@ -237,7 +237,7 @@ public class AuthController {
             ResponseCookie.ResponseCookieBuilder deleteAccessBuilder = ResponseCookie.from("accessToken", "")
                     .httpOnly(true)
                     .secure(secureCookie)
-                    .sameSite("None")
+                    .sameSite("Lax")
                     .path("/")
                     .maxAge(0);
             
@@ -269,7 +269,7 @@ public class AuthController {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .secure(secureCookie)
-                .sameSite("None")
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(validity / 1000);
         
