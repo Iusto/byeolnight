@@ -62,7 +62,7 @@ public class AuthController {
             ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
             
             // Access Token도 HttpOnly 쿠키로 설정
-            log.info("🍪 secureCookie 값: {}", secureCookie);
+            log.info("🍪 쿠키 설정 확인 - secureCookie: {}, cookieDomain: '{}'", secureCookie, cookieDomain);
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
                     .secure(secureCookie)
@@ -75,6 +75,7 @@ public class AuthController {
             }
             
             ResponseCookie accessCookie = accessCookieBuilder.build();
+            log.info("🍪 생성된 accessToken 쿠키: {}", accessCookie.toString());
 
             TokenResponseDto tokenResponse = new TokenResponseDto(result.getAccessToken(), true);
 
