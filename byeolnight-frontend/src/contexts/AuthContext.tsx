@@ -136,6 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
+    console.log('🚨 AuthContext login 함수 호출됨!', { email, rememberMe })
     try {
       console.log('로그인 요청 시작 (인앱브라우저 호환):', { email, rememberMe });
       

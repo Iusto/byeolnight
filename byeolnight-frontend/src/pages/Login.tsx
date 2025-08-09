@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function Login() {
+  console.log('🏠 Login 컴포넌트 렌더링됨')
+  
   const navigate = useNavigate()
   const { login, user } = useAuth()
   const { t, i18n, ready } = useTranslation()
@@ -28,9 +30,13 @@ export default function Login() {
 
 
   const handleLogin = async (e: React.FormEvent) => {
+    console.log('🚨 handleLogin 함수 호출됨!')
     e.preventDefault()
+    console.log('🚨 preventDefault 완료')
     setLoading(true)
+    console.log('🚨 setLoading(true) 완료')
     setError('')
+    console.log('🚨 setError(\'\') 완료')
 
     try {
       console.log('🔑 로그인 시도 시작:', { email, rememberMe })
@@ -96,7 +102,10 @@ export default function Login() {
             </select>
           </div>
         </div>
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={(e) => {
+          console.log('🚨 form onSubmit 호출됨!')
+          handleLogin(e)
+        }} className="space-y-5">
           <input
             type="email"
             placeholder={t('auth.email_placeholder')}
@@ -163,6 +172,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading || !email || !password}
+            onClick={() => console.log('🚨 로그인 버튼 클릭됨!')}
             className={`w-full py-2 rounded transition-colors ${
               loading || !email || !password
                 ? 'bg-gray-600 cursor-not-allowed text-gray-400'
