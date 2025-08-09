@@ -67,8 +67,8 @@ public class AuthController {
             // Access Token도 HttpOnly 쿠키로 설정
             log.info("🍪 Config 설정 확인 - profile: {}, secureCookie: {}, cookieDomain: '{}'", activeProfile, secureCookie, cookieDomain);
             
-            // 임시로 HTTPS 환경에서는 강제로 secure=true 설정
-            boolean forceSecure = "prod".equals(activeProfile) || secureCookie;
+            // HTTPS 환경에서는 강제로 secure=true 설정
+            boolean forceSecure = true; // 배포 환경에서는 항상 true
             log.info("🍪 강제 Secure 설정: {}", forceSecure);
             
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
@@ -149,7 +149,7 @@ public class AuthController {
             // Access Token도 HttpOnly 쿠키로 전달
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", newAccessToken)
                     .httpOnly(true)
-                    .secure(secureCookie)
+                    .secure(true) // 배포 환경에서는 항상 true
                     .sameSite("Lax")
                     .path("/")
                     .maxAge(1800);
@@ -237,14 +237,14 @@ public class AuthController {
             // 쿠키 삭제
             ResponseCookie.ResponseCookieBuilder deleteRefreshBuilder = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
-                    .secure(secureCookie)
+                    .secure(true) // 배포 환경에서는 항상 true
                     .sameSite("Lax")
                     .path("/")
                     .maxAge(0);
             
             ResponseCookie.ResponseCookieBuilder deleteAccessBuilder = ResponseCookie.from("accessToken", "")
                     .httpOnly(true)
-                    .secure(secureCookie)
+                    .secure(true) // 배포 환경에서는 항상 true
                     .sameSite("Lax")
                     .path("/")
                     .maxAge(0);
@@ -276,7 +276,7 @@ public class AuthController {
     private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(secureCookie)
+                .secure(true) // 배포 환경에서는 항상 true
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(validity / 1000);
