@@ -1,9 +1,11 @@
 package com.byeolnight.service.auth;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+@Component
 public class OAuth2UserInfoFactory {
 
     public static OAuth2UserInfo getOAuth2UserInfo(String registrationId, OAuth2User oAuth2User) {
