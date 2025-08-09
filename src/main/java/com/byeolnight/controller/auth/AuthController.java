@@ -65,7 +65,7 @@ public class AuthController {
             ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("accessToken", result.getAccessToken())
                     .httpOnly(true)
                     .secure(secureCookie)
-                    .sameSite("Lax")
+                    .sameSite("None")
                     .path("/")
                     .maxAge(1800);
             
@@ -269,7 +269,7 @@ public class AuthController {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .secure(secureCookie)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(validity / 1000);
         
