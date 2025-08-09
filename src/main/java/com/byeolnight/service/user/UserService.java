@@ -59,7 +59,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final NicknameChangeHistoryRepository nicknameChangeHistoryRepository;
-    private final PasswordEncoder passwordEncoder;
+
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final GmailEmailService gmailEmailService;
@@ -112,7 +112,7 @@ public class UserService {
 
             User user = User.builder()
                     .email(dto.getEmail())
-                    .password(passwordEncoder.encode(dto.getPassword()))
+                    .password(userSecurityService.encodePassword(dto.getPassword()))
                     .nickname(dto.getNickname())
 
                     // phone 필드 제거됨
@@ -210,7 +210,7 @@ public class UserService {
     public void updateProfile(Long userId, UpdateProfileRequestDto dto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+        if (!userSecurityService.matchesPassword(dto.getCurrentPassword(), user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         
@@ -254,7 +254,7 @@ public class UserService {
     public void withdraw(Long userId, String password, String reason) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if (!userSecurityService.matchesPassword(password, user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         user.withdraw(reason);
@@ -304,7 +304,7 @@ public class UserService {
      * 비밀번호 검증
      */
     public boolean checkPassword(String rawPassword, User user) {
-        return passwordEncoder.matches(rawPassword, user.getPassword());
+        return userSecurityService.matchesPassword(rawPassword, user.getPassword());
     }
 
     /**
@@ -323,7 +323,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
         // ✅ 비밀번호 변경
-        user.changePassword(passwordEncoder.encode(newPassword));
+        user.changePassword(userSecurityService.encodePassword(newPassword));
 
         // ✅ 계정 잠금 해제 및 실패 횟수 초기화
         user.loginSuccess();  // 내부적으로 failCount 초기화 + 잠금 해제 + 마지막 로그인 시각 갱신
@@ -413,7 +413,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         
         // 현재 비밀번호 확인
-        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+        if (!userSecurityService.matchesPassword(dto.getCurrentPassword(), user.getPassword())) {
             throw new PasswordMismatchException("현재 비밀번호가 일치하지 않습니다.");
         }
         
@@ -423,7 +423,7 @@ public class UserService {
         }
         
         // 비밀번호 변경
-        user.changePassword(passwordEncoder.encode(dto.getNewPassword()));
+        user.changePassword(userSecurityService.encodePassword(dto.getNewPassword()));
     }
 
     /**

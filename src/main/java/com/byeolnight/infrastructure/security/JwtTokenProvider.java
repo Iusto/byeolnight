@@ -25,7 +25,7 @@ public class JwtTokenProvider {
     private final Duration accessTokenExpiry = Duration.ofMinutes(30);
     private final Duration refreshTokenExpiry = Duration.ofDays(7);
 
-    public JwtTokenProvider(@Value("${jwt.secret}") String secret, StringRedisTemplate redisTemplate) {
+    public JwtTokenProvider(@Value("${app.security.jwt.secret}") String secret, StringRedisTemplate redisTemplate) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.redisTemplate = redisTemplate;
     }

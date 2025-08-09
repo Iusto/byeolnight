@@ -6,6 +6,7 @@ import com.byeolnight.repository.log.AuditSignupLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -20,6 +21,7 @@ public class UserSecurityService {
 
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final StringRedisTemplate redisTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.security.max-login-attempts:10}")
     private int maxLoginAttempts;
@@ -78,5 +80,19 @@ public class UserSecurityService {
      */
     public boolean isIpBlocked(String ipAddress) {
         return Boolean.TRUE.equals(redisTemplate.hasKey("blocked:ip:" + ipAddress));
+    }
+
+    /**
+     * 비밀번호 암호화
+     */
+    public String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
+    }
+
+    /**
+     * 비밀번호 일치 여부 확인
+     */
+    public boolean matchesPassword(String rawPassword, String encodedPassword) {
+        return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 }
