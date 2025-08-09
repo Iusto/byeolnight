@@ -14,15 +14,12 @@ export default function Signup() {
     email: '',
     emailCode: '',
     nickname: '',
-    phone: '',
-    phoneCode: '',
     password: '',
     confirmPassword: '',
   });
 
   const [error, setError] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
   const [nicknameChecked, setNicknameChecked] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
@@ -30,8 +27,6 @@ export default function Signup() {
   const [loading, setLoading] = useState({
     emailSend: false,
     emailVerify: false,
-    phoneSend: false,
-    phoneVerify: false,
     nicknameCheck: false,
     signup: false,
   });
@@ -44,19 +39,11 @@ export default function Signup() {
     }
   }, []); // 초기 마운트 시에만 실행
   const [emailTimer, setEmailTimer] = useState(0);
-  const [phoneTimer, setPhoneTimer] = useState(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // 휴대폰번호는 자동 하이픈 추가
-    if (name === 'phone') {
-      const formatted = formatPhoneNumber(value);
-      setForm((prev) => ({
-        ...prev,
-        [name]: formatted,
-      }));
-    } else if (name === 'nickname') {
+    if (name === 'nickname') {
       // 닉네임은 8자 제한만 적용
       if (value.length <= 8) {
         setForm((prev) => ({
@@ -74,7 +61,6 @@ export default function Signup() {
     // 입력 변경 시 관련 검증 상태 초기화
     if (name === 'nickname') setNicknameChecked(false);
     if (name === 'email') setEmailVerified(false);
-    if (name === 'phone') setPhoneVerified(false);
     
     setError('');
   };
@@ -91,19 +77,7 @@ export default function Signup() {
     return passwordRegex.test(password);
   };
 
-  // 휴대폰 번호 형식 검증 (010-1234-5678 형식)
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
-    return phoneRegex.test(phone);
-  };
 
-  // 전화번호 자동 하이픈 추가
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/[^0-9]/g, '');
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-  };
 
   // 닉네임 형식 검증 (2-8자)
   const validateNickname = (nickname: string) => {
@@ -161,56 +135,7 @@ export default function Signup() {
     }
   };
 
-  const sendPhoneCode = async () => {
-    if (!form.phone) {
-      setError('휴대폰 번호를 입력해주세요.');
-      return;
-    }
-    
-    if (!validatePhone(form.phone)) {
-      setError('올바른 휴대폰 번호 형식을 입력해주세요. (예: 010-1234-5678)');
-      return;
-    }
 
-    setLoading(prev => ({ ...prev, phoneSend: true }));
-    try {
-      await axios.post('/auth/phone/send', { phone: form.phone });
-      alert('휴대폰 인증 코드가 전송되었습니다.');
-      setError('');
-      setPhoneTimer(300); // 5분 타이머 시작
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '휴대폰 인증 코드 전송 실패');
-    } finally {
-      setLoading(prev => ({ ...prev, phoneSend: false }));
-    }
-  };
-
-  const verifyPhoneCode = async () => {
-    if (!form.phoneCode) {
-      setError('인증 코드를 입력해주세요.');
-      return;
-    }
-
-    setLoading(prev => ({ ...prev, phoneVerify: true }));
-    try {
-      const res = await axios.post('/auth/phone/verify', {
-        phone: form.phone,
-        code: form.phoneCode,
-      });
-      if (res.data.data === true) {
-        setPhoneVerified(true);
-        setPhoneTimer(0); // 인증 완료 시 타이머 중지
-        alert('전화번호 인증 성공');
-        setError('');
-      } else {
-        setError('전화번호 인증 코드가 유효하지 않습니다.');
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '전화번호 인증 실패');
-    } finally {
-      setLoading(prev => ({ ...prev, phoneVerify: false }));
-    }
-  };
 
   const checkNickname = async () => {
     if (!form.nickname) {
@@ -257,19 +182,7 @@ export default function Signup() {
     };
   }, [emailTimer]);
   
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (phoneTimer > 0) {
-      interval = setInterval(() => {
-        setPhoneTimer(prev => prev - 1);
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [phoneTimer]);
+
   
   // 시간 포맷 함수
   const formatTime = (seconds: number) => {
@@ -301,13 +214,7 @@ export default function Signup() {
       missingFields.push('닉네임 중복 확인을 해주세요');
     }
     
-    if (!form.phone) {
-      missingFields.push('휴대폰 번호를 입력해주세요');
-    } else if (!validatePhone(form.phone)) {
-      missingFields.push('올바른 휴대폰 번호 형식을 입력해주세요 (예: 010-1234-5678)');
-    } else if (!phoneVerified) {
-      missingFields.push('휴대폰 인증을 완료해주세요');
-    }
+
     
     if (!form.password) {
       missingFields.push('비밀번호를 입력해주세요');
@@ -448,62 +355,7 @@ export default function Signup() {
             {nicknameChecked && <p className="text-green-400 text-xs">✓ 사용 가능한 닉네임</p>}
           </div>
 
-          {/* 휴대폰 인증 */}
-          <div className="space-y-1">
-            <input 
-              type="tel" 
-              name="phone" 
-              placeholder="휴대폰 번호 (예: 010-1234-5678)" 
-              value={form.phone} 
-              onChange={handleChange} 
-              className="w-full px-4 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
-              required 
-            />
-            <p className="text-xs text-gray-400">* 휴대폰번호는 자동으로 하이픈이 추가됩니다</p>
-            <p className="text-xs text-green-400">🔒 입력하신 휴대폰번호는 암호화되어 안전하게 저장됩니다</p>
-            <div className="flex gap-2">
-              <button 
-                type="button" 
-                onClick={sendPhoneCode} 
-                disabled={loading.phoneSend || !form.phone || phoneVerified}
-                className={`w-20 py-1 rounded transition-colors text-xs ${
-                  loading.phoneSend || !form.phone || phoneVerified
-                    ? 'bg-gray-800 cursor-not-allowed text-gray-500'
-                    : 'bg-gray-600 hover:bg-gray-700 text-white'
-                }`}
-              >
-                {phoneVerified ? '완료' : loading.phoneSend ? '전송중' : '전송'}
-              </button>
-              <div className="flex-1 relative">
-                <input 
-                  type="text" 
-                  name="phoneCode" 
-                  placeholder="인증코드" 
-                  value={form.phoneCode} 
-                  onChange={handleChange} 
-                  className="w-full px-3 pr-16 py-2 rounded bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500" 
-                />
-                {phoneTimer > 0 && (
-                  <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-orange-400 font-mono">
-                    {formatTime(phoneTimer)}
-                  </span>
-                )}
-              </div>
-              <button 
-                type="button" 
-                onClick={verifyPhoneCode} 
-                disabled={loading.phoneVerify || !form.phoneCode}
-                className={`w-16 py-1 rounded transition-colors text-xs ${
-                  loading.phoneVerify || !form.phoneCode
-                    ? 'bg-blue-800 cursor-not-allowed text-gray-500'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {loading.phoneVerify ? '확인중' : '확인'}
-              </button>
-            </div>
-            {phoneVerified && <p className="text-green-400 text-xs">✓ 휴대폰 인증 완료</p>}
-          </div>
+
 
           {/* 비밀번호 */}
           <input 
