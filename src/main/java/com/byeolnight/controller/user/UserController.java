@@ -1,5 +1,6 @@
 package com.byeolnight.controller.user;
 
+import lombok.extern.slf4j.Slf4j;
 import com.byeolnight.service.user.UserService;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.dto.user.UpdateProfileRequestDto;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/member/users")
 @Tag(name = "👤 회원 API - 사용자", description = "사용자 프로필 및 계정 관리 API")
@@ -57,6 +59,13 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<CommonResponse<UserResponseDto>> getCurrentUser(
             @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        log.info("✅ /me API 호출됨 - 사용자: {}", user != null ? user.getEmail() : "null");
+        
+        if (user == null) {
+            log.error("❌ 인증된 사용자 정보가 없음");
+            return ResponseEntity.status(401).body(CommonResponse.fail("인증이 필요합니다."));
+        }
+        
         // 장착된 아이콘 정보 조회
         com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
         
@@ -71,7 +80,8 @@ public class UserController {
                 .equippedIconId(equippedIcon != null ? equippedIcon.getIconId() : null)
                 .equippedIconName(equippedIcon != null ? equippedIcon.getIconName() : null)
                 .build();
-                
+        
+        log.info("✅ 사용자 정보 응답 성공: {}", user.getNickname());
         return ResponseEntity.ok(CommonResponse.success(userResponse));
     }
 
