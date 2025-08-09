@@ -28,6 +28,8 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,11 +174,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
         
         safeSetRememberMe(rememberMe);
+        
+        // HttpOnly 쿠키로 토큰이 자동 저장됨
+        console.log('🍪 HttpOnly 쿠키로 토큰 자동 저장됨');
 
-        // 토큰은 쿠키로 저장되므로 바로 사용자 정보 가져오기
         console.log('🚀 로그인 성공 - 사용자 정보 가져오기 시도');
         
-        // 쿠키 설정을 위해 잠시 대기
+        // 토큰 저장 후 잠시 대기
         await new Promise(resolve => setTimeout(resolve, 200));
         
         // 최대 3번 재시도
@@ -225,12 +229,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('❌ 로그아웃 API 호출 실패:', error);
     } finally {
       console.log('🧹 로컬 상태 정리 시작');
-      // 로컬 상태 정리 (인앱브라우저 호환)
+      // 로컬 상태 정리
       try {
         localStorage.removeItem('rememberMe');
         sessionStorage.removeItem('rememberMe');
       } catch (storageError) {
-        console.warn('Storage 접근 실패 (인앱브라우저):', storageError);
+        console.warn('Storage 접근 실패:', storageError);
       }
       setUser(null);
       alert("로그아웃 되었습니다.");

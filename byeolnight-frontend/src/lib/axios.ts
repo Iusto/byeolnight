@@ -66,6 +66,10 @@ instance.interceptors.request.use(
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
+    
+    // HttpOnly 쿠키는 브라우저가 자동으로 전송 (withCredentials: true)
+    console.log('🍪 요청 URL:', config.url, 'withCredentials:', config.withCredentials);
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -100,6 +104,7 @@ instance.interceptors.response.use(
 
     try {
       await refreshToken();
+      // HttpOnly 쿠키로 새 토큰이 자동 저장됨
       processQueue(null);
       return instance(originalRequest);
     } catch (refreshError) {

@@ -74,14 +74,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String uri = request.getRequestURI();
-        String method = request.getMethod();
-
-        log.info("🔍 요청 URI: {} {}", method, uri);
 
         if (isWhitelisted(uri)) {
-            log.info("✅ 화이트리스트 경로, 인증 없이 통과");
-
-            // ✅ 토큰이 있더라도 화이트리스트는 무조건 통과
             filterChain.doFilter(request, response);
             return;
         }
