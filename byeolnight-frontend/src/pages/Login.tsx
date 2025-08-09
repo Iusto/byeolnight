@@ -33,9 +33,14 @@ export default function Login() {
     setError('')
 
     try {
+      console.log('🔑 로그인 시도 시작:', { email, rememberMe })
       await login(email, password, rememberMe)
+      console.log('✅ 로그인 성공 - 홈페이지로 이동')
       setLoginSuccess(true)
+      // 로그인 성공 시 즉시 홈페이지로 이동
+      navigate('/', { replace: true })
     } catch (err: any) {
+      console.error('❌ 로그인 실패:', err)
       let errorMessage = t('auth.login_default_error')
       
       const serverMessage = err.response?.data?.message || err.message

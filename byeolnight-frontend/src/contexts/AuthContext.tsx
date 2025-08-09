@@ -171,17 +171,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // 잠시 대기 후 쿠키 설정 확인
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const userInfoSuccess = await fetchMyInfo();
+        let userInfoSuccess = await fetchMyInfo();
         
         if (!userInfoSuccess) {
           console.warn('⚠️ 사용자 정보 조회 실패 - 재시도');
           // 잠시 대기 후 재시도
           await new Promise(resolve => setTimeout(resolve, 500));
-          const retrySuccess = await fetchMyInfo();
-          console.log('🔄 재시도 결과:', retrySuccess);
+          userInfoSuccess = await fetchMyInfo();
+          console.log('🔄 재시도 결과:', userInfoSuccess);
         }
         
-        console.log('✅ 로그인 완료 - 사용자 상태:', user?.nickname || '없음');
+        // 사용자 정보 설정이 실패한 경우에도 로그인은 성공으로 처리
+        if (!userInfoSuccess) {
+          console.warn('⚠️ 사용자 정보 설정 실패했지만 로그인은 성공');
+        }
+        
+        console.log('✅ 로그인 완료 - 사용자 상태:', user?.nickname || '정보 없음');
       } else {
         throw new Error(res.data?.message || 'Login failed');
       }
