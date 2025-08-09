@@ -63,7 +63,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return uri.contains("/health") || 
                uri.contains("/actuator") || 
                uri.contains("/favicon.ico") || 
-               uri.contains("/chat/ban-status");
+               uri.contains("/chat/ban-status") ||
+               uri.contains("/api/member/users/me") ||
+               uri.contains("/oauth2/authorization");
     }
 
     @Override

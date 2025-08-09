@@ -33,7 +33,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // 쿠키에서 토큰 존재 여부 확인
+  const hasAuthCookie = () => {
+    try {
+      return document.cookie.includes('accessToken=');
+    } catch {
+      return false;
+    }
+  };
+
   const fetchMyInfo = async () => {
+    // 토큰이 없으면 요청하지 않음
+    if (!hasAuthCookie()) {
+      console.log('토큰이 없어 사용자 정보 조회 생략');
+      setUser(null);
+      return false;
+    }
+
     try {
       console.log('내 정보 조회 시도 - 쿠키 기반 인증');
       
@@ -212,24 +228,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       const rememberMe = getSafeRememberMe();
       
-      console.log('인증 상태 확인 (쿠키 기반):', { rememberMe });
+      console.log('인증 상태 확인 (쿠키 기반):', { rememberMe, hasToken: hasAuthCookie() });
       
-      // 쿠키 확인 없이 바로 사용자 정보 조회 시도
-      console.log('사용자 정보 조회 시도');
-      const success = await fetchMyInfo();
-      
-      if (!success && rememberMe) {
-        console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
-        try {
-          const refreshSuccess = await refreshToken();
-          if (!refreshSuccess) {
-            console.log('토큰 갱신 실패 - 재시도');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await refreshToken();
+      // 토큰이 있을 때만 사용자 정보 조회
+      if (hasAuthCookie()) {
+        console.log('토큰 존재 - 사용자 정보 조회 시도');
+        const success = await fetchMyInfo();
+        
+        if (!success && rememberMe) {
+          console.log('사용자 정보 조회 실패, 토큰 갱신 시도');
+          try {
+            const refreshSuccess = await refreshToken();
+            if (!refreshSuccess) {
+              console.log('토큰 갱신 실패 - 재시도');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              await refreshToken();
+            }
+          } catch (refreshError) {
+            console.log('초기 토큰 갱신 실패 - 비로그인 상태로 유지');
           }
-        } catch (refreshError) {
-          console.log('초기 토큰 갱신 실패 - 비로그인 상태로 유지');
         }
+      } else {
+        console.log('토큰 없음 - 비로그인 상태');
+        setUser(null);
       }
       
       setLoading(false);
@@ -257,6 +278,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const refreshUserInfo = async () => {
+    if (!hasAuthCookie()) {
+      console.log('토큰이 없어 사용자 정보 새로고침 생략');
+      setUser(null);
+      return;
+    }
     console.log('사용자 정보 새로고침 시작');
     const success = await fetchMyInfo();
     console.log('사용자 정보 새로고침 결과:', success);
