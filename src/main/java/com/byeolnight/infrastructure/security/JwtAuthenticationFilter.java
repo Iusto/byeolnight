@@ -76,10 +76,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         String method = request.getMethod();
 
-        log.debug("🔍 요청 URI: {} {}", method, uri);
+        log.info("🔍 요청 URI: {} {}", method, uri);
 
         if (isWhitelisted(uri)) {
-            log.debug("✅ 화이트리스트 경로, 인증 없이 통과");
+            log.info("✅ 화이트리스트 경로, 인증 없이 통과");
 
             // ✅ 토큰이 있더라도 화이트리스트는 무조건 통과
             filterChain.doFilter(request, response);
@@ -90,14 +90,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = null;
         Cookie[] cookies = request.getCookies();
         
-        log.debug("🍪 쿠키 상태: {}", cookies != null ? cookies.length + "개 쿠키 있음" : "쿠키 없음");
+        log.info("🍪 쿠키 상태: {}", cookies != null ? cookies.length + "개 쿠키 있음" : "쿠키 없음");
         
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                log.debug("🍪 쿠키: {} = {}", cookie.getName(), cookie.getValue().length() > 10 ? cookie.getValue().substring(0, 10) + "..." : cookie.getValue());
-                if ("accessToken".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    log.debug("✅ accessToken 쿠키에서 발견: {}", token.substring(0, 10) + "...");
+                String cookieValue = cookie.getValue();
+                log.info("🍪 쿠키: {} = {}", cookie.getName(), 
+                    cookieValue != null && cookieValue.length() > 10 ? 
+                    cookieValue.substring(0, 10) + "..." : cookieValue);
+                
+                if ("accessToken".equals(cookie.getName()) && 
+                    cookieValue != null && !cookieValue.trim().isEmpty()) {
+                    token = cookieValue;
+                    log.info("✅ accessToken 쿠키에서 발견: {}", token.substring(0, 10) + "...");
                     break;
                 }
             }
@@ -106,10 +111,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 쿠키에서 토큰을 찾지 못한 경우, 헤더에서 추출 시도 (후방 호환성)
         if (token == null) {
             token = SecurityUtils.resolveToken(request);
-            log.debug("헤더에서 토큰 추출 시도: {}", token != null ? "성공" : "실패");
+            log.info("헤더에서 토큰 추출 시도: {}", token != null ? "성공" : "실패");
         }
         
-        log.debug("🪪 추출된 토큰: {}", token);
+        log.info("🪪 추출된 토큰: {}", token != null ? "존재 (길이: " + token.length() + ")" : "없음");
 
         if (token == null) {
             // 특정 경로는 로그 레벨 낮춤
@@ -142,14 +147,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-        log.debug("🔑 사용자 권한: {}", userDetails.getAuthorities());
+        log.info("🔑 사용자 권한: {}", userDetails.getAuthorities());
         
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
-        log.debug("✅ 인증 성공: {} (권한: {})", email, userDetails.getAuthorities());
+        log.info("✅ 인증 성공: {} (권한: {})", email, userDetails.getAuthorities());
 
         filterChain.doFilter(request, response);
     }

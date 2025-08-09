@@ -38,31 +38,31 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User createUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String provider) {
+        // OAuth2 사용자는 임시 닉네임으로 생성 (나중에 설정 필요)
+        String tempNickname = generateTempNickname();
+        
         User user = User.builder()
                 .email(userInfo.getEmail())
-                .nickname(null) // OAuth 사용자는 닉네임 없이 생성
+                .nickname(tempNickname)
                 .profileImageUrl(userInfo.getImageUrl())
                 .role(User.Role.USER)
                 .status(User.UserStatus.ACTIVE)
                 .emailVerified(true)
                 .level(1)
                 .points(0)
+                .nicknameChanged(false) // 닉네임 설정이 필요함을 표시
                 .build();
 
         return userRepository.save(user);
     }
 
-    private String generateNickname(String name) {
-        if (name == null || name.isEmpty()) {
-            return "사용자" + System.currentTimeMillis();
-        }
+    private String generateTempNickname() {
+        String baseNickname = "임시사용자";
+        String nickname = baseNickname + System.currentTimeMillis();
         
-        String baseNickname = name.length() > 10 ? name.substring(0, 10) : name;
-        String nickname = baseNickname;
-        int counter = 1;
-        
+        // 중복 체크 (매우 낮은 확률이지만)
         while (userRepository.existsByNickname(nickname)) {
-            nickname = baseNickname + counter++;
+            nickname = baseNickname + System.currentTimeMillis() + (int)(Math.random() * 1000);
         }
         
         return nickname;
