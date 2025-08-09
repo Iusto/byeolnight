@@ -36,22 +36,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 쿠키에서 토큰 존재 여부 확인
   const hasAuthCookie = () => {
     try {
-      return document.cookie.includes('accessToken=');
-    } catch {
+      const hasToken = document.cookie.includes('accessToken=');
+      console.log('🍪 쿠키 토큰 확인:', { 
+        cookie: document.cookie, 
+        hasToken 
+      });
+      return hasToken;
+    } catch (error) {
+      console.error('쿠키 확인 실패:', error);
       return false;
     }
   };
 
   const fetchMyInfo = async () => {
     // 토큰이 없으면 요청하지 않음
-    if (!hasAuthCookie()) {
-      console.log('토큰이 없어 사용자 정보 조회 생략');
+    const cookieExists = hasAuthCookie();
+    console.log('🔍 fetchMyInfo 시작 - 쿠키 존재:', cookieExists);
+    
+    if (!cookieExists) {
+      console.log('❌ 토큰이 없어 사용자 정보 조회 생략');
       setUser(null);
       return false;
     }
 
     try {
-      console.log('내 정보 조회 시도 - 쿠키 기반 인증');
+      console.log('🌐 내 정보 조회 시도 - 쿠키 기반 인증');
       
       const res = await axios.get('/member/users/me');
       console.log('내 정보 응답 성공:', res.data);
@@ -157,17 +166,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         safeSetRememberMe(rememberMe);
 
         // 토큰은 쿠키로 저장되므로 바로 사용자 정보 가져오기
-        console.log('로그인 성공 - 사용자 정보 가져오기 시도');
+        console.log('🚀 로그인 성공 - 사용자 정보 가져오기 시도');
+        
+        // 잠시 대기 후 쿠키 설정 확인
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const userInfoSuccess = await fetchMyInfo();
         
         if (!userInfoSuccess) {
-          console.warn('사용자 정보 조회 실패 - 재시도');
+          console.warn('⚠️ 사용자 정보 조회 실패 - 재시도');
           // 잠시 대기 후 재시도
           await new Promise(resolve => setTimeout(resolve, 500));
-          await fetchMyInfo();
+          const retrySuccess = await fetchMyInfo();
+          console.log('🔄 재시도 결과:', retrySuccess);
         }
         
-        console.log('로그인 완료');
+        console.log('✅ 로그인 완료 - 사용자 상태:', user?.nickname || '없음');
       } else {
         throw new Error(res.data?.message || 'Login failed');
       }
