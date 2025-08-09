@@ -16,13 +16,6 @@ spring:
     resources:
       static-locations: classpath:/static/
       add-mappings: true
-  security:
-    oauth2:
-      client:
-        registration: {}
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
 server:
   port: 8080
 # Swagger/OpenAPI 설정

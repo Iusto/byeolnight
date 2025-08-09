@@ -20,7 +20,6 @@ import com.byeolnight.service.auth.OAuth2AuthenticationFailureHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -31,7 +30,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -55,9 +53,6 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
-    
-    @Autowired(required = false)
-    private ClientRegistrationRepository clientRegistrationRepository;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -66,20 +61,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AuthWhitelist.PATHS).permitAll()
                         .anyRequest().authenticated()
-                );
-        
-        // OAuth2 설정이 있는 경우에만 OAuth2 로그인 활성화
-        if (clientRegistrationRepository != null) {
-            http.oauth2Login(oauth2 -> oauth2
-                    .userInfoEndpoint(userInfo -> userInfo
-                            .userService(customOAuth2UserService)
-                    )
-                    .successHandler(oAuth2AuthenticationSuccessHandler)
-                    .failureHandler(oAuth2AuthenticationFailureHandler)
-            );
-        }
-        
-        http.addFilterBefore(contentCachingFilter, UsernamePasswordAuthenticationFilter.class)
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService)
+                        )
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
+                )
+                .addFilterBefore(contentCachingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(nicknameRequiredFilter(), JwtAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
