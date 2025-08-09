@@ -33,6 +33,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // 세션 인증 상태 확인 함수
+  const waitForSessionAuth = async (): Promise<void> => {
+    const maxAttempts = 10;
+    const delay = 200;
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        // 간단한 API 요청으로 세션 상태 확인
+        const testResponse = await axios.get('/member/users/me');
+        if (testResponse.status === 200) {
+          return; // 세션 인증 성공
+        }
+      } catch (error: any) {
+        if (error?.response?.status !== 401) {
+          return; // 401이 아닌 다른 에러는 세션 문제가 아님
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    throw new Error('세션 인증 대기 시간 초과');
+  };
+
   const fetchMyInfo = async () => {
     try {
       const res = await axios.get('/member/users/me');
@@ -104,8 +128,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         safeSetRememberMe(rememberMe);
         
-        // 사용자 정보 조회 시도
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // 세션 인증 상태가 될 때까지 기다린 후 /me API 호출
+        await waitForSessionAuth();
         await fetchMyInfo();
       } else {
         throw new Error(res.data?.message || 'Login failed');
@@ -144,7 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // 초기 로딩 시 로그인 상태 확인
+  // 초기 로딩 시 로그인 상태 확인 (페이지 새로고침 시에만)
   useEffect(() => {
     const initializeAuth = async () => {
       await fetchMyInfo();

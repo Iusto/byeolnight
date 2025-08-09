@@ -133,14 +133,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String email = jwtTokenProvider.getEmail(token);
-        if (email == null) {
-            log.error("❌ 토큰에서 이메일 추출 실패");
+        String userId = jwtTokenProvider.getEmail(token); // 실제로는 userId 반환
+        if (userId == null) {
+            log.error("❌ 토큰에서 사용자 ID 추출 실패");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+        
+        log.debug("🔍 토큰에서 추출한 사용자 ID: {}", userId);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        UserDetails userDetails;
+        try {
+            userDetails = userDetailsService.loadUserByUsername(userId);
+        } catch (UsernameNotFoundException e) {
+            log.error("❌ 사용자 조회 실패: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         log.info("🔑 사용자 권한: {}", userDetails.getAuthorities());
         
         UsernamePasswordAuthenticationToken authToken =
@@ -148,7 +157,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
-        log.info("✅ 인증 성공: {} (권한: {})", email, userDetails.getAuthorities());
+        log.info("✅ 인증 성공: 사용자ID={} (권한: {})", userId, userDetails.getAuthorities());
 
         filterChain.doFilter(request, response);
     }
