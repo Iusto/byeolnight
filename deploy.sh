@@ -68,11 +68,13 @@ echo "현재 환경변수 상태:"
 echo "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:0:3}***"
 echo "REDIS_PASSWORD=${REDIS_PASSWORD:0:3}***"
 
-# 환경변수와 함께 Docker Compose 실행
-MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" REDIS_PASSWORD="$REDIS_PASSWORD" \
-docker compose build --no-cache && \
-MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" REDIS_PASSWORD="$REDIS_PASSWORD" \
-docker compose up -d
+# .env 파일 생성 (Docker Compose가 자동으로 읽음)
+cat > .env << EOF
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+REDIS_PASSWORD=${REDIS_PASSWORD}
+EOF
+
+docker compose build --no-cache && docker compose up -d
 
 echo "✅ 배포 완료! 로그 확인 중..."
 docker logs -f byeolnight-app-1
