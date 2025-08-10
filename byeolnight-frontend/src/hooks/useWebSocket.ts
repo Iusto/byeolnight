@@ -4,22 +4,26 @@ import SockJS from 'sockjs-client';
 
 export const useWebSocket = (onNotification?: (notification: any) => void) => {
   const clientRef = useRef<Client | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!onNotification) return;
 
-    try {
-      const client = new Client({
-        webSocketFactory: () => new SockJS('/ws'),
-        // HttpOnly 쿠키 환경에서는 쿠키가 자동으로 전송됨
-        connectHeaders: {},
-        onConnect: () => {
-          if (import.meta.env.DEV) {
-            console.log('WebSocket 연결 성공');
-          }
+    const connect = () => {
+      try {
+        const client = new Client({
+          webSocketFactory: () => new SockJS('/ws'),
+          connectHeaders: {},
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
           
-          // 연결 상태 확인 후 구독
-          if (client.connected) {
+          onConnect: () => {
+            if (import.meta.env.DEV) {
+              console.log('WebSocket 연결 성공');
+            }
+            
+            // 연결 성공 시 바로 구독
             client.subscribe('/user/queue/notifications', (message) => {
               try {
                 const notification = JSON.parse(message.body);
@@ -30,35 +34,51 @@ export const useWebSocket = (onNotification?: (notification: any) => void) => {
                 }
               }
             });
+          },
+          
+          onStompError: (frame) => {
+            if (import.meta.env.DEV) {
+              console.error('STOMP 오류:', frame);
+            }
+          },
+          
+          onWebSocketError: (error) => {
+            if (import.meta.env.DEV) {
+              console.error('WebSocket 오류:', error);
+            }
+          },
+          
+          onDisconnect: () => {
+            if (import.meta.env.DEV) {
+              console.log('WebSocket 연결 끊어짐');
+            }
+            
+            // 3초 후 재연결 시도
+            reconnectTimeoutRef.current = setTimeout(() => {
+              if (clientRef.current?.connected === false) {
+                connect();
+              }
+            }, 3000);
           }
-        },
-        onStompError: (frame) => {
-          if (import.meta.env.DEV) {
-            console.error('STOMP 오류:', frame);
-          }
-        },
-        onWebSocketError: (error) => {
-          if (import.meta.env.DEV) {
-            console.error('WebSocket 오류:', error);
-          }
-        },
-        onDisconnect: () => {
-          if (import.meta.env.DEV) {
-            console.log('WebSocket 연결 끊어짐');
-          }
+        });
+
+        clientRef.current = client;
+        client.activate();
+
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('WebSocket 초기화 오류:', error);
         }
-      });
-
-      clientRef.current = client;
-      client.activate();
-
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('WebSocket 초기화 오류:', error);
       }
-    }
+    };
+
+    connect();
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
       if (clientRef.current) {
         try {
           clientRef.current.deactivate();

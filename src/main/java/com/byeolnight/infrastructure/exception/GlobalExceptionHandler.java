@@ -141,6 +141,17 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * HTTP 메시지 변환 오류 처리 (Content-Type 불일치)
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotWritableException.class)
+    public ResponseEntity<CommonResponse<?>> handleHttpMessageNotWritable(org.springframework.http.converter.HttpMessageNotWritableException ex) {
+        log.warn("[HTTP 메시지 변환 오류] Content-Type: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .header("Content-Type", "application/json;charset=UTF-8")
+                .body(CommonResponse.fail("지원하지 않는 콘텐츠 타입입니다. application/json을 사용해주세요."));
+    }
+
+    /**
      * 그 외 알 수 없는 서버 에러
      */
     @ExceptionHandler(Exception.class)

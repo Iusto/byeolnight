@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
 
+                .addFilterBefore(contentTypeValidationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(nicknameRequiredFilter(), JwtAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
@@ -132,5 +133,10 @@ public class SecurityConfig {
     @Lazy
     public NicknameRequiredFilter nicknameRequiredFilter() {
         return new NicknameRequiredFilter();
+    }
+
+    @Bean
+    public ContentTypeValidationFilter contentTypeValidationFilter() {
+        return new ContentTypeValidationFilter();
     }
 }
