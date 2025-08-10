@@ -4,6 +4,8 @@
 # 환경 설정 파일
 byeolnight-local.yml
 byeolnight-prod.yml
+**/byeolnight-local.yml
+**/byeolnight-prod.yml
 
 # 인증서 및 키 파일
 *.key
@@ -27,6 +29,9 @@ config/secrets/
 # Config Repository (실제 설정값 포함)
 config-repo/
 !config-repo/configs/*.template
+# Config 파일들 개별 무시
+config-repo/configs/byeolnight-*.yml
+!config-repo/configs/byeolnight-*.template
 
 # 암호화 관련 임시 파일
 temp_encrypted.txt
