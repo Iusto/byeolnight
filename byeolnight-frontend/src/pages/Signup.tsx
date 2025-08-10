@@ -252,6 +252,23 @@ export default function Signup() {
     e.preventDefault();
     setError('');
 
+    // 이메일 인증 상태 재확인
+    if (emailVerified) {
+      try {
+        const res = await axios.get('/auth/email/status', {
+          params: { email: form.email }
+        });
+        if (!res.data.data) {
+          setEmailVerified(false);
+          setError('이메일 인증이 만료되었습니다. 다시 인증해주세요.');
+          return;
+        }
+      } catch (error) {
+        setError('이메일 인증 상태 확인에 실패했습니다.');
+        return;
+      }
+    }
+
     // 필수 입력 항목 검증
     const missingFields = [];
     
