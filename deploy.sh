@@ -20,7 +20,18 @@ docker compose down
 echo "⚙️ Config Server 시작..."
 docker compose up config-server -d
 echo "⏳ Config Server 준비 대기..."
-sleep 10
+sleep 15
+
+# Config Server 상태 확인
+echo "🔍 Config Server 상태 확인..."
+for i in {1..10}; do
+    if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health > /dev/null 2>&1; then
+        echo "✅ Config Server 준비 완료"
+        break
+    fi
+    echo "⏳ Config Server 대기 중... ($i/10)"
+    sleep 3
+done
 
 echo "🔑 Config Server에서 비밀번호 가져오기..."
 # 암호화된 값 가져오기

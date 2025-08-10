@@ -16,6 +16,12 @@ services:
       - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$$%^&*()
     volumes:
       - ./config-repo:/app/config-repo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - byeolnight-network
@@ -46,9 +52,12 @@ services:
   app:
     build: .
     depends_on:
-      - config-server
-      - mysql
-      - redis
+      config-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
