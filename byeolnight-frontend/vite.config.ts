@@ -21,7 +21,7 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false, // 디버깅을 위해 일시적으로 false
+        drop_console: true, // 운영 환경에서 console.log 제거
         drop_debugger: true
       }
     }

@@ -22,9 +22,7 @@ export default function NotificationDropdown() {
   // });
 
   useEffect(() => {
-    console.log('NotificationDropdown useEffect - user:', user);
     if (user) {
-      console.log('사용자 로그인 상태 확인됨, 알림 데이터 로드 시작');
       fetchUnreadCount();
       fetchAllNotifications();
       
@@ -32,8 +30,6 @@ export default function NotificationDropdown() {
       if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         Notification.requestPermission();
       }
-    } else {
-      console.log('사용자가 로그인하지 않음');
     }
   }, [user]);
 
@@ -50,65 +46,32 @@ export default function NotificationDropdown() {
 
   const fetchUnreadCount = async () => {
     try {
-      console.log('읽지 않은 알림 개수 조회 시작');
-      console.log('현재 토큰:', localStorage.getItem('accessToken') ? '존재함' : '없음');
       const count = await getUnreadCount();
-      console.log('읽지 않은 알림 개수:', count);
       setUnreadCount(count || 0);
     } catch (error) {
-      console.error('읽지 않은 알림 개수 조회 실패:', error);
-      console.error('에러 상세:', error.response?.data || error.message);
+      if (import.meta.env.DEV) {
+        console.error('읽지 않은 알림 개수 조회 실패:', error);
+      }
       setUnreadCount(0);
     }
   };
 
   const fetchAllNotifications = async () => {
     try {
-      console.log('전체 알림 목록 조회 시작');
       setLoading(true);
       const data = await getNotifications({ page: 0, size: 10 });
-      console.log('전체 알림 목록 응답:', data);
-      console.log('알림 데이터:', data.notifications);
       setNotifications(data.notifications || []);
     } catch (error) {
-      console.error('알림 조회 실패:', error);
+      if (import.meta.env.DEV) {
+        console.error('알림 조회 실패:', error);
+      }
       setNotifications([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 디버깅용 직접 API 테스트 함수
-  const testApiDirectly = async () => {
-    try {
-      console.log('=== 직접 API 테스트 시작 ===');
-      const token = localStorage.getItem('accessToken');
-      console.log('토큰 존재 여부:', !!token);
-      
-      const response = await fetch('/api/member/notifications/unread', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('응답 상태:', response.status);
-      console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
-      
-      const data = await response.json();
-      console.log('응답 데이터:', data);
-      
-      if (response.ok && data.success) {
-        setNotifications(data.data || []);
-        console.log('알림 데이터 설정 완료:', data.data?.length || 0, '개');
-      } else {
-        console.error('API 응답 실패:', data);
-      }
-    } catch (error) {
-      console.error('직접 API 테스트 실패:', error);
-    }
-  };
+
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
@@ -121,7 +84,9 @@ export default function NotificationDropdown() {
       }
       setIsOpen(false);
     } catch (error) {
-      console.error('알림 읽음 처리 실패:', error);
+      if (import.meta.env.DEV) {
+        console.error('알림 읽음 처리 실패:', error);
+      }
     }
   };
 
@@ -131,7 +96,9 @@ export default function NotificationDropdown() {
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
-      console.error('모든 알림 읽음 처리 실패:', error);
+      if (import.meta.env.DEV) {
+        console.error('모든 알림 읽음 처리 실패:', error);
+      }
     }
   };
 
@@ -146,7 +113,9 @@ export default function NotificationDropdown() {
         return notification && !notification.isRead ? Math.max(0, prev - 1) : prev;
       });
     } catch (error) {
-      console.error('알림 삭제 실패:', error);
+      if (import.meta.env.DEV) {
+        console.error('알림 삭제 실패:', error);
+      }
     }
   };
 
@@ -168,10 +137,8 @@ export default function NotificationDropdown() {
       {/* 알림 버튼 */}
       <button
         onClick={() => {
-          console.log('🔔 버튼 클릭됨, isOpen:', !isOpen);
           setIsOpen(!isOpen);
           if (!isOpen) {
-            console.log('드롭다운 열림, 알림 데이터 새로고침');
             fetchUnreadCount();
             fetchAllNotifications();
           }

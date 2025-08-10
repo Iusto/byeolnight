@@ -222,6 +222,13 @@ public class S3Service {
                     .count();
 
             return (int) orphanCount;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 403) {
+                log.warn("S3 ListBucket 권한 부족 - IAM 정책 확인 필요: {}", e.getMessage());
+                return -1; // 권한 부족을 나타내는 특별한 값
+            }
+            log.error("고아 이미지 개수 조회 실패", e);
+            return 0;
         } catch (Exception e) {
             log.error("고아 이미지 개수 조회 실패", e);
             return 0;

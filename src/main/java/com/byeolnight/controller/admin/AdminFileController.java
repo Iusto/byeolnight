@@ -30,6 +30,10 @@ public class AdminFileController {
         
         int orphanCount = s3Service.getOrphanImageCount();
         
+        if (orphanCount == -1) {
+            return CommonResponse.error("S3 ListBucket 권한이 부족합니다. IAM 정책을 확인해주세요.");
+        }
+        
         return CommonResponse.success(orphanCount, 
             orphanCount + "개의 오래된 파일이 있습니다.");
     }
