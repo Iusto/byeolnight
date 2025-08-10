@@ -24,9 +24,24 @@ echo "⏳ Config Server 준비 대기..."
 sleep 10
 
 echo "🔑 Config Server에서 비밀번호 가져오기..."
+# 암호화된 값 가져오기
 CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod)
-export MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."spring.datasource.password"')
-export REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."spring.data.redis.password"')
+MYSQL_ENCRYPTED=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."spring.datasource.password"')
+REDIS_ENCRYPTED=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."spring.data.redis.password"')
+
+# 암호화된 값 복호화
+echo "🔓 비밀번호 복호화 중..."
+export MYSQL_ROOT_PASSWORD=$(curl -s -u config-admin:config-secret-2024 -X POST \
+  -H "Content-Type: text/plain" \
+  -d "$MYSQL_ENCRYPTED" \
+  http://localhost:8888/decrypt)
+  
+export REDIS_PASSWORD=$(curl -s -u config-admin:config-secret-2024 -X POST \
+  -H "Content-Type: text/plain" \
+  -d "$REDIS_ENCRYPTED" \
+  http://localhost:8888/decrypt)
+
+echo "✅ 비밀번호 복호화 완료"
 
 # 4. 전체 서비스 빌드 및 배포
 echo "🏗️ 서비스 빌드 및 배포..."
