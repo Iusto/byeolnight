@@ -69,7 +69,7 @@ services:
   mysql:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: byeolnight
       TZ: Asia/Seoul
     command: >
@@ -95,7 +95,7 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    command: sh -c 'redis-server --requirepass "${REDIS_PASSWORD}" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    command: sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
     restart: unless-stopped
     networks:
       - byeolnight-network
