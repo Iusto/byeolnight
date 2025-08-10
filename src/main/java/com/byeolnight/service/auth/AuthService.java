@@ -8,6 +8,8 @@ import com.byeolnight.repository.log.AuditSignupLogRepository;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
+import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.user.UserSecurityService;
 import com.byeolnight.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,13 +32,11 @@ public class AuthService {
 
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final RedisSessionService redisSessionService;
     private final AuditLoginLogRepository auditLoginLogRepository;
     private final AuditSignupLogRepository auditSignupLogRepository;
-    private final com.byeolnight.service.user.UserSecurityService userSecurityService;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final UserSecurityService userSecurityService;
+    private final CertificateService certificateService;
     private final PasswordEncoder passwordEncoder;
-    private final OAuth2UserInfoFactory oAuth2UserInfoFactory;
 
     /**
      * 로그인 인증 처리
@@ -69,7 +69,7 @@ public class AuthService {
 
     private void validateIpNotBlocked(String ip) {
         if (userSecurityService.isIpBlocked(ip)) {
-            // log.warn("🚫 차단된 IP 로그인 시도: {}", ip);
+            log.warn("🚫 차단된 IP 로그인 시도: {}", ip);
             throw new SecurityException("🚫 해당 IP는 비정상적인 로그인 시도(15회 이상)로 인해 1시간 차단되었습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
@@ -78,7 +78,6 @@ public class AuthService {
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> {
                     auditSignupLogRepository.save(AuditSignupLog.failure(email, ip, "존재하지 않는 이메일"));
-                    // log.info("로그인 시도 실패: 존재하지 않는 이메일 - {}", email);
                     return new BadCredentialsException("존재하지 않는 아이디입니다.");
                 });
 
