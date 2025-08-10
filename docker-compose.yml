@@ -13,7 +13,7 @@ services:
       - SPRING_SECURITY_USER_NAME=config-admin
       - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/config-repo/configs/
-      - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$$%^&*()
+      - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$%^&*()
     volumes:
       - ./config-repo:/app/config-repo
     healthcheck:
