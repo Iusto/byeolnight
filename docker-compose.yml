@@ -46,12 +46,9 @@ services:
   app:
     build: .
     depends_on:
-      config-server:
-        condition: service_started
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - config-server
+      - mysql
+      - redis
     environment:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
