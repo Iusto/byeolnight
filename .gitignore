@@ -1,0 +1,269 @@
+# ========================================
+# 🔒 보안 관련 파일 (절대 업로드 금지)
+# ========================================
+# 환경 설정 파일
+byeolnight-local.yml
+byeolnight-prod.yml
+
+# 인증서 및 키 파일
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.truststore
+*.crt
+*.csr
+
+# AWS 및 클라우드 자격증명
+.aws/
+aws-credentials
+aws-exports.js
+
+# 민감한 설정 디렉토리
+secrets/
+config/secrets/
+
+# Config Repository (실제 설정값 포함)
+config-repo/
+!config-repo/configs/*.template
+
+# 암호화 관련 임시 파일
+temp_encrypted.txt
+encrypted_values.txt
+
+# ========================================
+# 🏗️ 빌드 및 컴파일 결과물
+# ========================================
+# Java/Spring Boot
+build/
+target/
+out/
+*.jar
+*.war
+*.ear
+*.class
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# Node.js/React
+node_modules/
+dist/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# ========================================
+# 📝 로그 및 임시 파일
+# ========================================
+logs/
+log/
+*.log
+*.log.*
+temp/
+tmp/
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# 패키지 관리자 로그
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ========================================
+# 💾 데이터베이스 관련
+# ========================================
+*.db
+*.sqlite*
+*.h2.db
+data/
+database/
+*.sql
+!schema.sql
+!init.sql
+
+# ========================================
+# 🖥️ 운영체제 관련
+# ========================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================================
+# 🛠️ IDE 및 에디터
+# ========================================
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+.netrwhist
+
+# ========================================
+# 📦 패키지 관리자
+# ========================================
+# Yarn
+yarn.lock
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ========================================
+# ☁️ 배포 및 인프라
+# ========================================
+# Docker
+docker-compose.override.yml
+# docker-compose.local.yml은 개발용이므로 포함 가능
+
+# Docker 이미지 파일
+*.tar.gz
+*.tar
+backend.tar.gz
+config-server.tar.gz
+frontend.tar.gz
+
+# Terraform
+*.tfstate*
+.terraform/
+.terraform.lock.hcl
+
+# SSL 인증서
+ssl/
+certs/
+nginx/ssl/
+/etc/letsencrypt/
+/var/www/certbot/
+
+# 배포 관련
+deploy/.env
+deploy/*production*
+deploy/*staging*
+deploy/secrets/
+deploy/logs/
+deploy*.log
+
+# ========================================
+# 🧪 테스트 관련
+# ========================================
+coverage/
+.nyc_output/
+.coverage
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+junit.xml
+test-results/
+
+# ========================================
+# 🔧 프로젝트 특화 설정
+# ========================================
+# Config Server 관련
+config-server/build/
+encrypt-values.md
+config-server-test.md
+
+# 배포 스크립트 실행 결과
+deploy-*.log
+hotfix-*.log
+
+# 스크립트 임시 파일
+scripts/*.log
+scripts/temp_*
+
+# 개발 임시 파일
+*.md.tmp
+*-analysis.md
+*-summary.md
+*-retrospective.md
+start-*.bat
+daily_work.txt
+
+# AI 도구
+.amazonq/
+.cursor/
+
+# ========================================
+# 🗂️ 기타 파일
+# ========================================
+# Git 관련
+*.orig
+*.rej
+
+# 백업 파일
+*.bak
+*.backup
+*.old
+
+# 캐시
+.cache/
+*.cache
+
+# 압축 파일
+*.zip
+*.tar.gz
+*.rar
+*.7z

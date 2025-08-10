@@ -1,0 +1,113 @@
+name: CI - 테스트 및 코드 품질 검사
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  test:
+    name: 백엔드 테스트
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: byeolnight_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Gradle 캐시 설정
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: 테스트용 환경변수 설정
+      run: |
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_PORT=3306" >> $GITHUB_ENV
+        echo "DB_NAME=byeolnight_test" >> $GITHUB_ENV
+        echo "DB_USERNAME=root" >> $GITHUB_ENV
+        echo "DB_PASSWORD=test" >> $GITHUB_ENV
+        echo "REDIS_HOST=localhost" >> $GITHUB_ENV
+        echo "REDIS_PORT=6379" >> $GITHUB_ENV
+        echo "JWT_SECRET=test-secret-key-for-github-actions" >> $GITHUB_ENV
+
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
+    - name: 테스트 실행
+      run: ./gradlew test --info
+
+    - name: 테스트 결과 업로드
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: build/reports/tests/test/
+
+  frontend-test:
+    name: 프론트엔드 테스트
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: byeolnight-frontend/package-lock.json
+
+    - name: 의존성 설치
+      working-directory: ./byeolnight-frontend
+      run: |
+        rm -rf node_modules package-lock.json
+        npm install --legacy-peer-deps
+
+    - name: 린트 검사
+      working-directory: ./byeolnight-frontend
+      run: npm run lint || echo "⚠️ 린트 경고가 있지만 CI를 계속 진행합니다"
+
+    - name: 타입 체크
+      working-directory: ./byeolnight-frontend
+      run: npm run type-check
+
+    - name: 빌드 테스트
+      working-directory: ./byeolnight-frontend
+      run: npm run build

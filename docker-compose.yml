@@ -1,0 +1,121 @@
+# 운영 배포용
+# 사용법: docker-compose up -d
+# Config Server 중심 비밀번호 관리
+
+services:
+  config-server:
+    build:
+      context: ./config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_SECURITY_USER_NAME=config-admin
+      - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/config-repo/configs/
+      - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$$%^&*()
+    volumes:
+      - ./config-repo:/app/config-repo
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      - app
+      - frontend
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    profiles: ["cert"]
+
+  app:
+    build: .
+    depends_on:
+      config-server:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
+      - TZ=Asia/Seoul
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - CONFIG_USERNAME=config-admin
+      - CONFIG_PASSWORD=config-secret-2024
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - byeolnight-network
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: byeolnight
+      TZ: Asia/Seoul
+    command: >
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=128M
+      --max-connections=50
+      --innodb-flush-log-at-trx-commit=2
+      --default-time-zone='+09:00'
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: sh -c 'redis-server --requirepass "${REDIS_PASSWORD}" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
+  frontend:
+    build:
+      context: ./byeolnight-frontend
+      args:
+        VITE_API_BASE_URL: https://byeolnight.com/api
+        VITE_WS_URL: https://byeolnight.com/ws
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  byeolnight-network:
+    driver: bridge

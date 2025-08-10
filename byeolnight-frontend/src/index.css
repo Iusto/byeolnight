@@ -1,0 +1,418 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 스텔라 아이콘 애니메이션 */
+@keyframes stella-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes stella-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.5)); }
+  50% { filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8)); }
+}
+
+@keyframes stella-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes stella-bounce {
+  0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
+  40%, 43% { transform: translateY(-8px); }
+  70% { transform: translateY(-4px); }
+  90% { transform: translateY(-2px); }
+}
+
+@keyframes stella-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes stella-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes stella-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes stella-heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes stella-blink {
+  0%, 90% { opacity: 1; }
+  95% { opacity: 0.3; }
+}
+
+/* 애니메이션 클래스 */
+.animate-pulse { animation: stella-pulse 2s ease-in-out infinite; }
+.animate-glow { animation: stella-glow 2s ease-in-out infinite; }
+.animate-glow-slow { animation: stella-glow 3s ease-in-out infinite; }
+.animate-rotate { animation: stella-rotate 3s linear infinite; }
+.animate-spin-slow { animation: stella-rotate 4s linear infinite; }
+.animate-bounce { animation: stella-bounce 1s infinite; }
+.animate-bounce-slow { animation: stella-bounce 2s infinite; }
+.animate-shimmer { 
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: stella-shimmer 2s infinite;
+}
+.animate-gradient {
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  animation: stella-gradient 4s ease infinite;
+}
+.animate-float { animation: stella-float 3s ease-in-out infinite; }
+.animate-float-glow { 
+  animation: stella-float 3s ease-in-out infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-heartbeat { animation: stella-heartbeat 1.5s ease-in-out infinite; }
+.animate-blink { animation: stella-blink 3s infinite; }
+.animate-blink-fast { animation: stella-blink 1s infinite; }
+.animate-pulse-fast { animation: stella-pulse 1s ease-in-out infinite; }
+.animate-halo {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  animation: stella-glow 2s ease-in-out infinite;
+}
+.animate-wave {
+  animation: stella-float 2s ease-in-out infinite;
+}
+.animate-wave-slow {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-love {
+  animation: stella-heartbeat 1s ease-in-out infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-flicker {
+  animation: stella-blink 0.5s infinite;
+}
+.animate-heatwave {
+  animation: stella-shimmer 1.5s infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-petal {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-glitch {
+  animation: stella-blink 0.1s infinite;
+}
+.animate-pixelate {
+  image-rendering: pixelated;
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-icepulse {
+  filter: hue-rotate(180deg);
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-vortex {
+  animation: stella-rotate 2s linear infinite;
+}
+.animate-swing {
+  transform-origin: top center;
+  animation: stella-float 3s ease-in-out infinite;
+}
+.animate-shine {
+  animation: stella-shimmer 3s infinite;
+}
+.animate-dualcore {
+  animation: stella-pulse 1s ease-in-out infinite, stella-rotate 4s linear infinite;
+}
+.animate-trail {
+  animation: stella-shimmer 2s infinite;
+}
+.animate-implode {
+  animation: stella-heartbeat 2s ease-in-out infinite reverse;
+}
+.animate-snow {
+  animation: stella-float 5s ease-in-out infinite;
+}
+.animate-sway {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-flare {
+  animation: stella-glow 1s ease-in-out infinite;
+}
+.animate-fade {
+  animation: stella-pulse 3s ease-in-out infinite;
+}
+.animate-fire {
+  animation: stella-glow 1.5s ease-in-out infinite, stella-float 2s ease-in-out infinite;
+}
+.animate-box {
+  animation: stella-bounce 2s infinite;
+}
+.animate-orbit {
+  animation: stella-rotate 6s linear infinite;
+}
+.animate-focus {
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-rain {
+  animation: stella-float 1s ease-in-out infinite;
+}
+.animate-darkshine {
+  filter: brightness(0.7);
+  animation: stella-shimmer 3s infinite;
+}
+.animate-dimflare {
+  filter: brightness(0.8);
+  animation: stella-glow 2s ease-in-out infinite;
+}
+.animate-glitter {
+  animation: stella-shimmer 1s infinite;
+}
+.animate-drip {
+  animation: stella-float 6s ease-in-out infinite;
+}
+.animate-sparkle {
+  animation: stella-shimmer 1.5s infinite, stella-pulse 2s ease-in-out infinite;
+}
+.animate-eclipse {
+  animation: stella-pulse 4s ease-in-out infinite;
+}
+.animate-glow-fast {
+  animation: stella-glow 1s ease-in-out infinite;
+}
+
+/* SVG 아이콘 렌더링 최적화 */
+svg {
+  display: block !important;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* 아이콘 컨테이너 최적화 */
+.icon-container {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.icon-container svg {
+  flex-shrink: 0;
+  display: block !important;
+}
+
+/* 이모지 폰트 렌더링 최적화 */
+* {
+  font-display: swap;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 이모지 강제 렌더링 */
+* {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+}
+
+.emoji-icon {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+  color: inherit !important;
+  background: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Tailwind 기반 우주 테마 */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* 나머지 기존 Vite 스타일 */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+/* 버튼 기본 디자인 */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* 긴 텍스트 처리 전역 스타일 */
+.break-words {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* 게시글 내용 영역 전용 스타일 */
+.post-content {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.post-content * {
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.post-content img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.post-content pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-x: auto;
+}
+
+.post-content code {
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+}
+
+/* React Quill 다크 테마 커스터마이징 */
+.ql-toolbar {
+  background-color: #2a2e45 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 8px 8px 0 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  padding: 8px !important;
+}
+
+.ql-toolbar .ql-stroke {
+  fill: none;
+  stroke: #e2e8f0 !important;
+}
+
+.ql-toolbar .ql-fill {
+  fill: #e2e8f0 !important;
+  stroke: none;
+}
+
+.ql-toolbar .ql-picker-label {
+  color: #e2e8f0 !important;
+}
+
+.ql-toolbar .ql-picker-options {
+  background-color: #2a2e45 !important;
+  border: 1px solid #4a5568 !important;
+}
+
+.ql-toolbar .ql-picker-item:hover {
+  background-color: #4a5568 !important;
+  color: #ffffff !important;
+}
+
+.ql-container {
+  background-color: #1f2336 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 0 0 8px 8px !important;
+  color: #e2e8f0 !important;
+  display: block !important;
+  height: 350px !important;
+}
+
+.ql-editor {
+  color: #e2e8f0 !important;
+  min-height: 300px !important;
+  height: 100% !important;
+  display: block !important;
+  overflow-y: auto !important;
+}
+
+.ql-editor.ql-blank::before {
+  color: #a0aec0 !important;
+  font-style: italic;
+}
+
+.ql-editor h1, .ql-editor h2, .ql-editor h3 {
+  color: #ffffff !important;
+}
+
+.ql-editor strong {
+  color: #ffffff !important;
+}
+
+.ql-editor a {
+  color: #9f7aea !important;
+}
+
+/* ReactQuill 강제 표시 */
+.quill {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 400px !important;
+}
+
+/* 툴바 버튼 강제 표시 */
+.ql-formats {
+  display: inline-flex !important;
+  margin-right: 8px !important;
+  margin-bottom: 4px !important;
+}
+
+/* 밝은 테마 대응 */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

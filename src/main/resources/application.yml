@@ -1,0 +1,38 @@
+# Config Server에서 관리되는 설정들은 제거하고 기본 설정만 유지
+spring:
+  jackson:
+    time-zone: Asia/Seoul
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+  task:
+    scheduling:
+      enabled: true
+  jpa:
+    open-in-view: false
+  web:
+    resources:
+      static-locations: classpath:/static/
+      add-mappings: true
+server:
+  port: 8080
+# Swagger/OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+    doc-expansion: none
+    persist-authorization: true
+  show-actuator: false
