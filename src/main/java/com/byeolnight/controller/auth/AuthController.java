@@ -2,6 +2,7 @@ package com.byeolnight.controller.auth;
 
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.dto.user.TokenResponseDto;
+
 import com.byeolnight.entity.log.AuditRefreshTokenLog;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.log.AuditRefreshTokenLogRepository;
@@ -11,7 +12,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.auth.AuthService;
-import com.byeolnight.service.auth.SocialAccountCleanupService;
+
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.user.UserService;
@@ -46,7 +47,7 @@ public class AuthController {
     private final UserService userService;
     private final EmailAuthService emailAuthService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
-    private final SocialAccountCleanupService socialAccountCleanupService;
+
 
     @PostMapping("/login")
     @Operation(summary = "로그인")
@@ -306,20 +307,7 @@ public class AuthController {
         }
     }
     
-    @PostMapping("/social/recover")
-    @Operation(summary = "소셜 계정 복구 요청")
-    public ResponseEntity<CommonResponse<String>> recoverSocialAccount(@Valid @RequestBody EmailRequestDto dto) {
-        try {
-            boolean recovered = socialAccountCleanupService.requestAccountRecovery(dto.getEmail());
-            if (recovered) {
-                return ResponseEntity.ok(CommonResponse.success("계정이 복구되었습니다. 다시 로그인해주세요."));
-            } else {
-                return ResponseEntity.badRequest().body(CommonResponse.fail("복구 가능한 계정을 찾을 수 없습니다."));
-            }
-        } catch (Exception e) {
-            log.error("소셜 계정 복구 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("계정 복구에 실패했습니다."));
-        }
-    }
+
+
+
 }

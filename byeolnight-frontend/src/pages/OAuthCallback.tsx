@@ -33,7 +33,7 @@ export default function OAuthCallback() {
 
         if (token) {
           // 토큰이 있으면 사용자 정보 조회
-          const response = await axios.get('/auth/me')
+          const response = await axios.get('/member/users/me')
           if (response.data.success) {
             setUser(response.data.data)
             setStatus('success')
