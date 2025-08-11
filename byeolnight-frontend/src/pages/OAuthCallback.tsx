@@ -6,7 +6,7 @@ import axios from '../lib/axios'
 export default function OAuthCallback() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { setUser } = useAuth()
+  const { refreshUserInfo } = useAuth()
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'nickname_required'>('loading')
   const [error, setError] = useState('')
   const [nickname, setNickname] = useState('')
@@ -35,7 +35,7 @@ export default function OAuthCallback() {
           // 토큰이 있으면 사용자 정보 조회
           const response = await axios.get('/member/users/me')
           if (response.data.success) {
-            setUser(response.data.data)
+            await refreshUserInfo()
             setStatus('success')
             setTimeout(() => navigate('/'), 1500)
           } else {
@@ -52,7 +52,7 @@ export default function OAuthCallback() {
     }
 
     handleOAuthCallback()
-  }, [searchParams, navigate, setUser])
+  }, [searchParams, navigate, refreshUserInfo])
 
   const handleNicknameSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,7 +69,7 @@ export default function OAuthCallback() {
       })
 
       if (response.data.success) {
-        setUser(response.data.data)
+        await refreshUserInfo()
         setStatus('success')
         setTimeout(() => navigate('/'), 1500)
       } else {
