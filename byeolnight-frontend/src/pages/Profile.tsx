@@ -358,7 +358,7 @@ export default function Profile() {
               to="/me"
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors font-medium text-white"
             >
-              ✏️ 내 정보 수정
+              ✏️ 계정 관리
             </Link>
           </div>
 

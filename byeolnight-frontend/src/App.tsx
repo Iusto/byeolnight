@@ -6,18 +6,16 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
-import MePage from './pages/Me'
+import ProfilePage from './pages/ProfilePage'
 import Profile from './pages/Profile'
 import PostList from './pages/PostList'
 import PostCreate from './pages/PostCreate'
 import PostDetail from './pages/PostDetail'
 import PostEdit from './pages/PostEdit';
 import PasswordReset from './pages/PasswordReset';
-import ProfileEdit from './pages/ProfileEdit';
 import AdminUserPage from './pages/AdminUserPage';
 import Unauthorized from './pages/Unauthorized';
 import Certificates from './pages/Certificates';
-import PasswordChange from './pages/PasswordChange';
 import StellaShop from './pages/StellaShop';
 import PostReport from './pages/PostReport';
 import PointHistory from './pages/PointHistory';
@@ -56,9 +54,8 @@ function App() {
       {/* Layout이 적용되는 페이지들 */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/me" element={<MePage />} />
+        <Route path="/me" element={<ProfilePage />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/edit" element={<ProfileEdit />} />
         <Route path="/posts" element={<PostList />} />
         <Route path="/posts/new" element={<PostCreate />} />
         <Route path="/posts/write" element={<PostCreate />} />
@@ -73,7 +70,6 @@ function App() {
 
 
         <Route path="/certificates" element={<Certificates />} />
-        <Route path="/password-change" element={<PasswordChange />} />
         <Route path="/shop" element={<StellaShop />} />
         <Route path="/points" element={<PointHistory />} />
         <Route path="/suggestions" element={<SuggestionList />} />

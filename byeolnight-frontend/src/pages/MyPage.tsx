@@ -129,22 +129,16 @@ export default function MyPage() {
             {/* 계정 관리 버튼 */}
             <div className="flex justify-center gap-3">
               <Link 
-                to="/profile/edit"
+                to="/me"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition text-sm"
               >
-                프로필 수정
+                내 정보 관리
               </Link>
               <Link 
                 to="/shop"
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm"
               >
                 ⭐ 상점
-              </Link>
-              <Link 
-                to="/password-change"
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition text-sm"
-              >
-                비밀번호 변경
               </Link>
               <button
                 onClick={() => setShowWithdrawModal(true)}
