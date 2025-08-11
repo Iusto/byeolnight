@@ -120,14 +120,14 @@ public class EmailAuthService {
                     <h1 style="color: #ffd700; font-size: 28px; margin: 0; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);">
                         🌌 별 헤는 밤
                     </h1>
-                    <p style="color: #b8b8d4; font-size: 16px; margin: 10px 0 0 0;">우주의 신비를 함께 탐험하는 커뮤니티</p>
+                    <p style="color: #666666; font-size: 16px; margin: 10px 0 0 0; font-weight: 400;">우주의 신비를 함께 탐험하는 커뮤니티</p>
                 </div>
                 
                 <!-- 메인 콘텐츠 -->
                 <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 30px; border: 1px solid rgba(255, 215, 0, 0.2); backdrop-filter: blur(10px);">
                     <h2 style="color: #ffd700; font-size: 22px; margin: 0 0 20px 0; text-align: center;">이메일 인증 코드</h2>
                     
-                    <p style="color: #e0e0e0; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; text-align: center;">
+                    <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; text-align: center; font-weight: 500;">
                         안녕하세요! 별 헤는 밤에 오신 것을 환영합니다.<br>
                         아래 인증 코드를 입력하여 회원가입을 완료해주세요.
                     </p>
@@ -142,8 +142,8 @@ public class EmailAuthService {
                     </div>
                     
                     <div style="background: rgba(255, 215, 0, 0.1); border-radius: 8px; padding: 15px; margin: 20px 0; border-left: 4px solid #ffd700;">
-                        <p style="color: #e0e0e0; font-size: 14px; margin: 0; line-height: 1.5;">
-                            💡 <strong>안내사항</strong><br>
+                        <p style="color: #444444; font-size: 14px; margin: 0; line-height: 1.5; font-weight: 400;">
+                            💡 <strong style="color: #d4af37;">안내사항</strong><br>
                             • 인증 코드는 5분간 유효합니다<br>
                             • 대소문자를 구분하여 정확히 입력해주세요<br>
                             • 본인이 요청하지 않았다면 이 이메일을 무시해주세요
