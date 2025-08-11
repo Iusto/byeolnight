@@ -84,7 +84,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .role(User.Role.USER)
                 .status(User.UserStatus.ACTIVE)
                 .emailVerified(true)
-                .level(1)
                 .points(0)
                 .nicknameChanged(false)
                 .build();

@@ -116,7 +116,6 @@ public class UserService {
                     .status(User.UserStatus.ACTIVE)
                     .emailVerified(false)
                     .loginFailCount(0)
-                    .level(1)
                     .points(0)
                     .build();
             userRepository.save(user);

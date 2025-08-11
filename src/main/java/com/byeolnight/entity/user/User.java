@@ -15,7 +15,7 @@ import java.util.Objects;
 /**
  * 사용자 엔티티 클래스
  * - Spring Security의 UserDetails를 구현하여 인증/인가 기능 지원
- * - 다양한 상태 값, 보안 속성, 경험치/레벨 시스템, 탈퇴 등 도메인 요구사항을 포함함
+ * - 일반 로그인 및 소셜 로그인 지원
  */
 @Entity
 @Getter
@@ -104,16 +104,9 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean emailVerified = false;
 
-
-
     /** 계정 밴 사유 */
     @Column
     private String banReason;
-
-    /** 사용자 레벨 */
-    @Column(nullable = false)
-    @Builder.Default
-    private int level = 1;
 
     /** 사용자 포인트 (스텔라 아이콘 구매용) */
     @Column(nullable = false)
@@ -136,16 +129,12 @@ public class User implements UserDetails {
     @Column
     private LocalDateTime withdrawnAt;
 
-    public LocalDateTime getWithdrawnAt() {
-        return withdrawnAt;
-    }
-
     /** 계정 생성 시각 */
     @Column(nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // ========================== 도메인 메서드 ==========================
+
 
     // ======================== 🧑‍💼 관리자 기능 ========================
 
@@ -178,7 +167,7 @@ public class User implements UserDetails {
         this.banReason = null;
     }
 
-// ======================== 🙋 일반 유저 기능 ========================
+    // ======================== 사용자 기능 ========================
 
     /** 닉네임 업데이트 */
     public void updateNickname(String newNickname, LocalDateTime now) {
@@ -195,14 +184,10 @@ public class User implements UserDetails {
         }
     }
 
-
-
     /** 이메일 인증 완료 처리 */
     public void verifyEmail() {
         this.emailVerified = true;
     }
-
-
 
     /** 포인트 증가 */
     public void increasePoints(int value) {
@@ -246,7 +231,6 @@ public class User implements UserDetails {
     public void loginFail() {
         this.loginFailCount++;
         this.lastFailedLogin = LocalDateTime.now();
-        // 계정 잠금은 AuthService에서 별도로 처리
     }
 
     /** 회원 탈퇴 처리 */
@@ -262,7 +246,6 @@ public class User implements UserDetails {
     public void completelyRemovePersonalInfo() {
         this.nickname = "DELETED_" + this.id;
         this.email = "deleted_" + this.id + "@removed.local";
-
         this.withdrawalReason = "5년 경과로 인한 자동 삭제";
     }
 
@@ -290,10 +273,10 @@ public class User implements UserDetails {
     /** 관리자에 의한 닉네임 변경 제한 해제 */
     public void resetNicknameChangeRestriction() {
         this.nicknameChanged = false;
-        this.nicknameUpdatedAt = LocalDateTime.now().minusMonths(7); // 6개월 제한을 우회하기 위해 7개월 전으로 설정
+        this.nicknameUpdatedAt = LocalDateTime.now().minusMonths(7);
     }
 
-// ======================== 🔐 Spring Security 구현부 ========================
+    // ======================== Spring Security 구현부 ========================
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -325,7 +308,7 @@ public class User implements UserDetails {
         return status == UserStatus.ACTIVE;
     }
 
-// ======================== ⚖ equals & hashCode ========================
+    // ======================== equals & hashCode ========================
 
     @Override
     public boolean equals(Object o) {
