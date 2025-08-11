@@ -5,9 +5,10 @@ interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (password: string, reason: string) => void;
+  isSocialUser?: boolean;
 }
 
-export default function WithdrawModal({ isOpen, onClose, onConfirm }: WithdrawModalProps) {
+export default function WithdrawModal({ isOpen, onClose, onConfirm, isSocialUser = false }: WithdrawModalProps) {
   const [password, setPassword] = useState('');
   const [reason, setReason] = useState('');
   const [agreed, setAgreed] = useState(false);
@@ -16,7 +17,7 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm }: WithdrawMo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password.trim()) {
+    if (!isSocialUser && !password.trim()) {
       alert('비밀번호를 입력해주세요.');
       return;
     }
@@ -28,7 +29,7 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm }: WithdrawMo
       alert('탈퇴 안내사항에 동의해주세요.');
       return;
     }
-    onConfirm(password.trim(), reason.trim());
+    onConfirm(isSocialUser ? '' : password.trim(), reason.trim());
     handleClose();
   };
 
@@ -68,19 +69,29 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm }: WithdrawMo
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              현재 비밀번호 확인
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="현재 비밀번호를 입력하세요"
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-              required
-            />
-          </div>
+          {!isSocialUser && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                현재 비밀번호 확인
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="현재 비밀번호를 입력하세요"
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                required
+              />
+            </div>
+          )}
+          
+          {isSocialUser && (
+            <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+              <p className="text-sm text-blue-300">
+                🔗 소셜 로그인 사용자는 비밀번호 입력 없이 탈퇴가 가능합니다.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">

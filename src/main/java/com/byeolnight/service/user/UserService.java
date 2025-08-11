@@ -204,7 +204,9 @@ public class UserService {
     public void updateProfile(Long userId, UpdateProfileRequestDto dto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        if (!userSecurityService.matchesPassword(dto.getCurrentPassword(), user.getPassword())) {
+        
+        // 소셜 로그인 사용자는 비밀번호 검증 스킵
+        if (!user.isSocialUser() && !userSecurityService.matchesPassword(dto.getCurrentPassword(), user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         
@@ -248,7 +250,9 @@ public class UserService {
     public void withdraw(Long userId, String password, String reason) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        if (!userSecurityService.matchesPassword(password, user.getPassword())) {
+        
+        // 소셜 로그인 사용자는 비밀번호 검증 스킵
+        if (!user.isSocialUser() && !userSecurityService.matchesPassword(password, user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         user.withdraw(reason);
@@ -269,8 +273,12 @@ public class UserService {
      */
     @Transactional
     public void requestPasswordReset(String email) {
-        if (!userRepository.existsByEmail(email)) {
-            throw new EmailNotFoundException("존재하지 않는 이메일입니다.");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new EmailNotFoundException("존재하지 않는 이메일입니다."));
+        
+        // 소셜 로그인 사용자는 비밀번호 재설정 불가
+        if (user.isSocialUser()) {
+            throw new IllegalArgumentException("소셜 로그인 사용자는 비밀번호 재설정을 사용할 수 없습니다.");
         }
         String token = UUID.randomUUID().toString();
         PasswordResetToken resetToken = PasswordResetToken.create(email, token, Duration.ofMinutes(30));
@@ -298,6 +306,10 @@ public class UserService {
      * 비밀번호 검증
      */
     public boolean checkPassword(String rawPassword, User user) {
+        // 소셜 로그인 사용자는 비밀번호가 없으므로 항상 false 반환
+        if (user.isSocialUser()) {
+            return false;
+        }
         return userSecurityService.matchesPassword(rawPassword, user.getPassword());
     }
 
@@ -405,6 +417,11 @@ public class UserService {
     public void changePassword(Long userId, com.byeolnight.dto.user.PasswordChangeRequestDto dto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        
+        // 소셜 로그인 사용자는 비밀번호 변경 불가
+        if (user.isSocialUser()) {
+            throw new IllegalArgumentException("소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.");
+        }
         
         // 현재 비밀번호 확인
         if (!userSecurityService.matchesPassword(dto.getCurrentPassword(), user.getPassword())) {

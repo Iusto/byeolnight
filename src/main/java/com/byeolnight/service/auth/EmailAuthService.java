@@ -56,6 +56,14 @@ public class EmailAuthService {
         cacheService.delete("verified:email:" + email);  // 인증 상태 삭제
         log.info("[🧹 이메일 인증 데이터 전체 삭제] email={}", email);
     }
+    
+    /**
+     * 회원가입 완료 시에만 인증 상태 삭제 (인증 코드는 이미 삭제됨)
+     */
+    public void clearVerificationStatus(String email) {
+        cacheService.delete("verified:email:" + email);  // 인증 상태만 삭제
+        log.info("[🧹 이메일 인증 상태 삭제] email={}", email);
+    }
 
     public boolean verifyCode(String email, String code) {
         String key = "email:" + email;

@@ -45,6 +45,7 @@ public class AuthController {
     private final UserService userService;
     private final EmailAuthService emailAuthService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
+    private final SocialAccountCleanupService socialAccountCleanupService;
 
     @PostMapping("/login")
     @Operation(summary = "로그인")
@@ -219,7 +220,7 @@ public class AuthController {
             }
 
             userService.createUser(dto, request);
-            emailAuthService.clearAllEmailData(dto.getEmail());
+            emailAuthService.clearVerificationStatus(dto.getEmail());
             
             return ResponseEntity.ok(CommonResponse.success("회원가입이 완료되었습니다."));
         } catch (Exception e) {
@@ -301,6 +302,23 @@ public class AuthController {
             if (!headerToken.equals(accessToken)) {
                 blacklistToken(headerToken);
             }
+        }
+    }
+    
+    @PostMapping("/social/recover")
+    @Operation(summary = "소셜 계정 복구 요청")
+    public ResponseEntity<CommonResponse<String>> recoverSocialAccount(@Valid @RequestBody EmailRequestDto dto) {
+        try {
+            boolean recovered = socialAccountCleanupService.requestAccountRecovery(dto.getEmail());
+            if (recovered) {
+                return ResponseEntity.ok(CommonResponse.success("계정이 복구되었습니다. 다시 로그인해주세요."));
+            } else {
+                return ResponseEntity.badRequest().body(CommonResponse.fail("복구 가능한 계정을 찾을 수 없습니다."));
+            }
+        } catch (Exception e) {
+            log.error("소셜 계정 복구 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("계정 복구에 실패했습니다."));
         }
     }
 }

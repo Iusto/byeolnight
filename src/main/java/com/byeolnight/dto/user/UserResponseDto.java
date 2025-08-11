@@ -18,11 +18,12 @@ public class UserResponseDto {
     private final int points;
     private final Long equippedIconId;
     private final String equippedIconName;
+    private final boolean isSocialUser;
 
     @Builder
     public UserResponseDto(Long id, String email, String nickname, String role, 
                           boolean nicknameChanged, LocalDateTime nicknameUpdatedAt, int points,
-                          Long equippedIconId, String equippedIconName) {
+                          Long equippedIconId, String equippedIconName, boolean isSocialUser) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
@@ -32,6 +33,7 @@ public class UserResponseDto {
         this.points = points;
         this.equippedIconId = equippedIconId;
         this.equippedIconName = equippedIconName;
+        this.isSocialUser = isSocialUser;
     }
 
     public static UserResponseDto from(User user) {
@@ -39,11 +41,11 @@ public class UserResponseDto {
                 .id(user.getId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
-
                 .role(user.getRole().name())
                 .nicknameChanged(user.isNicknameChanged())
                 .nicknameUpdatedAt(user.getNicknameUpdatedAt())
                 .points(user.getPoints())
+                .isSocialUser(user.isSocialUser())
                 .build();
     }
 }

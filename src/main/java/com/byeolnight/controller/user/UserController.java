@@ -76,6 +76,7 @@ public class UserController {
                 .points(user.getPoints()) // 포인트 정보 추가
                 .equippedIconId(equippedIcon != null ? equippedIcon.getIconId() : null)
                 .equippedIconName(equippedIcon != null ? equippedIcon.getIconName() : null)
+                .isSocialUser(user.isSocialUser()) // 소셜 로그인 사용자 여부
                 .build();
         
         return ResponseEntity.ok(CommonResponse.success(userResponse));

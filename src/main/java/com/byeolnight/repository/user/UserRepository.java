@@ -2,6 +2,8 @@ package com.byeolnight.repository.user;
 
 import com.byeolnight.entity.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,4 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRole(User.Role role);
     
     List<User> findByStatusAndWithdrawnAtBefore(User.UserStatus status, LocalDateTime withdrawnAt);
+    
+    @Query("SELECT u FROM User u WHERE u.password IS NULL AND u.status = :status AND (u.lastLoginAt IS NULL OR u.lastLoginAt < :cutoffDate)")
+    List<User> findSocialUsersForCleanup(@Param("cutoffDate") LocalDateTime cutoffDate, @Param("status") User.UserStatus status);
 }

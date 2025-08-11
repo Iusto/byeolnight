@@ -97,6 +97,16 @@ public class AuthService {
     }
 
     private void validatePassword(String password, User user, String ip, String userAgent) {
+        // 소셜 로그인 사용자는 비밀번호 검증 스킵
+        if (user.isSocialUser()) {
+            String providerName = user.getSocialProviderName();
+            if (providerName != null) {
+                throw new BadCredentialsException("해당 이메일은 " + providerName + " 로그인으로 가입된 계정입니다. " + providerName + " 로그인을 이용해주세요.");
+            } else {
+                throw new BadCredentialsException("해당 이메일은 소셜 로그인으로 가입된 계정입니다. 네이버/구글/카카오 로그인을 이용해주세요.");
+            }
+        }
+        
         if (!userService.checkPassword(password, user)) {
             userService.increaseLoginFailCount(user, ip, userAgent);
             // log.info("로그인 시도 실패: 비밀번호 불일치 - {} (IP: {})", user.getEmail(), ip);
@@ -135,7 +145,7 @@ public class AuthService {
     private User createOAuthUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo) {
         User user = User.builder()
                 .email(userInfo.getEmail())
-                .password(passwordEncoder.encode("OAUTH_USER_" + System.currentTimeMillis()))
+                .password(null) // 소셜 로그인 사용자는 비밀번호 없음
                 .nickname("")
                 .profileImageUrl(userInfo.getImageUrl())
                 .role(User.Role.USER)

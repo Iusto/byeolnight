@@ -43,8 +43,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String email;
 
-    /** 비밀번호 (BCrypt 암호화 저장) */
-    @Column(nullable = false)
+    /** 비밀번호 (BCrypt 암호화 저장) - 소셜 로그인 사용자는 null 가능 */
+    @Column(nullable = true)
     private String password;
 
     /** 닉네임 */
@@ -55,6 +55,10 @@ public class User implements UserDetails {
     /** OAuth 프로필 이미지 URL */
     @Column
     private String profileImageUrl;
+    
+    /** 소셜 로그인 제공자 (google, naver, kakao) */
+    @Column
+    private String socialProvider;
 
     /** 사용자 권한 (USER 또는 ADMIN) */
     @Enumerated(EnumType.STRING)
@@ -260,6 +264,27 @@ public class User implements UserDetails {
         this.email = "deleted_" + this.id + "@removed.local";
 
         this.withdrawalReason = "5년 경과로 인한 자동 삭제";
+    }
+
+    /** 소셜 로그인 사용자인지 확인 */
+    public boolean isSocialUser() {
+        return this.password == null;
+    }
+    
+    /** 소셜 로그인 제공자 설정 */
+    public void setSocialProvider(String provider) {
+        this.socialProvider = provider;
+    }
+    
+    /** 소셜 로그인 제공자 이름 반환 */
+    public String getSocialProviderName() {
+        if (socialProvider == null) return null;
+        return switch (socialProvider.toLowerCase()) {
+            case "google" -> "구글";
+            case "naver" -> "네이버";
+            case "kakao" -> "카카오";
+            default -> socialProvider;
+        };
     }
 
     /** 관리자에 의한 닉네임 변경 제한 해제 */

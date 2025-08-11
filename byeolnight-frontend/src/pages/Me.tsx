@@ -46,12 +46,14 @@ export default function Me() {
             >
               내 정보 수정
             </Link>
-            <Link 
-              to="/password-change" 
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors font-medium"
-            >
-              비밀번호 변경
-            </Link>
+            {!user.isSocialUser && (
+              <Link 
+                to="/password-change" 
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors font-medium"
+              >
+                비밀번호 변경
+              </Link>
+            )}
           </div>
           <div className="text-center">
             <button
@@ -68,6 +70,7 @@ export default function Me() {
           isOpen={showWithdrawModal}
           onClose={() => setShowWithdrawModal(false)}
           onConfirm={handleWithdraw}
+          isSocialUser={user.isSocialUser}
         />
       </div>
     </div>
