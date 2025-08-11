@@ -82,9 +82,17 @@ public class UserService {
      */
     public Long register(UserSignUpRequestDto dto, String ipAddress) {
         try {
-            if (userRepository.existsByEmail(dto.getEmail())) {
-                auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 이메일"));
-                throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
+            // 이메일 중복 검사 (일반 + 소셜 계정 모두 포함)
+            Optional<User> existingUser = userRepository.findByEmail(dto.getEmail());
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+                if (user.isSocialUser()) {
+                    auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "소셜 계정 존재"));
+                    throw new DuplicateEmailException("해당 이메일로 소셜 계정(" + user.getSocialProviderName() + ")이 존재합니다. 소셜 로그인을 이용해주세요.");
+                } else {
+                    auditSignupLogRepository.save(AuditSignupLog.failure(dto.getEmail(), ipAddress, "중복된 이메일"));
+                    throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
+                }
             }
             // 닉네임 중복 검사
             if (isNicknameDuplicated(dto.getNickname())) {
@@ -146,7 +154,7 @@ public class UserService {
     }
 
     /**
-     * 닉네임 중복 검사
+     * 닉네임 중복 검사 (탈퇴/밴 계정 제외)
      */
     public boolean isNicknameDuplicated(String nickname) {
         if (nickname == null || nickname.trim().isEmpty()) {
@@ -154,9 +162,13 @@ public class UserService {
         }
         
         String trimmedNickname = nickname.trim();
-        boolean exists = userRepository.existsByNickname(trimmedNickname);
+        // 탈퇴/밴 계정의 닉네임은 중복 검사에서 제외
+        boolean exists = userRepository.existsByNicknameAndStatusNotIn(
+            trimmedNickname, 
+            List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)
+        );
         
-        log.info("[🔍 닉네임 중복 검사] 입력값: '{}', 정리된 값: '{}', 중복 여부: {}", nickname, trimmedNickname, exists);
+        log.info("[🔍 닉네임 중복 검사] 입력값: '{}', 정리된 값: '{}', 중복 여부: {} (탈퇴/밴 계정 제외)", nickname, trimmedNickname, exists);
         
         return exists;
     }

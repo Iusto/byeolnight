@@ -113,7 +113,13 @@ export default function Navbar() {
                   )}
                   
                   {/* 닉네임 (데스크톱만) */}
-                  <span className="hidden sm:block text-white font-medium text-xs">{user.nickname}</span>
+                  <Link 
+                    to="/profile" 
+                    className="hidden sm:block text-white font-medium text-xs hover:text-purple-300 transition-colors"
+                    title="프로필 보기"
+                  >
+                    {user.nickname}
+                  </Link>
                 </div>
 
                 {/* 액션 버튼들 */}

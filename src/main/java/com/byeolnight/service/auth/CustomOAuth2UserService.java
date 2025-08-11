@@ -37,8 +37,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             User user = userRepository.findByEmail(email)
                     .map(existingUser -> {
+                        // 일반 계정이면 소셜 로그인 거부
+                        if (!existingUser.isSocialUser()) {
+                            throw new OAuth2AuthenticationException("해당 이메일로 이미 일반 계정이 존재합니다. 일반 로그인을 이용해주세요.");
+                        }
+                        
+                        // 다른 소셜 플랫폼으로 가입된 계정이면 거부
+                        if (!registrationId.equals(existingUser.getSocialProvider())) {
+                            throw new OAuth2AuthenticationException("해당 이메일은 다른 소셜 플랫폼(" + existingUser.getSocialProviderName() + ")으로 가입되어 있습니다.");
+                        }
+                        
                         // 일시정지된 소셜 계정 복구
-                        if (existingUser.isSocialUser() && existingUser.getStatus() == User.UserStatus.SUSPENDED) {
+                        if (existingUser.getStatus() == User.UserStatus.SUSPENDED) {
                             existingUser.changeStatus(User.UserStatus.ACTIVE);
                             log.info("일시정지된 소셜 계정 복구: {}", email);
                         }
@@ -49,9 +59,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         boolean recovered = socialAccountCleanupService.recoverWithdrawnAccount(email);
                         if (recovered) {
                             log.info("30일 내 탈퇴한 소셜 계정 자동 복구: {}", email);
-                            // 복구된 계정 다시 조회
+                            // 복구된 계정 다시 조회 및 닉네임 충돌 방지
                             return userRepository.findByEmail(email)
-                                    .map(recoveredUser -> updateProfileImage(recoveredUser, userInfo.getImageUrl()))
+                                    .map(recoveredUser -> {
+                                        // 닉네임 충돌 방지
+                                        String baseNickname = userInfo.getEmail().split("@")[0];
+                                        String uniqueNickname = generateUniqueNickname(baseNickname);
+                                        recoveredUser.updateNickname(uniqueNickname, java.time.LocalDateTime.now());
+                                        recoveredUser.setSocialProvider(registrationId);
+                                        return updateProfileImage(recoveredUser, userInfo.getImageUrl());
+                                    })
                                     .orElseGet(() -> createUser(userInfo, registrationId));
                         }
                         return createUser(userInfo, registrationId);

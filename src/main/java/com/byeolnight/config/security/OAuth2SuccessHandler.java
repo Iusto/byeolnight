@@ -46,15 +46,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             
             String[] tokens = authService.loginUser(user, getClientInfo(request), getClientIP(request), response);
             
-            String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/auth/oauth-success")
-                .queryParam("accessToken", tokens[0])
+            String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth/callback")
+                .queryParam("token", "success")
                 .build().toUriString();
                 
             getRedirectStrategy().sendRedirect(request, response, targetUrl);
             
         } catch (Exception e) {
             log.error("OAuth2 login processing error", e);
-            getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/auth/login?error=oauth_error");
+            getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/oauth/callback?error=oauth_error");
         }
     }
 

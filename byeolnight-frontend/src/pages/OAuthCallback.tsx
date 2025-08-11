@@ -32,15 +32,9 @@ export default function OAuthCallback() {
         }
 
         if (token) {
-          // 토큰이 있으면 사용자 정보 조회
-          const response = await axios.get('/member/users/me')
-          if (response.data.success) {
-            await refreshUserInfo()
-            setStatus('success')
-            setTimeout(() => navigate('/'), 1500)
-          } else {
-            throw new Error('사용자 정보 조회 실패')
-          }
+          // 토큰이 있으면 AuthContext에서 자동으로 사용자 정보를 갱신하므로 대기만 함
+          setStatus('success')
+          setTimeout(() => navigate('/'), 1500)
         } else {
           throw new Error('인증 토큰이 없습니다')
         }
@@ -69,7 +63,6 @@ export default function OAuthCallback() {
       })
 
       if (response.data.success) {
-        await refreshUserInfo()
         setStatus('success')
         setTimeout(() => navigate('/'), 1500)
       } else {

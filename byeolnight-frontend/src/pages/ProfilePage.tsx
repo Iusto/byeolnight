@@ -259,7 +259,7 @@ export default function ProfilePage() {
           >
             ✏️ 프로필 수정
           </button>
-          {!user.isSocialUser && (
+          {!user?.socialProvider && (
             <button
               onClick={() => setActiveTab('password')}
               className={`flex-1 py-4 px-6 text-center transition-colors ${
@@ -411,7 +411,7 @@ export default function ProfilePage() {
           )}
 
           {/* 비밀번호 변경 탭 */}
-          {activeTab === 'password' && !user.isSocialUser && (
+          {activeTab === 'password' && !user?.socialProvider && (
             <div>
               <h2 className="text-2xl font-bold mb-6">비밀번호 변경</h2>
               
@@ -467,7 +467,7 @@ export default function ProfilePage() {
           isOpen={showWithdrawModal}
           onClose={() => setShowWithdrawModal(false)}
           onConfirm={handleWithdraw}
-          isSocialUser={user.isSocialUser}
+          isSocialUser={!!user?.socialProvider}
         />
       </div>
     </div>

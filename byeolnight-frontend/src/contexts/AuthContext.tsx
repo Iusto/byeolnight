@@ -30,17 +30,18 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const navigate = useNavigate();
 
-  // 세션 인증 상태 확인 함수
+  // 세션 인증 상태 확인 함수 (간단한 헬스체크만 수행)
   const waitForSessionAuth = async (): Promise<void> => {
     const maxAttempts = 10;
     const delay = 200;
     
     for (let i = 0; i < maxAttempts; i++) {
       try {
-        // 간단한 API 요청으로 세션 상태 확인
-        const testResponse = await axios.get('/member/users/me');
+        // 간단한 헬스체크 API로 세션 상태만 확인
+        const testResponse = await axios.get('/auth/check');
         if (testResponse.status === 200) {
           return; // 세션 인증 성공
         }
@@ -53,10 +54,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
     
-    throw new Error('세션 인증 대기 시간 초과');
+    // 헬스체크 실패 시에도 계속 진행 (fetchMyInfo에서 처리)
   };
 
   const fetchMyInfo = async () => {
+    if (isFetching) {
+      return false; // 이미 요청 중이면 중단
+    }
+    
+    setIsFetching(true);
     try {
       const res = await axios.get('/member/users/me');
       const userData = res.data?.success ? res.data.data : null;
@@ -88,6 +94,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       setUser(null);
       return false;
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -127,7 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         safeSetRememberMe(rememberMe);
         
-        // 세션 인증 상태가 될 때까지 기다린 후 /me API 호출
+        // 세션 준비 대기 후 사용자 정보 조회
         await waitForSessionAuth();
         await fetchMyInfo();
       } else {

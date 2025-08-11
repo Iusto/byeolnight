@@ -82,15 +82,39 @@ public class SocialAccountCleanupService {
      */
     @Transactional
     public boolean recoverWithdrawnAccount(String email) {
-        return userRepository.findByEmail(email)
-                .filter(user -> user.isSocialUser() && 
-                        user.getStatus() == User.UserStatus.WITHDRAWN &&
+        // 탈퇴된 이메일 형태에서 원본 이메일 추출
+        String originalEmail = email;
+        if (email.startsWith("withdrawn_") && email.endsWith("@byeolnight.local")) {
+            // withdrawn_123@byeolnight.local 형태에서 ID 추출하여 원본 계정 찾기
+            try {
+                String idStr = email.substring(10, email.indexOf("@"));
+                Long userId = Long.parseLong(idStr);
+                return userRepository.findById(userId)
+                        .filter(user -> user.getStatus() == User.UserStatus.WITHDRAWN &&
+                                user.getWithdrawnAt() != null &&
+                                user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)))
+                        .map(user -> {
+                            user.changeStatus(User.UserStatus.ACTIVE);
+                            user.clearWithdrawalInfo();
+                            // 원본 이메일로 복원하지 않고 새로운 소셜 로그인으로 처리
+                            log.info("소셜 계정 복구 성공: ID={}", userId);
+                            return true;
+                        })
+                        .orElse(false);
+            } catch (NumberFormatException e) {
+                log.warn("탈퇴 계정 ID 파싱 실패: {}", email);
+                return false;
+            }
+        }
+        
+        return userRepository.findByEmail(originalEmail)
+                .filter(user -> user.getStatus() == User.UserStatus.WITHDRAWN &&
                         user.getWithdrawnAt() != null &&
                         user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)))
                 .map(user -> {
                     user.changeStatus(User.UserStatus.ACTIVE);
                     user.clearWithdrawalInfo();
-                    log.info("소셜 계정 복구 성공: {}", email);
+                    log.info("소셜 계정 복구 성공: {}", originalEmail);
                     return true;
                 })
                 .orElse(false);

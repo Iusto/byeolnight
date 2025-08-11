@@ -312,6 +312,16 @@ public class AuthController {
         }
     }
     
+    @GetMapping("/check")
+    @Operation(summary = "인증 상태 확인")
+    public ResponseEntity<CommonResponse<String>> checkAuth(@AuthenticationPrincipal User user) {
+        if (user != null) {
+            return ResponseEntity.ok(CommonResponse.success("인증됨"));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(CommonResponse.fail("인증되지 않음"));
+    }
+    
     @DeleteMapping("/withdraw")
     @Operation(summary = "회원 탈퇴")
     public ResponseEntity<CommonResponse<String>> withdraw(
