@@ -58,10 +58,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-api:${jwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:${jwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jwtVersion}"
-    
-    // 외부 서비스 연동
-    implementation 'com.sendgrid:sendgrid-java:4.9.3'
-    
+
     // AWS S3
     implementation 'software.amazon.awssdk:s3'
     implementation 'software.amazon.awssdk:auth'

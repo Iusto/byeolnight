@@ -82,8 +82,9 @@
         ▼                         ▼
 ┌─────────────────┐    ┌─────────────────┐
 │  Git Repository  │    │   External APIs │
-│ (Encrypted Cfg) │    │(SendGrid/SMS/   │
-└─────────────────┘    │NewsData/Google) │
+│ (Encrypted Cfg) │    │(Gmail/NewsData/ │
+└─────────────────┘    │Google/OpenAI/   │
+                       │Claude)          │
                        └─────────────────┘
 ```
 
@@ -119,7 +120,7 @@
 - **Let's Encrypt** - 무료 SSL 인증서 자동 갱신
 
 ### External APIs & Services
-- **SendGrid + Gmail SMTP** - 이메일 인증 이중화
+- **Gmail SMTP** - 이메일 인증 시스템
 - **NewsData.io** - 우주/과학 뉴스 데이터 수집
 - **Google Vision API** - 이미지 콘텐츠 검증 및 부적절 콘텐츠 차단
 - **Claude/OpenAI API** - AI 기반 콘텐츠 요약 및 토론 주제 생성
@@ -274,7 +275,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **실시간 기능**: WebSocket 연결 안정성 99%
 
 ### 외부 연동 및 자동화
-- **외부 API**: 6개 서비스 (SendGrid, AWS S3, Google Vision, NewsData, OpenAI, Claude)
+- **외부 API**: 6개 서비스 (Gmail SMTP, AWS S3, Google Vision, NewsData, OpenAI, Claude)
 - **소셜 플랫폼**: Google, Kakao, Naver OAuth2 + 연동 해제 API
 - **CI/CD 워크플로우**: 5개 자동화 파이프라인
 - **스케줄링 작업**: 뉴스 수집, 데이터 정리, 토론 주제 생성, 소셜 연동 검증, 계정 정리

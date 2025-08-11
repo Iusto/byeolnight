@@ -75,19 +75,9 @@ aws:
     bucket: your-s3-bucket-name
 
 # 이메일 설정
-sendgrid:
-  api-key: '{cipher}AQF...암호화된_API키'
-  from-email: noreply@yourdomain.com
-
 gmail:
   username: your_gmail@gmail.com
   password: '{cipher}AQG...암호화된_앱패스워드'
-
-# SMS 설정
-coolsms:
-  api-key: '{cipher}AQH...암호화된_API키'
-  api-secret: '{cipher}AQI...암호화된_시크릿'
-  from-number: your_phone_number
 
 # 외부 API 설정
 newsdata:
@@ -99,9 +89,6 @@ google:
 
 openai:
   api-key: '{cipher}AQL...암호화된_API키'
-
-claude:
-  api-key: '{cipher}AQM...암호화된_API키'
 ```
 
 #### 설정 값 암호화 방법
