@@ -19,14 +19,36 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/suggestions")
 @RequiredArgsConstructor
-@Tag(name = "건의게시판", description = "건의게시판 관련 API")
+@Tag(name = "📝 공개 API - 건의게시판", description = "사이트 개선 및 기능 요청 건의게시판 API")
 public class SuggestionController {
 
     private final SuggestionService suggestionService;
     private final JwtTokenProvider jwtTokenProvider;
 
     @GetMapping
-    @Operation(summary = "건의사항 목록 조회", description = "카테고리와 상태별로 건의사항 목록을 조회합니다.")
+    @Operation(summary = "건의사항 목록 조회", description = """
+    카테고리와 상태별로 건의사항 목록을 조회합니다.
+    
+    📊 카테고리:
+    - BUG_REPORT: 버그 신고
+    - FEATURE_REQUEST: 기능 요청
+    - IMPROVEMENT: 개선 제안
+    - OTHER: 기타
+    
+    📊 상태:
+    - PENDING: 대기 중
+    - IN_PROGRESS: 처리 중
+    - COMPLETED: 완료
+    - REJECTED: 거부
+    """)
+    @Parameters({
+            @Parameter(name = "category", description = "건의 카테고리", example = "FEATURE_REQUEST"),
+            @Parameter(name = "status", description = "처리 상태", example = "PENDING"),
+            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0"),
+            @Parameter(name = "size", description = "페이지 크기", example = "10"),
+            @Parameter(name = "sort", description = "정렬 기준 (createdAt, title, status)", example = "createdAt"),
+            @Parameter(name = "direction", description = "정렬 방향 (asc, desc)", example = "desc")
+    })
     public ResponseEntity<CommonResponse<SuggestionDto.ListResponse>> getSuggestions(
             @RequestParam(required = false) Suggestion.SuggestionCategory category,
             @RequestParam(required = false) Suggestion.SuggestionStatus status,
@@ -59,9 +81,14 @@ public class SuggestionController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "건의사항 상세 조회", description = "특정 건의사항의 상세 정보를 조회합니다.")
+    @Operation(summary = "건의사항 상세 조회", description = "특정 건의사항의 상세 정보를 조회합니다. (비공개 건의는 작성자와 관리자만 조회 가능)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (비공개 건의)"),
+            @ApiResponse(responseCode = "404", description = "건의사항 없음")
+    })
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> getSuggestion(
-            @PathVariable Long id,
+            @Parameter(description = "건의사항 ID", example = "1") @PathVariable Long id,
             HttpServletRequest httpRequest
     ) {
         Long userId = null;
@@ -78,7 +105,12 @@ public class SuggestionController {
     }
 
     @PostMapping
-    @Operation(summary = "건의사항 작성", description = "새로운 건의사항을 작성합니다.")
+    @Operation(summary = "건의사항 작성", description = "새로운 건의사항을 작성합니다. (로그인 필수)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "작성 성공"),
+            @ApiResponse(responseCode = "400", description = "유효성 검사 실패"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> createSuggestion(
             @Valid @RequestBody SuggestionDto.CreateRequest request,
             HttpServletRequest httpRequest
@@ -112,7 +144,12 @@ public class SuggestionController {
     }
 
     @GetMapping("/my")
-    @Operation(summary = "내 건의사항 조회", description = "내가 작성한 건의사항 목록을 조회합니다.")
+    @Operation(summary = "내 건의사항 조회", description = "내가 작성한 건의사항 목록을 조회합니다. (로그인 필수)")
+    @Parameters({
+            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0"),
+            @Parameter(name = "size", description = "페이지 크기", example = "10")
+    })
+    @ApiResponse(responseCode = "401", description = "인증 실패")
     public ResponseEntity<CommonResponse<SuggestionDto.ListResponse>> getMySuggestions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -126,10 +163,15 @@ public class SuggestionController {
     }
 
     @PostMapping("/{id}/admin-response")
-    @Operation(summary = "관리자 답변 등록", description = "건의사항에 관리자 답변을 등록합니다.")
+    @Operation(summary = "관리자 답변 등록", description = "건의사항에 관리자 답변을 등록하고 상태를 변경합니다. (관리자 권한 필수)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "답변 등록 성공"),
+            @ApiResponse(responseCode = "403", description = "관리자 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "건의사항 없음")
+    })
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> addAdminResponse(
-            @PathVariable Long id,
-            @RequestBody SuggestionDto.AdminResponseRequest request,
+            @Parameter(description = "건의사항 ID", example = "1") @PathVariable Long id,
+            @RequestBody @Valid SuggestionDto.AdminResponseRequest request,
             HttpServletRequest httpRequest
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);

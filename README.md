@@ -101,6 +101,7 @@
 - **AWS S3** - Presigned URL 기반 파일 업로드
 - **WebSocket (STOMP)** - 실시간 양방향 통신
 - **Spring Scheduling** - 뉴스 수집, 데이터 정리 자동화
+- **Swagger UI** - 완전한 API 문서화, 상세한 파라미터 설명 및 예시 제공
 
 ### Frontend (사용자 경험)
 - **React 18** + **TypeScript** - 컴포넌트 기반 UI, 타입 안전성
@@ -242,6 +243,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **YouTube 서비스 개선**: 영상 다양성 2배 증가, 중복 영상 5% 미만
 - **CI/CD 자동화**: GitHub Actions로 배포 시간 90% 단축, 수동 오류 99% 감소
 - **이메일 인증 시스템**: HTML 템플릿 + 재시도 로직으로 전송 성공률 95% 달성, 무차별 대입 공격 99% 차단
+- **API 문서화**: Swagger UI 기반 완전한 API 문서화, 개발자 경험 향상 및 API 사용성 개선
 
 ---
 
@@ -257,7 +259,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **마이크로서비스**: 2개 (Config Server + Main Application)
 - **핵심 도메인**: 10개 (인증, 게시글, 댓글, 채팅, 쪽지, 알림, 상점, 인증서, AI콘텐츠, 관리자)
 - **데이터베이스 테이블**: 35+ 테이블 (Entity 30+, 로그 테이블 5+)
-- **API 엔드포인트**: 80+ RESTful APIs + WebSocket 엔드포인트
+- **API 엔드포인트**: 80+ RESTful APIs + WebSocket 엔드포인트 (Swagger UI 완전 문서화)
 
 ### 설정 및 보안
 - **중앙화된 설정**: 50+ 암호화된 설정 항목

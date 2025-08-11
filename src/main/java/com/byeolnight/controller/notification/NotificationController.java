@@ -19,17 +19,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/member/notifications")
 @RequiredArgsConstructor
-@Tag(name = "알림", description = "알림 관련 API")
+@Tag(name = "🔔 회원 API - 알림", description = "실시간 알림 시스템 API")
+@SecurityRequirement(name = "bearerAuth")
 public class NotificationController {
 
     private final NotificationService notificationService;
 
     @GetMapping
-    @Operation(summary = "알림 목록 조회", description = "사용자의 알림 목록을 조회합니다.")
+    @Operation(summary = "알림 목록 조회", description = "사용자의 알림 목록을 최신순으로 조회합니다.")
+    @Parameters({
+            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0"),
+            @Parameter(name = "size", description = "페이지 크기 (최대 50)", example = "20")
+    })
     public ResponseEntity<CommonResponse<NotificationDto.ListResponse>> getNotifications(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @AuthenticationPrincipal User user
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
         System.out.println("알림 목록 조회 요청 - userId: " + user.getId());
         
@@ -42,9 +47,9 @@ public class NotificationController {
     }
 
     @GetMapping("/unread")
-    @Operation(summary = "읽지 않은 알림 조회", description = "읽지 않은 알림 목록을 조회합니다.")
+    @Operation(summary = "읽지 않은 알림 조회", description = "읽지 않은 알림 목록을 전체 조회합니다. (페이징 없음)")
     public ResponseEntity<CommonResponse<List<NotificationDto.Response>>> getUnreadNotifications(
-            @AuthenticationPrincipal User user
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
         System.out.println("읽지 않은 알림 조회 요청 - userId: " + user.getId());
         
@@ -72,10 +77,15 @@ public class NotificationController {
     }
 
     @PutMapping("/{id}/read")
-    @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 처리합니다.")
+    @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 상태로 변경합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "읽음 처리 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "알림 없음")
+    })
     public ResponseEntity<CommonResponse<Void>> markAsRead(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user
+            @Parameter(description = "알림 ID", example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
         System.out.println("알림 읽음 처리 요청 - notificationId: " + id + ", userId: " + user.getId());
         
@@ -84,9 +94,9 @@ public class NotificationController {
     }
 
     @PutMapping("/read-all")
-    @Operation(summary = "모든 알림 읽음 처리", description = "모든 알림을 읽음 처리합니다.")
+    @Operation(summary = "모든 알림 읽음 처리", description = "사용자의 모든 알림을 읽음 상태로 변경합니다.")
     public ResponseEntity<CommonResponse<Void>> markAllAsRead(
-            @AuthenticationPrincipal User user
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
         System.out.println("모든 알림 읽음 처리 요청 - userId: " + user.getId());
         
@@ -95,10 +105,15 @@ public class NotificationController {
     }
     
     @DeleteMapping("/{id}")
-    @Operation(summary = "알림 삭제", description = "특정 알림을 삭제합니다.")
+    @Operation(summary = "알림 삭제", description = "특정 알림을 완전히 삭제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "삭제 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "알림 없음")
+    })
     public ResponseEntity<CommonResponse<Void>> deleteNotification(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user
+            @Parameter(description = "알림 ID", example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
         System.out.println("알림 삭제 요청 - notificationId: " + id + ", userId: " + user.getId());
         

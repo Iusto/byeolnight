@@ -150,16 +150,22 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private String generateUniqueNickname(String baseNickname) {
         // 기본 닉네임이 너무 짧으면 보완
         if (baseNickname.length() < 2) {
-            baseNickname = "새로운사용자";
+            baseNickname = "사용자";
         }
         
-        // 기본 닉네임 시도 (1번만)
+        // 8자 제한 준수
+        if (baseNickname.length() > 8) {
+            baseNickname = baseNickname.substring(0, 8);
+        }
+        
+        // 기본 닉네임 시도
         if (!userRepository.existsByNickname(baseNickname)) {
             return baseNickname;
         }
         
-        // UUID 기반 유니크 닉네임 생성 (DB 조회 최대 2번)
-        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8);
-        return baseNickname + "_" + uniqueSuffix;
+        // 유니크 닉네임 생성 (최대 8자)
+        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 4);
+        String prefix = baseNickname.length() > 3 ? baseNickname.substring(0, 3) : baseNickname;
+        return prefix + uniqueSuffix;
     }
 }

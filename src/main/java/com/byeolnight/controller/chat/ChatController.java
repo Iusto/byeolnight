@@ -27,7 +27,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@Tag(name = "💬 채팅 API", description = "WebSocket 기반 실시간 채팅 API")
+@Tag(name = "💬 채팅 API", description = "WebSocket(STOMP) 기반 실시간 채팅 시스템 API")
 public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -88,7 +88,11 @@ public class ChatController {
         messagingTemplate.convertAndSendToUser(sender, "/queue/init", history);
     }
 
-    @Operation(summary = "채팅 메시지 조회", description = "최근 채팅 메시지를 조회합니다.")
+    @Operation(summary = "채팅 메시지 조회", description = "특정 채팅방의 최근 메시지를 조회합니다. (비회원 접근 가능)")
+    @Parameters({
+            @Parameter(name = "roomId", description = "채팅방 ID", example = "public", required = true),
+            @Parameter(name = "limit", description = "조회할 메시지 수 (최대 100)", example = "20")
+    })
     @GetMapping("/api/public/chat")
     public ResponseEntity<CommonResponse<List<ChatMessageDto>>> getMessages(
             @RequestParam String roomId,
@@ -97,7 +101,12 @@ public class ChatController {
         return ResponseEntity.ok(CommonResponse.success(messages));
     }
     
-    @Operation(summary = "채팅 이력 조회", description = "특정 시점 이전의 채팅 이력을 조회합니다.")
+    @Operation(summary = "채팅 이력 조회", description = "특정 메시지 ID 이전의 채팅 이력을 조회합니다. (무한 스크롤용)")
+    @Parameters({
+            @Parameter(name = "roomId", description = "채팅방 ID", example = "public", required = true),
+            @Parameter(name = "beforeId", description = "기준 메시지 ID (이 ID 이전 메시지들 조회)", example = "msg_123", required = true),
+            @Parameter(name = "limit", description = "조회할 메시지 수 (최대 100)", example = "20")
+    })
     @GetMapping("/api/public/chat/history")
     public ResponseEntity<CommonResponse<List<ChatMessageDto>>> getChatHistory(
             @RequestParam String roomId,
@@ -107,10 +116,15 @@ public class ChatController {
         return ResponseEntity.ok(CommonResponse.success(messages));
     }
 
-    @Operation(summary = "채팅 금지 상태 조회", description = "현재 사용자의 채팅 금지 상태를 조회합니다.")
+    @Operation(summary = "채팅 금지 상태 조회", description = "현재 사용자의 채팅 금지 상태를 조회합니다. (banned: boolean, reason: string, expiresAt: timestamp)")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
     @GetMapping("/api/member/chat/ban-status")
     public ResponseEntity<CommonResponse<java.util.Map<String, Object>>> getChatBanStatus(
-            @AuthenticationPrincipal User user) {
+            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
         java.util.Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
         return ResponseEntity.ok(CommonResponse.success(banStatus));
     }
