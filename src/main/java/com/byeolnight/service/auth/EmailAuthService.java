@@ -105,7 +105,7 @@ public class EmailAuthService {
      * HTML 이메일 템플릿 생성
      */
     private String createEmailTemplate(String code) {
-        return """
+        String template = """
         <!DOCTYPE html>
         <html lang="ko">
         <head>
@@ -113,7 +113,7 @@ public class EmailAuthService {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>별 헤는 밤 - 이메일 인증</title>
         </head>
-        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f0f23 0%%, #1a1a3e 100%); color: #ffffff;">
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%); color: #ffffff;">
             <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
                 <!-- 헤더 -->
                 <div style="text-align: center; margin-bottom: 40px;">
@@ -133,10 +133,10 @@ public class EmailAuthService {
                     </p>
                     
                     <!-- 인증 코드 박스 -->
-                    <div style="background: linear-gradient(45deg, #2d1b69 0%%, #11998e 100%); border-radius: 10px; padding: 25px; text-align: center; margin: 25px 0; border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);">
+                    <div style="background: linear-gradient(45deg, #2d1b69 0%, #11998e 100%); border-radius: 10px; padding: 25px; text-align: center; margin: 25px 0; border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);">
                         <p style="color: #b8b8d4; font-size: 14px; margin: 0 0 10px 0;">인증 코드</p>
                         <div style="font-size: 32px; font-weight: bold; color: #ffd700; letter-spacing: 4px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);">
-                            %s
+                            {{AUTH_CODE}}
                         </div>
                         <p style="color: #b8b8d4; font-size: 12px; margin: 10px 0 0 0;">유효시간: 5분</p>
                     </div>
@@ -163,7 +163,9 @@ public class EmailAuthService {
             </div>
         </body>
         </html>
-        """.formatted(code);
+        """;
+        
+        return template.replace("{{AUTH_CODE}}", code);
     }
     
     /**
