@@ -3,6 +3,8 @@ package com.byeolnight.controller.discussion;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.service.discussion.DiscussionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
