@@ -39,7 +39,7 @@ export default function Signup() {
     }
   }, []); // 초기 마운트 시에만 실행
   
-  // 페이지 이탈 시 이메일 인증 데이터 정리
+  // 페이지 이탈 시 이메일 인증 데이터 정리 (인증 완료 시에는 정리하지 않음)
   useEffect(() => {
     const cleanupEmailData = async () => {
       if (form.email && !emailVerified) {
@@ -55,11 +55,15 @@ export default function Signup() {
     };
     
     const handleBeforeUnload = () => {
-      cleanupEmailData();
+      if (!emailVerified) {
+        cleanupEmailData();
+      }
     };
     
     const handlePopState = () => {
-      cleanupEmailData();
+      if (!emailVerified) {
+        cleanupEmailData();
+      }
     };
     
     // 브라우저 새로고침/닫기 감지
@@ -68,12 +72,14 @@ export default function Signup() {
     window.addEventListener('popstate', handlePopState);
     
     return () => {
-      // 컴포넌트 언마운트 시에도 정리
-      cleanupEmailData();
+      // 컴포넌트 언마운트 시에도 인증 미완료 상태에서만 정리
+      if (!emailVerified) {
+        cleanupEmailData();
+      }
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [form.email, emailVerified]);
+  }, [form.email]); // emailVerified 의존성 제거
   const [emailTimer, setEmailTimer] = useState(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

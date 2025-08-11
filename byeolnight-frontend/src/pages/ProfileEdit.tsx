@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import WithdrawModal from '../components/WithdrawModal';
 
 export default function ProfileEdit() {
   const { user, refreshToken } = useAuth();
@@ -17,6 +18,7 @@ export default function ProfileEdit() {
   const [success, setSuccess] = useState(false);
   const [nicknameChecked, setNicknameChecked] = useState(false);
   const [nicknameCheckLoading, setNicknameCheckLoading] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   // 닉네임 변경 가능 여부 및 다음 변경 가능 시기 계산
   const getNicknameChangeInfo = () => {
@@ -84,18 +86,24 @@ export default function ProfileEdit() {
       return;
     }
     
-    // 비밀번호 확인
-    if (!form.currentPassword) {
+    // 소셜 로그인 사용자가 아닌 경우에만 비밀번호 확인
+    if (!user?.socialProvider && !form.currentPassword) {
       setError('현재 비밀번호를 입력해주세요.');
       setLoading(false);
       return;
     }
 
     try {
-      await axios.put('/member/users/profile', {
+      const requestData: any = {
         nickname: form.nickname,
-        currentPassword: form.currentPassword,
-      });
+      };
+      
+      // 소셜 로그인 사용자가 아닌 경우에만 비밀번호 포함
+      if (!user?.socialProvider) {
+        requestData.currentPassword = form.currentPassword;
+      }
+      
+      await axios.put('/member/users/profile', requestData);
       
       setSuccess(true);
       
@@ -171,6 +179,46 @@ export default function ProfileEdit() {
     return nickname.length >= 2 && nickname.length <= 8;
   };
 
+  // 회원탈퇴 처리
+  const handleWithdraw = async (password: string, reason: string) => {
+    try {
+      // 소셜 사용자는 간단한 확인만
+      if (user?.socialProvider) {
+        const confirmed = window.confirm(
+          `정말로 탈퇴하시겠습니까?\n\n` +
+          `• 모든 개인정보가 삭제됩니다\n` +
+          `• 작성한 게시글/댓글은 유지됩니다\n` +
+          `• 보유 포인트와 아이콘이 소멸됩니다\n` +
+          `• 동일 이메일로 재가입 가능합니다`
+        );
+        
+        if (!confirmed) {
+          return;
+        }
+      }
+      
+      await axios.delete('/api/auth/withdraw', {
+        data: {
+          password: user?.socialProvider ? '' : password,
+          reason: reason || '사용자 요청'
+        }
+      });
+      
+      alert('회원탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
+      
+      // 로그아웃 처리 후 메인 페이지로 이동
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate('/', { replace: true });
+      window.location.reload();
+      
+    } catch (error: any) {
+      console.error('회원탈퇴 실패:', error);
+      const errorMessage = error?.response?.data?.message || '회원탈퇴에 실패했습니다.';
+      alert(errorMessage);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center text-white">
@@ -244,20 +292,30 @@ export default function ProfileEdit() {
             </div>
           </div>
           
-
+          {/* 소셜 로그인 사용자가 아닌 경우에만 비밀번호 입력칸 표시 */}
+          {!user?.socialProvider && (
+            <div>
+              <label className="block text-sm font-medium mb-2">현재 비밀번호 확인</label>
+              <input
+                type="password"
+                name="currentPassword"
+                value={form.currentPassword}
+                onChange={handleChange}
+                placeholder="현재 비밀번호를 입력해주세요"
+                className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+          )}
           
-          <div>
-            <label className="block text-sm font-medium mb-2">현재 비밀번호 확인</label>
-            <input
-              type="password"
-              name="currentPassword"
-              value={form.currentPassword}
-              onChange={handleChange}
-              placeholder="현재 비밀번호를 입력해주세요"
-              className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500"
-              required
-            />
-          </div>
+          {/* 소셜 로그인 사용자를 위한 안내 메시지 */}
+          {user?.socialProvider && (
+            <div className="bg-blue-500/20 border border-blue-500 rounded p-3">
+              <p className="text-blue-400 text-sm">
+                🔗 {user.socialProvider === 'google' ? 'Google' : user.socialProvider === 'kakao' ? 'Kakao' : 'Naver'} 계정으로 로그인하셨습니다. 닉네임만 변경 가능합니다.
+              </p>
+            </div>
+          )}
           
           {error && (
             <div className="bg-red-500/20 border border-red-500 rounded p-3">
@@ -283,6 +341,35 @@ export default function ProfileEdit() {
             {loading ? '수정 중...' : '저장'}
           </button>
         </form>
+        
+        {/* 회원탈퇴 버튼 */}
+        <div className="mt-8 pt-6 border-t border-gray-600">
+          {user?.socialProvider ? (
+            // 소셜 사용자는 간단한 탈퇴 버튼
+            <button
+              onClick={() => handleWithdraw('', '소셜 로그인 사용자 탈퇴')}
+              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm"
+            >
+              ⚠️ 간편 탈퇴 ({user.socialProvider === 'google' ? 'Google' : user.socialProvider === 'kakao' ? 'Kakao' : 'Naver'})
+            </button>
+          ) : (
+            // 일반 사용자는 모달을 통한 탈퇴
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm"
+            >
+              ⚠️ 회원 탈퇴
+            </button>
+          )}
+        </div>
+        
+        {/* 회원탈퇴 모달 */}
+        <WithdrawModal
+          isOpen={showWithdrawModal}
+          onClose={() => setShowWithdrawModal(false)}
+          onConfirm={handleWithdraw}
+          isSocialUser={!!user?.socialProvider}
+        />
       </div>
     </div>
   );

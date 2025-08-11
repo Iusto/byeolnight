@@ -44,7 +44,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         }
                         return updateProfileImage(existingUser, userInfo.getImageUrl());
                     })
-                    .orElseGet(() -> createUser(userInfo, registrationId));
+                    .orElseGet(() -> {
+                        // 30일 내 탈퇴한 소셜 계정 자동 복구 시도
+                        boolean recovered = socialAccountCleanupService.recoverWithdrawnAccount(email);
+                        if (recovered) {
+                            log.info("30일 내 탈퇴한 소셜 계정 자동 복구: {}", email);
+                            // 복구된 계정 다시 조회
+                            return userRepository.findByEmail(email)
+                                    .map(recoveredUser -> updateProfileImage(recoveredUser, userInfo.getImageUrl()))
+                                    .orElseGet(() -> createUser(userInfo, registrationId));
+                        }
+                        return createUser(userInfo, registrationId);
+                    });
 
             return new CustomOAuth2User(user, oAuth2User.getAttributes());
             
@@ -83,13 +94,32 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .profileImageUrl(userInfo.getImageUrl())
                 .role(User.Role.USER)
                 .status(User.UserStatus.ACTIVE)
-                .emailVerified(true)
+
                 .points(0)
                 .nicknameChanged(false)
                 .build();
         
         newUser.setSocialProvider(registrationId);
-        return userRepository.save(newUser);
+        User savedUser = userRepository.save(newUser);
+        
+        // 소셜 로그인 사용자에게 기본 아이콘 부여 및 인증서 발급
+        try {
+            // UserService를 통해 기본 아이콘 부여
+            com.byeolnight.service.user.UserService userService = 
+                com.byeolnight.infrastructure.config.ApplicationContextProvider.getBean(com.byeolnight.service.user.UserService.class);
+            userService.grantDefaultAsteroidIcon(savedUser);
+            
+            // CertificateService를 통해 별빛탐험가 인증서 발급
+            com.byeolnight.service.certificate.CertificateService certificateService = 
+                com.byeolnight.infrastructure.config.ApplicationContextProvider.getBean(com.byeolnight.service.certificate.CertificateService.class);
+            certificateService.checkAndIssueCertificates(savedUser, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.LOGIN);
+            
+            log.info("소셜 로그인 사용자 {}에게 기본 아이콘 및 인증서 발급 완료", savedUser.getNickname());
+        } catch (Exception e) {
+            log.error("소셜 로그인 사용자 기본 설정 중 오류 발생: {}", e.getMessage(), e);
+        }
+        
+        return savedUser;
     }
 
     private User updateProfileImage(User user, String imageUrl) {

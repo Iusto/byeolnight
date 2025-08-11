@@ -23,15 +23,16 @@ public class WithdrawnUserCleanupService {
     private final UserRepository userRepository;
 
     /**
-     * 매일 새벽 3시에 탈퇴 후 5년 경과한 회원 정리
+     * 매일 오전 10시에 탈퇴 후 5년 경과한 회원 정리
      */
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 10 * * *")
     @Transactional
     public void cleanupWithdrawnUsers() {
         LocalDateTime fiveYearsAgo = LocalDateTime.now().minusYears(5);
         
-        List<User> expiredUsers = userRepository.findByStatusAndWithdrawnAtBefore(
-            User.UserStatus.WITHDRAWN, fiveYearsAgo);
+        // 탈퇴 및 밴 계정 모두 5년 후 삭제
+        List<User> expiredUsers = userRepository.findByWithdrawnAtBeforeAndStatusIn(
+            fiveYearsAgo, List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED));
         
         if (expiredUsers.isEmpty()) {
             log.info("정리할 탈퇴 회원이 없습니다.");
@@ -44,14 +45,14 @@ public class WithdrawnUserCleanupService {
                 // 개인정보 완전 삭제
                 user.completelyRemovePersonalInfo();
                 cleanedCount++;
-                log.info("탈퇴 회원 개인정보 완전 삭제 완료: ID={}, 탈퇴일={}", 
-                    user.getId(), user.getWithdrawnAt());
+                log.info("계정 개인정보 완전 삭제 완료: ID={}, 상태={}, 처리일={}", 
+                    user.getId(), user.getStatus(), user.getWithdrawnAt());
             } catch (Exception e) {
                 log.error("탈퇴 회원 정리 중 오류 발생: ID={}, 오류={}", 
                     user.getId(), e.getMessage(), e);
             }
         }
         
-        log.info("탈퇴 회원 정리 완료: {}명 처리", cleanedCount);
+        log.info("만료 계정 정리 완료: {}명 처리 (탈퇴/밴 계정 5년 경과)", cleanedCount);
     }
 }

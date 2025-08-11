@@ -10,8 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [language, setLanguage] = useState('ko')
-  const [showSocialRecovery, setShowSocialRecovery] = useState(false)
-  const [recoveryEmail, setRecoveryEmail] = useState('')
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,31 +36,7 @@ export default function Login() {
     window.location.href = `/oauth2/authorization/${provider}`
   }
 
-  const handleSocialRecovery = async () => {
-    if (!recoveryEmail) {
-      alert('이메일을 입력해주세요.')
-      return
-    }
-    
-    try {
-      const response = await fetch('/api/auth/social/recover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: recoveryEmail })
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('계정이 복구되었습니다. 다시 로그인해주세요.')
-        setShowSocialRecovery(false)
-        setRecoveryEmail('')
-      } else {
-        alert(data.message || '복구 실패')
-      }
-    } catch (err) {
-      alert('복구 요청 중 오류가 발생했습니다.')
-    }
-  }
+
 
   const texts = {
     ko: {
@@ -77,11 +52,7 @@ export default function Login() {
       signup: '회원가입',
       resetPassword: '비밀번호 재설정',
       goHome: '홈페이지로',
-      socialRecovery: '소셜 계정 복구',
-      socialRecoveryDesc: '소셜 로그인이 안 되시나요? 계정 복구를 요청하세요.',
-      recoveryEmail: '복구할 이메일',
-      recover: '복구 요청',
-      cancel: '취소'
+
     },
     en: {
       title: 'Login',
@@ -96,11 +67,7 @@ export default function Login() {
       signup: 'Sign Up',
       resetPassword: 'Reset Password',
       goHome: 'Go Home',
-      socialRecovery: 'Social Account Recovery',
-      socialRecoveryDesc: 'Having trouble with social login? Request account recovery.',
-      recoveryEmail: 'Recovery Email',
-      recover: 'Request Recovery',
-      cancel: 'Cancel'
+
     },
     ja: {
       title: 'ログイン',
@@ -115,11 +82,7 @@ export default function Login() {
       signup: 'ユーザー登録',
       resetPassword: 'パスワードリセット',
       goHome: 'ホームへ',
-      socialRecovery: 'ソーシャルアカウント復旧',
-      socialRecoveryDesc: 'ソーシャルログインに問題がありますか？アカウント復旧をリクエストしてください。',
-      recoveryEmail: '復旧メール',
-      recover: '復旧リクエスト',
-      cancel: 'キャンセル'
+
     }
   }
 
@@ -238,50 +201,11 @@ export default function Login() {
             {t.goHome}
           </button>
           
-          <button
-            onClick={() => setShowSocialRecovery(true)}
-            className="w-full py-2 px-4 bg-transparent border border-orange-500 text-orange-400 rounded hover:bg-orange-500 hover:text-white transition-colors text-sm"
-          >
-            {t.socialRecovery}
-          </button>
+
         </div>
       </div>
       
-      {/* 소셜 계정 복구 모달 */}
-      {showSocialRecovery && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#1f2336] p-6 rounded-xl max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-white mb-4">{t.socialRecovery}</h3>
-            <p className="text-gray-300 text-sm mb-4">{t.socialRecoveryDesc}</p>
-            
-            <input
-              type="email"
-              placeholder={t.recoveryEmail}
-              value={recoveryEmail}
-              onChange={(e) => setRecoveryEmail(e.target.value)}
-              className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 mb-4 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowSocialRecovery(false)
-                  setRecoveryEmail('')
-                }}
-                className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
-              >
-                {t.cancel}
-              </button>
-              <button
-                onClick={handleSocialRecovery}
-                className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
-              >
-                {t.recover}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

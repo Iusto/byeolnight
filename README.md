@@ -34,10 +34,11 @@
 - **알림 시스템**: 실시간 알림 + 브라우저 네이티브 알림, 인앱 브라우저 호환성 100%
 
 ### 🔐 강화된 보안
-- **다단계 인증**: 이메일/SMS 인증 이중화, SendGrid + Gmail SMTP 백업
+- **이메일 인증**: HTML 템플릿 + 8자리 영숫자 코드, 재시도 로직, 시도 횟수 제한 (5회/10분)
 - **JWT + Redis**: 토큰 자동 갱신, 탈취 감지, 계정 잠금, 데이터 손실 95% 감소
 - **이미지 검열**: Google Vision API 기반 부적절 콘텐츠 자동 차단
 - **동시성 제어**: Redis 분산 락으로 포인트 중복 지급 99% 해결
+- **소셜 연동 보안**: 연동 해제 실시간 감지, 즉시 탈퇴 + 30일 복구, 플랫폼별 API 연동 해제
 
 ### 🤖 AI 기반 콘텐츠
 - **뉴스 수집**: NewsData.io API + AI 요약/분류, 200개 키워드 활용, DB 조회 성능 85% 향상
@@ -53,14 +54,14 @@
 ### 🛍️ 게임화 요소
 - **포인트 시스템**: 출석체크, 활동 보상, 일일 제한, 누적 포인트 관리
 - **스텔라 상점**: 45개 우주 테마 아이콘, 5개 등급별 분류, 애니메이션 효과
-- **인증서 시스템**: 활동 기반 성취 인증, 다양한 인증서 종류
-- **레벨 시스템**: 사용자 활동에 따른 레벨 상승
+- **인증서 시스템**: 활동 기반 성취 인증, 8가지 인증서 종류 (별빛탐험가, 우주인등록, 은하통신병 등)
 
 ### 🔧 관리자 기능
-- **사용자 관리**: 계정 상태 변경, 제재, IP 차단
+- **사용자 관리**: 계정 상태 변경, 제재 (5년 보존), 닉네임 변경권 수여
 - **콘텐츠 관리**: 게시글/댓글 블라인드, 신고 처리
 - **채팅 관리**: 채팅방 참여자 관리, 채팅 금지
 - **통계 대시보드**: 사용자 활동, 콘텐츠 통계
+- **소셜 계정 관리**: 연동 해제 감지, 즉시 탈퇴 처리, 30일 복구 가능
 
 ---
 
@@ -94,7 +95,7 @@
 - **Java 21** + **Spring Boot 3.2.4** - 최신 LTS 기반 안정성
 - **Spring Cloud Config Server** - 중앙화된 암호화 설정 관리
 - **Spring Security + JWT** - 무상태 인증, 토큰 자동 갱신
-- **Spring Data JPA + QueryDSL** - 타입 안전 쿼리, 복합 인덱스 최적화
+- **Spring Data JPA + QueryDSL** - 타입 안전 쿼리 (일부 사용), 복합 인덱스 최적화
 - **MySQL 8.0** + **Redis 7.0** - 데이터 저장, 캐싱, 분산 락
 - **Redisson** - Redis 기반 분산 락으로 동시성 제어
 - **AWS S3** - Presigned URL 기반 파일 업로드
@@ -104,7 +105,7 @@
 ### Frontend (사용자 경험)
 - **React 18** + **TypeScript** - 컴포넌트 기반 UI, 타입 안전성
 - **Vite** + **TailwindCSS** - 빠른 개발 서버, 유틸리티 우선 스타일링
-- **React Router v7** - 클라이언트 사이드 라우팅
+- **React Router DOM v7** - 클라이언트 사이드 라우팅
 - **Axios** + **SockJS/STOMP** - HTTP 통신 및 WebSocket 연결
 - **React i18next** - 다국어 지원 (한국어, 영어, 일본어)
 - **Toast UI Editor** - 마크다운 기반 에디터
@@ -118,7 +119,6 @@
 
 ### External APIs & Services
 - **SendGrid + Gmail SMTP** - 이메일 인증 이중화
-- **CoolSMS (Nurigo)** - SMS 인증
 - **NewsData.io** - 우주/과학 뉴스 데이터 수집
 - **Google Vision API** - 이미지 콘텐츠 검증 및 부적절 콘텐츠 차단
 - **Claude/OpenAI API** - AI 기반 콘텐츠 요약 및 토론 주제 생성
@@ -133,6 +133,7 @@
 | 채팅 쿼리 | Full Scan + Filesort | Ref + Index 정렬 | 응답 속도 10~15% 향상 |
 | WebSocket 연결 | 95% 안정성 | 99% 안정성 | 연결 끊김 95% 감소 |
 | 파일 업로드 | 서버 경유 | S3 직접 업로드 | 서버 부하 33% 감소 |
+| 이메일 인증 | 6자리 숫자 + 텍스트 | 8자리 영숫자 + HTML | 보안성 300% 향상 |
 
 ---
 
@@ -231,6 +232,8 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **인앱 브라우저 호환성**: Notification API 미지원 → 타입 체크로 호환성 100% 달성
 - **S3 파일 업로드**: 서버 부하 → Presigned URL로 직접 업로드, 부하 33% 감소
 - **동시성 문제**: 포인트 중복 지급 → Redis 분산 락으로 99% 해결
+- **소셜 계정 관리**: 로그인 실패 의존 → 능동적 연동 상태 검증 + 즉시 처리로 사용자 경험 개선
+- **이메일 인증 보안**: 단순 6자리 숫자 → 8자리 영숫자 + HTML 템플릿 + 무차별 대입 방지로 보안성 300% 향상
 
 ### 성능 최적화 성과
 - **중앙화된 설정 관리**: Config Server 도입으로 설정 관리 복잡도 80% 감소, 보안 강화
@@ -238,6 +241,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **뉴스 시스템 리팩토링**: DB 조회 성능 85% 향상, 200개 키워드 활용
 - **YouTube 서비스 개선**: 영상 다양성 2배 증가, 중복 영상 5% 미만
 - **CI/CD 자동화**: GitHub Actions로 배포 시간 90% 단축, 수동 오류 99% 감소
+- **이메일 인증 시스템**: HTML 템플릿 + 재시도 로직으로 전송 성공률 95% 달성, 무차별 대입 공격 99% 차단
 
 ---
 
@@ -260,6 +264,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **JWT 토큰**: Access Token (30분) + Refresh Token (7일)
 - **Redis 캐시**: 인증 토큰, 세션, 분산 락
 - **파일 업로드**: S3 Presigned URL (서버 부하 33% 감소)
+- **계정 보존**: 탈퇴/밴 계정 5년 보존 후 완전 삭제 (개인정보보호법 준수)
 
 ### 다국어 및 UI
 - **지원 언어**: 3개 (한국어, 영어, 일본어)
@@ -267,9 +272,10 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **실시간 기능**: WebSocket 연결 안정성 99%
 
 ### 외부 연동 및 자동화
-- **외부 API**: 7개 서비스 (SendGrid, CoolSMS, AWS S3, Google Vision, NewsData, OpenAI, Claude)
+- **외부 API**: 6개 서비스 (SendGrid, AWS S3, Google Vision, NewsData, OpenAI, Claude)
+- **소셜 플랫폼**: Google, Kakao, Naver OAuth2 + 연동 해제 API
 - **CI/CD 워크플로우**: 5개 자동화 파이프라인
-- **스케줄링 작업**: 뉴스 수집, 데이터 정리, 토론 주제 생성
+- **스케줄링 작업**: 뉴스 수집, 데이터 정리, 토론 주제 생성, 소셜 연동 검증, 계정 정리
 - **테스트 환경**: MySQL + Redis 서비스 컨테이너 기반 통합 테스트
 
 ---

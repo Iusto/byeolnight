@@ -42,7 +42,6 @@ public class SystemUserInitializer implements ApplicationRunner {
                     .nickname("뉴스봇")
                     .password(encodedPassword)
                     .role(User.Role.ADMIN)
-                    .emailVerified(true)
                     .build();
 
             userRepository.save(newsBot);
@@ -60,7 +59,6 @@ public class SystemUserInitializer implements ApplicationRunner {
                     .nickname("별 헤는 밤")
                     .password(encodedPassword)
                     .role(User.Role.ADMIN)
-                    .emailVerified(true)
                     .build();
 
             userRepository.save(systemUser);

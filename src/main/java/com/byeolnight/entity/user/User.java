@@ -99,10 +99,7 @@ public class User implements UserDetails {
     @Column
     private LocalDateTime lastFailedLogin;
 
-    /** 이메일 인증 여부 */
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean emailVerified = false;
+
 
     /** 계정 밴 사유 */
     @Column
@@ -159,6 +156,7 @@ public class User implements UserDetails {
     public void ban(String reason) {
         this.status = UserStatus.BANNED;
         this.banReason = reason;
+        this.withdrawnAt = LocalDateTime.now(); // 밴 시점 기록 (5년 후 삭제용)
     }
 
     /** 계정 밴 해제 */
@@ -184,10 +182,7 @@ public class User implements UserDetails {
         }
     }
 
-    /** 이메일 인증 완료 처리 */
-    public void verifyEmail() {
-        this.emailVerified = true;
-    }
+
 
     /** 포인트 증가 */
     public void increasePoints(int value) {
@@ -240,6 +235,12 @@ public class User implements UserDetails {
         this.withdrawnAt = LocalDateTime.now();
         this.nickname = "탈퇴회원_" + this.id;
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
+    }
+
+    /** 탈퇴 정보 초기화 (복구 시 사용) */
+    public void clearWithdrawalInfo() {
+        this.withdrawalReason = null;
+        this.withdrawnAt = null;
     }
 
     /** 개인정보 완전 삭제 (5년 경과 후) */

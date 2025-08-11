@@ -346,7 +346,11 @@ public class PointService {
 
                 // 사용자 포인트 업데이트
                 int beforePoints = managedUser.getPoints();
-                managedUser.increasePoints(amount);
+                if (amount >= 0) {
+                    managedUser.increasePoints(amount);
+                } else {
+                    managedUser.decreasePoints(-amount); // 음수를 양수로 변환하여 차감
+                }
                 userRepository.save(managedUser);
                 log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
                 

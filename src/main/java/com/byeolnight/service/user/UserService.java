@@ -114,14 +114,16 @@ public class UserService {
                     .nicknameUpdatedAt(LocalDateTime.now())
                     .role(User.Role.USER)
                     .status(User.UserStatus.ACTIVE)
-                    .emailVerified(false)
+
                     .loginFailCount(0)
                     .points(0)
                     .build();
-            userRepository.save(user);
+            User savedUser = userRepository.save(user);
+            
+
             
             // 기본 소행성 아이콘 부여 및 장착
-            grantDefaultAsteroidIcon(user);
+            grantDefaultAsteroidIcon(savedUser);
             
             // 회원가입 완료 후 인증 상태 삭제
             emailAuthService.clearAllEmailData(dto.getEmail());
@@ -254,6 +256,16 @@ public class UserService {
         if (!user.isSocialUser() && !userSecurityService.matchesPassword(password, user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
+        
+        // 소셜 연동 해제 처리
+        if (user.isSocialUser()) {
+            try {
+                revokeSocialConnection(user);
+            } catch (Exception e) {
+                log.warn("소셜 연동 해제 실패 (계속 진행): {}", e.getMessage());
+            }
+        }
+        
         user.withdraw(reason);
     }
 
@@ -675,6 +687,30 @@ public class UserService {
      */
     public boolean existsByNickname(String nickname) {
         return userRepository.existsByNickname(nickname);
+    }
+
+    /**
+     * 소셜 연동 해제
+     */
+    private void revokeSocialConnection(User user) {
+        String provider = user.getSocialProvider();
+        if (provider == null) return;
+        
+        try {
+            com.byeolnight.service.auth.SocialRevokeService socialRevokeService = 
+                com.byeolnight.infrastructure.config.ApplicationContextProvider
+                    .getBean(com.byeolnight.service.auth.SocialRevokeService.class);
+            
+            switch (provider.toLowerCase()) {
+                case "google" -> socialRevokeService.revokeGoogleConnection(user);
+                case "kakao" -> socialRevokeService.revokeKakaoConnection(user);
+                case "naver" -> socialRevokeService.revokeNaverConnection(user);
+                default -> log.warn("지원하지 않는 소셜 플랫폼: {}", provider);
+            }
+        } catch (Exception e) {
+            log.error("소셜 연동 해제 실패 - {}: {}", provider, e.getMessage());
+            throw e;
+        }
     }
 
     /**

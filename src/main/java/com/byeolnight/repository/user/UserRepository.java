@@ -20,6 +20,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     List<User> findByStatusAndWithdrawnAtBefore(User.UserStatus status, LocalDateTime withdrawnAt);
     
+    List<User> findByWithdrawnAtBeforeAndStatusIn(LocalDateTime withdrawnAt, List<User.UserStatus> statuses);
+    
     @Query("SELECT u FROM User u WHERE u.password IS NULL AND u.status = :status AND (u.lastLoginAt IS NULL OR u.lastLoginAt < :cutoffDate)")
     List<User> findSocialUsersForCleanup(@Param("cutoffDate") LocalDateTime cutoffDate, @Param("status") User.UserStatus status);
+    
+    List<User> findByPasswordIsNullAndStatus(User.UserStatus status);
 }

@@ -162,10 +162,15 @@ public class AuthController {
 
     @PostMapping("/email/verify")
     @Operation(summary = "이메일 인증 코드 확인")
-    public ResponseEntity<CommonResponse<Boolean>> verifyEmailCode(@Valid @RequestBody EmailVerifyRequestDto dto) {
+    public ResponseEntity<CommonResponse<Boolean>> verifyEmailCode(
+            @Valid @RequestBody EmailVerifyRequestDto dto, HttpServletRequest request) {
         try {
-            boolean verified = emailAuthService.verifyCode(dto.getEmail(), dto.getCode());
+            String clientIp = IpUtil.getClientIp(request);
+            boolean verified = emailAuthService.verifyCode(dto.getEmail(), dto.getCode(), clientIp);
             return ResponseEntity.ok(CommonResponse.success(verified));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(CommonResponse.fail(e.getMessage()));
         } catch (Exception e) {
             log.error("이메일 인증 코드 확인 실패", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -307,7 +312,47 @@ public class AuthController {
         }
     }
     
-
-
+    @DeleteMapping("/withdraw")
+    @Operation(summary = "회원 탈퇴")
+    public ResponseEntity<CommonResponse<String>> withdraw(
+            @AuthenticationPrincipal User user,
+            @RequestBody(required = false) com.byeolnight.dto.user.WithdrawRequestDto dto,
+            HttpServletRequest request) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(CommonResponse.fail("로그인이 필요합니다."));
+            }
+            
+            String password = "";
+            String reason = "사용자 요청";
+            
+            if (dto != null) {
+                password = dto.getPassword() != null ? dto.getPassword() : "";
+                reason = dto.getReason() != null ? dto.getReason() : "사용자 요청";
+            }
+            
+            userService.withdraw(user.getId(), password, reason);
+            
+            // 로그아웃 처리
+            String userEmail = user.getEmail();
+            if (userEmail != null) {
+                tokenService.deleteRefreshToken(userEmail);
+            }
+            
+            ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
+            ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString())
+                    .body(CommonResponse.success("회원 탈퇴가 완료되었습니다."));
+                    
+        } catch (Exception e) {
+            log.error("회원 탈퇴 오류", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail(e.getMessage()));
+        }
+    }
 
 }

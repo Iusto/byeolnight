@@ -149,7 +149,7 @@ public class AuthService {
                 .nickname("")
                 .profileImageUrl(userInfo.getImageUrl())
                 .role(User.Role.USER)
-                .emailVerified(true)
+
                 .build();
         
         return userService.save(user);

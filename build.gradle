@@ -61,7 +61,6 @@ dependencies {
     
     // 외부 서비스 연동
     implementation 'com.sendgrid:sendgrid-java:4.9.3'
-    implementation 'net.nurigo:sdk:4.3.0'
     
     // AWS S3
     implementation 'software.amazon.awssdk:s3'

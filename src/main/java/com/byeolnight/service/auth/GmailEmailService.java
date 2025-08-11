@@ -30,7 +30,9 @@ public class GmailEmailService {
 
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("이메일 전송 실패", e);
+            throw new RuntimeException("이메일 전송 실패: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("이메일 전송 중 예상치 못한 오류 발생: " + e.getMessage(), e);
         }
     }
 
@@ -46,7 +48,9 @@ public class GmailEmailService {
 
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("이메일 전송 실패", e);
+            throw new RuntimeException("이메일 전송 실패: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("이메일 전송 중 예상치 못한 오류 발생: " + e.getMessage(), e);
         }
     }
 }

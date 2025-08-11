@@ -3,6 +3,8 @@ package com.byeolnight.dto.post;
 import com.byeolnight.entity.file.File;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.certificate.UserCertificate;
+import com.byeolnight.infrastructure.config.ApplicationContextProvider;
+import com.byeolnight.service.certificate.CertificateService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -69,9 +71,9 @@ public class PostResponseDto {
             
             // 대표 인증서 조회
             try {
-                com.byeolnight.service.certificate.CertificateService certificateService = 
-                    com.byeolnight.infrastructure.config.ApplicationContextProvider
-                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                CertificateService certificateService =
+                    ApplicationContextProvider
+                        .getBean(CertificateService.class);
                 UserCertificate repCert =
                     certificateService.getRepresentativeCertificate(post.getWriter());
                 if (repCert != null) {
@@ -122,9 +124,8 @@ public class PostResponseDto {
             
             // 대표 인증서 조회
             try {
-                com.byeolnight.service.certificate.CertificateService certificateService = 
-                    com.byeolnight.infrastructure.config.ApplicationContextProvider
-                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
+                CertificateService certificateService =
+                    ApplicationContextProvider.getBean(CertificateService.class);
                 UserCertificate repCert =
                     certificateService.getRepresentativeCertificate(post.getWriter());
                 if (repCert != null) {
