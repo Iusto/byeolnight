@@ -11,6 +11,7 @@ import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.auth.AuthService;
+import com.byeolnight.service.auth.SocialAccountCleanupService;
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.user.UserService;

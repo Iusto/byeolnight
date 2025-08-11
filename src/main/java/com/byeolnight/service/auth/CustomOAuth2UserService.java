@@ -11,6 +11,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,7 +44,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         }
                         return updateProfileImage(existingUser, userInfo.getImageUrl());
                     })
-                    .orElseGet(() -> createUser(userInfo));
+                    .orElseGet(() -> createUser(userInfo, registrationId));
 
             return new CustomOAuth2User(user, oAuth2User.getAttributes());
             
@@ -70,7 +72,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
     }
 
-    private User createUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo) {
+    private User createUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
         String baseNickname = userInfo.getEmail().split("@")[0];
         String nickname = generateUniqueNickname(baseNickname);
         
@@ -100,17 +102,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private String generateUniqueNickname(String baseNickname) {
+        // 기본 닉네임이 너무 짧으면 보완
+        if (baseNickname.length() < 2) {
+            baseNickname = "새로운사용자";
+        }
+        
+        // 기본 닉네임 시도 (1번만)
         if (!userRepository.existsByNickname(baseNickname)) {
             return baseNickname;
         }
         
-        for (int i = 1; i <= 999; i++) {
-            String nickname = baseNickname + i;
-            if (!userRepository.existsByNickname(nickname)) {
-                return nickname;
-            }
-        }
-        
-        return baseNickname + System.currentTimeMillis();
+        // UUID 기반 유니크 닉네임 생성 (DB 조회 최대 2번)
+        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8);
+        return baseNickname + "_" + uniqueSuffix;
     }
 }
