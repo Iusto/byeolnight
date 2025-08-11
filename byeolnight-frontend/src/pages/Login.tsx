@@ -32,7 +32,7 @@ export default function Login() {
   }
 
   const handleSocialLogin = (provider: string) => {
-    window.location.href = `/api/oauth2/authorization/${provider}`
+    window.location.href = `/oauth2/authorization/${provider}`
   }
 
   const texts = {
