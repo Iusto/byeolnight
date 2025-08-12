@@ -32,8 +32,42 @@ export default function Login() {
     }
   }
 
+  // 인앱브라우저 감지 함수
+  const isInAppBrowser = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return /kakaotalk|naver|line|instagram|facebook|twitter|wechat/.test(userAgent) ||
+           /; wv\)|version\/[\d.]+.*mobile.*safari/.test(userAgent);
+  };
+
   const handleSocialLogin = (provider: string) => {
-    window.location.href = `/oauth2/authorization/${provider}`
+    // 구글은 인앱브라우저에서 차단
+    if (provider === 'google' && isInAppBrowser()) {
+      alert('구글 로그인은 인앱브라우저에서 지원되지 않습니다. \n일반 브라우저에서 이용해주세요.');
+      return;
+    }
+
+    // 인앱브라우저에서는 새 창 열기 시도
+    if (isInAppBrowser()) {
+      const authUrl = `${window.location.origin}/oauth2/authorization/${provider}`;
+      const newWindow = window.open(authUrl, '_blank', 'width=500,height=600');
+      
+      if (!newWindow) {
+        // 팝업 차단 시 직접 이동
+        window.location.href = authUrl;
+      } else {
+        // 새 창이 열렸을 때 주기적으로 확인
+        const checkClosed = setInterval(() => {
+          if (newWindow.closed) {
+            clearInterval(checkClosed);
+            // 창이 닫히면 페이지 새로고침
+            window.location.reload();
+          }
+        }, 1000);
+      }
+    } else {
+      // 일반 브라우저에서는 기존 방식
+      window.location.href = `/oauth2/authorization/${provider}`;
+    }
   }
 
 
@@ -151,7 +185,7 @@ export default function Login() {
           <div className="space-y-2">
             <button
               onClick={() => handleSocialLogin('google')}
-              className="w-full py-2 px-4 bg-white text-gray-800 rounded hover:bg-gray-100 flex items-center justify-center space-x-2"
+              className="w-full py-2 px-4 bg-white text-gray-800 rounded hover:bg-gray-100 flex items-center justify-center space-x-2 relative"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -160,6 +194,9 @@ export default function Login() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               <span>{t.googleLogin}</span>
+              {isInAppBrowser() && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full">⚠</span>
+              )}
             </button>
 
             <button

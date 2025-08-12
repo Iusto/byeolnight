@@ -301,7 +301,7 @@ export default function ChatSidebar() {
       }
       chatConnector.disconnect();
     };
-  }, [user, i18n.language]);
+  }, [user?.id, i18n.language]);
 
   return (
     <div className="space-y-4">

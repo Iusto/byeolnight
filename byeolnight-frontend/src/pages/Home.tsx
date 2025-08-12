@@ -98,10 +98,18 @@ export default function Home() {
         setPosts(hotRes.data?.success ? hotRes.data.data || [] : []);
         setStarPhotos(imageRes.data?.success ? imageRes.data.data?.content || [] : []);
         setBoardPosts(boardData);
-        setDataLoaded(true);
         
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
+        if (isMounted) {
+          setPosts([]);
+          setStarPhotos([]);
+          setBoardPosts({});
+        }
+      } finally {
+        if (isMounted) {
+          setDataLoaded(true);
+        }
       }
     };
 
