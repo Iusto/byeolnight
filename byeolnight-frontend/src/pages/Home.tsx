@@ -70,40 +70,45 @@ export default function Home() {
 
   // API 호출
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
       try {
-        // 인기 게시글
-        const hotRes = await axios.get('/public/posts/hot', { params: { size: 6 } });
-        setPosts(hotRes.data?.success ? hotRes.data.data || [] : []);
-
-        // 별 사진
-        const imageRes = await axios.get('/public/posts', { 
-          params: { category: 'IMAGE', sort: 'recent', size: 8 } 
-        });
-        setStarPhotos(imageRes.data?.success ? imageRes.data.data?.content || [] : []);
-
-        // 각 게시판 데이터
-        const boardData: Record<string, Post[]> = {};
         const categories = ['NEWS', 'REVIEW', 'NOTICE', 'DISCUSSION', 'FREE', 'STARLIGHT_CINEMA'];
         
-        await Promise.all(categories.map(async (category) => {
-          try {
-            const res = await axios.get('/public/posts', { 
-              params: { category, sort: 'recent', size: 5 } 
-            });
-            boardData[category] = res.data?.success ? res.data.data?.content || [] : [];
-          } catch {
-            boardData[category] = [];
-          }
-        }));
+        // 모든 API를 한 번에 병렬 호출
+        const [hotRes, imageRes, ...boardResponses] = await Promise.all([
+          axios.get('/public/posts/hot', { params: { size: 6 } }),
+          axios.get('/public/posts', { params: { category: 'IMAGE', sort: 'recent', size: 8 } }),
+          ...categories.map(category => 
+            axios.get('/public/posts', { params: { category, sort: 'recent', size: 5 } })
+              .catch(() => ({ data: { success: false, data: { content: [] } } }))
+          )
+        ]);
+
+        if (!isMounted) return;
+
+        // 게시판 데이터 처리
+        const boardData: Record<string, Post[]> = {};
+        boardResponses.forEach((res, index) => {
+          boardData[categories[index]] = res.data?.success ? res.data.data?.content || [] : [];
+        });
         
+        // 모든 상태를 한 번에 업데이트
+        setPosts(hotRes.data?.success ? hotRes.data.data || [] : []);
+        setStarPhotos(imageRes.data?.success ? imageRes.data.data?.content || [] : []);
         setBoardPosts(boardData);
+        
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
       }
     };
 
     fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 컴포넌트들
