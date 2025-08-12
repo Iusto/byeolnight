@@ -461,7 +461,7 @@ export default function ProfilePage() {
           isOpen={showWithdrawModal}
           onClose={() => setShowWithdrawModal(false)}
           onConfirm={handleWithdraw}
-          isSocialUser={!!user?.socialProvider}
+          socialProvider={user?.socialProvider}
         />
       </div>
     </div>

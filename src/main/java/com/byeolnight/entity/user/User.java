@@ -253,7 +253,7 @@ public class User implements UserDetails {
 
     /** 소셜 로그인 사용자인지 확인 */
     public boolean isSocialUser() {
-        return this.password == null;
+        return this.socialProvider != null;
     }
     
     /** 소셜 로그인 제공자 설정 */

@@ -5,10 +5,11 @@ interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (password: string, reason: string) => void;
-  isSocialUser?: boolean;
+  socialProvider?: string;
 }
 
-export default function WithdrawModal({ isOpen, onClose, onConfirm, isSocialUser = false }: WithdrawModalProps) {
+export default function WithdrawModal({ isOpen, onClose, onConfirm, socialProvider }: WithdrawModalProps) {
+  const isSocialUser = !!socialProvider;
   const [password, setPassword] = useState('');
   const [reason, setReason] = useState('');
   const [agreed, setAgreed] = useState(false);
