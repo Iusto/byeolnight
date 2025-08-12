@@ -120,6 +120,9 @@ public class SuggestionController {
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        if (userId == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
         SuggestionDto.Response response = suggestionService.createSuggestion(userId, request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -132,6 +135,9 @@ public class SuggestionController {
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        if (userId == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
         SuggestionDto.Response response = suggestionService.updateSuggestion(id, userId, request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -143,6 +149,9 @@ public class SuggestionController {
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        if (userId == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
         suggestionService.deleteSuggestion(id, userId);
         return ResponseEntity.ok(CommonResponse.success());
     }
@@ -160,6 +169,9 @@ public class SuggestionController {
             HttpServletRequest httpRequest
     ) {
         Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        if (userId == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         SuggestionDto.ListResponse response = suggestionService.getMySuggestions(userId, pageable);
@@ -179,6 +191,9 @@ public class SuggestionController {
             HttpServletRequest httpRequest
     ) {
         Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
+        if (adminId == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
+        }
         SuggestionDto.Response response = suggestionService.addAdminResponse(id, adminId, request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }

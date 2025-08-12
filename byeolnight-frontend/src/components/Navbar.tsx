@@ -115,7 +115,7 @@ export default function Navbar() {
                   {/* 닉네임 (데스크톱만) */}
                   <Link 
                     to="/profile" 
-                    className="hidden sm:block text-white font-medium text-xs hover:text-purple-300 transition-colors"
+                    className="hidden sm:block px-2 py-1 rounded-md text-white font-medium text-xs hover:text-purple-300 hover:bg-purple-600/20 transition-all duration-200 border border-transparent hover:border-purple-500/30"
                     title="프로필 보기"
                   >
                     {user.nickname}

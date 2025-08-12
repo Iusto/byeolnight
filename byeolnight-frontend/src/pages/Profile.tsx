@@ -262,6 +262,39 @@ export default function Profile() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!confirm('이 쪽지를 삭제하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`/member/messages/${messageId}`);
+      
+      if (messageTab === 'received') {
+        setReceivedMessages(prev => ({
+          ...prev,
+          messages: prev.messages.filter(m => m.id !== messageId),
+          totalCount: prev.totalCount - 1
+        }));
+      } else {
+        setSentMessages(prev => ({
+          ...prev,
+          messages: prev.messages.filter(m => m.id !== messageId),
+          totalCount: prev.totalCount - 1
+        }));
+      }
+      
+      if (selectedMessage?.id === messageId) {
+        setSelectedMessage(null);
+      }
+    } catch (error) {
+      console.error('쪽지 삭제 실패:', error);
+      alert('쪽지 삭제에 실패했습니다.');
+    }
+  };
+
   const truncateText = (text: string, maxLength: number) => {
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
@@ -496,7 +529,7 @@ export default function Profile() {
                         </div>
                       </div>
                       <div className="text-xl font-bold text-orange-400 flex-shrink-0">
-                        {profile?.attendanceCount || 0}일
+                        {user?.attendanceCount || profile?.attendanceCount || 0}일
                       </div>
                     </div>
                   </div>
@@ -524,6 +557,89 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'posts' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white mb-6">📝 내게시글</h2>
+              {activity?.myPosts && activity.myPosts.length > 0 ? (
+                <div className="space-y-3">
+                  {activity.myPosts.map((post) => (
+                    <div key={post.id} className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <Link
+                            to={`/posts/${post.id}`}
+                            className="text-white hover:text-purple-300 font-medium block mb-2"
+                          >
+                            {post.title}
+                            {post.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
+                          </Link>
+                          <p className="text-gray-400 text-sm mb-2">
+                            {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>🗂 {categoryLabels[post.category] || post.category}</span>
+                            <span>❤️ {post.likeCount}</span>
+                            <span>💬 {post.commentCount}</span>
+                            <span>👁 {post.viewCount}</span>
+                            <span>📅 {formatDate(post.createdAt)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <div className="text-4xl mb-2">📝</div>
+                  <p>작성한 게시글이 없습니다.</p>
+                  <Link
+                    to="/posts/create"
+                    className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors text-white"
+                  >
+                    게시글 작성하기
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'comments' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white mb-6">💬 내댓글</h2>
+              {activity?.myComments && activity.myComments.length > 0 ? (
+                <div className="space-y-3">
+                  {activity.myComments.map((comment) => (
+                    <div key={comment.id} className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors">
+                      <div className="mb-2">
+                        <Link
+                          to={`/posts/${comment.postId}`}
+                          className="text-purple-300 hover:text-purple-200 text-sm font-medium"
+                        >
+                          📄 {comment.postTitle}
+                        </Link>
+                        {comment.parentId && (
+                          <span className="text-xs text-gray-500 ml-2">(답글)</span>
+                        )}
+                      </div>
+                      <p className="text-white mb-2">
+                        {comment.content}
+                        {comment.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
+                      </p>
+                      <div className="text-xs text-gray-500">
+                        📅 {formatDate(comment.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <div className="text-4xl mb-2">💬</div>
+                  <p>작성한 댓글이 없습니다.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -640,15 +756,24 @@ export default function Profile() {
                         ].join(' ')}
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className={`font-medium ${
+                          <h4 className={`font-medium flex-1 ${
                             !message.isRead ? 'text-white font-bold' : 'text-gray-300'
                           }`}>
                             {message.title}
                             {!message.isRead && <span className="text-blue-400 ml-2">●</span>}
                           </h4>
-                          <span className="text-xs text-gray-500">
-                            {formatDate(message.createdAt)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">
+                              {formatDate(message.createdAt)}
+                            </span>
+                            <button
+                              onClick={(e) => handleDeleteMessage(message.id, e)}
+                              className="p-1 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0"
+                              title="쪽지 삭제"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
                         <p className="text-sm text-gray-400 mb-2">
                           보낸이: {message.senderNickname}
@@ -673,12 +798,21 @@ export default function Profile() {
                         className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="text-gray-300 font-medium">
+                          <h4 className="text-gray-300 font-medium flex-1">
                             {message.title}
                           </h4>
-                          <span className="text-xs text-gray-500">
-                            {formatDate(message.createdAt)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">
+                              {formatDate(message.createdAt)}
+                            </span>
+                            <button
+                              onClick={(e) => handleDeleteMessage(message.id, e)}
+                              className="p-1 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0"
+                              title="쪽지 삭제"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
                         <p className="text-sm text-gray-400 mb-2">
                           받는이: {message.receiverNickname}

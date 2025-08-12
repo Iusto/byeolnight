@@ -290,7 +290,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-gray-600">
                   <span className="text-gray-300">권한</span>
-                  <span className="font-medium">{user.role}</span>
+                  <span className="font-medium">{user.role === 'ADMIN' ? '관리자' : '일반 사용자'}</span>
                 </div>
                 {user.socialProvider && (
                   <div className="flex justify-between items-center py-3 border-b border-gray-600">

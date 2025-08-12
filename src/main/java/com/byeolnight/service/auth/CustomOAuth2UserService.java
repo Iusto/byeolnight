@@ -47,10 +47,17 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             throw new OAuth2AuthenticationException("해당 이메일은 다른 소셜 플랫폼(" + existingUser.getSocialProviderName() + ")으로 가입되어 있습니다.");
                         }
                         
-                        // 일시정지된 소셜 계정 복구
+                        // 계정 상태 확인
+                        if (existingUser.getStatus() == User.UserStatus.LOCKED) {
+                            throw new OAuth2AuthenticationException("계정이 잠겨있습니다. 관리자에게 문의하세요.");
+                        }
+                        
                         if (existingUser.getStatus() == User.UserStatus.SUSPENDED) {
-                            existingUser.changeStatus(User.UserStatus.ACTIVE);
-                            log.info("일시정지된 소셜 계정 복구: {}", email);
+                            throw new OAuth2AuthenticationException("계정이 정지되었습니다. 관리자에게 문의하세요.");
+                        }
+                        
+                        if (existingUser.getStatus() == User.UserStatus.WITHDRAWN) {
+                            throw new OAuth2AuthenticationException("탈퇴한 계정입니다.");
                         }
                         return updateProfileImage(existingUser, userInfo.getImageUrl());
                     })
