@@ -1,3 +1,12 @@
+# 네이버 크롤러 명시적 허용
+User-agent: Yeti
+Allow: /
+
+# 구글 크롤러 허용
+User-agent: Googlebot
+Allow: /
+
+# 모든 크롤러 기본 설정
 User-agent: *
 Allow: /
 Disallow: /admin/
@@ -5,6 +14,9 @@ Disallow: /api/admin/
 Disallow: /api/member/
 Disallow: /api/auth/
 Disallow: /error
+
+# 크롤링 속도 제한 (1초 간격)
+Crawl-delay: 1
 
 # 사이트맵 위치
 Sitemap: https://byeolnight.com/sitemap.xml

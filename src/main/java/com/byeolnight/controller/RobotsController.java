@@ -32,13 +32,22 @@ public class RobotsController {
     @PreAuthorize("permitAll()")
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     public String getRobotsTxt() {
-        return "User-agent: *\n" +
+        return "# 네이버 크롤러 명시적 허용\n" +
+               "User-agent: Yeti\n" +
+               "Allow: /\n\n" +
+               "# 구글 크롤러 허용\n" +
+               "User-agent: Googlebot\n" +
+               "Allow: /\n\n" +
+               "# 모든 크롤러 기본 설정\n" +
+               "User-agent: *\n" +
                "Allow: /\n" +
                "Disallow: /admin/\n" +
                "Disallow: /api/admin/\n" +
                "Disallow: /api/member/\n" +
                "Disallow: /api/auth/\n" +
                "Disallow: /error\n\n" +
+               "# 크롤링 속도 제한 (1초 간격)\n" +
+               "Crawl-delay: 1\n\n" +
                "# 사이트맵 위치\n" +
                "Sitemap: " + baseUrl + "/sitemap.xml";
     }

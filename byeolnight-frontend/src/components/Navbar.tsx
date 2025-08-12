@@ -98,21 +98,21 @@ export default function Navbar() {
                 {/* 사용자 정보 */}
                 <Link 
                   to="/profile" 
-                  className="flex items-center gap-1.5 bg-slate-800/80 px-2 py-1.5 rounded-full border border-purple-500/40 hover:bg-purple-600/20 transition-colors"
+                  className="flex items-center gap-1 bg-slate-800/80 px-1.5 py-1 rounded-full border border-purple-500/40 hover:bg-purple-600/20 transition-colors"
                 >
                   {/* 스텔라 아이콘 */}
                   {user.equippedIconName ? (
                     <UserIconDisplay
                       iconName={user.equippedIconName}
                       size="small"
-                      className="text-sm"
+                      className="text-xs"
                     />
                   ) : (
-                    <span className="text-gray-400 text-sm">👤</span>
+                    <span className="text-gray-400 text-xs">👤</span>
                   )}
                   
                   {/* 닉네임 */}
-                  <span className="text-white text-xs font-medium hidden sm:block">
+                  <span className="text-white text-xs font-medium hidden sm:block max-w-20 truncate">
                     {user.nickname}
                   </span>
                 </Link>
