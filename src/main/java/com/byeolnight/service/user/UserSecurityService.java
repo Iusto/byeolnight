@@ -5,6 +5,7 @@ import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.log.AuditSignupLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,7 @@ public class UserSecurityService {
 
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final StringRedisTemplate redisTemplate;
-    private final PasswordEncoder passwordEncoder;
+    private final ApplicationContext applicationContext;
 
     @Value("${app.security.max-login-attempts:10}")
     private int maxLoginAttempts;
@@ -86,13 +87,20 @@ public class UserSecurityService {
      * 비밀번호 암호화
      */
     public String encodePassword(String rawPassword) {
-        return passwordEncoder.encode(rawPassword);
+        return getPasswordEncoder().encode(rawPassword);
     }
 
     /**
      * 비밀번호 일치 여부 확인
      */
     public boolean matchesPassword(String rawPassword, String encodedPassword) {
-        return passwordEncoder.matches(rawPassword, encodedPassword);
+        return getPasswordEncoder().matches(rawPassword, encodedPassword);
+    }
+    
+    /**
+     * PasswordEncoder 지연 로딩
+     */
+    private PasswordEncoder getPasswordEncoder() {
+        return applicationContext.getBean(PasswordEncoder.class);
     }
 }
