@@ -236,7 +236,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 py-12">
         <BoardNavigation />
 
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3 space-y-8">
             {/* 공지사항 */}
             <Section 
@@ -511,7 +511,7 @@ export default function Home() {
           </div>
 
           {/* 채팅 사이드바 */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <div className="sticky top-4">
               <ChatSidebar />
             </div>

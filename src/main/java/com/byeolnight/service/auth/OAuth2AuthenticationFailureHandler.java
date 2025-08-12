@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
@@ -27,10 +29,14 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
         String baseUrl = request.getServerName().contains("localhost") ? 
                 "http://localhost:5173" : "https://byeolnight.com";
+        
+        // URL 인코딩하여 특수문자 처리
+        String encodedError = java.net.URLEncoder.encode(errorMessage, "UTF-8");
         String redirectUrl = UriComponentsBuilder.fromUriString(baseUrl + "/oauth/callback")
-                .queryParam("error", errorMessage)
+                .queryParam("error", encodedError)
                 .build().toUriString();
 
+        log.info("OAuth2 실패 리다이렉트: {}", redirectUrl);
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }
