@@ -67,7 +67,7 @@ interface UserProfile {
   nicknameChanged: boolean;
   nicknameUpdatedAt?: string;
   points: number;
-  attendanceCount?: number;
+  attendanceCount: number;
   ownedIcons?: UserIcon[];
   equippedIcon?: UserIcon;
 }
@@ -529,7 +529,7 @@ export default function Profile() {
                         </div>
                       </div>
                       <div className="text-xl font-bold text-orange-400 flex-shrink-0">
-                        {user?.attendanceCount || profile?.attendanceCount || 0}일
+                        {profile?.attendanceCount || 0}일
                       </div>
                     </div>
                   </div>

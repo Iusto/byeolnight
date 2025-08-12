@@ -127,14 +127,7 @@ export default function Navbar() {
                   <LanguageSwitcher />
                   <NotificationDropdown />
                   
-                  <Link 
-                    to="/me" 
-                    className="p-1.5 rounded-full bg-white hover:bg-gray-100 text-gray-800 hover:text-gray-900 transition-all duration-200"
-                    title="내 정보"
-                  >
-                    <span className="text-xs">👤</span>
-                  </Link>
-                  
+
                   {user.role === 'ADMIN' && (
                     <Link 
                       to="/admin/users" 

@@ -5,7 +5,7 @@ package com.byeolnight.entity.shop;
  */
 public enum StellaIconGrade {
     FREE("무료", "#6B7280"),
-    COMMON("일반", "#9CA3AF"),
+    COMMON("커먼", "#9CA3AF"),
     RARE("희귀", "#3B82F6"),
     EPIC("영웅", "#8B5CF6"),
     LEGENDARY("전설", "#F59E0B"),

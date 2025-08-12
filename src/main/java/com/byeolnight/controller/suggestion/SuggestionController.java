@@ -1,6 +1,7 @@
 package com.byeolnight.controller.suggestion;
 
 import com.byeolnight.entity.Suggestion;
+import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.dto.suggestion.SuggestionDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -109,6 +112,7 @@ public class SuggestionController {
     }
 
     @PostMapping
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "건의사항 작성", description = "새로운 건의사항을 작성합니다. (로그인 필수)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "작성 성공"),
@@ -117,46 +121,46 @@ public class SuggestionController {
     })
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> createSuggestion(
             @Valid @RequestBody SuggestionDto.CreateRequest request,
-            HttpServletRequest httpRequest
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        if (userId == null) {
+        if (user == null) {
             return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
-        SuggestionDto.Response response = suggestionService.createSuggestion(userId, request);
+        SuggestionDto.Response response = suggestionService.createSuggestion(user.getId(), request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PutMapping("/{id}")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "건의사항 수정", description = "기존 건의사항을 수정합니다.")
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> updateSuggestion(
             @PathVariable Long id,
             @Valid @RequestBody SuggestionDto.UpdateRequest request,
-            HttpServletRequest httpRequest
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        if (userId == null) {
+        if (user == null) {
             return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
-        SuggestionDto.Response response = suggestionService.updateSuggestion(id, userId, request);
+        SuggestionDto.Response response = suggestionService.updateSuggestion(id, user.getId(), request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @DeleteMapping("/{id}")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "건의사항 삭제", description = "건의사항을 삭제합니다.")
     public ResponseEntity<CommonResponse<Void>> deleteSuggestion(
             @PathVariable Long id,
-            HttpServletRequest httpRequest
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        if (userId == null) {
+        if (user == null) {
             return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
-        suggestionService.deleteSuggestion(id, userId);
+        suggestionService.deleteSuggestion(id, user.getId());
         return ResponseEntity.ok(CommonResponse.success());
     }
 
     @GetMapping("/my")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "내 건의사항 조회", description = "내가 작성한 건의사항 목록을 조회합니다. (로그인 필수)")
     @Parameters({
             @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0"),
@@ -166,19 +170,19 @@ public class SuggestionController {
     public ResponseEntity<CommonResponse<SuggestionDto.ListResponse>> getMySuggestions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            HttpServletRequest httpRequest
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        Long userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        if (userId == null) {
+        if (user == null) {
             return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
-        SuggestionDto.ListResponse response = suggestionService.getMySuggestions(userId, pageable);
+        SuggestionDto.ListResponse response = suggestionService.getMySuggestions(user.getId(), pageable);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @PostMapping("/{id}/admin-response")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "관리자 답변 등록", description = "건의사항에 관리자 답변을 등록하고 상태를 변경합니다. (관리자 권한 필수)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "답변 등록 성공"),
@@ -188,13 +192,12 @@ public class SuggestionController {
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> addAdminResponse(
             @Parameter(description = "건의사항 ID", example = "1") @PathVariable Long id,
             @RequestBody @Valid SuggestionDto.AdminResponseRequest request,
-            HttpServletRequest httpRequest
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        Long adminId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        if (adminId == null) {
+        if (user == null) {
             return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
-        SuggestionDto.Response response = suggestionService.addAdminResponse(id, adminId, request);
+        SuggestionDto.Response response = suggestionService.addAdminResponse(id, user.getId(), request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

@@ -40,12 +40,14 @@ public class UserController {
     private final PointService pointService;
     private final MissionService missionService;
     private final AdminChatService adminChatService;
+    private final com.byeolnight.repository.user.DailyAttendanceRepository dailyAttendanceRepository;
 
-    public UserController(UserService userService, PointService pointService, MissionService missionService, AdminChatService adminChatService) {
+    public UserController(UserService userService, PointService pointService, MissionService missionService, AdminChatService adminChatService, com.byeolnight.repository.user.DailyAttendanceRepository dailyAttendanceRepository) {
         this.userService = userService;
         this.pointService = pointService;
         this.missionService = missionService;
         this.adminChatService = adminChatService;
+        this.dailyAttendanceRepository = dailyAttendanceRepository;
     }
 
     @SecurityRequirement(name = "bearerAuth")
@@ -66,6 +68,9 @@ public class UserController {
         // 장착된 아이콘 정보 조회
         com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
         
+        // 출석일수 조회
+        int attendanceCount = (int) dailyAttendanceRepository.countByUser(user);
+        
         UserResponseDto userResponse = UserResponseDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -74,6 +79,7 @@ public class UserController {
                 .nicknameChanged(user.isNicknameChanged())
                 .nicknameUpdatedAt(user.getNicknameUpdatedAt())
                 .points(user.getPoints()) // 포인트 정보 추가
+                .attendanceCount(attendanceCount) // 출석일수 추가
                 .equippedIconId(equippedIcon != null ? equippedIcon.getIconId() : null)
                 .equippedIconName(equippedIcon != null ? equippedIcon.getIconName() : null)
                 .isSocialUser(user.isSocialUser()) // 소셜 로그인 사용자 여부

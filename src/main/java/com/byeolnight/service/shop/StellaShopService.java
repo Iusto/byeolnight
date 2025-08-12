@@ -40,7 +40,7 @@ public class StellaShopService {
      */
     @Transactional(readOnly = true)
     public List<StellaIcon> getShopIcons() {
-        List<StellaIcon> icons = stellaIconRepository.findByAvailableTrue();
+        List<StellaIcon> icons = stellaIconRepository.findByAvailableTrueOrderById();
         log.info("상점 아이콘 조회 결과: {} 개", icons.size());
         return icons;
     }

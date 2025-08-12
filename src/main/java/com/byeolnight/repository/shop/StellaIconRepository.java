@@ -11,9 +11,9 @@ import java.util.Optional;
 public interface StellaIconRepository extends JpaRepository<StellaIcon, Long> {
     
     /**
-     * 구매 가능한 아이콘 목록 조회
+     * 구매 가능한 아이콘 목록 조회 (ID 순서대로)
      */
-    List<StellaIcon> findByAvailableTrue();
+    List<StellaIcon> findByAvailableTrueOrderById();
 
     /**
      * 이름으로 아이콘 조회

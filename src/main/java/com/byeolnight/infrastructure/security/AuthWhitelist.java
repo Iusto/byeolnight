@@ -23,8 +23,9 @@ public class AuthWhitelist {
             // WebSocket
             "/ws/**",
             
-            // 기타 공개 API
+            // 기타 공개 API (GET만 허용)
             "/api/suggestions",
+            "/api/suggestions/*",
             
             // 헬스체크 (보안 강화)
             "/actuator/health",     // 헬스체크만 허용

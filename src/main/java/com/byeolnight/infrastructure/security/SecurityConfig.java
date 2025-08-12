@@ -60,6 +60,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AuthWhitelist.PATHS).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/suggestions", "/api/suggestions/**").permitAll()
+                        .requestMatchers("/api/suggestions/**").authenticated()
                         .requestMatchers("/api/member/**").authenticated()
                         .anyRequest().authenticated()
                 )

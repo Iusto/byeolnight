@@ -23,6 +23,15 @@ module.exports = {
         'sparkle': 'sparkle 1s ease-in-out infinite',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fadeIn': 'fadeIn 0.3s ease-in-out',
+        'float': 'float 3s ease-in-out infinite',
+        'fade-in': 'fadeInUp 0.8s ease-out forwards',
+        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+        'fade-in-delay': 'fadeInDelay 1.2s ease-out forwards',
+        'spin-slow': 'spin 8s linear infinite',
+        'cosmic-float': 'cosmicFloat 6s ease-in-out infinite',
+        'star-twinkle': 'starTwinkle 2s ease-in-out infinite',
+        'planet-orbit': 'planetOrbit 20s linear infinite',
+        'nebula-drift': 'nebulaDrift 15s ease-in-out infinite',
       },
       keyframes: {
         glow: {
@@ -36,6 +45,39 @@ module.exports = {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(-10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(30px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeInDelay: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '50%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        cosmicFloat: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '33%': { transform: 'translateY(-10px) rotate(1deg)' },
+          '66%': { transform: 'translateY(-5px) rotate(-1deg)' },
+        },
+        starTwinkle: {
+          '0%, 100%': { opacity: '0.3', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.2)' },
+        },
+        planetOrbit: {
+          '0%': { transform: 'rotate(0deg) translateX(20px) rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg) translateX(20px) rotate(-360deg)' },
+        },
+        nebulaDrift: {
+          '0%': { transform: 'translateX(-10px) translateY(-5px)' },
+          '25%': { transform: 'translateX(10px) translateY(-10px)' },
+          '50%': { transform: 'translateX(15px) translateY(5px)' },
+          '75%': { transform: 'translateX(-5px) translateY(10px)' },
+          '100%': { transform: 'translateX(-10px) translateY(-5px)' },
         },
         glitch: {
           '0%': { transform: 'translate(0)' },

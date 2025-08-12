@@ -1,5 +1,13 @@
 [
   {
+    "name": "소행성",
+    "description": "작은 우주 암석",
+    "iconUrl": "Asteroid",
+    "grade": "COMMON",
+    "price": 100,
+    "available": true
+  },
+  {
     "name": "수성",
     "description": "태양에 가장 가까운 행성",
     "iconUrl": "Mercury",
@@ -51,14 +59,6 @@
     "name": "혜성",
     "description": "천년에 한 번 나타나는 신비",
     "iconUrl": "Comet",
-    "grade": "COMMON",
-    "price": 100,
-    "available": true
-  },
-  {
-    "name": "소행성",
-    "description": "작은 우주 암석",
-    "iconUrl": "Asteroid",
     "grade": "COMMON",
     "price": 100,
     "available": true

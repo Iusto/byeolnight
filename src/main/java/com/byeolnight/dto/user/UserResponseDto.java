@@ -16,13 +16,14 @@ public class UserResponseDto {
     private final boolean nicknameChanged;
     private final LocalDateTime nicknameUpdatedAt;
     private final int points;
+    private final int attendanceCount;
     private final Long equippedIconId;
     private final String equippedIconName;
     private final boolean isSocialUser;
 
     @Builder
     public UserResponseDto(Long id, String email, String nickname, String role, 
-                          boolean nicknameChanged, LocalDateTime nicknameUpdatedAt, int points,
+                          boolean nicknameChanged, LocalDateTime nicknameUpdatedAt, int points, int attendanceCount,
                           Long equippedIconId, String equippedIconName, boolean isSocialUser) {
         this.id = id;
         this.email = email;
@@ -31,6 +32,7 @@ public class UserResponseDto {
         this.nicknameChanged = nicknameChanged;
         this.nicknameUpdatedAt = nicknameUpdatedAt;
         this.points = points;
+        this.attendanceCount = attendanceCount;
         this.equippedIconId = equippedIconId;
         this.equippedIconName = equippedIconName;
         this.isSocialUser = isSocialUser;
@@ -45,6 +47,7 @@ public class UserResponseDto {
                 .nicknameChanged(user.isNicknameChanged())
                 .nicknameUpdatedAt(user.getNicknameUpdatedAt())
                 .points(user.getPoints())
+                .attendanceCount(0) // 기본값, 실제 값은 컨트롤러에서 설정
                 .isSocialUser(user.isSocialUser())
                 .build();
     }

@@ -51,12 +51,60 @@
   95% { opacity: 0.3; }
 }
 
+/* 우주 테마 애니메이션 추가 */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-delay {
+  0% { opacity: 0; transform: translateY(20px); }
+  50% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cosmic-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(-5px) rotate(-1deg); }
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes planet-orbit {
+  from { transform: rotate(0deg) translateX(20px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(20px) rotate(-360deg); }
+}
+
+@keyframes nebula-drift {
+  0% { transform: translateX(-10px) translateY(-5px); }
+  25% { transform: translateX(10px) translateY(-10px); }
+  50% { transform: translateX(15px) translateY(5px); }
+  75% { transform: translateX(-5px) translateY(10px); }
+  100% { transform: translateX(-10px) translateY(-5px); }
+}
+
 /* 애니메이션 클래스 */
 .animate-pulse { animation: stella-pulse 2s ease-in-out infinite; }
+.animate-fade-in { animation: fade-in 0.8s ease-out forwards; }
+.animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+.animate-fade-in-delay { animation: fade-in-delay 1.2s ease-out forwards; }
+.animate-cosmic-float { animation: cosmic-float 6s ease-in-out infinite; }
+.animate-star-twinkle { animation: star-twinkle 2s ease-in-out infinite; }
+.animate-planet-orbit { animation: planet-orbit 20s linear infinite; }
+.animate-nebula-drift { animation: nebula-drift 15s ease-in-out infinite; }
 .animate-glow { animation: stella-glow 2s ease-in-out infinite; }
 .animate-glow-slow { animation: stella-glow 3s ease-in-out infinite; }
 .animate-rotate { animation: stella-rotate 3s linear infinite; }
-.animate-spin-slow { animation: stella-rotate 4s linear infinite; }
+.animate-spin-slow { animation: stella-rotate 8s linear infinite; }
 .animate-bounce { animation: stella-bounce 1s infinite; }
 .animate-bounce-slow { animation: stella-bounce 2s infinite; }
 .animate-shimmer { 
