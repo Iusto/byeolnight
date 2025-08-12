@@ -10,6 +10,7 @@ interface User {
   points: number;
   equippedIconId?: number;
   equippedIconName?: string;
+  socialProvider?: string;
   representativeCertificate?: {
     icon: string;
     name: string;

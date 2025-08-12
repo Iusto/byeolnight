@@ -20,11 +20,12 @@ public class UserResponseDto {
     private final Long equippedIconId;
     private final String equippedIconName;
     private final boolean isSocialUser;
+    private final String socialProvider;
 
     @Builder
     public UserResponseDto(Long id, String email, String nickname, String role, 
                           boolean nicknameChanged, LocalDateTime nicknameUpdatedAt, int points, int attendanceCount,
-                          Long equippedIconId, String equippedIconName, boolean isSocialUser) {
+                          Long equippedIconId, String equippedIconName, boolean isSocialUser, String socialProvider) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
@@ -36,6 +37,7 @@ public class UserResponseDto {
         this.equippedIconId = equippedIconId;
         this.equippedIconName = equippedIconName;
         this.isSocialUser = isSocialUser;
+        this.socialProvider = socialProvider;
     }
 
     public static UserResponseDto from(User user) {
@@ -49,6 +51,7 @@ public class UserResponseDto {
                 .points(user.getPoints())
                 .attendanceCount(0) // 기본값, 실제 값은 컨트롤러에서 설정
                 .isSocialUser(user.isSocialUser())
+                .socialProvider(user.getSocialProvider())
                 .build();
     }
 }

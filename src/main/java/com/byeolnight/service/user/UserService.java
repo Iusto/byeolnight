@@ -7,6 +7,7 @@ import com.byeolnight.entity.shop.UserIcon;
 import com.byeolnight.entity.token.PasswordResetToken;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.entity.certificate.UserCertificate;
+import com.byeolnight.infrastructure.config.ApplicationContextProvider;
 import com.byeolnight.repository.MessageRepository;
 import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.repository.log.AuditSignupLogRepository;
@@ -25,6 +26,7 @@ import com.byeolnight.dto.message.MessageDto;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.shop.StellaIconRepository;
 import com.byeolnight.repository.shop.UserIconRepository;
+import com.byeolnight.service.auth.SocialRevokeService;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.comment.CommentService;
@@ -264,12 +266,12 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         
-        // 소셜 로그인 사용자는 비밀번호 검증 스킵
-        if (!user.isSocialUser() && !userSecurityService.matchesPassword(password, user.getPassword())) {
+        // 비밀번호가 제공된 경우에만 검증 (일반 사용자)
+        if (password != null && !password.isEmpty() && !userSecurityService.matchesPassword(password, user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         
-        // 소셜 연동 해제 처리
+        // 소셜 연동 해제 처리 (소셜 사용자인 경우)
         if (user.isSocialUser()) {
             try {
                 revokeSocialConnection(user);
@@ -709,9 +711,8 @@ public class UserService {
         if (provider == null) return;
         
         try {
-            com.byeolnight.service.auth.SocialRevokeService socialRevokeService = 
-                com.byeolnight.infrastructure.config.ApplicationContextProvider
-                    .getBean(com.byeolnight.service.auth.SocialRevokeService.class);
+            SocialRevokeService socialRevokeService =
+                ApplicationContextProvider.getBean(SocialRevokeService.class);
             
             switch (provider.toLowerCase()) {
                 case "google" -> socialRevokeService.revokeGoogleConnection(user);

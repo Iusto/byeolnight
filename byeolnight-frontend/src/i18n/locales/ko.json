@@ -261,14 +261,14 @@
     "no_icon_data": "아이콘 데이터가 없습니다.",
     "grades": {
       "all": "전체",
-      "common": "커몬",
+      "common": "커먼",
       "rare": "레어",
       "epic": "에픽",
       "legendary": "레전드",
       "mythic": "미스틱"
     },
     "grade_names": {
-      "common": "커몬 등급",
+      "common": "커먼 등급",
       "rare": "레어 등급",
       "epic": "에픽 등급",
       "legendary": "레전드 등급",

@@ -290,17 +290,17 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-gray-600">
                   <span className="text-gray-300">권한</span>
-                  <span className="font-medium">{user.role === 'ADMIN' ? '관리자' : '일반 사용자'}</span>
+                  <span className="font-medium flex items-center gap-2">
+                    {user.socialProvider && (
+                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
+                        {user.socialProvider === 'google' ? '구글' : 
+                         user.socialProvider === 'naver' ? '네이버' : 
+                         user.socialProvider === 'kakao' ? '카카오' : user.socialProvider}
+                      </span>
+                    )}
+                    {user.role === 'ADMIN' ? '관리자' : '일반 사용자'}
+                  </span>
                 </div>
-                {user.socialProvider && (
-                  <div className="flex justify-between items-center py-3 border-b border-gray-600">
-                    <span className="text-gray-300">연동 계정</span>
-                    <span className="font-medium">
-                      {user.socialProvider === 'google' ? 'Google' : 
-                       user.socialProvider === 'kakao' ? 'Kakao' : 'Naver'}
-                    </span>
-                  </div>
-                )}
               </div>
               
               <div className="pt-6 border-t border-gray-600">
@@ -374,15 +374,7 @@ export default function ProfilePage() {
                     />
                   </div>
                 )}
-                
-                {user?.socialProvider && (
-                  <div className="bg-blue-500/20 border border-blue-500 rounded p-3">
-                    <p className="text-blue-400 text-sm">
-                      🔗 {user.socialProvider === 'google' ? 'Google' : user.socialProvider === 'kakao' ? 'Kakao' : 'Naver'} 계정으로 로그인하셨습니다. 닉네임만 변경 가능합니다.
-                    </p>
-                  </div>
-                )}
-                
+
                 {profileError && (
                   <div className="bg-red-500/20 border border-red-500 rounded p-3">
                     <p className="text-red-400 text-sm">{profileError}</p>
@@ -467,7 +459,6 @@ export default function ProfilePage() {
           isOpen={showWithdrawModal}
           onClose={() => setShowWithdrawModal(false)}
           onConfirm={handleWithdraw}
-          isSocialUser={!!user?.socialProvider}
         />
       </div>
     </div>
