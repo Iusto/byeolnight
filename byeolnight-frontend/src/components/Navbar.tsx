@@ -48,14 +48,20 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             {user ? (
               <>
-                {/* 포인트 */}
-                <Link to="/points" className="hidden sm:flex items-center gap-1 bg-yellow-900/30 hover:bg-yellow-800/40 px-2 py-1 rounded-lg border border-yellow-500/30 transition-colors" title="포인트">
-                  <span className="text-yellow-400 text-sm">✨</span>
-                  <span className="text-yellow-200 text-xs font-bold">{user.points?.toLocaleString() || 0}</span>
+                {/* 포인트 & 출석체크 */}
+                <Link to="/points" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 px-3 py-2 rounded-lg border border-yellow-500/40 hover:border-yellow-400/60 transition-all duration-200 group shadow-lg hover:shadow-yellow-500/20" title="스텔라 포인트 & 출석체크">
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-400 text-sm animate-pulse">✨</span>
+                    <span className="text-yellow-200 text-xs font-bold">{user.points?.toLocaleString() || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/30 rounded-md border border-purple-400/30">
+                    <span className="text-purple-300 text-xs">📅</span>
+                    <span className="text-purple-200 text-xs font-medium">출석체크</span>
+                  </div>
                 </Link>
 
                 {/* 사용자 정보 */}
-                <Link to="/profile" className="flex items-center gap-1.5 bg-slate-800/60 hover:bg-slate-700/60 px-2 py-1 rounded-lg border border-purple-500/30 transition-colors group" title="프로필 & 출석체크">
+                <Link to="/profile" className="flex items-center gap-1.5 bg-slate-800/60 hover:bg-slate-700/60 px-2 py-1 rounded-lg border border-purple-500/30 transition-colors group" title="프로필">
                   {user.equippedIconName ? (
                     <UserIconDisplay iconName={user.equippedIconName} size="small" />
                   ) : (
@@ -63,7 +69,6 @@ export default function Navbar() {
                   )}
                   <div className="hidden sm:flex flex-col">
                     <span className="text-white text-xs font-medium max-w-20 truncate">{user.nickname}</span>
-                    <span className="text-purple-300 text-xs opacity-70 group-hover:opacity-100 transition-opacity">출석체크</span>
                   </div>
                 </Link>
 
@@ -125,9 +130,15 @@ export default function Navbar() {
               )}
             </div>
             {user && (
-              <Link to="/points" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center gap-2 mt-2 p-3 rounded-lg bg-yellow-900/30 hover:bg-yellow-800/40 border border-yellow-500/30 text-yellow-200 transition-colors">
-                <span className="text-lg">✨</span>
-                <span className="text-sm font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
+              <Link to="/points" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between mt-2 p-3 rounded-lg bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 border border-yellow-500/40 text-yellow-200 transition-all duration-200 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg animate-pulse">✨</span>
+                  <span className="text-sm font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/30 rounded border border-purple-400/30">
+                  <span className="text-xs">📅</span>
+                  <span className="text-xs font-medium text-purple-200">출석체크</span>
+                </div>
               </Link>
             )}
           </div>
