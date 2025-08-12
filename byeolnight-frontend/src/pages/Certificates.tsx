@@ -92,8 +92,8 @@ export default function Certificates() {
             <h2 className="text-2xl font-semibold mb-4 text-purple-300">{t('certificates.representative_title')}</h2>
             <div className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-xl shadow-2xl">
               <div className="text-6xl mb-4">{representative.icon}</div>
-              <h3 className="text-2xl font-bold mb-2">{representative.name}</h3>
-              <p className="text-sm text-gray-200">{representative.description}</p>
+              <h3 className="text-2xl font-bold mb-2">{t(`certificates.types.${representative.type}.name`, representative.name)}</h3>
+              <p className="text-sm text-gray-200">{t(`certificates.types.${representative.type}.description`, representative.description)}</p>
               <p className="text-xs text-gray-300 mt-2">{t('certificates.issued_date')} {formatDate(representative.issuedAt)}</p>
             </div>
           </div>
@@ -128,10 +128,10 @@ export default function Certificates() {
               <div className="text-center">
                 <div className={`text-5xl mb-4 ${!cert.owned ? 'grayscale' : ''}`}>{cert.icon}</div>
                 <h3 className={`text-xl font-bold mb-2 ${cert.owned ? 'text-white' : 'text-gray-400'}`}>
-                  {cert.name}
+                  {t(`certificates.types.${cert.type}.name`, cert.name)}
                 </h3>
                 <p className={`text-sm mb-4 ${cert.owned ? 'text-gray-300' : 'text-gray-500'}`}>
-                  {cert.description}
+                  {t(`certificates.types.${cert.type}.description`, cert.description)}
                 </p>
                 
                 {cert.owned ? (
@@ -155,7 +155,7 @@ export default function Certificates() {
                     <div className="bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm mb-3">
                       {t('certificates.how_to_get')}
                     </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">{cert.howToGet}</p>
+                    <p className="text-xs text-gray-400 leading-relaxed">{t(`certificates.types.${cert.type}.howToGet`, cert.howToGet)}</p>
                   </>
                 )}
               </div>

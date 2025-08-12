@@ -288,18 +288,20 @@ export default function ProfilePage() {
                   <span className="text-gray-300">닉네임</span>
                   <span className="font-medium">{user.nickname}</span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-600">
-                  <span className="text-gray-300">권한</span>
-                  <span className="font-medium flex items-center gap-2">
-                    {user.socialProvider && (
-                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
-                        {user.socialProvider === 'google' ? '구글' : 
-                         user.socialProvider === 'naver' ? '네이버' : 
-                         user.socialProvider === 'kakao' ? '카카오' : user.socialProvider}
-                      </span>
-                    )}
-                    {user.role === 'ADMIN' ? '관리자' : '일반 사용자'}
-                  </span>
+                <div className="py-3 border-b border-gray-600">
+                  <div className="flex justify-between items-start">
+                    <span className="text-gray-300">권한</span>
+                    <div className="text-right">
+                      <div className="font-medium">{user.role === 'ADMIN' ? '관리자' : '일반 사용자'}</div>
+                      {user.socialProvider && (
+                        <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 mt-1 inline-block">
+                          {user.socialProvider === 'google' ? '구글' : 
+                           user.socialProvider === 'naver' ? '네이버' : 
+                           user.socialProvider === 'kakao' ? '카카오' : user.socialProvider}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -459,6 +461,7 @@ export default function ProfilePage() {
           isOpen={showWithdrawModal}
           onClose={() => setShowWithdrawModal(false)}
           onConfirm={handleWithdraw}
+          isSocialUser={!!user?.socialProvider}
         />
       </div>
     </div>

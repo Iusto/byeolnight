@@ -33,7 +33,7 @@ export default function Navbar() {
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2">
             <Link 
               to="/posts" 
               className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
@@ -115,9 +115,10 @@ export default function Navbar() {
                   {/* 닉네임 (데스크톱만) */}
                   <Link 
                     to="/profile" 
-                    className="hidden sm:block px-2 py-1 rounded-md text-white font-medium text-xs hover:text-purple-300 hover:bg-purple-600/20 transition-all duration-200 border border-transparent hover:border-purple-500/30"
+                    className="hidden sm:flex items-center px-3 py-2 rounded-lg text-white font-medium text-sm hover:text-purple-300 hover:bg-purple-600/30 transition-all duration-200 border border-purple-500/20 hover:border-purple-400/50 shadow-sm hover:shadow-md transform hover:scale-105 bg-gradient-to-r from-purple-600/10 to-blue-600/10 hover:from-purple-600/20 hover:to-blue-600/20"
                     title="프로필 보기"
                   >
+                    <span className="mr-1">👤</span>
                     {user.nickname}
                   </Link>
                 </div>
