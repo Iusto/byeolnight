@@ -96,32 +96,26 @@ export default function Navbar() {
                 </Link>
 
                 {/* 사용자 정보 */}
-                <div className="flex items-center gap-2 bg-gradient-to-r from-slate-800/80 to-purple-900/80 px-2 py-1.5 rounded-full border border-purple-500/40 shadow-lg backdrop-blur-sm">
-                  {/* 사용자 아이콘 */}
+                <Link 
+                  to="/profile" 
+                  className="flex items-center gap-2 bg-slate-800/80 px-3 py-2 rounded-full border border-purple-500/40 hover:bg-purple-600/20 transition-colors"
+                >
+                  {/* 스텔라 아이콘 */}
                   {user.equippedIconName ? (
-                    <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full border border-purple-400/30">
-                      <UserIconDisplay
-                        iconName={user.equippedIconName}
-                        size="small"
-                        className="text-base"
-                      />
-                    </div>
+                    <UserIconDisplay
+                      iconName={user.equippedIconName}
+                      size="small"
+                      className="text-lg"
+                    />
                   ) : (
-                    <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-gray-600/30 to-gray-700/30 rounded-full">
-                      <span className="text-xs text-gray-400">👤</span>
-                    </div>
+                    <span className="text-gray-400">👤</span>
                   )}
                   
-                  {/* 닉네임 (데스크톱만) */}
-                  <Link 
-                    to="/profile" 
-                    className="hidden sm:flex items-center px-3 py-2 rounded-lg text-white font-medium text-sm hover:text-purple-300 hover:bg-purple-600/30 transition-all duration-200 border border-purple-500/20 hover:border-purple-400/50 shadow-sm hover:shadow-md transform hover:scale-105 bg-gradient-to-r from-purple-600/10 to-blue-600/10 hover:from-purple-600/20 hover:to-blue-600/20"
-                    title="프로필 보기"
-                  >
-                    <span className="mr-1">👤</span>
+                  {/* 닉네임 */}
+                  <span className="text-white text-sm font-medium hidden sm:block">
                     {user.nickname}
-                  </Link>
-                </div>
+                  </span>
+                </Link>
 
                 {/* 액션 버튼들 */}
                 <div className="flex items-center gap-2">

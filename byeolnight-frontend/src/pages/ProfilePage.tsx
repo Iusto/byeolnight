@@ -305,7 +305,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className="pt-6 border-t border-gray-600">
+              <div className="pt-6">
                 <button
                   onClick={() => setShowWithdrawModal(true)}
                   className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded transition-colors font-medium"
