@@ -16,27 +16,48 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
+    private static final String ERROR_SESSION_KEY = "oauth2_error_message";
+    private static final String DEFAULT_ERROR_MESSAGE = "OAuth 로그인에 실패했습니다";
+    private static final String CALLBACK_PATH = "/oauth/callback";
+    private static final String LOCAL_BASE_URL = "http://localhost:5173";
+    private static final String PROD_BASE_URL = "https://byeolnight.com";
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
         
-        log.error("OAuth2 인증 실패 - 예외 타입: {}, 메시지: '{}'", exception.getClass().getSimpleName(), exception.getMessage());
+        log.error("OAuth2 인증 실패 - 예외 타입: {}, 메시지: '{}'", 
+                exception.getClass().getSimpleName(), exception.getMessage());
         
-        String errorMessage = exception.getMessage();
-        if (errorMessage == null || errorMessage.isEmpty()) {
-            errorMessage = "OAuth 로그인에 실패했습니다";
-        }
-
-        String baseUrl = request.getServerName().contains("localhost") ? 
-                "http://localhost:5173" : "https://byeolnight.com";
-        
-        // URL 인코딩하여 특수문자 처리
-        String encodedError = java.net.URLEncoder.encode(errorMessage, "UTF-8");
-        String redirectUrl = UriComponentsBuilder.fromUriString(baseUrl + "/oauth/callback")
-                .queryParam("error", encodedError)
-                .build().toUriString();
+        String errorMessage = extractErrorMessage(request, exception);
+        String redirectUrl = buildRedirectUrl(request, errorMessage);
 
         log.info("OAuth2 실패 리다이렉트 - 원본 메시지: '{}', URL: {}", errorMessage, redirectUrl);
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+    }
+    
+    private String extractErrorMessage(HttpServletRequest request, AuthenticationException exception) {
+        String errorMessage = (String) request.getSession().getAttribute(ERROR_SESSION_KEY);
+        if (errorMessage != null) {
+            request.getSession().removeAttribute(ERROR_SESSION_KEY);
+            return errorMessage;
+        }
+        
+        String exceptionMessage = exception.getMessage();
+        return (exceptionMessage != null && !exceptionMessage.isEmpty()) ? 
+                exceptionMessage : DEFAULT_ERROR_MESSAGE;
+    }
+    
+    private String buildRedirectUrl(HttpServletRequest request, String errorMessage) {
+        String baseUrl = isLocalhost(request) ? LOCAL_BASE_URL : PROD_BASE_URL;
+        String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+        
+        return UriComponentsBuilder.fromUriString(baseUrl + CALLBACK_PATH)
+                .queryParam("error", encodedError)
+                .build().toUriString();
+    }
+    
+    private boolean isLocalhost(HttpServletRequest request) {
+        return request.getServerName().contains("localhost");
     }
 }

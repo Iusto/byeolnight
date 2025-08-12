@@ -36,8 +36,6 @@ public class AuthService {
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final UserSecurityService userSecurityService;
     private final CertificateService certificateService;
-    private final PasswordEncoder passwordEncoder;
-
     /**
      * 로그인 인증 처리
      */
@@ -61,7 +59,7 @@ public class AuthService {
         auditLoginLogRepository.save(AuditLoginLog.of(user.getEmail(), ip, userAgent));
 
         // 인증서 발급 체크
-        certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.LOGIN);
+        certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.LOGIN);
 
         // 토큰 생성 및 저장
         return createTokens(user, ip, request.getHeader("User-Agent"));

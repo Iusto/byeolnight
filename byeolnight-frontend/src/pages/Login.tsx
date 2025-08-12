@@ -91,8 +91,14 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
-        {/* 언어 선택 */}
-        <div className="flex justify-end mb-4">
+        {/* 상단 버튼들 */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => navigate('/')}
+            className="px-3 py-1 bg-transparent border border-blue-500 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-sm"
+          >
+            {t.goHome}
+          </button>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -100,7 +106,7 @@ export default function Login() {
           >
             <option value="ko">한국어</option>
             <option value="en">English</option>
-            <option value="ja">日本語</option>
+            <option value="ja">日본語</option>
           </select>
         </div>
 
@@ -192,13 +198,6 @@ export default function Login() {
             className="w-full py-2 px-4 bg-transparent border border-gray-500 text-gray-400 rounded hover:bg-gray-500 hover:text-white transition-colors"
           >
             {t.resetPassword}
-          </button>
-          
-          <button
-            onClick={() => navigate('/')}
-            className="w-full py-2 px-4 bg-transparent border border-blue-500 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors"
-          >
-            {t.goHome}
           </button>
           
 

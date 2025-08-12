@@ -2,6 +2,8 @@ package com.byeolnight.service.auth;
 
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.UserRepository;
+import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -10,7 +12,10 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 
 @Slf4j
@@ -20,6 +25,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final SocialAccountCleanupService socialAccountCleanupService;
+    private final UserService userService;
+    private final CertificateService certificateService;
 
     @Override
     @Transactional
@@ -30,99 +37,99 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             OAuth2User oAuth2User = super.loadUser(userRequest);
             OAuth2UserInfoFactory.OAuth2UserInfo userInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(registrationId, oAuth2User);
             
-            String email = userInfo.getEmail();
-            if (email == null || email.isEmpty()) {
-                throw new OAuth2AuthenticationException("이메일 정보를 가져올 수 없습니다.");
-            }
-
-            User user = userRepository.findByEmail(email)
-                    .map(existingUser -> {
-                        // 일반 계정이면 소셜 로그인 거부
-                        if (!existingUser.isSocialUser()) {
-                            throw new OAuth2AuthenticationException("해당 이메일로 이미 일반 계정이 존재합니다. 일반 로그인을 이용해주세요.");
-                        }
-                        
-                        // 다른 소셜 플랫폼으로 가입된 계정이면 거부
-                        if (!registrationId.equals(existingUser.getSocialProvider())) {
-                            throw new OAuth2AuthenticationException("해당 이메일은 다른 소셜 플랫폼(" + existingUser.getSocialProviderName() + ")으로 가입되어 있습니다.");
-                        }
-                        
-                        // 계정 상태 확인
-                        if (existingUser.isAccountLocked()) {
-                            throw new OAuth2AuthenticationException("계정이 잠겨있습니다. 관리자에게 문의하세요.");
-                        }
-                        
-                        if (existingUser.getStatus() == User.UserStatus.BANNED) {
-                            throw new OAuth2AuthenticationException("계정이 밴되었습니다. 관리자에게 문의하세요.");
-                        }
-                        
-                        if (existingUser.getStatus() == User.UserStatus.SUSPENDED) {
-                            throw new OAuth2AuthenticationException("계정이 정지되었습니다. 관리자에게 문의하세요.");
-                        }
-                        
-                        if (existingUser.getStatus() == User.UserStatus.WITHDRAWN) {
-                            throw new OAuth2AuthenticationException("탈퇴한 계정입니다.");
-                        }
-                        return updateProfileImage(existingUser, userInfo.getImageUrl());
-                    })
-                    .orElseGet(() -> {
-                        // 30일 내 탈퇴한 소셜 계정 자동 복구 시도
-                        boolean recovered = socialAccountCleanupService.recoverWithdrawnAccount(email);
-                        if (recovered) {
-                            log.info("30일 내 탈퇴한 소셜 계정 자동 복구: {}", email);
-                            // 복구된 계정 다시 조회 및 닉네임 충돌 방지
-                            return userRepository.findByEmail(email)
-                                    .map(recoveredUser -> {
-                                        // 닉네임 충돌 방지
-                                        String baseNickname = userInfo.getEmail().split("@")[0];
-                                        String uniqueNickname = generateUniqueNickname(baseNickname);
-                                        recoveredUser.updateNickname(uniqueNickname, java.time.LocalDateTime.now());
-                                        recoveredUser.setSocialProvider(registrationId);
-                                        return updateProfileImage(recoveredUser, userInfo.getImageUrl());
-                                    })
-                                    .orElseGet(() -> createUser(userInfo, registrationId));
-                        }
-                        return createUser(userInfo, registrationId);
-                    });
+            validateEmail(userInfo.getEmail());
+            
+            User user = userRepository.findByEmail(userInfo.getEmail())
+                    .map(existingUser -> processExistingUser(existingUser, userInfo, registrationId))
+                    .orElseGet(() -> processNewUser(userInfo, registrationId));
 
             return new CustomOAuth2User(user, oAuth2User.getAttributes());
             
         } catch (OAuth2AuthenticationException e) {
-            // 소셜 로그인 실패 시 계정 정리 서비스 호출
-            try {
-                String email = extractEmailFromError(e, userRequest);
-                if (email != null) {
-                    socialAccountCleanupService.handleFailedSocialLogin(email, registrationId);
-                }
-            } catch (Exception cleanupError) {
-                log.error("소셜 계정 정리 중 오류 발생", cleanupError);
-            }
+            handleAuthenticationFailure(e, registrationId);
             throw e;
         }
     }
     
-    private String extractEmailFromError(OAuth2AuthenticationException e, OAuth2UserRequest userRequest) {
-        // 에러에서 이메일 추출 시도 (제한적)
+    private void validateEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            throw new OAuth2AuthenticationException("이메일 정보를 가져올 수 없습니다.");
+        }
+    }
+    
+    private User processExistingUser(User existingUser, OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
+        validateSocialAccount(existingUser, registrationId);
+        validateAccountStatus(existingUser);
+        return updateProfileImage(existingUser, userInfo.getImageUrl());
+    }
+    
+    private void validateSocialAccount(User user, String registrationId) {
+        if (!user.isSocialUser()) {
+            String errorMsg = "해당 이메일로 이미 일반 계정이 존재합니다. 일반 로그인을 이용해주세요.";
+            storeErrorMessage(errorMsg);
+            throw new OAuth2AuthenticationException(errorMsg);
+        }
+        
+        if (!registrationId.equals(user.getSocialProvider())) {
+            String errorMsg = "해당 이메일은 다른 소셜 플랫폼(" + user.getSocialProviderName() + ")으로 가입되어 있습니다.";
+            storeErrorMessage(errorMsg);
+            throw new OAuth2AuthenticationException(errorMsg);
+        }
+    }
+    
+    private void validateAccountStatus(User user) {
+        if (user.isAccountLocked()) {
+            throwAccountError("계정이 잠겨있습니다. 관리자에게 문의하세요.");
+        }
+        
+        switch (user.getStatus()) {
+            case BANNED -> throwAccountError("계정이 밴되었습니다. 관리자에게 문의하세요.");
+            case SUSPENDED -> throwAccountError("계정이 정지되었습니다. 관리자에게 문의하세요.");
+            case WITHDRAWN -> throwAccountError("탈퇴한 계정입니다.");
+        }
+    }
+    
+    private void throwAccountError(String message) {
+        storeErrorMessage(message);
+        throw new OAuth2AuthenticationException(message);
+    }
+    
+    private User processNewUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
+        if (socialAccountCleanupService.recoverWithdrawnAccount(userInfo.getEmail())) {
+            log.info("30일 내 탈퇴한 소셜 계정 자동 복구: {}", userInfo.getEmail());
+            return userRepository.findByEmail(userInfo.getEmail())
+                    .map(recoveredUser -> recoverUser(recoveredUser, userInfo, registrationId))
+                    .orElseGet(() -> createUser(userInfo, registrationId));
+        }
+        return createUser(userInfo, registrationId);
+    }
+    
+    private User recoverUser(User recoveredUser, OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
+        String baseNickname = userInfo.getEmail().split("@")[0];
+        String uniqueNickname = generateUniqueNickname(baseNickname);
+        recoveredUser.updateNickname(uniqueNickname, java.time.LocalDateTime.now());
+        recoveredUser.setSocialProvider(registrationId);
+        return updateProfileImage(recoveredUser, userInfo.getImageUrl());
+    }
+    
+    private void handleAuthenticationFailure(OAuth2AuthenticationException e, String registrationId) {
         try {
-            // 실제로는 복잡한 로직이 필요하지만, 여기서는 간단히 처리
-            return null;
-        } catch (Exception ex) {
-            return null;
+            socialAccountCleanupService.handleFailedSocialLogin(null, registrationId);
+        } catch (Exception cleanupError) {
+            log.error("소셜 계정 정리 중 오류 발생", cleanupError);
         }
     }
 
     private User createUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
-        String baseNickname = userInfo.getEmail().split("@")[0];
-        String nickname = generateUniqueNickname(baseNickname);
+        String nickname = generateUniqueNickname(userInfo.getEmail().split("@")[0]);
         
         User newUser = User.builder()
                 .email(userInfo.getEmail())
-                .password(null) // 소셜 로그인 사용자는 비밀번호 없음
+                .password(null)
                 .nickname(nickname)
                 .profileImageUrl(userInfo.getImageUrl())
                 .role(User.Role.USER)
                 .status(User.UserStatus.ACTIVE)
-
                 .points(0)
                 .nicknameChanged(false)
                 .build();
@@ -130,24 +137,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         newUser.setSocialProvider(registrationId);
         User savedUser = userRepository.save(newUser);
         
-        // 소셜 로그인 사용자에게 기본 아이콘 부여 및 인증서 발급
+        setupNewSocialUser(savedUser);
+        return savedUser;
+    }
+    
+    private void setupNewSocialUser(User user) {
         try {
-            // UserService를 통해 기본 아이콘 부여
-            com.byeolnight.service.user.UserService userService = 
-                com.byeolnight.infrastructure.config.ApplicationContextProvider.getBean(com.byeolnight.service.user.UserService.class);
-            userService.grantDefaultAsteroidIcon(savedUser);
-            
-            // CertificateService를 통해 별빛탐험가 인증서 발급
-            com.byeolnight.service.certificate.CertificateService certificateService = 
-                com.byeolnight.infrastructure.config.ApplicationContextProvider.getBean(com.byeolnight.service.certificate.CertificateService.class);
-            certificateService.checkAndIssueCertificates(savedUser, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.LOGIN);
-            
-            log.info("소셜 로그인 사용자 {}에게 기본 아이콘 및 인증서 발급 완료", savedUser.getNickname());
+            userService.grantDefaultAsteroidIcon(user);
+            certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.LOGIN);
+            log.info("소셜 로그인 사용자 {}에게 기본 아이콘 및 인증서 발급 완료", user.getNickname());
         } catch (Exception e) {
             log.error("소셜 로그인 사용자 기본 설정 중 오류 발생: {}", e.getMessage(), e);
         }
-        
-        return savedUser;
     }
 
     private User updateProfileImage(User user, String imageUrl) {
@@ -158,25 +159,35 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return user;
     }
 
+    private void storeErrorMessage(String errorMessage) {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                request.getSession().setAttribute("oauth2_error_message", errorMessage);
+                log.info("OAuth2 에러 메시지 세션에 저장: {}", errorMessage);
+            }
+        } catch (Exception e) {
+            log.warn("OAuth2 에러 메시지 저장 실패: {}", e.getMessage());
+        }
+    }
+
     private String generateUniqueNickname(String baseNickname) {
-        // 기본 닉네임이 너무 짧으면 보완
-        if (baseNickname.length() < 2) {
-            baseNickname = "사용자";
+        String normalizedNickname = normalizeNickname(baseNickname);
+        
+        if (!userRepository.existsByNickname(normalizedNickname)) {
+            return normalizedNickname;
         }
         
-        // 8자 제한 준수
-        if (baseNickname.length() > 8) {
-            baseNickname = baseNickname.substring(0, 8);
-        }
-        
-        // 기본 닉네임 시도
-        if (!userRepository.existsByNickname(baseNickname)) {
-            return baseNickname;
-        }
-        
-        // 유니크 닉네임 생성 (최대 8자)
         String uniqueSuffix = UUID.randomUUID().toString().substring(0, 4);
-        String prefix = baseNickname.length() > 3 ? baseNickname.substring(0, 3) : baseNickname;
+        String prefix = normalizedNickname.length() > 3 ? normalizedNickname.substring(0, 3) : normalizedNickname;
         return prefix + uniqueSuffix;
+    }
+    
+    private String normalizeNickname(String nickname) {
+        if (nickname.length() < 2) {
+            return "사용자";
+        }
+        return nickname.length() > 8 ? nickname.substring(0, 8) : nickname;
     }
 }
