@@ -6,10 +6,85 @@ import NotificationDropdown from './notification/NotificationDropdown';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useState } from 'react';
 
+const NavLink = ({ to, icon, children, className = '', onClick }: {
+  to: string;
+  icon: string;
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${className}`}
+  >
+    <span className="text-sm">{icon}</span>
+    <span className="text-sm font-medium">{children}</span>
+  </Link>
+);
+
+const PointsButton = ({ points }: { points: number }) => (
+  <Link
+    to="/points"
+    className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 px-3 py-2 rounded-lg border border-yellow-500/40 hover:border-yellow-400/60 transition-all duration-200 shadow-lg hover:shadow-yellow-500/20"
+    title="스텔라 포인트 & 출석체크"
+  >
+    <div className="flex items-center gap-1">
+      <span className="text-yellow-400 text-sm animate-pulse">✨</span>
+      <span className="text-yellow-200 text-xs font-bold">{points.toLocaleString()}</span>
+    </div>
+    <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/30 rounded-md border border-purple-400/30">
+      <span className="text-purple-300 text-xs">📅</span>
+      <span className="text-purple-200 text-xs font-medium">출석체크</span>
+    </div>
+  </Link>
+);
+
+const UserProfile = ({ user }: { user: any }) => (
+  <Link
+    to="/profile"
+    className="flex items-center gap-2 bg-slate-800/60 hover:bg-slate-700/60 px-3 py-2 rounded-lg border border-purple-500/30 transition-all duration-200"
+    title="프로필"
+  >
+    <div className="w-6 h-6 flex items-center justify-center">
+      {user.equippedIconName ? (
+        <UserIconDisplay iconName={user.equippedIconName} size="small" className="w-5 h-5" />
+      ) : (
+        <span className="text-gray-400 text-sm">👤</span>
+      )}
+    </div>
+    <span className="hidden sm:block text-white text-sm font-medium max-w-20 truncate">
+      {user.nickname}
+    </span>
+  </Link>
+);
+
+const ActionButton = ({ onClick, icon, title, className = '' }: {
+  onClick?: () => void;
+  icon: string;
+  title: string;
+  className?: string;
+}) => (
+  <button
+    onClick={onClick}
+    className={`p-2 rounded-lg transition-all duration-200 ${className}`}
+    title={title}
+  >
+    <span className="text-sm">{icon}</span>
+  </button>
+);
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { to: '/posts', icon: '📚', label: t('nav.posts'), className: 'hover:bg-purple-600/20 text-purple-200 hover:text-white' },
+    { to: '/suggestions', icon: '💡', label: t('nav.suggestions'), className: 'hover:bg-orange-600/20 text-orange-300 hover:text-orange-200' },
+    { to: '/shop', icon: '✨', label: t('nav.shop'), className: 'hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30 text-white' },
+    ...(user ? [{ to: '/certificates', icon: '🏆', label: t('nav.certificates'), className: 'hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200' }] : [])
+  ];
 
   return (
     <header className="bg-gradient-to-r from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-md shadow-2xl border-b border-purple-500/30 sticky top-0 z-50">
@@ -24,83 +99,57 @@ export default function Navbar() {
 
           {/* 데스크톱 네비게이션 */}
           <div className="hidden lg:flex items-center gap-1">
-            <Link to="/posts" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-purple-600/20 text-purple-200 hover:text-white transition-colors">
-              <span>📚</span>
-              <span className="text-sm">{t('nav.posts')}</span>
-            </Link>
-            <Link to="/suggestions" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-colors">
-              <span>💡</span>
-              <span className="text-sm">{t('nav.suggestions')}</span>
-            </Link>
-            <Link to="/shop" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30 text-white transition-colors">
-              <span>✨</span>
-              <span className="text-sm font-medium">{t('nav.shop')}</span>
-            </Link>
-            {user && (
-              <Link to="/certificates" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-colors">
-                <span>🏆</span>
-                <span className="text-sm">{t('nav.certificates')}</span>
-              </Link>
-            )}
+            {navItems.map((item) => (
+              <NavLink key={item.to} to={item.to} icon={item.icon} className={item.className}>
+                {item.label}
+              </NavLink>
+            ))}
           </div>
 
           {/* 사용자 영역 */}
           <div className="flex items-center gap-2">
             {user ? (
               <>
-                {/* 포인트 & 출석체크 */}
-                <Link to="/points" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 px-3 py-2 rounded-lg border border-yellow-500/40 hover:border-yellow-400/60 transition-all duration-200 group shadow-lg hover:shadow-yellow-500/20" title="스텔라 포인트 & 출석체크">
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-400 text-sm animate-pulse">✨</span>
-                    <span className="text-yellow-200 text-xs font-bold">{user.points?.toLocaleString() || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/30 rounded-md border border-purple-400/30">
-                    <span className="text-purple-300 text-xs">📅</span>
-                    <span className="text-purple-200 text-xs font-medium">출석체크</span>
-                  </div>
-                </Link>
-
-                {/* 사용자 정보 */}
-                <Link to="/profile" className="flex items-center gap-1.5 bg-slate-800/60 hover:bg-slate-700/60 px-2 py-1 rounded-lg border border-purple-500/30 transition-colors group" title="프로필">
-                  {user.equippedIconName ? (
-                    <UserIconDisplay iconName={user.equippedIconName} size="small" />
-                  ) : (
-                    <span className="text-gray-400 text-sm">👤</span>
-                  )}
-                  <div className="hidden sm:flex flex-col">
-                    <span className="text-white text-xs font-medium max-w-20 truncate">{user.nickname}</span>
-                  </div>
-                </Link>
-
-                {/* 액션 버튼들 */}
+                <PointsButton points={user.points || 0} />
+                <UserProfile user={user} />
                 <LanguageSwitcher />
                 <NotificationDropdown />
                 {user.role === 'ADMIN' && (
-                  <Link to="/admin/users" className="p-1 rounded hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-colors" title="관리자">
-                    <span className="text-sm">⚙️</span>
-                  </Link>
+                  <ActionButton
+                    icon="⚙️"
+                    title="관리자"
+                    className="hover:bg-red-600/20 text-red-300 hover:text-red-200"
+                    onClick={() => window.location.href = '/admin/users'}
+                  />
                 )}
-                <button onClick={logout} className="p-1 rounded hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-colors" title="로그아웃">
-                  <span className="text-sm">🚪</span>
-                </button>
-
-                {/* 모바일 메뉴 버튼 */}
-                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-colors">
-                  <span>{isMobileMenuOpen ? '✕' : '☰'}</span>
-                </button>
+                <ActionButton
+                  onClick={logout}
+                  icon="🚪"
+                  title="로그아웃"
+                  className="hover:bg-red-600/20 text-red-400 hover:text-red-300"
+                />
+                <ActionButton
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  icon={isMobileMenuOpen ? '✕' : '☰'}
+                  title="메뉴"
+                  className="lg:hidden bg-purple-600/20 hover:bg-purple-600/40 text-purple-200"
+                />
               </>
             ) : (
               <>
                 <LanguageSwitcher />
-                <Link to="/login" className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-colors border border-purple-500/30 text-sm">
+                <Link to="/login" className="px-3 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-200 border border-purple-500/30 text-sm">
                   {t('nav.login')}
                 </Link>
-                <Link to="/signup" className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium transition-colors text-sm">
+                <Link to="/signup" className="px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium transition-all duration-200 text-sm">
                   {t('nav.signup')}
                 </Link>
-                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-colors">
-                  <span>{isMobileMenuOpen ? '✕' : '☰'}</span>
-                </button>
+                <ActionButton
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  icon={isMobileMenuOpen ? '✕' : '☰'}
+                  title="메뉴"
+                  className="lg:hidden bg-purple-600/20 hover:bg-purple-600/40 text-purple-200"
+                />
               </>
             )}
           </div>
@@ -108,29 +157,26 @@ export default function Navbar() {
 
         {/* 모바일 메뉴 */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-purple-500/20 py-3">
-            <div className="grid grid-cols-2 gap-2">
-              <Link to="/posts" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-colors">
-                <span className="text-xl">📚</span>
-                <span className="text-xs">{t('nav.posts')}</span>
-              </Link>
-              <Link to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/30 hover:to-pink-600/30 text-white transition-colors">
-                <span className="text-xl">✨</span>
-                <span className="text-xs">{t('nav.shop')}</span>
-              </Link>
-              <Link to="/suggestions" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-200 transition-colors">
-                <span className="text-xl">💡</span>
-                <span className="text-xs">{t('nav.suggestions')}</span>
-              </Link>
-              {user && (
-                <Link to="/certificates" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 transition-colors">
-                  <span className="text-xl">🏆</span>
-                  <span className="text-xs">{t('nav.certificates')}</span>
+          <div className="lg:hidden border-t border-purple-500/20 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 text-white transition-all duration-200 border border-slate-600/30"
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span className="text-xs font-medium">{item.label}</span>
                 </Link>
-              )}
+              ))}
             </div>
             {user && (
-              <Link to="/points" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between mt-2 p-3 rounded-lg bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 border border-yellow-500/40 text-yellow-200 transition-all duration-200 shadow-lg">
+              <Link
+                to="/points"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between mt-3 p-4 rounded-lg bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 border border-yellow-500/40 text-yellow-200 transition-all duration-200 shadow-lg"
+              >
                 <div className="flex items-center gap-2">
                   <span className="text-lg animate-pulse">✨</span>
                   <span className="text-sm font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
