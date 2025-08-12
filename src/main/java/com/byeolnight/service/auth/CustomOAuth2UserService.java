@@ -48,8 +48,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         }
                         
                         // 계정 상태 확인
-                        if (existingUser.getStatus() == User.UserStatus.LOCKED) {
+                        if (existingUser.isAccountLocked()) {
                             throw new OAuth2AuthenticationException("계정이 잠겨있습니다. 관리자에게 문의하세요.");
+                        }
+                        
+                        if (existingUser.getStatus() == User.UserStatus.BANNED) {
+                            throw new OAuth2AuthenticationException("계정이 밴되었습니다. 관리자에게 문의하세요.");
                         }
                         
                         if (existingUser.getStatus() == User.UserStatus.SUSPENDED) {
