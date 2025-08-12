@@ -16,221 +16,115 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* 로고 */}
-          <Link 
-            to="/" 
-            className="flex items-center gap-3 text-xl sm:text-2xl font-bold text-white hover:text-purple-300 transition-all duration-300 group"
-          >
-            <div className="relative">
-              <span className="text-2xl sm:text-3xl group-hover:animate-pulse">🌌</span>
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
-            </div>
-            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent hidden sm:block">
-              {t('nav.logo_full') || '별 헤는 밤'}
-            </span>
-            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent sm:hidden">
-              {t('nav.logo_short') || '별헤는밤'}
-            </span>
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-white hover:text-purple-300 transition-colors">
+            <span className="text-2xl">🌌</span>
+            <span className="hidden sm:block">{t('nav.logo_full') || '별 헤는 밤'}</span>
+            <span className="sm:hidden">{t('nav.logo_short') || '별헤는밤'}</span>
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="hidden lg:flex items-center gap-2">
-            <Link 
-              to="/posts" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-purple-600/20 text-purple-200 hover:text-white transition-all duration-300"
-            >
-              <span className="group-hover:animate-bounce text-sm">📚</span>
-              <span className="font-medium text-sm">{t('nav.posts')}</span>
+          <div className="hidden lg:flex items-center gap-1">
+            <Link to="/posts" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-purple-600/20 text-purple-200 hover:text-white transition-colors">
+              <span>📚</span>
+              <span className="text-sm">{t('nav.posts')}</span>
             </Link>
-            
-            <Link 
-              to="/suggestions" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-300"
-            >
-              <span className="group-hover:animate-pulse text-sm">💡</span>
+            <Link to="/suggestions" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-colors">
+              <span>💡</span>
               <span className="text-sm">{t('nav.suggestions')}</span>
             </Link>
-            
-            <Link 
-              to="/shop" 
-              className="relative flex items-center gap-2 px-4 py-2 rounded-full hover:bg-gradient-to-r hover:from-purple-500/30 hover:via-pink-500/30 hover:to-purple-500/30 text-white font-medium transition-all duration-300 transform hover:scale-105 overflow-hidden group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-              
-              <div className="relative flex items-center justify-center">
-                <span className="text-lg animate-pulse group-hover:animate-spin transition-all duration-300">✨</span>
-                <div className="absolute -top-1 -right-1 w-1 h-1 bg-yellow-300 rounded-full animate-ping"></div>
-              </div>
-              
-              <span className="relative z-10 bg-gradient-to-r from-yellow-200 via-white to-pink-200 bg-clip-text text-transparent font-bold">
-                {t('nav.shop')}
-              </span>
+            <Link to="/shop" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30 text-white transition-colors">
+              <span>✨</span>
+              <span className="text-sm font-medium">{t('nav.shop')}</span>
             </Link>
-            
             {user && (
-              <Link 
-                to="/certificates" 
-                className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-300"
-              >
-                <span className="group-hover:animate-bounce text-sm">🏆</span>
+              <Link to="/certificates" className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-colors">
+                <span>🏆</span>
                 <span className="text-sm">{t('nav.certificates')}</span>
               </Link>
             )}
           </div>
 
           {/* 사용자 영역 */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {user ? (
               <>
-                {/* 포인트 (데스크톱만) */}
-                <Link 
-                  to="/points" 
-                  className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-3 py-2 rounded-full border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-300 transform hover:scale-105 group cursor-pointer"
-                  title="출석체크 & 포인트 내역 보기"
-                >
-                  <span className="text-yellow-400 text-sm animate-pulse group-hover:animate-bounce">✨</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-yellow-200 font-bold text-xs leading-tight">{user.points?.toLocaleString() || 0}</span>
-                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors">{t('nav.points')}</span>
-                  </div>
-                  <span className="text-yellow-300/50 text-xs group-hover:text-yellow-200 transition-colors">📊</span>
+                {/* 포인트 */}
+                <Link to="/points" className="hidden sm:flex items-center gap-1 bg-yellow-900/30 hover:bg-yellow-800/40 px-2 py-1 rounded-lg border border-yellow-500/30 transition-colors" title="포인트">
+                  <span className="text-yellow-400 text-sm">✨</span>
+                  <span className="text-yellow-200 text-xs font-bold">{user.points?.toLocaleString() || 0}</span>
                 </Link>
 
                 {/* 사용자 정보 */}
-                <Link 
-                  to="/profile" 
-                  className="flex items-center gap-1 bg-slate-800/80 px-1.5 py-1 rounded-full border border-purple-500/40 hover:bg-purple-600/20 transition-colors"
-                >
-                  {/* 스텔라 아이콘 */}
+                <Link to="/profile" className="flex items-center gap-1 bg-slate-800/60 hover:bg-slate-700/60 px-2 py-1 rounded-lg border border-purple-500/30 transition-colors">
                   {user.equippedIconName ? (
-                    <UserIconDisplay
-                      iconName={user.equippedIconName}
-                      size="small"
-                      className="text-xs"
-                    />
+                    <UserIconDisplay iconName={user.equippedIconName} size="small" className="text-sm" />
                   ) : (
-                    <span className="text-gray-400 text-xs">👤</span>
+                    <span className="text-gray-400 text-sm">👤</span>
                   )}
-                  
-                  {/* 닉네임 */}
-                  <span className="text-white text-xs font-medium hidden sm:block max-w-20 truncate">
-                    {user.nickname}
-                  </span>
+                  <span className="text-white text-xs font-medium hidden sm:block max-w-16 truncate">{user.nickname}</span>
                 </Link>
 
                 {/* 액션 버튼들 */}
-                <div className="flex items-center gap-2">
-                  <LanguageSwitcher />
-                  <NotificationDropdown />
-                  
-
-                  {user.role === 'ADMIN' && (
-                    <Link 
-                      to="/admin/users" 
-                      className="p-1.5 rounded-full hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-all duration-200"
-                      title="관리자"
-                    >
-                      <span className="text-xs">⚙️</span>
-                    </Link>
-                  )}
-                  
-                  <button 
-                    onClick={logout}
-                    className="p-1.5 rounded-full hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-200"
-                    title="로그아웃"
-                  >
-                    <span className="text-xs">🚪</span>
-                  </button>
-                </div>
+                <LanguageSwitcher />
+                <NotificationDropdown />
+                {user.role === 'ADMIN' && (
+                  <Link to="/admin/users" className="p-1 rounded hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-colors" title="관리자">
+                    <span className="text-sm">⚙️</span>
+                  </Link>
+                )}
+                <button onClick={logout} className="p-1 rounded hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-colors" title="로그아웃">
+                  <span className="text-sm">🚪</span>
+                </button>
 
                 {/* 모바일 메뉴 버튼 */}
-                <button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="lg:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200"
-                >
-                  <span className="text-lg">{isMobileMenuOpen ? '✕' : '☰'}</span>
+                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-colors">
+                  <span>{isMobileMenuOpen ? '✕' : '☰'}</span>
                 </button>
               </>
             ) : (
-              <div className="flex items-center gap-3">
+              <>
                 <LanguageSwitcher />
-                <Link 
-                  to="/login" 
-                  className="px-4 py-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400 font-medium text-sm"
-                >
+                <Link to="/login" className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-colors border border-purple-500/30 text-sm">
                   {t('nav.login')}
                 </Link>
-                <Link 
-                  to="/signup" 
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-sm"
-                >
+                <Link to="/signup" className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium transition-colors text-sm">
                   {t('nav.signup')}
                 </Link>
-                
-                {/* 모바일 메뉴 버튼 (비로그인) */}
-                <button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="lg:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200"
-                >
-                  <span className="text-lg">{isMobileMenuOpen ? '✕' : '☰'}</span>
+                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-colors">
+                  <span>{isMobileMenuOpen ? '✕' : '☰'}</span>
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
 
         {/* 모바일 메뉴 */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-purple-500/20 py-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Link 
-                to="/posts"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-all duration-200"
-              >
-                <span className="text-2xl">📚</span>
-                <span className="text-sm font-medium">{t('nav.posts')}</span>
+          <div className="lg:hidden border-t border-purple-500/20 py-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Link to="/posts" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-colors">
+                <span className="text-xl">📚</span>
+                <span className="text-xs">{t('nav.posts')}</span>
               </Link>
-              <Link 
-                to="/shop"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/30 hover:to-pink-600/30 text-white transition-all duration-200"
-              >
-                <span className="text-2xl animate-pulse">✨</span>
-                <span className="text-sm font-medium">{t('nav.shop')}</span>
+              <Link to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/30 hover:to-pink-600/30 text-white transition-colors">
+                <span className="text-xl">✨</span>
+                <span className="text-xs">{t('nav.shop')}</span>
               </Link>
-              <Link 
-                to="/suggestions"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-orange-600/20 hover:bg-orange-600/30 text-orange-200 transition-all duration-200"
-              >
-                <span className="text-2xl">💡</span>
-                <span className="text-sm font-medium">{t('nav.suggestions')}</span>
+              <Link to="/suggestions" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-200 transition-colors">
+                <span className="text-xl">💡</span>
+                <span className="text-xs">{t('nav.suggestions')}</span>
               </Link>
               {user && (
-                <Link 
-                  to="/certificates"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 transition-all duration-200"
-                >
-                  <span className="text-2xl">🏆</span>
-                  <span className="text-sm font-medium">{t('nav.certificates')}</span>
+                <Link to="/certificates" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-3 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 transition-colors">
+                  <span className="text-xl">🏆</span>
+                  <span className="text-xs">{t('nav.certificates')}</span>
                 </Link>
               )}
             </div>
-            
-            {/* 모바일 포인트 */}
             {user && (
-              <Link 
-                to="/points"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-3 mt-3 p-4 rounded-xl bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 group"
-              >
-                <span className="text-yellow-400 text-xl animate-pulse group-hover:animate-bounce">✨</span>
-                <div className="flex flex-col items-center">
-                  <span className="text-yellow-200 font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
-                  <span className="text-yellow-300/70 text-sm group-hover:text-yellow-200 transition-colors">{t('nav.points')} & 내역보기</span>
-                </div>
-                <span className="text-yellow-300/50 text-lg group-hover:text-yellow-200 transition-colors">📊</span>
+              <Link to="/points" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center gap-2 mt-2 p-3 rounded-lg bg-yellow-900/30 hover:bg-yellow-800/40 border border-yellow-500/30 text-yellow-200 transition-colors">
+                <span className="text-lg">✨</span>
+                <span className="text-sm font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
               </Link>
             )}
           </div>

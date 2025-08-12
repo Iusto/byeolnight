@@ -9,14 +9,14 @@ Allow: /
 # 모든 크롤러 기본 설정
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /static/
+Allow: /assets/
 Disallow: /admin/
 Disallow: /api/admin/
 Disallow: /api/member/
 Disallow: /api/auth/
 Disallow: /error
-
-# 크롤링 속도 제한 (1초 간격)
-Crawl-delay: 1
 
 # 사이트맵 위치
 Sitemap: https://byeolnight.com/sitemap.xml
