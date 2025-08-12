@@ -38,7 +38,8 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [starPhotos, setStarPhotos] = useState<Post[]>([]);
   const [boardPosts, setBoardPosts] = useState<Record<string, Post[]>>({});
-  const { user } = useAuth();
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
 
   // 날짜 포맷팅
@@ -70,13 +71,14 @@ export default function Home() {
 
   // API 호출
   useEffect(() => {
+    if (dataLoaded) return;
+    
     let isMounted = true;
     
     const fetchData = async () => {
       try {
         const categories = ['NEWS', 'REVIEW', 'NOTICE', 'DISCUSSION', 'FREE', 'STARLIGHT_CINEMA'];
         
-        // 모든 API를 한 번에 병렬 호출
         const [hotRes, imageRes, ...boardResponses] = await Promise.all([
           axios.get('/public/posts/hot', { params: { size: 6 } }),
           axios.get('/public/posts', { params: { category: 'IMAGE', sort: 'recent', size: 8 } }),
@@ -88,16 +90,15 @@ export default function Home() {
 
         if (!isMounted) return;
 
-        // 게시판 데이터 처리
         const boardData: Record<string, Post[]> = {};
         boardResponses.forEach((res, index) => {
           boardData[categories[index]] = res.data?.success ? res.data.data?.content || [] : [];
         });
         
-        // 모든 상태를 한 번에 업데이트
         setPosts(hotRes.data?.success ? hotRes.data.data || [] : []);
         setStarPhotos(imageRes.data?.success ? imageRes.data.data?.content || [] : []);
         setBoardPosts(boardData);
+        setDataLoaded(true);
         
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -109,7 +110,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dataLoaded]);
 
   // 컴포넌트들
   const HeroSection = () => (
@@ -271,6 +272,17 @@ export default function Home() {
 
   const filteredPosts = useMemo(() => posts.filter(post => !post.blinded), [posts]);
   const filteredStarPhotos = useMemo(() => starPhotos.filter(photo => !photo.blinded), [starPhotos]);
+
+  if (authLoading || !dataLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-spin-slow">🌌</div>
+          <p className="text-xl text-purple-300">우주를 탐험하는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
