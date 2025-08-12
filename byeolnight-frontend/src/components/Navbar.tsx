@@ -55,13 +55,16 @@ export default function Navbar() {
                 </Link>
 
                 {/* 사용자 정보 */}
-                <Link to="/profile" className="flex items-center gap-1 bg-slate-800/60 hover:bg-slate-700/60 px-2 py-1 rounded-lg border border-purple-500/30 transition-colors">
+                <Link to="/profile" className="flex items-center gap-1.5 bg-slate-800/60 hover:bg-slate-700/60 px-2 py-1 rounded-lg border border-purple-500/30 transition-colors group" title="프로필 & 출석체크">
                   {user.equippedIconName ? (
-                    <UserIconDisplay iconName={user.equippedIconName} size="small" className="text-sm" />
+                    <UserIconDisplay iconName={user.equippedIconName} size="small" />
                   ) : (
                     <span className="text-gray-400 text-sm">👤</span>
                   )}
-                  <span className="text-white text-xs font-medium hidden sm:block max-w-16 truncate">{user.nickname}</span>
+                  <div className="hidden sm:flex flex-col">
+                    <span className="text-white text-xs font-medium max-w-20 truncate">{user.nickname}</span>
+                    <span className="text-purple-300 text-xs opacity-70 group-hover:opacity-100 transition-opacity">출석체크</span>
+                  </div>
                 </Link>
 
                 {/* 액션 버튼들 */}
