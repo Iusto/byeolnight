@@ -36,3 +36,10 @@ springdoc:
     doc-expansion: none
     persist-authorization: true
   show-actuator: false
+
+# 로깅 설정
+logging:
+  level:
+    org.apache.catalina.core: WARN
+    org.springframework.web.socket: WARN
+    org.springframework.web.socket.sockjs: WARN
