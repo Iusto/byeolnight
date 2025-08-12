@@ -36,7 +36,7 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center gap-2">
             <Link 
               to="/posts" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300"
             >
               <span className="group-hover:animate-bounce text-sm">📚</span>
               <span className="font-medium text-sm">{t('nav.posts')}</span>
@@ -52,7 +52,7 @@ export default function Navbar() {
             
             <Link 
               to="/shop" 
-              className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-purple-600/30 hover:from-purple-500/50 hover:via-pink-500/50 hover:to-purple-500/50 text-white font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 border border-purple-400/30 hover:border-purple-300/50 overflow-hidden group"
+              className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-purple-600/30 hover:from-purple-500/50 hover:via-pink-500/50 hover:to-purple-500/50 text-white font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
               
@@ -98,21 +98,21 @@ export default function Navbar() {
                 {/* 사용자 정보 */}
                 <Link 
                   to="/profile" 
-                  className="flex items-center gap-2 bg-slate-800/80 px-3 py-2 rounded-full border border-purple-500/40 hover:bg-purple-600/20 transition-colors"
+                  className="flex items-center gap-1.5 bg-slate-800/80 px-2 py-1.5 rounded-full border border-purple-500/40 hover:bg-purple-600/20 transition-colors"
                 >
                   {/* 스텔라 아이콘 */}
                   {user.equippedIconName ? (
                     <UserIconDisplay
                       iconName={user.equippedIconName}
                       size="small"
-                      className="text-lg"
+                      className="text-sm"
                     />
                   ) : (
-                    <span className="text-gray-400">👤</span>
+                    <span className="text-gray-400 text-sm">👤</span>
                   )}
                   
                   {/* 닉네임 */}
-                  <span className="text-white text-sm font-medium hidden sm:block">
+                  <span className="text-white text-xs font-medium hidden sm:block">
                     {user.nickname}
                   </span>
                 </Link>
