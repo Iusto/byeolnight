@@ -83,7 +83,7 @@ jobs:
     - name: 백엔드 빌드 (보안 검사용)
       env:
         GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=256m"
-      run: ./gradlew build -x test --no-daemon
+      run: ./gradlew compileJava --no-daemon
 
     - name: 프론트엔드 빌드 (보안 검사용)
       working-directory: ./byeolnight-frontend
@@ -91,6 +91,8 @@ jobs:
 
     - name: CodeQL 분석 실행
       uses: github/codeql-action/analyze@v3
+      env:
+        CODEQL_EXTRACTOR_JAVA_HEAP_SIZE: 1024
       with:
         category: "/language:java,javascript"
 

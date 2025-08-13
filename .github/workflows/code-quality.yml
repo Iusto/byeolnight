@@ -30,7 +30,9 @@ jobs:
       run: chmod +x ./gradlew
 
     - name: 백엔드 빌드
-      run: ./gradlew build -x test
+      env:
+        GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=256m"
+      run: ./gradlew compileJava --no-daemon
 
     - name: Node.js 설정
       uses: actions/setup-node@v4
@@ -47,6 +49,8 @@ jobs:
 
     - name: CodeQL 분석 실행
       uses: github/codeql-action/analyze@v3
+      env:
+        CODEQL_EXTRACTOR_JAVA_HEAP_SIZE: 1024
 
   dependency-check:
     name: 의존성 보안 검사
