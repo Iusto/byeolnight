@@ -107,7 +107,7 @@ export default function PostDetail() {
       .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
       .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
       .post-content h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; }
-      .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.4rem 0 !important; color: #cbd5e1 !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
+      .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.2rem 0 !important; color: #cbd5e1 !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
       .post-content strong { font-weight: bold !important; color: #f1f5f9 !important; }
       .post-content em { font-style: italic !important; color: #a78bfa !important; }
       .post-content u { text-decoration: underline !important; font-weight: normal !important; color: #cbd5e1 !important; }
