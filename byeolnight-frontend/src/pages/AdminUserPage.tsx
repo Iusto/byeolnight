@@ -136,7 +136,7 @@ export default function AdminUserPage() {
   const { user: currentUser } = useAuth(); // 현재 로그인한 사용자
 
   // 공통 API 호출 함수
-  const fetchData = useCallback(async <T>(endpoint: string, setter: (data: T[]) => void, errorMsg: string) => {
+  const fetchData = useCallback(async function<T>(endpoint: string, setter: (data: T[]) => void, errorMsg: string) {
     try {
       const res = await axios.get(endpoint);
       const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
@@ -145,7 +145,7 @@ export default function AdminUserPage() {
       console.error(errorMsg, err);
       setter([]);
     }
-  }, []);
+  }, []);}
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -547,6 +547,30 @@ export default function AdminUserPage() {
            schedulerStatus.socialUsersToCleanup;
   }, [schedulerStatus]);
 
+  // 필터링된 사용자 목록
+  const filteredUsers = useMemo(() => {
+    if (!users || users.length === 0) return [];
+    
+    return users.filter(user => {
+      // 상태 필터
+      const statusMatch = statusFilter === 'ALL' || 
+        (statusFilter === 'ACTIVE' && user.status !== 'WITHDRAWN') ||
+        (statusFilter === 'WITHDRAWN' && user.status === 'WITHDRAWN');
+      
+      // 사용자 유형 필터
+      const typeMatch = userTypeFilter === 'ALL' ||
+        (userTypeFilter === 'REGULAR' && !user.socialProvider) ||
+        (userTypeFilter === 'SOCIAL' && !!user.socialProvider);
+      
+      // 검색 필터
+      const searchMatch = searchTerm === '' || 
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.nickname.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return statusMatch && typeMatch && searchMatch;
+    });
+  }, [users, statusFilter, userTypeFilter, searchTerm]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white px-6 py-12">
       <div className="max-w-6xl mx-auto">
@@ -797,30 +821,6 @@ export default function AdminUserPage() {
                 </tr>
               </thead>
               <tbody>
-  // 필터링된 사용자 목록
-  const filteredUsers = useMemo(() => {
-    if (!users || users.length === 0) return [];
-    
-    return users.filter(user => {
-      // 상태 필터
-      const statusMatch = statusFilter === 'ALL' || 
-        (statusFilter === 'ACTIVE' && user.status !== 'WITHDRAWN') ||
-        (statusFilter === 'WITHDRAWN' && user.status === 'WITHDRAWN');
-      
-      // 사용자 유형 필터
-      const typeMatch = userTypeFilter === 'ALL' ||
-        (userTypeFilter === 'REGULAR' && !user.socialProvider) ||
-        (userTypeFilter === 'SOCIAL' && !!user.socialProvider);
-      
-      // 검색 필터
-      const searchMatch = searchTerm === '' || 
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.nickname.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      return statusMatch && typeMatch && searchMatch;
-    });
-  }, [users, statusFilter, userTypeFilter, searchTerm]);
-
                 {filteredUsers.length > 0 ? filteredUsers
                   .map((user) => (
                   <tr key={user.id} className="border-t border-gray-700">
