@@ -1,0 +1,101 @@
+name: 강화된 보안 검사
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 2 * * 1'  # 매주 월요일 오전 2시
+
+jobs:
+  security-audit:
+    name: 종합 보안 감사
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
+    # 백엔드 보안 검사
+    - name: 백엔드 의존성 취약점 검사
+      run: |
+        ./gradlew dependencyCheckAnalyze --info
+        if [ -f "build/reports/dependency-check-report.html" ]; then
+          echo "✅ 의존성 검사 완료"
+        else
+          echo "⚠️ 의존성 검사 보고서 생성 실패"
+        fi
+
+    # 프론트엔드 보안 검사
+    - name: 프론트엔드 의존성 설치
+      working-directory: ./byeolnight-frontend
+      run: |
+        rm -rf node_modules package-lock.json
+        npm install --no-audit
+
+    - name: 프론트엔드 취약점 검사
+      working-directory: ./byeolnight-frontend
+      run: |
+        echo "🔍 npm audit 실행 중..."
+        npm audit --audit-level=moderate --json > audit-report.json || true
+        
+        # 심각한 취약점만 체크
+        CRITICAL=$(cat audit-report.json | jq '.metadata.vulnerabilities.critical // 0')
+        HIGH=$(cat audit-report.json | jq '.metadata.vulnerabilities.high // 0')
+        
+        echo "🔍 발견된 취약점:"
+        echo "  - Critical: $CRITICAL"
+        echo "  - High: $HIGH"
+        
+        if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 5 ]; then
+          echo "❌ 심각한 보안 취약점이 발견되었습니다!"
+          npm audit fix --force || true
+          echo "🔧 자동 수정 시도 완료"
+        else
+          echo "✅ 허용 가능한 수준의 취약점입니다."
+        fi
+
+    # CodeQL 분석
+    - name: CodeQL 초기화
+      uses: github/codeql-action/init@v3
+      with:
+        languages: java, javascript
+        queries: security-and-quality
+
+    - name: 백엔드 빌드 (보안 검사용)
+      run: ./gradlew build -x test --no-daemon
+
+    - name: 프론트엔드 빌드 (보안 검사용)
+      working-directory: ./byeolnight-frontend
+      run: npm run build
+
+    - name: CodeQL 분석 실행
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:java,javascript"
+
+    # 보고서 업로드
+    - name: 보안 검사 보고서 업로드
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          build/reports/dependency-check-report.*
+          byeolnight-frontend/audit-report.json
+        retention-days: 30

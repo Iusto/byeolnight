@@ -18,10 +18,10 @@ repositories {
 }
 
 ext {
-    jwtVersion = '0.11.5'
+    jwtVersion = '0.12.6'
     querydslVersion = '5.0.0'
-    awsSdkVersion = '2.25.17'
-    redissonVersion = '3.24.3'
+    awsSdkVersion = '2.29.39'
+    redissonVersion = '3.37.0'
     springCloudVersion = '2023.0.0'
 }
 
@@ -103,4 +103,16 @@ clean {
 
 test {
     useJUnitPlatform()
+}
+
+// OWASP 의존성 검사 설정
+dependencyCheck {
+    format = 'ALL'
+    suppressionFile = 'owasp-suppressions.xml'
+    failBuildOnCVSS = 7.0
+    analyzers {
+        assemblyEnabled = false
+        nuspecEnabled = false
+        nugetconfEnabled = false
+    }
 }

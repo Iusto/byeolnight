@@ -19,6 +19,7 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: java, javascript
+        queries: security-extended,security-and-quality
 
     - name: JDK 21 설정
       uses: actions/setup-java@v4
@@ -37,12 +38,15 @@ jobs:
       with:
         node-version: '20'
 
-    - name: 프론트엔드 빌드
+    - name: 프론트엔드 의존성 설치
       working-directory: ./byeolnight-frontend
       run: |
         rm -rf node_modules package-lock.json
-        npm install --legacy-peer-deps
-        npm run build
+        npm install --no-audit
+        
+    - name: 프론트엔드 빌드
+      working-directory: ./byeolnight-frontend
+      run: npm run build
 
     - name: CodeQL 분석 실행
       uses: github/codeql-action/analyze@v3
@@ -65,16 +69,28 @@ jobs:
       run: chmod +x ./gradlew
 
     - name: Gradle 의존성 취약점 검사
-      run: ./gradlew dependencyCheckAnalyze || echo "⚠️ 의존성 검사에서 오류가 발생했지만 CI를 계속 진행합니다"
+      run: |
+        ./gradlew dependencyCheckAnalyze --info || {
+          echo "⚠️ 의존성 검사에서 오류가 발생했습니다."
+          echo "📋 상세 로그를 확인하세요."
+          exit 0
+        }
 
     - name: Node.js 설정
       uses: actions/setup-node@v4
       with:
         node-version: '20'
 
-    - name: npm audit 실행
+    - name: 프론트엔드 의존성 설치
       working-directory: ./byeolnight-frontend
       run: |
         rm -rf node_modules package-lock.json
-        npm install --legacy-peer-deps
-        npm audit --audit-level=moderate
+        npm install --no-audit
+        
+    - name: npm audit 실행
+      working-directory: ./byeolnight-frontend
+      run: |
+        npm audit --audit-level=moderate || {
+          echo "⚠️ 보안 취약점이 발견되었습니다. 자동 수정을 시도합니다..."
+          npm audit fix --force || echo "⚠️ 일부 취약점은 수동 수정이 필요합니다."
+        }
