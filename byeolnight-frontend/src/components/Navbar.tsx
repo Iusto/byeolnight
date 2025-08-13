@@ -6,151 +6,172 @@ import NotificationDropdown from './notification/NotificationDropdown';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useState } from 'react';
 
-const NavLink = ({ to, icon, children, className = '', onClick }: {
-  to: string;
-  icon: string;
-  children: React.ReactNode;
-  className?: string;
-  onClick?: () => void;
-}) => (
-  <Link
-    to={to}
-    onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${className}`}
-  >
-    <span className="text-sm">{icon}</span>
-    <span className="text-sm font-medium">{children}</span>
-  </Link>
-);
-
-const PointsButton = ({ points }: { points: number }) => (
-  <Link
-    to="/points"
-    className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 px-3 py-2 rounded-lg border border-yellow-500/40 hover:border-yellow-400/60 transition-all duration-200 shadow-lg hover:shadow-yellow-500/20"
-    title="스텔라 포인트 & 출석체크"
-  >
-    <div className="flex items-center gap-1">
-      <span className="text-yellow-400 text-sm animate-pulse">✨</span>
-      <span className="text-yellow-200 text-xs font-bold">{points.toLocaleString()}</span>
-    </div>
-    <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/30 rounded-md border border-purple-400/30">
-      <span className="text-purple-300 text-xs">📅</span>
-      <span className="text-purple-200 text-xs font-medium">출석체크</span>
-    </div>
-  </Link>
-);
-
-const UserProfile = ({ user }: { user: any }) => (
-  <Link
-    to="/profile"
-    className="flex items-center gap-2 bg-slate-800/60 hover:bg-slate-700/60 px-3 py-2 rounded-lg border border-purple-500/30 transition-all duration-200"
-    title="프로필"
-  >
-    <div className="w-6 h-6 flex items-center justify-center">
-      {user.equippedIconName ? (
-        <UserIconDisplay iconName={user.equippedIconName} size="small" className="w-5 h-5" />
-      ) : (
-        <span className="text-gray-400 text-sm">👤</span>
-      )}
-    </div>
-    <span className="hidden sm:block text-white text-sm font-medium max-w-20 truncate">
-      {user.nickname}
-    </span>
-  </Link>
-);
-
-const ActionButton = ({ onClick, icon, title, className = '' }: {
-  onClick?: () => void;
-  icon: string;
-  title: string;
-  className?: string;
-}) => (
-  <button
-    onClick={onClick}
-    className={`p-2 rounded-lg transition-all duration-200 ${className}`}
-    title={title}
-  >
-    <span className="text-sm">{icon}</span>
-  </button>
-);
-
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const navItems = [
-    { to: '/posts', icon: '📚', label: t('nav.posts'), className: 'hover:bg-purple-600/20 text-purple-200 hover:text-white' },
-    { to: '/suggestions', icon: '💡', label: t('nav.suggestions'), className: 'hover:bg-orange-600/20 text-orange-300 hover:text-orange-200' },
-    { to: '/shop', icon: '✨', label: t('nav.shop'), className: 'hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30 text-white' },
-    ...(user ? [{ to: '/certificates', icon: '🏆', label: t('nav.certificates'), className: 'hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200' }] : [])
-  ];
 
   return (
     <header className="bg-gradient-to-r from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-md shadow-2xl border-b border-purple-500/30 sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* 로고 */}
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-white hover:text-purple-300 transition-colors">
-            <span className="text-2xl">🌌</span>
-            <span className="hidden sm:block">{t('nav.logo_full') || '별 헤는 밤'}</span>
-            <span className="sm:hidden">{t('nav.logo_short') || '별헤는밤'}</span>
+          <Link 
+            to="/" 
+            className="flex items-center gap-3 text-xl sm:text-2xl font-bold text-white hover:text-purple-300 transition-all duration-300 group"
+          >
+            <div className="relative">
+              <span className="text-2xl sm:text-3xl group-hover:animate-pulse">🌌</span>
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
+            </div>
+            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent hidden sm:block">
+              {t('nav.logo_full') || '별 헤는 밤'}
+            </span>
+            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent sm:hidden">
+              {t('nav.logo_short') || '별헤는밤'}
+            </span>
           </Link>
 
           {/* 데스크톱 네비게이션 */}
           <div className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} icon={item.icon} className={item.className}>
-                {item.label}
-              </NavLink>
-            ))}
+            <Link 
+              to="/posts" 
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+            >
+              <span className="group-hover:animate-bounce text-sm">📚</span>
+              <span className="font-medium text-sm">{t('nav.posts')}</span>
+            </Link>
+            
+            <Link 
+              to="/shop" 
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+            >
+              <span className="group-hover:animate-bounce text-sm">✨</span>
+              <span className="font-medium text-sm">{t('nav.shop')}</span>
+            </Link>
+            
+            <Link 
+              to="/suggestions" 
+              className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-300"
+            >
+              <span className="group-hover:animate-pulse text-sm">💡</span>
+              <span className="text-sm">{t('nav.suggestions')}</span>
+            </Link>
+            
+            {user && (
+              <Link 
+                to="/certificates" 
+                className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-300"
+              >
+                <span className="group-hover:animate-bounce text-sm">🏆</span>
+                <span className="text-sm">{t('nav.certificates')}</span>
+              </Link>
+            )}
           </div>
 
           {/* 사용자 영역 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {user ? (
               <>
-                <PointsButton points={user.points || 0} />
-                <UserProfile user={user} />
-                <LanguageSwitcher />
-                <NotificationDropdown />
-                {user.role === 'ADMIN' && (
-                  <ActionButton
-                    icon="⚙️"
-                    title="관리자"
-                    className="hover:bg-red-600/20 text-red-300 hover:text-red-200"
-                    onClick={() => window.location.href = '/admin/users'}
-                  />
-                )}
-                <ActionButton
-                  onClick={logout}
-                  icon="🚪"
-                  title="로그아웃"
-                  className="hover:bg-red-600/20 text-red-400 hover:text-red-300"
-                />
-                <ActionButton
+                {/* 포인트 (데스크톱만) */}
+                <Link 
+                  to="/points" 
+                  className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-3 py-2 rounded-full border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-300 transform hover:scale-105 group cursor-pointer"
+                  title="출석체크 & 포인트 내역 보기"
+                >
+                  <span className="text-yellow-400 text-sm animate-pulse group-hover:animate-bounce">✨</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-yellow-200 font-bold text-xs leading-tight">{user.points?.toLocaleString() || 0}</span>
+                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors">{t('nav.points')}</span>
+                  </div>
+                  <span className="text-yellow-300/50 text-xs group-hover:text-yellow-200 transition-colors">📊</span>
+                </Link>
+
+                {/* 사용자 정보 */}
+                <div className="flex items-center gap-2 bg-gradient-to-r from-slate-800/80 to-purple-900/80 px-2 py-1.5 rounded-full border border-purple-500/40 shadow-lg backdrop-blur-sm">
+                  {/* 사용자 아이콘 */}
+                  {user.equippedIconName ? (
+                    <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full border border-purple-400/30">
+                      <UserIconDisplay
+                        iconName={user.equippedIconName}
+                        size="small"
+                        className="text-base"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-gray-600/30 to-gray-700/30 rounded-full">
+                      <span className="text-xs text-gray-400">👤</span>
+                    </div>
+                  )}
+                  
+                  {/* 닉네임 (데스크톱만) */}
+                  <span className="hidden sm:block text-white font-medium text-xs">{user.nickname}</span>
+                </div>
+
+                {/* 액션 버튼들 */}
+                <div className="flex items-center gap-2">
+                  <LanguageSwitcher />
+                  <NotificationDropdown />
+                  
+                  <Link 
+                    to="/profile" 
+                    className="p-1.5 rounded-full bg-white hover:bg-gray-100 text-gray-800 hover:text-gray-900 transition-all duration-200"
+                    title="내 정보"
+                  >
+                    <span className="text-xs">👤</span>
+                  </Link>
+                  
+                  {user.role === 'ADMIN' && (
+                    <Link 
+                      to="/admin/users" 
+                      className="p-1.5 rounded-full hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-all duration-200"
+                      title="관리자"
+                    >
+                      <span className="text-xs">⚙️</span>
+                    </Link>
+                  )}
+                  
+                  <button 
+                    onClick={logout}
+                    className="p-1.5 rounded-full hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-200"
+                    title="로그아웃"
+                  >
+                    <span className="text-xs">🚪</span>
+                  </button>
+                </div>
+
+                {/* 모바일 메뉴 버튼 */}
+                <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  icon={isMobileMenuOpen ? '✕' : '☰'}
-                  title="메뉴"
-                  className="lg:hidden bg-purple-600/20 hover:bg-purple-600/40 text-purple-200"
-                />
+                  className="lg:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200"
+                >
+                  <span className="text-lg">{isMobileMenuOpen ? '✕' : '☰'}</span>
+                </button>
               </>
             ) : (
-              <>
+              <div className="flex items-center gap-3">
                 <LanguageSwitcher />
-                <Link to="/login" className="px-3 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-200 border border-purple-500/30 text-sm">
+                <Link 
+                  to="/login" 
+                  className="px-4 py-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400 font-medium text-sm"
+                >
                   {t('nav.login')}
                 </Link>
-                <Link to="/signup" className="px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium transition-all duration-200 text-sm">
+                <Link 
+                  to="/signup" 
+                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-sm"
+                >
                   {t('nav.signup')}
                 </Link>
-                <ActionButton
+                
+                {/* 모바일 메뉴 버튼 (비로그인) */}
+                <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  icon={isMobileMenuOpen ? '✕' : '☰'}
-                  title="메뉴"
-                  className="lg:hidden bg-purple-600/20 hover:bg-purple-600/40 text-purple-200"
-                />
-              </>
+                  className="lg:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200"
+                >
+                  <span className="text-lg">{isMobileMenuOpen ? '✕' : '☰'}</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -159,32 +180,55 @@ export default function Navbar() {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-purple-500/20 py-4">
             <div className="grid grid-cols-2 gap-3">
-              {navItems.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
+              <Link 
+                to="/posts"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-all duration-200"
+              >
+                <span className="text-2xl">📚</span>
+                <span className="text-sm font-medium">{t('nav.posts')}</span>
+              </Link>
+              <Link 
+                to="/shop"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/30 hover:to-pink-600/30 text-white transition-all duration-200"
+              >
+                <span className="text-2xl animate-pulse">✨</span>
+                <span className="text-sm font-medium">{t('nav.shop')}</span>
+              </Link>
+              <Link 
+                to="/suggestions"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-orange-600/20 hover:bg-orange-600/30 text-orange-200 transition-all duration-200"
+              >
+                <span className="text-2xl">💡</span>
+                <span className="text-sm font-medium">{t('nav.suggestions')}</span>
+              </Link>
+              {user && (
+                <Link 
+                  to="/certificates"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 text-white transition-all duration-200 border border-slate-600/30"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 transition-all duration-200"
                 >
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="text-xs font-medium">{item.label}</span>
+                  <span className="text-2xl">🏆</span>
+                  <span className="text-sm font-medium">{t('nav.certificates')}</span>
                 </Link>
-              ))}
+              )}
             </div>
+            
+            {/* 모바일 포인트 */}
             {user && (
-              <Link
+              <Link 
                 to="/points"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between mt-3 p-4 rounded-lg bg-gradient-to-r from-yellow-900/40 to-amber-900/40 hover:from-yellow-800/50 hover:to-amber-800/50 border border-yellow-500/40 text-yellow-200 transition-all duration-200 shadow-lg"
+                className="flex items-center justify-center gap-3 mt-3 p-4 rounded-xl bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 group"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg animate-pulse">✨</span>
-                  <span className="text-sm font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
+                <span className="text-yellow-400 text-xl animate-pulse group-hover:animate-bounce">✨</span>
+                <div className="flex flex-col items-center">
+                  <span className="text-yellow-200 font-bold">포인트: {user.points?.toLocaleString() || 0}</span>
+                  <span className="text-yellow-300/70 text-sm group-hover:text-yellow-200 transition-colors">{t('nav.points')} & 내역보기</span>
                 </div>
-                <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/30 rounded border border-purple-400/30">
-                  <span className="text-xs">📅</span>
-                  <span className="text-xs font-medium text-purple-200">출석체크</span>
-                </div>
+                <span className="text-yellow-300/50 text-lg group-hover:text-yellow-200 transition-colors">📊</span>
               </Link>
             )}
           </div>
