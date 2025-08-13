@@ -19,7 +19,6 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: java, javascript
-        queries: security-extended,security-and-quality
 
     - name: JDK 21 설정
       uses: actions/setup-java@v4
@@ -40,14 +39,7 @@ jobs:
 
     - name: 프론트엔드 의존성 설치
       working-directory: ./byeolnight-frontend
-      run: |
-        echo "📦 프론트엔드 의존성 설치 중..."
-        rm -rf node_modules package-lock.json
-        npm ci --no-audit --prefer-offline || {
-          echo "⚠️ npm ci 실패. npm install로 재시도..."
-          npm install --no-audit --legacy-peer-deps
-        }
-        echo "✅ 의존성 설치 완료"
+      run: npm install --legacy-peer-deps
         
     - name: 프론트엔드 빌드
       working-directory: ./byeolnight-frontend
@@ -88,14 +80,7 @@ jobs:
 
     - name: 프론트엔드 의존성 설치
       working-directory: ./byeolnight-frontend
-      run: |
-        echo "📦 프론트엔드 의존성 설치 중..."
-        rm -rf node_modules package-lock.json
-        npm ci --no-audit --prefer-offline || {
-          echo "⚠️ npm ci 실패. npm install로 재시도..."
-          npm install --no-audit --legacy-peer-deps
-        }
-        echo "✅ 의존성 설치 완료"
+      run: npm install --legacy-peer-deps
         
     - name: npm audit 실행
       working-directory: ./byeolnight-frontend

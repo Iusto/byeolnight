@@ -79,7 +79,6 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: java, javascript
-        queries: security-extended
 
     - name: 백엔드 빌드 (보안 검사용)
       env:
