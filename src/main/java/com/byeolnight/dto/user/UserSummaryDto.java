@@ -18,6 +18,7 @@ public class UserSummaryDto {
     private UserStatus status;
     private boolean accountLocked;
     private int points;
+    private String socialProvider;
 
     public static UserSummaryDto from(User user) {
         return new UserSummaryDto(
@@ -27,7 +28,8 @@ public class UserSummaryDto {
                 user.getRole().name(),
                 user.getStatus(),
                 user.isAccountLocked(),
-                user.getPoints()
+                user.getPoints(),
+                user.getSocialProvider() != null ? user.getSocialProvider().name() : null
         );
     }
 }

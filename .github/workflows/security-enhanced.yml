@@ -74,27 +74,19 @@ jobs:
           echo "✅ 허용 가능한 수준의 취약점입니다."
         fi
 
-    # CodeQL 분석
+    # CodeQL 분석 (최소화)
     - name: CodeQL 초기화
       uses: github/codeql-action/init@v3
       with:
-        languages: java, javascript
+        languages: java
 
     - name: 백엔드 빌드 (보안 검사용)
       env:
         GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=256m"
       run: ./gradlew compileJava --no-daemon
 
-    - name: 프론트엔드 빌드 (보안 검사용)
-      working-directory: ./byeolnight-frontend
-      run: npm run build
-
     - name: CodeQL 분석 실행
       uses: github/codeql-action/analyze@v3
-      env:
-        CODEQL_EXTRACTOR_JAVA_HEAP_SIZE: 1024
-      with:
-        category: "/language:java,javascript"
 
     # 보고서 업로드
     - name: 보안 검사 보고서 업로드

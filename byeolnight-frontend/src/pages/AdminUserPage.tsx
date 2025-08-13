@@ -497,10 +497,10 @@ export default function AdminUserPage() {
 
   const handleManualScheduler = async (type: 'message' | 'post' | 'user' | 'socialUser') => {
     const confirmMessages = {
-      message: `정말 ${schedulerStatus.messagesToDelete}개의 오래된 쪽지를 영구 삭제하시겠습니까?`,
-      post: `정말 ${schedulerStatus.postsToDelete}개의 만료된 게시글을 정리하시겠습니까?`,
-      user: `정말 ${schedulerStatus.usersToCleanup}명의 탈퇴 회원 정보를 정리하시겠습니까?`,
-      socialUser: `정말 ${schedulerStatus.socialUsersToCleanup}명의 소셜 탈퇴 회원을 정리하시겠습니까?`
+      message: `정말 ${schedulerStatus.messagesToDelete || 0}개의 오래된 쪽지를 영구 삭제하시겠습니까?`,
+      post: `정말 ${schedulerStatus.postsToDelete || 0}개의 만료된 게시글을 정리하시겠습니까?`,
+      user: `정말 ${schedulerStatus.usersToCleanup || 0}명의 탈퇴 회원 정보를 정리하시겠습니까?`,
+      socialUser: `정말 ${schedulerStatus.socialUsersToCleanup || 0}명의 소셜 탈퇴 회원을 정리하시겠습니까?`
     };
     
     if (!confirm(confirmMessages[type] + '\n\n이 작업은 되돌릴 수 없습니다.')) return;
@@ -1377,7 +1377,7 @@ export default function AdminUserPage() {
                     <div className="text-3xl">📊</div>
                     <div>
                       <div className="text-2xl font-bold text-white">
-                        {schedulerStatus.messagesToDelete.toLocaleString()}개
+                        {(schedulerStatus.messagesToDelete || 0).toLocaleString()}개
                       </div>
                       <div className="text-sm text-gray-400">정리 대상 쪽지</div>
                     </div>
@@ -1385,7 +1385,7 @@ export default function AdminUserPage() {
                   
                   <button
                     onClick={() => handleManualScheduler('message')}
-                    disabled={schedulerStatus.messagesToDelete === 0 || isRunningScheduler.message}
+                    disabled={(schedulerStatus.messagesToDelete || 0) === 0 || isRunningScheduler.message}
                     className={`px-6 py-3 rounded-lg font-medium transition ${
                       schedulerStatus.messagesToDelete === 0 || isRunningScheduler.message
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1403,7 +1403,7 @@ export default function AdminUserPage() {
                   </button>
                 </div>
                 
-                {schedulerStatus.messagesToDelete === 0 && (
+                {(schedulerStatus.messagesToDelete || 0) === 0 && (
                   <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
                     <div className="flex items-center gap-2 text-green-400">
                       <span>✅</span>
@@ -1430,7 +1430,7 @@ export default function AdminUserPage() {
                     <div className="text-3xl">📊</div>
                     <div>
                       <div className="text-2xl font-bold text-white">
-                        {schedulerStatus.postsToDelete.toLocaleString()}개
+                        {(schedulerStatus.postsToDelete || 0).toLocaleString()}개
                       </div>
                       <div className="text-sm text-gray-400">정리 대상 게시글</div>
                     </div>
@@ -1438,7 +1438,7 @@ export default function AdminUserPage() {
                   
                   <button
                     onClick={() => handleManualScheduler('post')}
-                    disabled={schedulerStatus.postsToDelete === 0 || isRunningScheduler.post}
+                    disabled={(schedulerStatus.postsToDelete || 0) === 0 || isRunningScheduler.post}
                     className={`px-6 py-3 rounded-lg font-medium transition ${
                       schedulerStatus.postsToDelete === 0 || isRunningScheduler.post
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1456,7 +1456,7 @@ export default function AdminUserPage() {
                   </button>
                 </div>
                 
-                {schedulerStatus.postsToDelete === 0 && (
+                {(schedulerStatus.postsToDelete || 0) === 0 && (
                   <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
                     <div className="flex items-center gap-2 text-green-400">
                       <span>✅</span>
@@ -1483,7 +1483,7 @@ export default function AdminUserPage() {
                     <div className="text-3xl">📊</div>
                     <div>
                       <div className="text-2xl font-bold text-white">
-                        {schedulerStatus.usersToCleanup.toLocaleString()}명
+                        {(schedulerStatus.usersToCleanup || 0).toLocaleString()}명
                       </div>
                       <div className="text-sm text-gray-400">정리 대상 회원</div>
                     </div>
@@ -1491,7 +1491,7 @@ export default function AdminUserPage() {
                   
                   <button
                     onClick={() => handleManualScheduler('user')}
-                    disabled={schedulerStatus.usersToCleanup === 0 || isRunningScheduler.user}
+                    disabled={(schedulerStatus.usersToCleanup || 0) === 0 || isRunningScheduler.user}
                     className={`px-6 py-3 rounded-lg font-medium transition ${
                       schedulerStatus.usersToCleanup === 0 || isRunningScheduler.user
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1509,7 +1509,7 @@ export default function AdminUserPage() {
                   </button>
                 </div>
                 
-                {schedulerStatus.usersToCleanup === 0 && (
+                {(schedulerStatus.usersToCleanup || 0) === 0 && (
                   <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
                     <div className="flex items-center gap-2 text-green-400">
                       <span>✅</span>
@@ -1537,7 +1537,7 @@ export default function AdminUserPage() {
                     <div className="text-3xl">📊</div>
                     <div>
                       <div className="text-2xl font-bold text-white">
-                        {schedulerStatus.socialUsersToCleanup.toLocaleString()}명
+                        {(schedulerStatus.socialUsersToCleanup || 0).toLocaleString()}명
                       </div>
                       <div className="text-sm text-gray-400">정리 대상 소셜 회원</div>
                     </div>
@@ -1545,7 +1545,7 @@ export default function AdminUserPage() {
                   
                   <button
                     onClick={() => handleManualScheduler('socialUser')}
-                    disabled={schedulerStatus.socialUsersToCleanup === 0 || isRunningScheduler.socialUser}
+                    disabled={(schedulerStatus.socialUsersToCleanup || 0) === 0 || isRunningScheduler.socialUser}
                     className={`px-6 py-3 rounded-lg font-medium transition ${
                       schedulerStatus.socialUsersToCleanup === 0 || isRunningScheduler.socialUser
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1563,7 +1563,7 @@ export default function AdminUserPage() {
                   </button>
                 </div>
                 
-                {schedulerStatus.socialUsersToCleanup === 0 && (
+                {(schedulerStatus.socialUsersToCleanup || 0) === 0 && (
                   <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
                     <div className="flex items-center gap-2 text-green-400">
                       <span>✅</span>
