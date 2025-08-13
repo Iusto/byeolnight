@@ -117,7 +117,7 @@ export default function PostDetail() {
       .post-content blockquote { 
         border-left: 4px solid #8b5cf6 !important; 
         padding: 1rem 1.5rem !important; 
-        margin: 1.5rem 0 !important; 
+        margin: 1.5rem 0 !important;
         font-style: italic !important;
         background: rgba(139, 92, 246, 0.1) !important;
         border-radius: 0 8px 8px 0 !important;

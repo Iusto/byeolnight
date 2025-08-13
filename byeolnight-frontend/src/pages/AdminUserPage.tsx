@@ -16,6 +16,7 @@ interface UserSummary {
   status: 'ACTIVE' | 'BANNED' | 'SUSPENDED' | 'WITHDRAWN';
   accountLocked: boolean;
   points: number;
+  socialProvider?: string;
 }
 
 interface BlindedPost {
@@ -91,6 +92,7 @@ export default function AdminUserPage() {
   const [modalAction, setModalAction] = useState<{ type: string; userId: number; status?: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'WITHDRAWN'>('ALL');
+  const [userTypeFilter, setUserTypeFilter] = useState<'ALL' | 'REGULAR' | 'SOCIAL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [postSearchTerm, setPostSearchTerm] = useState('');
   const [ipSearchTerm, setIpSearchTerm] = useState('');
@@ -744,37 +746,73 @@ export default function AdminUserPage() {
                   className="w-80 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => setStatusFilter('ALL')}
-                className={`px-4 py-2 rounded text-sm transition ${
-                  statusFilter === 'ALL'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                }`}
-              >
-                전체
-              </button>
-              <button
-                onClick={() => setStatusFilter('ACTIVE')}
-                className={`px-4 py-2 rounded text-sm transition ${
-                  statusFilter === 'ACTIVE'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                }`}
-              >
-                활성 계정
-              </button>
-              <button
-                onClick={() => setStatusFilter('WITHDRAWN')}
-                className={`px-4 py-2 rounded text-sm transition ${
-                  statusFilter === 'WITHDRAWN'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                }`}
-              >
-                탈퇴 계정
-              </button>
+              <div className="flex gap-2 justify-center flex-wrap">
+                {/* 계정 상태 필터 */}
+                <button
+                  onClick={() => setStatusFilter('ALL')}
+                  className={`px-4 py-2 rounded text-sm transition ${
+                    statusFilter === 'ALL'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setStatusFilter('ACTIVE')}
+                  className={`px-4 py-2 rounded text-sm transition ${
+                    statusFilter === 'ACTIVE'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  활성 계정
+                </button>
+                <button
+                  onClick={() => setStatusFilter('WITHDRAWN')}
+                  className={`px-4 py-2 rounded text-sm transition ${
+                    statusFilter === 'WITHDRAWN'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  탈퇴 계정
+                </button>
+                
+                {/* 구분선 */}
+                <div className="w-px bg-gray-600 mx-2"></div>
+                
+                {/* 사용자 유형 필터 */}
+                <button
+                  onClick={() => setUserTypeFilter('ALL')}
+                  className={`px-4 py-2 rounded text-sm transition ${
+                    userTypeFilter === 'ALL'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  전체 유형
+                </button>
+                <button
+                  onClick={() => setUserTypeFilter('REGULAR')}
+                  className={`px-4 py-2 rounded text-sm transition ${
+                    userTypeFilter === 'REGULAR'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  일반 사용자
+                </button>
+                <button
+                  onClick={() => setUserTypeFilter('SOCIAL')}
+                  className={`px-4 py-2 rounded text-sm transition ${
+                    userTypeFilter === 'SOCIAL'
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  소셜 사용자
+                </button>
               </div>
             </div>
             
@@ -787,6 +825,7 @@ export default function AdminUserPage() {
                   <th className="p-3">ID</th>
                   <th className="p-3">이메일</th>
                   <th className="p-3">닉네임</th>
+                  <th className="p-3">유형</th>
                   <th className="p-3">닉네임 변경권</th>
                   <th className="p-3">권한</th>
                   <th className="p-3">상태</th>
@@ -802,18 +841,39 @@ export default function AdminUserPage() {
                     if (statusFilter === 'ACTIVE') statusMatch = user.status !== 'WITHDRAWN';
                     else if (statusFilter === 'WITHDRAWN') statusMatch = user.status === 'WITHDRAWN';
                     
+                    // 사용자 유형 필터
+                    let typeMatch = true;
+                    if (userTypeFilter === 'REGULAR') typeMatch = !user.socialProvider;
+                    else if (userTypeFilter === 'SOCIAL') typeMatch = !!user.socialProvider;
+                    
                     // 검색 필터
                     const searchMatch = searchTerm === '' || 
                       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       user.nickname.toLowerCase().includes(searchTerm.toLowerCase());
                     
-                    return statusMatch && searchMatch;
+                    return statusMatch && typeMatch && searchMatch;
                   })
                   .map((user) => (
                   <tr key={user.id} className="border-t border-gray-700">
                     <td className="p-3 text-center">{user.id}</td>
                     <td className="p-3">{user.email}</td>
                     <td className="p-3">{user.nickname}</td>
+                    <td className="p-3 text-center">
+                      {user.socialProvider ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-xs px-2 py-1 bg-cyan-600 text-white rounded-full font-medium">
+                            {user.socialProvider === 'GOOGLE' && '🔗 구글'}
+                            {user.socialProvider === 'KAKAO' && '🔗 카카오'}
+                            {user.socialProvider === 'NAVER' && '🔗 네이버'}
+                            {!['GOOGLE', 'KAKAO', 'NAVER'].includes(user.socialProvider) && `🔗 ${user.socialProvider}`}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs px-2 py-1 bg-orange-600 text-white rounded-full font-medium">
+                          📧 일반
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3 text-center">
                       <button
                         onClick={() => handleGrantNicknameChangeTicket(user.id)}
@@ -893,7 +953,7 @@ export default function AdminUserPage() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-gray-400">
+                    <td colSpan={9} className="p-8 text-center text-gray-400">
                       사용자 데이터가 없습니다.
                     </td>
                   </tr>
