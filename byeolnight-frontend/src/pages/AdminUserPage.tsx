@@ -145,7 +145,7 @@ export default function AdminUserPage() {
       console.error(errorMsg, err);
       setter([]);
     }
-  }, []);}
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     try {
