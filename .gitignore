@@ -230,6 +230,7 @@ coverage/
 .pytest_cache/
 junit.xml
 test-results/
+start-dev.bat
 
 # ========================================
 # 🔧 프로젝트 특화 설정

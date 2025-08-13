@@ -10,6 +10,10 @@ import com.byeolnight.repository.MessageRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.entity.user.User;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +28,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @Slf4j
+@Tag(name = "⏰ 관리자 - 스케줄러", description = "관리자 스케줄러 및 자동화 작업 관리 API")
 public class AdminSchedulerController {
 
     private final SpaceNewsScheduler spaceNewsScheduler;
@@ -36,6 +41,14 @@ public class AdminSchedulerController {
     private final UserRepository userRepository;
 
     @PostMapping("/news/manual")
+    @Operation(
+        summary = "수동 뉴스 수집",
+        description = "관리자가 수동으로 우주/과학 뉴스를 수집합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "뉴스 수집 성공"),
+        @ApiResponse(responseCode = "500", description = "뉴스 수집 실패")
+    })
     public CommonResponse<String> manualNewsCollection() {
         try {
             log.info("관리자 수동 뉴스 수집 시작");
@@ -48,6 +61,14 @@ public class AdminSchedulerController {
     }
 
     @PostMapping("/discussion/manual")
+    @Operation(
+        summary = "수동 토론 주제 생성",
+        description = "관리자가 수동으로 AI 기반 일일 토론 주제를 생성합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "토론 주제 생성 성공"),
+        @ApiResponse(responseCode = "500", description = "토론 주제 생성 실패")
+    })
     public CommonResponse<String> manualDiscussionGeneration() {
         try {
             log.info("관리자 수동 토론 주제 생성 시작");
@@ -60,6 +81,11 @@ public class AdminSchedulerController {
     }
 
     @GetMapping("/status")
+    @Operation(
+        summary = "스케줄러 상태 조회",
+        description = "스케줄러 작업들의 대상 데이터 개수를 조회합니다."
+    )
+    @ApiResponse(responseCode = "200", description = "스케줄러 상태 조회 성공")
     public CommonResponse<Map<String, Object>> getSchedulerStatus() {
         try {
             Map<String, Object> status = new HashMap<>();
@@ -87,6 +113,14 @@ public class AdminSchedulerController {
     }
 
     @PostMapping("/message-cleanup/manual")
+    @Operation(
+        summary = "수동 쪽지 정리",
+        description = "관리자가 수동으로 오래된 쪽지들을 영구 삭제합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "쪽지 정리 성공"),
+        @ApiResponse(responseCode = "500", description = "쪽지 정리 실패")
+    })
     public CommonResponse<String> manualMessageCleanup() {
         try {
             log.info("관리자 수동 쪽지 정리 시작");
@@ -99,6 +133,14 @@ public class AdminSchedulerController {
     }
 
     @PostMapping("/post-cleanup/manual")
+    @Operation(
+        summary = "수동 게시글 정리",
+        description = "관리자가 수동으로 삭제된 지 30일 지난 게시글들을 영구 삭제합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "게시글 정리 성공"),
+        @ApiResponse(responseCode = "500", description = "게시글 정리 실패")
+    })
     public CommonResponse<String> manualPostCleanup() {
         try {
             log.info("관리자 수동 게시글 정리 시작");
@@ -111,6 +153,14 @@ public class AdminSchedulerController {
     }
 
     @PostMapping("/user-cleanup/manual")
+    @Operation(
+        summary = "수동 탈퇴 회원 정리",
+        description = "관리자가 수동으로 탈퇴한 지 5년 지난 회원 데이터를 완전 삭제합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "탈퇴 회원 정리 성공"),
+        @ApiResponse(responseCode = "500", description = "탈퇴 회원 정리 실패")
+    })
     public CommonResponse<String> manualUserCleanup() {
         try {
             log.info("관리자 수동 탈퇴 회원 정리 시작");

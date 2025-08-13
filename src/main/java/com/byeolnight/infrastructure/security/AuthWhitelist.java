@@ -6,16 +6,22 @@ package com.byeolnight.infrastructure.security;
  */
 public class AuthWhitelist {
     public static final String[] PATHS = {
-            // 공개 API
-            "/api/public/**",
+            // 인증 관련
             "/api/auth/**",
             "/oauth2/**",
             "/login/oauth2/**",
-            "/api/posts",
-            "/api/posts/**",        // 게시글 및 댓글 조회 포함
-            "/api/users/*/profile", // 사용자 프로필 조회
             
-            // API 문서 (개발환경)
+            // 공개 API (읽기 전용)
+            "/api/public/**",
+            "/public/**",
+            "/api/posts",           // 게시글 목록 조회
+            "/api/posts/*/comments", // 댓글 조회
+            "/api/users/*/profile", // 프로필 조회
+            
+            // 로컬 개발용
+            "/member/users/me",
+            
+            // API 문서
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
@@ -23,20 +29,19 @@ public class AuthWhitelist {
             // WebSocket
             "/ws/**",
             
-            // 기타 공개 API (GET만 허용)
+            // 공개 데이터
             "/api/suggestions",
             "/api/suggestions/*",
             
-            // 헬스체크 (보안 강화)
-            "/actuator/health",     // 헬스체크만 허용
+            // 헬스체크
+            "/actuator/health",
             "/health",
             
             // 정적 리소스
             "/favicon.ico",
-            "/sitemap.xml",
-            "/sitemap-*.xml",
             "/robots.txt",
-            "/naver-site-verification.html", // 구체적 파일명
+            "/sitemap*.xml",
+            "/naver*.html",
             
             // 에러 페이지
             "/error"

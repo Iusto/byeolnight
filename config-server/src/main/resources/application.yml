@@ -14,7 +14,7 @@ spring:
     config:
       server:
         native:
-          search-locations: file:./config-repo/configs,classpath:/
+          search-locations: file:../config-repo/configs,classpath:/
         git:
           uri: file:///tmp/config-repo
           clone-on-start: false
