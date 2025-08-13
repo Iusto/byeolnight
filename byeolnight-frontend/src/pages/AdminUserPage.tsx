@@ -1578,7 +1578,10 @@ export default function AdminUserPage() {
                 <h4 className="text-lg font-semibold text-white mb-4">📋 스케줄러 정보</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-blue-400 font-medium mb-2">🕐 새벽 2시</div>
+                    <div className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+                      <span className="text-xl">🕙</span>
+                      <span>아침 10시</span>
+                    </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 쪽지 자동 정리</li>
                       <li>• 3년 경과 쪽지 삭제</li>
@@ -1586,7 +1589,10 @@ export default function AdminUserPage() {
                     </ul>
                   </div>
                   <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-yellow-400 font-medium mb-2">🕒 아침 8시</div>
+                    <div className="text-yellow-400 font-medium mb-2 flex items-center gap-2">
+                      <span className="text-xl">🕗</span>
+                      <span>아침 8시</span>
+                    </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 게시글/댓글 정리</li>
                       <li>• 30일 경과 삭제 게시글</li>
@@ -1594,7 +1600,10 @@ export default function AdminUserPage() {
                     </ul>
                   </div>
                   <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-red-400 font-medium mb-2">🕒 아침 8시</div>
+                    <div className="text-red-400 font-medium mb-2 flex items-center gap-2">
+                      <span className="text-xl">🕗</span>
+                      <span>아침 8시</span>
+                    </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 탈퇴 회원 정리</li>
                       <li>• 5년 경과 탈퇴 회원</li>
@@ -1602,7 +1611,10 @@ export default function AdminUserPage() {
                     </ul>
                   </div>
                   <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-cyan-400 font-medium mb-2">🕘 오전 9시 & 10시</div>
+                    <div className="text-cyan-400 font-medium mb-2 flex items-center gap-2">
+                      <span className="text-xl">🕘</span>
+                      <span>오전 9시 & 10시</span>
+                    </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 30일 경과: 개인정보 마스킹</li>
                       <li>• 5년 경과: 소셜 계정 완전 삭제</li>
