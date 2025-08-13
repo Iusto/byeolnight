@@ -132,6 +132,12 @@ jobs:
         script: |
           cd /opt/byeolnight
           
+          # 환경변수 검증
+          if [ ! -f ".env.prod" ]; then
+            echo "❌ .env.prod 파일이 없습니다!"
+            exit 1
+          fi
+          
           # Config Repository 업데이트 (Git 기반)
           if [ -d "config-repo" ]; then
             cd config-repo && git pull origin main && cd ..
@@ -143,7 +149,7 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
           
           # 서비스 재시작 (환경변수 파일 사용)
-          docker-compose -f docker-compose.prod.yml --env-file .env.prod down
+          docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
           docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
           
           # 서비스 상태 확인

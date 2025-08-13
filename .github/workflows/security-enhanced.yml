@@ -79,9 +79,11 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: java, javascript
-        queries: security-and-quality
+        queries: security-extended
 
     - name: 백엔드 빌드 (보안 검사용)
+      env:
+        GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=256m"
       run: ./gradlew build -x test --no-daemon
 
     - name: 프론트엔드 빌드 (보안 검사용)
