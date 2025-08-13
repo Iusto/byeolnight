@@ -29,7 +29,7 @@ public class UserSummaryDto {
                 user.getStatus(),
                 user.isAccountLocked(),
                 user.getPoints(),
-                user.getSocialProvider() != null ? user.getSocialProvider().name() : null
+                user.getSocialProvider()
         );
     }
 }
