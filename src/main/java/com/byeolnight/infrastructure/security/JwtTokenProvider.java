@@ -68,7 +68,7 @@ public class JwtTokenProvider {
 
     public boolean validateAccessToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
@@ -76,14 +76,14 @@ public class JwtTokenProvider {
     }
 
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload();
         return Long.parseLong(claims.getSubject());
     }
 
     public String getSessionIdFromToken(String token) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload();
         return claims.get("sessionId", String.class);
     }
 
@@ -94,8 +94,8 @@ public class JwtTokenProvider {
 
     public boolean validateRefreshToken(String token) {
         try {
-            Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
-                    .parseClaimsJws(token).getBody();
+            Claims claims = Jwts.parser().verifyWith(key).build()
+                    .parseSignedClaims(token).getPayload();
             String type = claims.get("type", String.class);
             return "refresh".equals(type);
         } catch (JwtException | IllegalArgumentException e) {
@@ -121,8 +121,8 @@ public class JwtTokenProvider {
     }
 
     public long getExpiration(String token) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload();
         return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
 
