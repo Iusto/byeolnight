@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@stomp/stompjs": "^7.1.1",
-    "@toast-ui/editor": "^3.2.2",
-    "@toast-ui/react-editor": "^3.2.3",
+    "@toast-ui/editor": "^3.1.0",
+    "@toast-ui/react-editor": "^3.1.0",
     "@types/sockjs-client": "^1.5.4",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
@@ -51,6 +51,18 @@
   },
   "overrides": {
     "axios": "^1.7.9",
-    "postcss": "^8.5.6"
+    "postcss": "^8.5.6",
+    "semver": "^7.6.0",
+    "braces": "^3.0.3",
+    "micromatch": "^4.0.8",
+    "dompurify": "^3.2.4"
+  },
+  "resolutions": {
+    "axios": "^1.7.9",
+    "postcss": "^8.5.6",
+    "semver": "^7.6.0",
+    "braces": "^3.0.3",
+    "micromatch": "^4.0.8",
+    "dompurify": "^3.2.4"
   }
 }

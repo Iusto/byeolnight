@@ -235,7 +235,7 @@ public class User implements UserDetails {
         this.withdrawnAt = LocalDateTime.now();
         this.nickname = "탈퇴회원_" + this.id;
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
-        this.socialProvider = null; // 소셜 연동 정보 삭제
+        // socialProvider 유지 (소셜 사용자 구분용)
     }
 
     /** 탈퇴 정보 초기화 (복구 시 사용) */

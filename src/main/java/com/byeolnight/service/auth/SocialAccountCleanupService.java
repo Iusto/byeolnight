@@ -49,17 +49,47 @@ public class SocialAccountCleanupService {
     }
 
     /**
-     * 매일 오전 10시 - 30일 경과 소셜 계정 완전 삭제
+     * 매일 오전 9시 - 30일 경과 계정 개인정보 마스킹 (복구 불가능)
+     */
+    @Scheduled(cron = "0 0 9 * * *")
+    @Transactional
+    public void maskPersonalInfoAfterThirtyDays() {
+        log.info("🔒 30일 경과 계정 개인정보 마스킹 작업 시작");
+        
+        try {
+            LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+            List<User> expiredUsers = userRepository.findByStatusAndWithdrawnAtBefore(
+                User.UserStatus.WITHDRAWN, thirtyDaysAgo);
+            
+            int maskedCount = 0;
+            for (User user : expiredUsers) {
+                // 이미 마스킹된 계정은 건너뛰기
+                if (!user.getEmail().startsWith("deleted_")) {
+                    user.completelyRemovePersonalInfo();
+                    maskedCount++;
+                    log.info("개인정보 마스킹 완료: {}", user.getEmail());
+                }
+            }
+            
+            log.info("🔒 개인정보 마스킹 완료: {}개 계정 처리", maskedCount);
+            
+        } catch (Exception e) {
+            log.error("개인정보 마스킹 작업 중 오류 발생", e);
+        }
+    }
+
+    /**
+     * 매일 오전 10시 - 5년 경과 소셜 계정 완전 삭제
      */
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional
     public void cleanupWithdrawnSocialAccounts() {
-        log.info("🧹 탈퇴 소셜 계정 완전 삭제 작업 시작");
+        log.info("🧹 5년 경과 소셜 계정 완전 삭제 작업 시작");
         
         try {
-            LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+            LocalDateTime fiveYearsAgo = LocalDateTime.now().minusYears(5);
             List<User> withdrawnUsers = userRepository.findByStatusAndWithdrawnAtBefore(
-                User.UserStatus.WITHDRAWN, thirtyDaysAgo);
+                User.UserStatus.WITHDRAWN, fiveYearsAgo);
             
             int deletedCount = 0;
             for (User user : withdrawnUsers) {

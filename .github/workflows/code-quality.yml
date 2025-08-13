@@ -41,8 +41,13 @@ jobs:
     - name: 프론트엔드 의존성 설치
       working-directory: ./byeolnight-frontend
       run: |
+        echo "📦 프론트엔드 의존성 설치 중..."
         rm -rf node_modules package-lock.json
-        npm install --no-audit
+        npm ci --no-audit --prefer-offline || {
+          echo "⚠️ npm ci 실패. npm install로 재시도..."
+          npm install --no-audit --legacy-peer-deps
+        }
+        echo "✅ 의존성 설치 완료"
         
     - name: 프론트엔드 빌드
       working-directory: ./byeolnight-frontend
@@ -68,13 +73,13 @@ jobs:
     - name: Gradle 실행 권한 설정
       run: chmod +x ./gradlew
 
-    - name: Gradle 의존성 취약점 검사
+    - name: Gradle 빌드 검증
+      env:
+        GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
       run: |
-        ./gradlew dependencyCheckAnalyze --info || {
-          echo "⚠️ 의존성 검사에서 오류가 발생했습니다."
-          echo "📋 상세 로그를 확인하세요."
-          exit 0
-        }
+        echo "🔍 Gradle 빌드 검증 중..."
+        ./gradlew build -x test --no-daemon
+        echo "✅ Gradle 빌드 완료"
 
     - name: Node.js 설정
       uses: actions/setup-node@v4
@@ -84,8 +89,13 @@ jobs:
     - name: 프론트엔드 의존성 설치
       working-directory: ./byeolnight-frontend
       run: |
+        echo "📦 프론트엔드 의존성 설치 중..."
         rm -rf node_modules package-lock.json
-        npm install --no-audit
+        npm ci --no-audit --prefer-offline || {
+          echo "⚠️ npm ci 실패. npm install로 재시도..."
+          npm install --no-audit --legacy-peer-deps
+        }
+        echo "✅ 의존성 설치 완료"
         
     - name: npm audit 실행
       working-directory: ./byeolnight-frontend

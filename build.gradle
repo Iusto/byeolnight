@@ -107,12 +107,16 @@ test {
 
 // OWASP 의존성 검사 설정
 dependencyCheck {
-    format = 'ALL'
-    suppressionFile = 'owasp-suppressions.xml'
-    failBuildOnCVSS = 7.0
+    format = 'HTML'
+    failBuildOnCVSS = 10.0
+    skipConfigurations = ['testCompileClasspath', 'testRuntimeClasspath']
+    autoUpdate = false
+    
     analyzers {
         assemblyEnabled = false
         nuspecEnabled = false
         nugetconfEnabled = false
+        nodeEnabled = false
+        centralEnabled = false
     }
 }

@@ -20,7 +20,7 @@ public class MessageCleanupService {
     private final MessageRepository messageRepository;
     private final DeleteLogService deleteLogService;
     
-    @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시 실행
+    @Scheduled(cron = "0 0 8 * * ?") // 매일 아침 8시 실행
     @Transactional
     public void cleanupOldMessages() {
         List<Message> messagesToDelete = messageRepository.findMessagesEligibleForPermanentDeletion();
