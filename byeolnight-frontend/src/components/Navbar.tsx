@@ -36,7 +36,7 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center gap-1">
             <Link 
               to="/posts" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/40 hover:to-blue-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
             >
               <span className="group-hover:animate-bounce text-sm">📚</span>
               <span className="font-medium text-sm">{t('nav.posts')}</span>
@@ -44,7 +44,7 @@ export default function Navbar() {
             
             <Link 
               to="/shop" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
             >
               <span className="group-hover:animate-bounce text-sm">✨</span>
               <span className="font-medium text-sm">{t('nav.shop')}</span>
@@ -52,19 +52,19 @@ export default function Navbar() {
             
             <Link 
               to="/suggestions" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-orange-600/20 text-orange-300 hover:text-orange-200 transition-all duration-300"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
             >
-              <span className="group-hover:animate-pulse text-sm">💡</span>
-              <span className="text-sm">{t('nav.suggestions')}</span>
+              <span className="group-hover:animate-bounce text-sm">💡</span>
+              <span className="font-medium text-sm">{t('nav.suggestions')}</span>
             </Link>
             
             {user && (
               <Link 
                 to="/certificates" 
-                className="group flex items-center gap-2 px-3 py-2 rounded-full hover:bg-yellow-600/20 text-yellow-300 hover:text-yellow-200 transition-all duration-300"
+                className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
               >
                 <span className="group-hover:animate-bounce text-sm">🏆</span>
-                <span className="text-sm">{t('nav.certificates')}</span>
+                <span className="font-medium text-sm">{t('nav.certificates')}</span>
               </Link>
             )}
           </div>
@@ -191,15 +191,15 @@ export default function Navbar() {
               <Link 
                 to="/shop"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/30 hover:to-pink-600/30 text-white transition-all duration-200"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-all duration-200"
               >
-                <span className="text-2xl animate-pulse">✨</span>
+                <span className="text-2xl">✨</span>
                 <span className="text-sm font-medium">{t('nav.shop')}</span>
               </Link>
               <Link 
                 to="/suggestions"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-orange-600/20 hover:bg-orange-600/30 text-orange-200 transition-all duration-200"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-all duration-200"
               >
                 <span className="text-2xl">💡</span>
                 <span className="text-sm font-medium">{t('nav.suggestions')}</span>
@@ -208,7 +208,7 @@ export default function Navbar() {
                 <Link 
                   to="/certificates"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 transition-all duration-200"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 transition-all duration-200"
                 >
                   <span className="text-2xl">🏆</span>
                   <span className="text-sm font-medium">{t('nav.certificates')}</span>
