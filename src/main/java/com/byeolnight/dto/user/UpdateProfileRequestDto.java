@@ -18,6 +18,5 @@ public class UpdateProfileRequestDto {
     @Size(min = 2, max = 8, message = "닉네임은 2-8자로 입력해주세요.")
     private String nickname;
 
-    @NotBlank(message = "현재 비밀번호를 입력해주세요.")
-    private String currentPassword;
+    private String currentPassword; // 소셜 로그인 사용자는 선택사항
 }

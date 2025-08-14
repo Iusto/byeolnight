@@ -321,11 +321,7 @@ export default function ProfilePage() {
             <div>
               <h2 className="text-2xl font-bold mb-6">프로필 수정</h2>
 
-              <div className="mb-4 p-3 bg-gray-800 rounded text-xs">
-                <p>디버깅 정보:</p>
-                <p>socialProvider: {user?.socialProvider || 'null'}</p>
-                <p>소셜 로그인 여부: {user?.socialProvider ? 'true' : 'false'}</p>
-              </div>
+
               
               <form onSubmit={handleProfileSubmit} className="space-y-5">
                 <div>
