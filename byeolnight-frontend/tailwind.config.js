@@ -6,6 +6,20 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+        'touch': { 'raw': '(hover: none) and (pointer: coarse)' },
+        'mouse': { 'raw': '(hover: hover) and (pointer: fine)' },
+      },
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
+      minHeight: {
+        'screen-safe': 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+      },
       colors: {
         space: '#0b0c2a',
         starlight: '#e2e8f0',

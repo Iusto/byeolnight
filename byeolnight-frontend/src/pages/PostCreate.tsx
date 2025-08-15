@@ -72,13 +72,26 @@ export default function PostCreate() {
       
       return imageData.url;
     } catch (error: any) {
-      console.error('클립보드 이미지 업로드 오류:', error);
-      const errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
+      console.error('클립보드 이미지 업로드 오류:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      
+      let errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
+      let alertType: 'error' | 'warning' = 'error';
+      
+      // 네트워크 오류에 대한 추가 안내
+      if (error.message?.includes('네트워크') || error.message?.includes('브라우저 보안')) {
+        alertType = 'warning';
+        errorMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
+      }
       
       // 오류 메시지 표시 (alert 대신 ValidationAlert만 사용)
       setValidationAlert({
         message: errorMsg,
-        type: 'error'
+        type: alertType
       });
       throw error;
     } finally {
@@ -142,15 +155,31 @@ export default function PostCreate() {
             // 검열 통과한 이미지만 에디터에 삽입
             insertImageToEditor(imageData.url, '클립보드 이미지');
           } catch (error: any) {
-            console.error('클립보드 이미지 업로드 실패:', error);
+            console.error('클립보드 이미지 업로드 실패:', {
+              message: error.message,
+              name: error.name,
+              stack: error.stack,
+              response: error.response?.data
+            });
+            
             // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
+            
+            let errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
+            let alertType: 'error' | 'warning' = 'error';
+            
+            // 네트워크 오류에 대한 추가 안내
+            if (error.message?.includes('네트워크') || error.message?.includes('브라우저 보안')) {
+              alertType = 'warning';
+              errorMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
+            }
+            
             // ValidationAlert로 표시하고 alert 제거
             setValidationAlert({
-              message: error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.',
-              type: 'error'
+              message: errorMsg,
+              type: alertType
             });
           }
           break;
@@ -295,13 +324,26 @@ export default function PostCreate() {
       insertImageToEditor(imageData, imageData.originalName || '검열 통과된 이미지');
       
     } catch (error: any) {
-      console.error('이미지 업로드 오류:', error);
-      const errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+      console.error('이미지 업로드 오류:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      
+      let errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+      let alertType: 'error' | 'warning' = 'error';
+      
+      // 네트워크 오류에 대한 추가 안내
+      if (error.message?.includes('네트워크') || error.message?.includes('브라우저 보안')) {
+        alertType = 'warning';
+        errorMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
+      }
       
       // 오류 메시지 표시 - alert 제거하고 ValidationAlert만 사용
       setValidationAlert({
         message: errorMsg,
-        type: 'error'
+        type: alertType
       });
     } finally {
       setIsImageValidating(false);

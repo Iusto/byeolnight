@@ -272,11 +272,63 @@ svg {
   filter: none !important;
 }
 
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .mobile-optimized {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  
+  .mobile-tab {
+    min-height: 48px;
+    font-size: 14px;
+  }
+  
+  .mobile-input {
+    min-height: 44px;
+    font-size: 16px; /* iOS 줌 방지 */
+  }
+  
+  .mobile-button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+}
+
+/* 인앱 브라우저 호환성 */
+.inapp-safe {
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.inapp-safe input,
+.inapp-safe textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Tailwind 기반 우주 테마 */
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh; /* 동적 뷰포트 높이 */
 }
 
 /* 나머지 기존 Vite 스타일 */

@@ -235,64 +235,67 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex justify-center pt-20 text-white">
-      <div className="w-full max-w-2xl bg-[#1f2336] rounded-xl shadow-lg overflow-hidden">
+    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex justify-center pt-4 sm:pt-20 text-white mobile-optimized">
+      <div className="w-full max-w-2xl bg-[#1f2336] rounded-xl shadow-lg overflow-hidden mx-4 sm:mx-0">
         {/* 탭 헤더 */}
         <div className="flex border-b border-gray-600">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-4 px-6 text-center transition-colors ${
+            className={`flex-1 mobile-tab mobile-button touch-target text-center transition-colors text-xs sm:text-sm ${
               activeTab === 'info' 
                 ? 'bg-purple-600 text-white' 
-                : 'bg-[#2a2e45] text-gray-300 hover:text-white'
+                : 'bg-[#2a2e45] text-gray-300 active:text-white'
             }`}
           >
-            🙋 내 정보
+            <span className="block sm:inline">🙋</span>
+            <span className="hidden xs:inline ml-1">내 정보</span>
           </button>
           <button
             onClick={() => setActiveTab('edit')}
-            className={`flex-1 py-4 px-6 text-center transition-colors ${
+            className={`flex-1 mobile-tab mobile-button touch-target text-center transition-colors text-xs sm:text-sm ${
               activeTab === 'edit' 
                 ? 'bg-purple-600 text-white' 
-                : 'bg-[#2a2e45] text-gray-300 hover:text-white'
+                : 'bg-[#2a2e45] text-gray-300 active:text-white'
             }`}
           >
-            ✏️ 프로필 수정
+            <span className="block sm:inline">✏️</span>
+            <span className="hidden xs:inline ml-1">수정</span>
           </button>
           {!user?.socialProvider && (
             <button
               onClick={() => setActiveTab('password')}
-              className={`flex-1 py-4 px-6 text-center transition-colors ${
+              className={`flex-1 mobile-tab mobile-button touch-target text-center transition-colors text-xs sm:text-sm ${
                 activeTab === 'password' 
                   ? 'bg-purple-600 text-white' 
-                  : 'bg-[#2a2e45] text-gray-300 hover:text-white'
+                  : 'bg-[#2a2e45] text-gray-300 active:text-white'
               }`}
             >
-              🔐 비밀번호 변경
+              <span className="block sm:inline">🔐</span>
+              <span className="hidden xs:inline ml-1">비밀번호</span>
             </button>
           )}
         </div>
 
         {/* 탭 내용 */}
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {/* 내 정보 탭 */}
           {activeTab === 'info' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold mb-6">내 정보</h2>
-              <div className="space-y-4 text-base">
-                <div className="flex justify-between items-center py-3 border-b border-gray-600">
-                  <span className="text-gray-300">이메일</span>
-                  <span className="font-medium">{user.email}</span>
+            <div className="space-y-4 sm:space-y-6">
+              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">내 정보</h2>
+              <div className="space-y-3 sm:space-y-4 text-sm sm:text-base">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 border-b border-gray-600 gap-1 sm:gap-0">
+                  <span className="text-gray-300 text-xs sm:text-sm">이메일</span>
+                  <span className="font-medium break-all">{user.email}</span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-600">
-                  <span className="text-gray-300">닉네임</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 border-b border-gray-600 gap-1 sm:gap-0">
+                  <span className="text-gray-300 text-xs sm:text-sm">닉네임</span>
                   <span className="font-medium">{user.nickname}</span>
                 </div>
                 <div className="py-3 border-b border-gray-600">
-                  <div className="flex justify-between items-start">
-                    <span className="text-gray-300">권한</span>
-                    <div className="text-right">
-                      <div className="font-medium">{user.role === 'ADMIN' ? '관리자' : '일반 사용자'}</div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+                    <span className="text-gray-300 text-xs sm:text-sm">권한</span>
+                    <div className="text-left sm:text-right">
+                      <div className="font-medium text-sm sm:text-base">{user.role === 'ADMIN' ? '관리자' : '일반 사용자'}</div>
                       {user.socialProvider && (
                         <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 mt-1 inline-block">
                           {user.socialProvider === 'google' ? '구글' : 
@@ -305,10 +308,10 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className="pt-6">
+              <div className="pt-4 sm:pt-6">
                 <button
                   onClick={() => setShowWithdrawModal(true)}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded transition-colors font-medium"
+                  className="w-full mobile-button touch-target bg-red-600 active:bg-red-700 text-white px-6 py-3 rounded transition-colors font-medium"
                 >
                   ⚠️ 회원 탈퇴
                 </button>
@@ -319,21 +322,19 @@ export default function ProfilePage() {
           {/* 프로필 수정 탭 */}
           {activeTab === 'edit' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">프로필 수정</h2>
-
-
+              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">프로필 수정</h2>
               
-              <form onSubmit={handleProfileSubmit} className="space-y-5">
+              <form onSubmit={handleProfileSubmit} className="space-y-4 sm:space-y-5">
                 <div>
                   <label className="block text-sm font-medium mb-2">닉네임</label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <input
                       type="text"
                       name="nickname"
                       value={profileForm.nickname}
                       onChange={handleProfileChange}
                       placeholder="닉네임 (2-8자)"
-                      className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
+                      className={`w-full mobile-input px-4 py-3 rounded-md focus:outline-none focus:ring-2 text-base ${
                         !nicknameInfo.canChange && user?.nicknameChanged
                           ? 'bg-gray-600 text-gray-400 cursor-not-allowed focus:ring-gray-500'
                           : 'bg-[#2a2e45] focus:ring-purple-500'
@@ -345,7 +346,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={checkNickname}
                       disabled={nicknameCheckLoading || !profileForm.nickname || (!nicknameInfo.canChange && user?.nicknameChanged)}
-                      className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 py-2 rounded transition-colors text-sm"
+                      className="w-full mobile-button touch-target bg-gray-600 active:bg-gray-700 disabled:bg-gray-800 py-3 rounded transition-colors text-sm font-medium"
                     >
                       {nicknameCheckLoading ? '확인중...' : '닉네임 중복 확인'}
                     </button>
@@ -373,7 +374,7 @@ export default function ProfilePage() {
                       value={profileForm.currentPassword}
                       onChange={handleProfileChange}
                       placeholder="현재 비밀번호를 입력해주세요"
-                      className="w-full px-4 py-2 rounded-md bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full mobile-input px-4 py-3 rounded-md bg-[#2a2e45] focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
                       required
                     />
                   </div>
@@ -381,7 +382,7 @@ export default function ProfilePage() {
 
                 {profileError && (
                   <div className="bg-red-500/20 border border-red-500 rounded p-3">
-                    <p className="text-red-400 text-sm">{profileError}</p>
+                    <p className="text-red-400 text-sm break-words">{profileError}</p>
                   </div>
                 )}
                 
@@ -394,10 +395,10 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full py-2 rounded-md transition-colors ${
+                  className={`w-full mobile-button touch-target py-3 rounded-md transition-colors font-medium ${
                     loading 
                       ? 'bg-gray-600 cursor-not-allowed' 
-                      : 'bg-blue-500 hover:bg-blue-600'
+                      : 'bg-blue-500 active:bg-blue-600'
                   }`}
                 >
                   {loading ? '수정 중...' : '저장'}
@@ -409,7 +410,7 @@ export default function ProfilePage() {
           {/* 비밀번호 변경 탭 */}
           {activeTab === 'password' && !user?.socialProvider && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">비밀번호 변경</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">비밀번호 변경</h2>
               
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <input
@@ -418,7 +419,7 @@ export default function ProfilePage() {
                   placeholder="현재 비밀번호"
                   value={passwordForm.currentPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-2 rounded bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full mobile-input px-4 py-3 rounded bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
                   required
                 />
                 <input
@@ -427,7 +428,7 @@ export default function ProfilePage() {
                   placeholder="새 비밀번호 (8자 이상)"
                   value={passwordForm.newPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-2 rounded bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full mobile-input px-4 py-3 rounded bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
                   required
                 />
                 <input
@@ -436,19 +437,19 @@ export default function ProfilePage() {
                   placeholder="새 비밀번호 확인"
                   value={passwordForm.confirmPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-2 rounded bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full mobile-input px-4 py-3 rounded bg-[#2a2e45] text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
                   required
                 />
                 
-                {passwordError && <p className="text-red-400 text-sm">{passwordError}</p>}
+                {passwordError && <p className="text-red-400 text-sm break-words">{passwordError}</p>}
                 
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full py-2 rounded transition-colors font-medium ${
+                  className={`w-full mobile-button touch-target py-3 rounded transition-colors font-medium ${
                     loading
                       ? 'bg-gray-600 cursor-not-allowed'
-                      : 'bg-purple-600 hover:bg-purple-700'
+                      : 'bg-purple-600 active:bg-purple-700'
                   } text-white`}
                 >
                   {loading ? '변경 중...' : '비밀번호 변경'}

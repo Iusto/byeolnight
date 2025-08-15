@@ -89,23 +89,44 @@ const TuiEditor = forwardRef(({
         type: blob.type
       });
 
+      console.log('TUI Editor 이미지 업로드 시작:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        userAgent: navigator.userAgent
+      });
+
       // 통합된 uploadImage 함수 사용
       const imageData = await uploadImage(file);
       
       if (imageData && imageData.url && isValidImageUrl(imageData.url)) {
+        console.log('TUI Editor 이미지 업로드 성공:', imageData.url);
         callback(imageData.url, imageData.originalName || '업로드된 이미지');
         return true;
       } else {
-        throw new Error('이미지 업로드 실패');
+        throw new Error('이미지 업로드 실패: 유효하지 않은 응답');
       }
     } catch (error: any) {
-      console.error('TUI Editor 이미지 업로드 오류:', error);
+      console.error('TUI Editor 이미지 업로드 오류:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        response: error.response?.data
+      });
       
-      // 사용자에게 오류 메시지 표시 (uploadImage에서 이미 표시되므로 중복 방지)
-      if (!error.message?.includes('부적절한 이미지')) {
-        alert(error.message || '이미지 업로드에 실패했습니다.');
+      // 사용자 친화적인 오류 메시지 표시
+      let userMessage = error.message || '이미지 업로드에 실패했습니다.';
+      
+      // 특정 오류에 대한 추가 안내
+      if (error.message?.includes('네트워크')) {
+        userMessage += '\n\n💡 해결 방법:\n• 인터넷 연결을 확인해주세요\n• 다른 브라우저를 시도해보세요\n• 시크릿 모드를 사용해보세요';
+      } else if (error.message?.includes('브라우저 보안')) {
+        userMessage += '\n\n💡 해결 방법:\n• 다른 브라우저를 사용해보세요\n• 시크릿/프라이빗 모드를 시도해보세요\n• 브라우저 확장 프로그램을 비활성화해보세요';
+      } else if (error.message?.includes('시간 초과')) {
+        userMessage += '\n\n💡 해결 방법:\n• 이미지 크기를 줄여보세요\n• 잠시 후 다시 시도해주세요\n• 네트워크 연결을 확인해주세요';
       }
       
+      alert(userMessage);
       return false;
     } finally {
       isHandlingImageUpload.current = false;

@@ -35,7 +35,14 @@ public class FileController {
             @RequestParam(value = "contentType", required = false) String contentType,
             HttpServletRequest request) {
         
+        String clientIp = IpUtil.getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+        
+        log.info("Presigned URL 요청: filename={}, contentType={}, clientIp={}, userAgent={}", 
+                filename, contentType, clientIp, userAgent);
+        
         if (filename == null || filename.trim().isEmpty()) {
+            log.warn("Presigned URL 요청 실패: 파일명 누락 - clientIp={}", clientIp);
             return ResponseEntity.badRequest().body(CommonResponse.error("파일명이 필요합니다."));
         }
         
@@ -45,27 +52,31 @@ public class FileController {
         if (lastDotIndex > 0) {
             extension = filename.substring(lastDotIndex + 1).toLowerCase();
         } else {
+            log.warn("Presigned URL 요청 실패: 파일 확장자 누락 - filename={}, clientIp={}", filename, clientIp);
             return ResponseEntity.badRequest().body(CommonResponse.error("파일 확장자가 필요합니다."));
         }
         
         // 이미지 파일 확장자 검사
         if (!extension.matches("jpg|jpeg|png|gif|bmp|webp|svg")) {
+            log.warn("Presigned URL 요청 실패: 지원되지 않는 파일 형식 - extension={}, filename={}, clientIp={}", 
+                    extension, filename, clientIp);
             return ResponseEntity.badRequest().body(CommonResponse.error("지원되지 않는 이미지 형식입니다. 지원 형식: jpg, jpeg, png, gif, bmp, webp, svg"));
         }
         
-        // Rate Limiting 검사
-        String clientIp = IpUtil.getClientIp(request);
-        
         // Presigned URL 생성 제한 확인
         if (!rateLimitService.isPresignedUrlAllowed(clientIp)) {
+            log.warn("Presigned URL 요청 실패: Rate Limit 초과 - clientIp={}, filename={}", clientIp, filename);
             return ResponseEntity.status(429).body(CommonResponse.error("Presigned URL 생성 한도를 초과했습니다. 잠시 후 다시 시도해주세요."));
         }
         
         try {
+            log.debug("S3 Presigned URL 생성 시작 - filename={}, contentType={}", filename, contentType);
             Map<String, String> result = s3Service.generatePresignedUrl(filename, contentType);
+            log.info("Presigned URL 생성 성공 - s3Key={}, clientIp={}", result.get("s3Key"), clientIp);
             return ResponseEntity.ok(CommonResponse.success(result));
         } catch (Exception e) {
-            log.error("Presigned URL 생성 오류", e);
+            log.error("Presigned URL 생성 오류 - filename={}, contentType={}, clientIp={}, error={}", 
+                    filename, contentType, clientIp, e.getMessage(), e);
             return ResponseEntity.badRequest().body(CommonResponse.error(e.getMessage()));
         }
     }
@@ -103,18 +114,25 @@ public class FileController {
     @PostMapping("/moderate-url")
     public ResponseEntity<CommonResponse<Map<String, Object>>> moderateUrl(
             @RequestParam("imageUrl") String imageUrl,
-            @RequestParam("s3Key") String s3Key) {
+            @RequestParam("s3Key") String s3Key,
+            HttpServletRequest request) {
+        
+        String clientIp = IpUtil.getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
         
         try {
-            log.info("URL 기반 이미지 검열 시작: {}", s3Key);
+            log.info("URL 기반 이미지 검열 시작: s3Key={}, imageUrl={}, clientIp={}, userAgent={}", 
+                    s3Key, imageUrl, clientIp, userAgent);
             
             // URL 유효성 검사
             if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                log.warn("이미지 검열 실패: URL 누락 - clientIp={}, s3Key={}", clientIp, s3Key);
                 return ResponseEntity.badRequest().body(CommonResponse.error("이미지 URL이 필요합니다."));
             }
             
             // S3 키 유효성 검사
             if (s3Key == null || s3Key.trim().isEmpty()) {
+                log.warn("이미지 검열 실패: S3 키 누락 - clientIp={}, imageUrl={}", clientIp, imageUrl);
                 return ResponseEntity.badRequest().body(CommonResponse.error("S3 키가 필요합니다."));
             }
             
@@ -151,13 +169,14 @@ public class FileController {
                 )));
                 
             } catch (Exception e) {
-                log.error("이미지 검증 실패: {}", imageUrl, e);
+                log.error("이미지 검증 실패: imageUrl={}, s3Key={}, clientIp={}, error={}", 
+                        imageUrl, s3Key, clientIp, e.getMessage(), e);
                 // 오류 발생 시 S3에서 이미지 삭제
                 try {
                     s3Service.deleteObject(s3Key);
-                    log.info("검증 실패한 이미지 삭제 완료: {}", s3Key);
+                    log.info("검증 실패한 이미지 삭제 완료: s3Key={}, clientIp={}", s3Key, clientIp);
                 } catch (Exception ex) {
-                    log.error("이미지 삭제 실패: {}", s3Key, ex);
+                    log.error("이미지 삭제 실패: s3Key={}, clientIp={}, deleteError={}", s3Key, clientIp, ex.getMessage(), ex);
                 }
                 
                 return ResponseEntity.ok(CommonResponse.success(Map.of(
@@ -167,7 +186,8 @@ public class FileController {
                 )));
             }
         } catch (Exception e) {
-            log.error("URL 기반 이미지 검열 오류", e);
+            log.error("URL 기반 이미지 검열 오류: s3Key={}, imageUrl={}, clientIp={}, error={}", 
+                    s3Key, imageUrl, clientIp, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
                 "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
             ));
