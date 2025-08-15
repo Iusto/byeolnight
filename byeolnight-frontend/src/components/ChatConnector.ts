@@ -98,14 +98,33 @@ class ChatConnector {
   }
 
   sendMessage(message: { roomId: string; sender: string; message: string }) {
-    if (!this.client?.connected) {
+    console.log('ChatConnector.sendMessage 호출:', {
+      connected: this.client?.connected,
+      isConnected: this.isConnected,
+      message
+    });
+    
+    if (!this.client) {
+      console.error('STOMP 클라이언트가 없습니다.');
+      throw new Error('STOMP 클라이언트가 초기화되지 않았습니다.');
+    }
+    
+    if (!this.client.connected) {
+      console.error('WebSocket이 연결되어 있지 않습니다.');
       throw new Error('WebSocket이 연결되어 있지 않습니다.');
     }
 
-    this.client.publish({
-      destination: '/app/chat.send',
-      body: JSON.stringify(message)
-    });
+    try {
+      console.log('메시지 전송 시도:', message);
+      this.client.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify(message)
+      });
+      console.log('메시지 전송 성공');
+    } catch (error) {
+      console.error('메시지 전송 실패:', error);
+      throw error;
+    }
   }
 
   disconnect() {

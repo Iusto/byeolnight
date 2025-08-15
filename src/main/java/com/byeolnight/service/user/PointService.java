@@ -175,7 +175,8 @@ public class PointService {
      */
     @Transactional
     public void applyPenalty(User user, String reason, String referenceId) {
-        awardPoints(user, PointHistory.PointType.PENALTY, -10, "규정 위반 페널티: " + reason, referenceId);
+        // 페널티는 포인트 부족 시에도 적용 (0점까지만 차감)
+        awardPointsWithPenalty(user, PointHistory.PointType.PENALTY, -10, "규정 위반 페널티: " + reason, referenceId);
         log.info("사용자 {}에게 규정 위반 페널티 -10점 적용", user.getNickname());
     }
 
@@ -323,6 +324,50 @@ public class PointService {
         log.info("사용자 {}의 아이콘 구매 기록 완료 - 아이콘: {}, 가격: {}", user.getNickname(), iconName, price);
     }
 
+    /**
+     * 페널티 포인트 지급 (포인트 부족 시에도 적용)
+     */
+    @Transactional
+    private void awardPointsWithPenalty(User user, PointHistory.PointType type, int amount, String description, String referenceId) {
+        String lockKey = "points:" + user.getId();
+        
+        distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
+            log.info("페널티 포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
+                    user.getNickname(), type, amount, description);
+            
+            try {
+                // 사용자 엔티티 새로고침
+                User managedUser = userRepository.findById(user.getId())
+                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                
+                // 포인트 이력 저장
+                PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
+                pointHistoryRepository.save(history);
+                log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
+
+                // 페널티 적용 (포인트 부족 시 0으로 설정)
+                int beforePoints = managedUser.getPoints();
+                if (amount < 0) {
+                    int penaltyAmount = -amount;
+                    if (managedUser.getPoints() >= penaltyAmount) {
+                        managedUser.decreasePoints(penaltyAmount);
+                    } else {
+                        // 포인트가 부족한 경우 0으로 설정
+                        managedUser.increasePoints(-managedUser.getPoints()); // 현재 포인트만큼 차감하여 0으로 만듦
+                    }
+                } else {
+                    managedUser.increasePoints(amount);
+                }
+                userRepository.save(managedUser);
+                log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
+                
+            } catch (Exception e) {
+                log.error("페널티 포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);
+                throw e;
+            }
+        });
+    }
+    
     /**
      * 포인트 지급 공통 메서드 (분산락 적용)
      */

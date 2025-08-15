@@ -299,19 +299,19 @@ export default function PostList() {
     
     return (
       <>
-        {/* 인기 게시글 - 2열 카드형 레이아웃 */}
+        {/* 인기 게시글 */}
         {sort === 'recent' && hotPosts.length > 0 && (
           <>
             <h3 className="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4 text-orange-400 flex items-center gap-2">
               <span className="text-xl sm:text-2xl">🔥</span> {t('home.hot_posts')}
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
-              {hotPosts.map((post) => renderHotPostCard(post))}
+            <div className="space-y-3 mb-6 sm:mb-8">
+              {hotPosts.map((post) => renderPostItem(post, true))}
             </div>
           </>
         )}
 
-        {/* 일반 게시글 - 카드형 레이아웃 */}
+        {/* 일반 게시글 */}
         <h3 className="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4 text-white flex items-center gap-2">
           <span className="text-xl sm:text-2xl">📄</span>
           {sort === 'popular' ? t('home.posts_popular') : t('home.normal_posts')}
@@ -322,8 +322,8 @@ export default function PostList() {
             {normalPosts.map((post) => renderImagePostCard(post))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {normalPosts.map((post) => renderPostCard(post))}
+          <div className="space-y-3">
+            {normalPosts.map((post) => renderPostItem(post, false))}
           </div>
         )}
 
@@ -542,18 +542,18 @@ export default function PostList() {
     );
   };
 
-  // 기존 렌더링 함수 (호환성 유지)
+  // 게시글 아이템 렌더링 (리스트 형식)
   const renderPostItem = (post: Post, isHot: boolean = false) => {
     const postClasses = post.blinded 
       ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
       : isHot
-        ? 'from-[#1f2336]/90 to-[#252842]/90 border border-orange-500/30 hover:shadow-orange-500/50'
+        ? 'bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 hover:shadow-orange-500/25'
         : 'bg-[#1f2336]/80 border border-gray-600/50 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg';
     
     return (
-      <li
+      <div
         key={post.id}
-        className={`${isHot ? 'bg-gradient-to-br' : ''} rounded-${isHot ? 'xl' : 'lg'} p-${isHot ? '6' : '4'} transition-all duration-${isHot ? '300' : '200'} transform ${isHot ? 'hover:scale-[1.02]' : ''} ${postClasses}`}
+        className={`rounded-lg p-4 transition-all duration-200 transform hover:scale-[1.01] ${postClasses}`}
       >
         <div className="flex items-start gap-3">
           {isAdmin && (
@@ -561,22 +561,24 @@ export default function PostList() {
               type="checkbox"
               checked={selectedPosts.includes(post.id)}
               onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-              className={`w-4 h-4 ${isHot ? 'mb-3' : 'mt-1'}`}
+              className="w-4 h-4 mt-1 flex-shrink-0"
             />
           )}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Link to={`/posts/${post.id}`} className="block">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className={`${isHot ? 'text-lg' : 'text-base'} font-semibold text-white flex-1 mr-4 flex items-center gap-2`}>
-                  {isHot && <span className="text-orange-400">🔥</span>}
-                  {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs mr-2">[{post.dDay}]</span>}
-                  {post.blinded ? (
-                    post.blindType === 'ADMIN_BLIND' 
-                      ? '관리자가 직접 블라인드 처리한 게시글입니다'
-                      : '다수의 신고로 블라인드 처리된 게시글입니다'
-                  ) : post.title}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
+                <h4 className="text-base sm:text-lg font-semibold text-white flex-1 flex items-center gap-2 line-clamp-2">
+                  {isHot && <span className="text-orange-400 flex-shrink-0">🔥</span>}
+                  {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs flex-shrink-0">[{post.dDay}]</span>}
+                  <span className="break-words">
+                    {post.blinded ? (
+                      post.blindType === 'ADMIN_BLIND' 
+                        ? '관리자가 직접 블라인드 처리한 게시글입니다'
+                        : '다수의 신고로 블라인드 처리된 게시글입니다'
+                    ) : post.title}
+                  </span>
                   {post.blinded && (
-                    <span className={`text-xs ml-2 px-2 py-1 rounded ${
+                    <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${
                       post.blindType === 'ADMIN_BLIND' 
                         ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
                         : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
@@ -585,26 +587,32 @@ export default function PostList() {
                     </span>
                   )}
                 </h4>
-                {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
-                <div className="flex gap-3 text-sm text-gray-400 flex-shrink-0">
+                <div className="flex items-center gap-3 text-sm text-gray-400 flex-shrink-0">
+                  {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
                   <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
                   <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
                 </div>
               </div>
-              {isHot && <p className="text-sm text-gray-300 mb-4 line-clamp-2 leading-relaxed">{post.content}</p>}
-              <div className="flex justify-between items-center text-sm text-gray-400">
-                <span className="flex items-center gap-1">
+              {isHot && (
+                <p className="text-sm text-gray-300 mb-3 line-clamp-2 leading-relaxed">
+                  {post.blinded ? '내용을 볼 수 없습니다.' : post.content}
+                </p>
+              )}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-gray-400">
+                <span className="flex items-center gap-2">
                   <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
                     {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
                   </span>
-                  {post.blinded ? '***' : post.writer}
+                  <span className="truncate">{post.blinded ? '***' : post.writer}</span>
                 </span>
-                <span className="flex items-center gap-1">📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}</span>
+                <span className="flex items-center gap-1 text-xs sm:text-sm">
+                  📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}
+                </span>
               </div>
             </Link>
           </div>
         </div>
-      </li>
+      </div>
     );
   };
   
@@ -843,86 +851,76 @@ export default function PostList() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-4">
           <Link to="/posts?category=NEWS&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 sm:p-4 bg-gradient-to-br from-blue-600/70 to-cyan-600/70 hover:from-blue-600/90 hover:to-cyan-600/90 active:from-blue-700/90 active:to-cyan-700/90 rounded-xl border border-blue-500/50 hover:border-blue-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-blue-500/30 overflow-hidden min-h-[100px] sm:min-h-[120px] flex flex-col justify-center touch-target">
-              <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
-                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold shadow-md">🤖</span>
+            <div className="relative p-3 bg-gradient-to-br from-blue-600/70 to-cyan-600/70 hover:from-blue-600/90 hover:to-cyan-600/90 active:from-blue-700/90 active:to-cyan-700/90 rounded-xl border border-blue-500/50 hover:border-blue-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-blue-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="absolute top-1 right-1">
+                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-full flex items-center justify-center mb-2 sm:mb-3">
-                <div className="text-xl sm:text-2xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
               </div>
-              <div className="text-sm sm:text-base font-bold text-blue-100 mb-1">{t('home.space_news')}</div>
+              <div className="text-sm font-bold text-blue-100 mb-1">{t('home.space_news')}</div>
               <div className="text-xs text-blue-300 bg-blue-500/20 rounded-full py-1 px-2 inline-block">{t('home.news_auto')}</div>
             </div>
           </Link>
           <Link to="/posts?category=DISCUSSION&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 sm:p-4 bg-gradient-to-br from-green-600/70 to-emerald-600/70 hover:from-green-600/90 hover:to-emerald-600/90 active:from-green-700/90 active:to-emerald-700/90 rounded-xl border border-green-500/50 hover:border-green-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-green-500/30 overflow-hidden min-h-[100px] sm:min-h-[120px] flex flex-col justify-center touch-target">
-              <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
-                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold shadow-md">🤖</span>
+            <div className="relative p-3 bg-gradient-to-br from-green-600/70 to-emerald-600/70 hover:from-green-600/90 hover:to-emerald-600/90 active:from-green-700/90 active:to-emerald-700/90 rounded-xl border border-green-500/50 hover:border-green-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-green-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="absolute top-1 right-1">
+                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-full flex items-center justify-center mb-2 sm:mb-3">
-                <div className="text-xl sm:text-2xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
               </div>
-              <div className="text-sm sm:text-base font-bold text-green-100 mb-1">{t('home.discussion')}</div>
+              <div className="text-sm font-bold text-green-100 mb-1">{t('home.discussion')}</div>
               <div className="text-xs text-green-300 bg-green-500/20 rounded-full py-1 px-2 inline-block">{t('home.discussion_auto')}</div>
             </div>
           </Link>
-          <Link to="/posts?category=IMAGE&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden h-full">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-indigo-500/10 rounded-full"></div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-spin">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
+          <Link to="/posts?category=IMAGE&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 bg-gradient-to-br from-purple-600/70 to-indigo-600/70 hover:from-purple-600/90 hover:to-indigo-600/90 active:from-purple-700/90 active:to-indigo-700/90 rounded-xl border border-purple-500/50 hover:border-purple-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-purple-500/30 to-indigo-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
               </div>
-              <div className="text-base font-bold text-purple-100 mb-1">{t('home.star_photo')}</div>
-              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">{t('home.gallery')}</div>
+              <div className="text-sm font-bold text-purple-100 mb-1">{t('home.star_photo')}</div>
+              <div className="text-xs text-purple-300 bg-purple-500/20 rounded-full py-1 px-2 inline-block">{t('home.gallery')}</div>
             </div>
           </Link>
 
-          <Link to="/posts?category=REVIEW&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 hover:from-yellow-600/40 hover:to-orange-600/40 rounded-2xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25 overflow-hidden h-full">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-yellow-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-orange-500/10 rounded-full"></div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
+          <Link to="/posts?category=REVIEW&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 bg-gradient-to-br from-yellow-600/70 to-orange-600/70 hover:from-yellow-600/90 hover:to-orange-600/90 active:from-yellow-700/90 active:to-orange-700/90 rounded-xl border border-yellow-500/50 hover:border-yellow-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-yellow-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-yellow-500/30 to-orange-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
               </div>
-              <div className="text-base font-bold text-yellow-100 mb-1">{t('home.review')}</div>
-              <div className="text-xs text-yellow-300 bg-yellow-500/10 rounded-full py-1 px-3 inline-block">{t('home.review_share')}</div>
+              <div className="text-sm font-bold text-yellow-100 mb-1">{t('home.review')}</div>
+              <div className="text-xs text-yellow-300 bg-yellow-500/20 rounded-full py-1 px-2 inline-block">{t('home.review_share')}</div>
             </div>
           </Link>
-          <Link to="/posts?category=FREE&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-pink-600/20 to-rose-600/20 hover:from-pink-600/40 hover:to-rose-600/40 rounded-2xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-pink-500/25 overflow-hidden h-full">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-pink-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-rose-500/10 rounded-full"></div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-bounce">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
+          <Link to="/posts?category=FREE&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 bg-gradient-to-br from-pink-600/70 to-rose-600/70 hover:from-pink-600/90 hover:to-rose-600/90 active:from-pink-700/90 active:to-rose-700/90 rounded-xl border border-pink-500/50 hover:border-pink-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-pink-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-pink-500/30 to-rose-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
               </div>
-              <div className="text-base font-bold text-pink-100 mb-1">{t('home.free')}</div>
-              <div className="text-xs text-pink-300 bg-pink-500/10 rounded-full py-1 px-3 inline-block">{t('home.free_chat')}</div>
+              <div className="text-sm font-bold text-pink-100 mb-1">{t('home.free')}</div>
+              <div className="text-xs text-pink-300 bg-pink-500/20 rounded-full py-1 px-2 inline-block">{t('home.free_chat')}</div>
             </div>
           </Link>
-          <Link to="/posts?category=NOTICE&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-red-600/20 to-orange-600/20 hover:from-red-600/40 hover:to-orange-600/40 rounded-2xl border border-red-500/30 hover:border-red-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-red-500/25 overflow-hidden h-full">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-red-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-orange-500/10 rounded-full"></div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-red-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
+          <Link to="/posts?category=NOTICE&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 bg-gradient-to-br from-red-600/70 to-orange-600/70 hover:from-red-600/90 hover:to-orange-600/90 active:from-red-700/90 active:to-orange-700/90 rounded-xl border border-red-500/50 hover:border-red-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-red-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-red-500/30 to-orange-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
               </div>
-              <div className="text-base font-bold text-red-100 mb-1">{t('home.notice')}</div>
-              <div className="text-xs text-red-300 bg-red-500/10 rounded-full py-1 px-3 inline-block">{t('home.important_notice')}</div>
+              <div className="text-sm font-bold text-red-100 mb-1">{t('home.notice')}</div>
+              <div className="text-xs text-red-300 bg-red-500/20 rounded-full py-1 px-2 inline-block">{t('home.important_notice')}</div>
             </div>
           </Link>
-          <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 overflow-hidden h-full">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 rounded-full"></div>
-              <div className="absolute top-2 right-2">
-                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">🤖 AI</span>
+          <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 bg-gradient-to-br from-purple-600/70 to-pink-600/70 hover:from-purple-600/90 hover:to-pink-600/90 active:from-purple-700/90 active:to-pink-700/90 rounded-xl border border-purple-500/50 hover:border-purple-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="absolute top-1 right-1">
+                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
+              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full flex items-center justify-center mb-2">
+                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
               </div>
-              <div className="text-base font-bold text-purple-100 mb-1">{t('home.star_cinema')}</div>
-              <div className="text-xs text-purple-300 bg-purple-500/10 rounded-full py-1 px-3 inline-block">{t('home.video_curation')}</div>
+              <div className="text-sm font-bold text-purple-100 mb-1">{t('home.star_cinema')}</div>
+              <div className="text-xs text-purple-300 bg-purple-500/20 rounded-full py-1 px-2 inline-block">{t('home.video_curation')}</div>
             </div>
           </Link>
         </div>
@@ -1252,11 +1250,11 @@ export default function PostList() {
                 />
               </div>
               
-              {/* 검색 버튼 - 모바일에서 전체 너비 */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {/* 검색 버튼 */}
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   type="submit"
-                  className="flex-1 sm:flex-none px-4 py-3 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 mobile-button touch-target touch-feedback"
+                  className="px-4 py-3 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 mobile-button touch-target touch-feedback"
                   aria-label="검색 실행"
                 >
                   🔍 {t('common.search')}
@@ -1267,7 +1265,7 @@ export default function PostList() {
                   <button
                     type="button"
                     onClick={handleSearchReset}
-                    className="flex-1 sm:flex-none px-4 py-3 sm:px-6 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200 mobile-button touch-target touch-feedback"
+                    className="px-4 py-3 sm:px-6 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200 mobile-button touch-target touch-feedback"
                     aria-label="검색 초기화"
                   >
                     {t('home.reset')}
@@ -1346,7 +1344,9 @@ export default function PostList() {
         </div>
 
         {/* 게시글 목록 */}
-        {renderPostList()}
+        <div className="space-y-4">
+          {renderPostList()}
+        </div>
         
         {/* 카테고리 이동 모달 */}
         {renderCategoryMoveModal()}

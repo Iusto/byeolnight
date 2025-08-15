@@ -189,11 +189,23 @@ export default function ChatSidebar() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || !user) return;
+    console.log('채팅 메시지 전송 시작:', { input: input.trim(), user: user?.nickname });
+    
+    if (!input.trim()) {
+      console.log('빈 메시지로 인해 전송 취소');
+      return;
+    }
+    
+    if (!user) {
+      console.log('로그인하지 않은 사용자로 인해 전송 취소');
+      setError('로그인이 필요합니다.');
+      return;
+    }
 
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {
       const reason = banStatus?.reason || t('home.chat.banned_status');
       setError(reason + ' ' + t('home.chat.contact_admin'));
+      console.log('밴 상태로 인해 전송 취소:', reason);
       return;
     }
 
@@ -202,25 +214,33 @@ export default function ChatSidebar() {
         roomId: 'public',
         sender: user.nickname,
         message: input,
-        connected: chatConnector.connected
+        connected: chatConnector.connected,
+        connecting: connecting
       });
       
       if (!chatConnector.connected) {
+        console.error('채팅 연결이 끊어졌습니다.');
         setError('채팅 연결이 끊어졌습니다. 재연결을 시도해주세요.');
         return;
       }
       
-      chatConnector.sendMessage({
+      const messageData = {
         roomId: 'public',
         sender: user.nickname,
-        message: input
-      });
+        message: input.trim()
+      };
+      
+      console.log('메시지 데이터:', messageData);
+      chatConnector.sendMessage(messageData);
+      
+      // 성공 시 입력창 초기화
       setInput('');
       setError('');
       console.log('채팅 메시지 전송 성공');
     } catch (error) {
       console.error('채팅 메시지 전송 실패:', error);
-      setError(t('home.chat.send_failed') + ': ' + (error as Error).message);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      setError(t('home.chat.send_failed') + ': ' + errorMessage);
     }
   };
 
