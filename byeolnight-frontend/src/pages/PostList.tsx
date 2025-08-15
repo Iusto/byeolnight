@@ -587,11 +587,11 @@ export default function PostList() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized">
       {/* 헤더 섹션 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-6xl mx-auto px-6 py-16">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
           <div className="text-center">
             <div className="inline-flex items-center gap-3 mb-4">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
@@ -600,10 +600,10 @@ export default function PostList() {
                 </span>
               </div>
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
+            <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4 mobile-text px-2">
               {getCategoryLabel(category, t)} {t('home.board')}
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-gray-300 mobile-text-secondary max-w-2xl mx-auto px-4">
               {getCategoryDescription(category, t)}
             </p>
           </div>
@@ -623,9 +623,9 @@ export default function PostList() {
           <p className="text-gray-300 text-sm mb-6">{t('home.explore_boards_desc')}</p>
           <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
-          <Link to="/posts?category=NEWS&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-blue-600/20 to-cyan-600/20 hover:from-blue-600/40 hover:to-cyan-600/40 rounded-2xl border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 overflow-hidden h-full">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-6">
+          <Link to="/posts?category=NEWS&sort=recent" className="group touch-target">
+            <div className="relative mobile-card p-4 sm:p-6 bg-gradient-to-br from-blue-600/20 to-cyan-600/20 active:from-blue-600/40 active:to-cyan-600/40 mouse:hover:from-blue-600/40 mouse:hover:to-cyan-600/40 rounded-2xl border border-blue-500/30 active:border-blue-400/50 mouse:hover:border-blue-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 shadow-lg mouse:hover:shadow-blue-500/25 overflow-hidden h-full min-h-[120px] sm:min-h-[140px] flex flex-col justify-center">
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full"></div>
               <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 rounded-full"></div>
               <div className="absolute top-2 right-2">

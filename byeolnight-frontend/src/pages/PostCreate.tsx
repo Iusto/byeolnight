@@ -490,7 +490,7 @@ export default function PostCreate() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized">
       {/* 파일 선택 입력 요소 - 화면에 보이지 않지만 React에서 관리 */}
       <input
         ref={fileInputRef}
@@ -502,12 +502,12 @@ export default function PostCreate() {
       {/* 헤더 섹션 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-4xl mx-auto px-6 py-16">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-lg">
               📝
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4 mobile-text px-2">
               {t('home.post_create')}
             </h1>
             {originTopicId && (
@@ -520,11 +520,11 @@ export default function PostCreate() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="mobile-card bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">{t('post.title')}</label>
+              <label className="block text-sm font-medium text-gray-300 mobile-text-secondary mb-2">{t('post.title')}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -533,7 +533,7 @@ export default function PostCreate() {
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={100}
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+                  className="w-full mobile-input px-4 py-3 rounded-xl bg-slate-700/50 text-white mobile-text border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 text-base"
                 />
                 <div className={`text-xs mt-1 ${title.length > 90 ? 'text-red-400' : 'text-gray-400'}`}>
                   {title.length}/100
@@ -548,7 +548,7 @@ export default function PostCreate() {
                     type="button"
                     onClick={handleImageUpload}
                     disabled={isImageValidating}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
+                    className="mobile-button touch-target flex items-center gap-2 px-4 py-3 bg-blue-600/80 active:bg-blue-600 mouse:hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg mouse:hover:shadow-blue-500/25 transform active:scale-95 mouse:hover:scale-105 disabled:transform-none"
                   >
                     {isImageValidating ? (
                       <>
@@ -770,7 +770,7 @@ export default function PostCreate() {
             <button
               type="submit"
               disabled={isImageValidating || isSubmitting}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
+              className="w-full mobile-button touch-target bg-gradient-to-r from-purple-600 to-pink-600 active:from-purple-700 active:to-pink-700 mouse:hover:from-purple-700 mouse:hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform active:scale-95 mouse:hover:scale-105 disabled:transform-none shadow-lg mouse:hover:shadow-purple-500/25"
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">

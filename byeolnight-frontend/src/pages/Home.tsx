@@ -127,18 +127,18 @@ export default function Home() {
       <div className="absolute top-10 right-10 w-32 h-32 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full blur-xl animate-pulse"></div>
       <div className="absolute bottom-10 left-10 w-24 h-24 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-lg animate-pulse" style={{animationDelay: '1s'}}></div>
       
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center relative">
-        <div className="mb-8">
+      <div className="max-w-7xl mx-auto px-4 py-12 sm:py-20 text-center relative">
+        <div className="mb-6 sm:mb-8">
           <div className="inline-block animate-float">
-            <span className="text-6xl md:text-8xl drop-shadow-2xl">🌌</span>
+            <span className="text-4xl sm:text-6xl md:text-8xl drop-shadow-2xl">🌌</span>
           </div>
         </div>
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
-          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-lg">
+        <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 animate-fade-in px-2">
+          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-lg mobile-text">
             {t('home.bigtitle')}
           </span>
         </h1>
-        <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-fade-in-delay">
+        <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mobile-text-secondary mb-6 sm:mb-8 max-w-3xl mx-auto animate-fade-in-delay px-4">
           {t('home.subtitle')}
         </p>
         <div className="inline-flex items-center gap-3 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md px-8 py-4 rounded-full border border-white/20 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105">
@@ -167,15 +167,15 @@ export default function Home() {
         </h2>
         <p className="text-gray-400 text-sm">{t('home.explore_subtitle')}</p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
         {BOARD_CONFIGS.map((board, index) => (
           <Link 
             key={board.key} 
             to={board.path || `/posts?category=${board.key}&sort=recent`} 
-            className="group"
+            className="group touch-target"
           >
             <div 
-              className={`relative p-4 bg-gradient-to-br from-${board.color}-600/20 to-${board.color}-600/20 hover:from-${board.color}-600/40 hover:to-${board.color}-600/40 rounded-xl border border-${board.color}-500/30 hover:border-${board.color}-400/50 transition-all duration-300 text-center transform hover:scale-105 hover:-translate-y-1 shadow-lg hover:shadow-${board.color}-500/25 backdrop-blur-sm`}
+              className={`relative mobile-card p-3 sm:p-4 bg-gradient-to-br from-${board.color}-600/20 to-${board.color}-600/20 active:from-${board.color}-600/40 active:to-${board.color}-600/40 mouse:hover:from-${board.color}-600/40 mouse:hover:to-${board.color}-600/40 rounded-xl border border-${board.color}-500/30 active:border-${board.color}-400/50 mouse:hover:border-${board.color}-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 mouse:hover:-translate-y-1 shadow-lg mouse:hover:shadow-${board.color}-500/25 backdrop-blur-sm min-h-[80px] sm:min-h-[100px] flex flex-col justify-center`}
               style={{animationDelay: `${index * 0.1}s`}}
             >
               {board.hasAI && (
@@ -293,10 +293,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
+    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white relative overflow-hidden mobile-optimized">
       {/* 우주 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-900/40 to-slate-900"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-900/40 to-slate-900 sm:from-purple-900/20 sm:via-slate-900/40 sm:to-slate-900"></div>
         {/* 별 효과 */}
         <div className="absolute inset-0">
           {[...Array(50)].map((_, i) => (
