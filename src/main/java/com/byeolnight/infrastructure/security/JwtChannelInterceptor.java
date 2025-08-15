@@ -38,8 +38,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
             }
             
-            // HttpOnly 쿠키에서 토큰 추출
-            String token = extractTokenFromCookie(accessor);
+            // Authorization 헤더 또는 HttpOnly 쿠키에서 토큰 추출
+            String token = extractTokenFromHeader(accessor);
+            if (token == null) {
+                token = extractTokenFromCookie(accessor);
+            }
+            
             System.out.println("WebSocket 연결 - 토큰: " + (token != null ? "존재" : "없음"));
             
             if (token != null) {
@@ -52,16 +56,22 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                         System.out.println("WebSocket 토큰 검증 실패: 유효하지 않은 토큰");
                     }
                 } catch (Exception e) {
-                    // 토큰 검증 실패 시 로그만 출력하고 연결은 허용
                     System.out.println("WebSocket 토큰 검증 실패: " + e.getMessage());
                 }
             } else {
                 System.out.println("WebSocket 연결 - 토큰 없음, 비로그인 사용자로 연결");
             }
-            // 토큰이 없거나 유효하지 않아도 비로그인 사용자로 연결 허용
         }
 
         return message;
+    }
+    
+    private String extractTokenFromHeader(StompHeaderAccessor accessor) {
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
     
     private String extractTokenFromCookie(StompHeaderAccessor accessor) {

@@ -26,17 +26,19 @@ class ChatConnector {
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    // SockJS에 withCredentials 옵션 설정
-    const sockJS = new SockJS(wsUrl, null, {
-      transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-      withCredentials: true
-    });
+    // 쿠키를 수동으로 추출하여 헤더로 전송
+    const token = this.getCookieValue('accessToken');
+    const connectHeaders: any = {};
+    if (token) {
+      connectHeaders['Authorization'] = `Bearer ${token}`;
+    }
     
     this.client = new Client({
-      webSocketFactory: () => sockJS,
+      webSocketFactory: () => new SockJS(wsUrl),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
+      connectHeaders,
       onConnect: () => this.handleConnect(userNickname),
       onStompError: () => this.handleError(),
       onWebSocketError: () => this.handleError(),
@@ -154,6 +156,15 @@ class ChatConnector {
     if (this.callbacks) {
       this.connect(this.callbacks, this.userNickname);
     }
+  }
+
+  private getCookieValue(name: string): string | null {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || null;
+    }
+    return null;
   }
 }
 
