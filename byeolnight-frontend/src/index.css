@@ -301,16 +301,28 @@ svg {
   }
   
   .mobile-card {
-    background: rgba(51, 65, 85, 0.9) !important;
-    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    background: rgba(71, 85, 105, 0.8) !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
   }
   
   .mobile-text {
-    color: #f1f5f9 !important;
+    color: #f8fafc !important;
   }
   
   .mobile-text-secondary {
-    color: #cbd5e1 !important;
+    color: #e2e8f0 !important;
+  }
+  
+  /* 모바일 섹션 배경 강화 */
+  .mobile-section {
+    background: rgba(71, 85, 105, 0.7) !important;
+    border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  }
+  
+  /* 모바일 게시글 카드 배경 */
+  .mobile-post-card {
+    background: rgba(100, 116, 139, 0.6) !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
   }
 }
 

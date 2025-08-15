@@ -18,22 +18,22 @@ export default function Navbar() {
           {/* 로고 */}
           <Link 
             to="/" 
-            className="flex items-center gap-3 text-xl sm:text-2xl font-bold text-white hover:text-purple-300 transition-all duration-300 group"
+            className="flex items-center gap-2 text-base sm:text-xl md:text-2xl font-bold text-white hover:text-purple-300 transition-all duration-300 group"
           >
             <div className="relative">
-              <span className="text-2xl sm:text-3xl group-hover:animate-pulse">🌌</span>
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
+              <span className="text-xl sm:text-2xl md:text-3xl group-hover:animate-pulse">🌌</span>
+              <div className="absolute -top-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-400 rounded-full animate-ping"></div>
             </div>
-            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent hidden sm:block">
+            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent hidden sm:block whitespace-nowrap">
               {t('nav.logo_full') || '별 헤는 밤'}
             </span>
-            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent sm:hidden">
-              {t('nav.logo_short') || '별헤는밤'}
+            <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent sm:hidden text-sm whitespace-nowrap">
+              별헤는밤
             </span>
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             <Link 
               to="/posts" 
               className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
@@ -143,7 +143,7 @@ export default function Navbar() {
                 {/* 모바일 메뉴 버튼 */}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="lg:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200"
+                  className="md:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200 mobile-button touch-target"
                 >
                   <span className="text-lg">{isMobileMenuOpen ? '✕' : '☰'}</span>
                 </button>
@@ -153,13 +153,13 @@ export default function Navbar() {
                 <LanguageSwitcher />
                 <Link 
                   to="/login" 
-                  className="px-4 py-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400 font-medium text-sm"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400 font-medium text-xs sm:text-sm whitespace-nowrap"
                 >
                   {t('nav.login')}
                 </Link>
                 <Link 
                   to="/signup" 
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-sm"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-xs sm:text-sm whitespace-nowrap"
                 >
                   {t('nav.signup')}
                 </Link>
@@ -167,7 +167,7 @@ export default function Navbar() {
                 {/* 모바일 메뉴 버튼 (비로그인) */}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="lg:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200"
+                  className="md:hidden p-2 rounded-full bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 transition-all duration-200 mobile-button touch-target"
                 >
                   <span className="text-lg">{isMobileMenuOpen ? '✕' : '☰'}</span>
                 </button>
@@ -178,7 +178,7 @@ export default function Navbar() {
 
         {/* 모바일 메뉴 */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-purple-500/20 py-4">
+          <div className="md:hidden border-t border-purple-500/20 py-4">
             <div className="grid grid-cols-2 gap-3">
               <Link 
                 to="/posts"

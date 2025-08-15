@@ -623,9 +623,9 @@ export default function PostList() {
           <p className="text-gray-300 text-sm mb-6">{t('home.explore_boards_desc')}</p>
           <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4">
           <Link to="/posts?category=NEWS&sort=recent" className="group touch-target">
-            <div className="relative mobile-card p-4 sm:p-6 bg-gradient-to-br from-blue-600/20 to-cyan-600/20 active:from-blue-600/40 active:to-cyan-600/40 mouse:hover:from-blue-600/40 mouse:hover:to-cyan-600/40 rounded-2xl border border-blue-500/30 active:border-blue-400/50 mouse:hover:border-blue-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 shadow-lg mouse:hover:shadow-blue-500/25 overflow-hidden h-full min-h-[120px] sm:min-h-[140px] flex flex-col justify-center">
+            <div className="relative mobile-card p-2 sm:p-4 bg-gradient-to-br from-blue-600/30 to-cyan-600/30 active:from-blue-600/50 active:to-cyan-600/50 mouse:hover:from-blue-600/40 mouse:hover:to-cyan-600/40 rounded-lg sm:rounded-2xl border border-blue-500/40 active:border-blue-400/60 mouse:hover:border-blue-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 shadow-lg mouse:hover:shadow-blue-500/25 overflow-hidden h-full min-h-[80px] sm:min-h-[120px] flex flex-col justify-center">
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full"></div>
               <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 rounded-full"></div>
               <div className="absolute top-2 right-2">
