@@ -275,46 +275,46 @@ export default function PostList() {
     
     return (
       <>
-        {/* 인기 게시글 */}
+        {/* 인기 게시글 - 모바일 최적화 */}
         {sort === 'recent' && hotPosts.length > 0 && (
           <>
-            <h3 className="text-2xl font-semibold mb-4 text-orange-400">🔥 {t('home.hot_posts')}</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-orange-400 mobile-title">🔥 {t('home.hot_posts')}</h3>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-6 sm:mb-8 mobile-grid-2">
               {hotPosts.map((post) => renderPostItem(post, true))}
             </ul>
           </>
         )}
 
-        {/* 일반 게시글 */}
-        <h3 className="text-2xl font-semibold mb-4 text-white">
+        {/* 일반 게시글 - 모바일 최적화 */}
+        <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-white mobile-title">
           {sort === 'popular' ? `📄 ${t('home.posts_popular')}` : `📄 ${t('home.normal_posts')}`}
         </h3>
         
         {category === 'IMAGE' ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 mobile-grid-2">
             {normalPosts.map((post) => renderImagePostItem(post))}
           </div>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-2 sm:space-y-4">
             {normalPosts.map((post) => renderPostItem(post))}
           </ul>
         )}
 
-        {/* 페이지네이션 */}
-        <div className="mt-10 flex justify-center gap-2">
+        {/* 페이지네이션 - 모바일 최적화 */}
+        <div className="mt-8 sm:mt-10 flex justify-center gap-2 sm:gap-2">
           {page > 0 && (
             <button
               onClick={() => handlePageChange(page - 1)}
-              className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
+              className="px-4 py-2 sm:px-3 sm:py-1 bg-gray-600 rounded-lg hover:bg-gray-500 mobile-button touch-target touch-feedback"
             >
               {t('home.previous')}
             </button>
           )}
-          <span className="px-3 py-1 bg-gray-800 rounded text-white">{t('home.page')} {page + 1}</span>
+          <span className="px-4 py-2 sm:px-3 sm:py-1 bg-gray-800 rounded-lg text-white mobile-text">{t('home.page')} {page + 1}</span>
           {posts.length >= 30 && (
             <button
               onClick={() => handlePageChange(page + 1)}
-              className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
+              className="px-4 py-2 sm:px-3 sm:py-1 bg-gray-600 rounded-lg hover:bg-gray-500 mobile-button touch-target touch-feedback"
             >
               {t('home.next')}
             </button>
@@ -587,7 +587,7 @@ export default function PostList() {
   };
   
   return (
-    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized">
+    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized mobile-scroll">
       {/* 헤더 섹션 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
@@ -610,7 +610,7 @@ export default function PostList() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 mobile-optimized">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-8 mobile-optimized">
 
         {/* 카테고리 선택 */}
       <div className="text-center mb-10">
@@ -1008,38 +1008,41 @@ export default function PostList() {
         
 
 
-        {/* 검색 기능 */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-6 border border-purple-500/20 shadow-lg">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-              {/* 검색 유형 선택 */}
-              <select
-                value={searchTypeInput}
-                onChange={(e) => setSearchTypeInput(e.target.value)}
-                className="bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                aria-label="검색 유형 선택"
-              >
-                <option value="title">{t('post.title')}</option>
-                <option value="content">{t('post.content')}</option>
-                <option value="titleAndContent">{t('home.title_content')}</option>
-                <option value="writer">{t('home.writer')}</option>
-              </select>
+        {/* 검색 기능 - 모바일 최적화 */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-purple-500/20 shadow-lg mobile-card-compact">
+            <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:gap-4">
+              {/* 모바일에서 검색 유형과 입력창을 세로로 배치 */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                {/* 검색 유형 선택 */}
+                <select
+                  value={searchTypeInput}
+                  onChange={(e) => setSearchTypeInput(e.target.value)}
+                  className="bg-slate-700/50 text-white rounded-xl px-3 py-3 sm:px-4 sm:py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 mobile-input touch-target"
+                  aria-label="검색 유형 선택"
+                >
+                  <option value="title">{t('post.title')}</option>
+                  <option value="content">{t('post.content')}</option>
+                  <option value="titleAndContent">{t('home.title_content')}</option>
+                  <option value="writer">{t('home.writer')}</option>
+                </select>
+                
+                {/* 검색어 입력 */}
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={t('home.search_placeholder')}
+                  className="flex-1 bg-slate-700/50 text-white rounded-xl px-3 py-3 sm:px-4 sm:py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 mobile-input touch-target"
+                  aria-label="검색어 입력"
+                />
+              </div>
               
-              {/* 검색어 입력 */}
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={t('home.search_placeholder')}
-                className="flex-1 bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
-                aria-label="검색어 입력"
-              />
-              
-              {/* 검색 버튼 */}
-              <div className="flex gap-3">
+              {/* 검색 버튼 - 모바일에서 전체 너비 */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                  className="flex-1 sm:flex-none px-4 py-3 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 mobile-button touch-target touch-feedback"
                   aria-label="검색 실행"
                 >
                   🔍 {t('common.search')}
@@ -1050,7 +1053,7 @@ export default function PostList() {
                   <button
                     type="button"
                     onClick={handleSearchReset}
-                    className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200"
+                    className="flex-1 sm:flex-none px-4 py-3 sm:px-6 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200 mobile-button touch-target touch-feedback"
                     aria-label="검색 초기화"
                   >
                     {t('home.reset')}
@@ -1076,37 +1079,39 @@ export default function PostList() {
           </div>
         </div>
 
-        {/* 정렬 및 글쓰기 */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
+        {/* 정렬 및 글쓰기 - 모바일 최적화 */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             {/* 정렬 옵션 */}
             <div className="flex items-center gap-2">
-              <label className="text-base text-gray-300">{t('home.sort')}:</label>
+              <label className="text-sm sm:text-base text-gray-300 mobile-text">{t('home.sort')}:</label>
               <select
                 value={sort}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-[#2a2e45] text-sm rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="bg-[#2a2e45] text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 mobile-input touch-target"
               >
                 <option value="recent">{t('home.recent')}</option>
                 <option value="popular">{t('home.popular')}</option>
               </select>
             </div>
             
-            {/* 관리자 기능: 게시글 선택 및 카테고리 이동 */}
+            {/* 관리자 기능: 게시글 선택 및 카테고리 이동 - 모바일 최적화 */}
             {isAdmin && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="selectAll"
-                  checked={selectedPosts.length > 0 && selectedPosts.length === [...hotPosts, ...normalPosts].length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="selectAll" className="text-sm text-gray-300">{t('home.select_all')}</label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="selectAll"
+                    checked={selectedPosts.length > 0 && selectedPosts.length === [...hotPosts, ...normalPosts].length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 touch-target"
+                  />
+                  <label htmlFor="selectAll" className="text-sm text-gray-300 mobile-text">{t('home.select_all')}</label>
+                </div>
                 {selectedPosts.length > 0 && (
                   <button
                     onClick={() => setShowMoveModal(true)}
-                    className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors mobile-button touch-target touch-feedback"
                   >
                     {t('home.move_category')} ({selectedPosts.length})
                   </button>
@@ -1115,11 +1120,11 @@ export default function PostList() {
             )}
           </div>
           
-          {/* 글쓰기 버튼 */}
+          {/* 글쓰기 버튼 - 모바일 최적화 */}
           {canWrite && (
             <Link
               to={`/posts/write?fixedCategory=${category}`}
-              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="w-full sm:w-auto px-4 py-3 sm:px-6 sm:py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center mobile-button touch-target touch-feedback"
             >
               ✍️ {getCategoryLabel(category, t)} {t('home.write_post')}
             </Link>
