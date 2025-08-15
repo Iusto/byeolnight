@@ -108,6 +108,10 @@ export default function PostList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
+  
+  // 스크롤 헤더 숨김 상태
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // URL 파라미터 추출
   const category = searchParams.get('category') || 'NEWS';
@@ -131,6 +135,26 @@ export default function PostList() {
   // 권한 관련 변수
   const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
   const isAdmin = user?.role === 'ADMIN';
+
+  // 스크롤 헤더 숨김 효과
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 100) {
+        setIsHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 200) {
+        setIsHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        setIsHeaderVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   // 게시글 데이터 가져오기
   useEffect(() => {
@@ -275,48 +299,53 @@ export default function PostList() {
     
     return (
       <>
-        {/* 인기 게시글 - 모바일 최적화 */}
+        {/* 인기 게시글 - 2열 카드형 레이아웃 */}
         {sort === 'recent' && hotPosts.length > 0 && (
           <>
-            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-orange-400 mobile-title">🔥 {t('home.hot_posts')}</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-6 sm:mb-8 mobile-grid-2">
-              {hotPosts.map((post) => renderPostItem(post, true))}
-            </ul>
+            <h3 className="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4 text-orange-400 flex items-center gap-2">
+              <span className="text-xl sm:text-2xl">🔥</span> {t('home.hot_posts')}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+              {hotPosts.map((post) => renderHotPostCard(post))}
+            </div>
           </>
         )}
 
-        {/* 일반 게시글 - 모바일 최적화 */}
-        <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-white mobile-title">
-          {sort === 'popular' ? `📄 ${t('home.posts_popular')}` : `📄 ${t('home.normal_posts')}`}
+        {/* 일반 게시글 - 카드형 레이아웃 */}
+        <h3 className="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4 text-white flex items-center gap-2">
+          <span className="text-xl sm:text-2xl">📄</span>
+          {sort === 'popular' ? t('home.posts_popular') : t('home.normal_posts')}
         </h3>
         
         {category === 'IMAGE' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 mobile-grid-2">
-            {normalPosts.map((post) => renderImagePostItem(post))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+            {normalPosts.map((post) => renderImagePostCard(post))}
           </div>
         ) : (
-          <ul className="space-y-2 sm:space-y-4">
-            {normalPosts.map((post) => renderPostItem(post))}
-          </ul>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {normalPosts.map((post) => renderPostCard(post))}
+          </div>
         )}
 
-        {/* 페이지네이션 - 모바일 최적화 */}
-        <div className="mt-8 sm:mt-10 flex justify-center gap-2 sm:gap-2">
+        {/* 페이지네이션 - 터치 최적화 */}
+        <div className="mt-6 sm:mt-8 flex justify-center items-center gap-3">
           {page > 0 && (
             <button
               onClick={() => handlePageChange(page - 1)}
-              className="px-4 py-2 sm:px-3 sm:py-1 bg-gray-600 rounded-lg hover:bg-gray-500 mobile-button touch-target touch-feedback"
+              className="flex items-center justify-center w-12 h-12 bg-purple-600/80 hover:bg-purple-600 active:bg-purple-700 rounded-full text-white font-medium transition-all duration-200 shadow-lg hover:shadow-purple-500/25 transform hover:scale-105 active:scale-95 touch-manipulation"
             >
-              {t('home.previous')}
+              ←
             </button>
           )}
-          <span className="px-4 py-2 sm:px-3 sm:py-1 bg-gray-800 rounded-lg text-white mobile-text">{t('home.page')} {page + 1}</span>
+          <span className="px-4 py-2 bg-slate-800/80 rounded-lg text-white font-medium border border-purple-500/30">
+            {page + 1}
+          </span>
           {posts.length >= 30 && (
             <button
               onClick={() => handlePageChange(page + 1)}
-              className="px-4 py-2 sm:px-3 sm:py-1 bg-gray-600 rounded-lg hover:bg-gray-500 mobile-button touch-target touch-feedback"
+              className="flex items-center justify-center w-12 h-12 bg-purple-600/80 hover:bg-purple-600 active:bg-purple-700 rounded-full text-white font-medium transition-all duration-200 shadow-lg hover:shadow-purple-500/25 transform hover:scale-105 active:scale-95 touch-manipulation"
             >
-              {t('home.next')}
+              →
             </button>
           )}
         </div>
@@ -324,7 +353,196 @@ export default function PostList() {
     );
   };
   
-  // 일반 게시글 아이템 렌더링
+  // 인기 게시글 카드 렌더링
+  const renderHotPostCard = (post: Post) => {
+    return (
+      <div key={post.id} className="bg-gradient-to-br from-orange-600/20 to-red-600/20 rounded-xl p-4 border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/25 transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
+        <Link to={`/posts/${post.id}`} className="block">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500/30 to-red-500/30 rounded-full flex items-center justify-center">
+              <span className="text-lg">🔥</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
+                {post.blinded ? (
+                  post.blindType === 'ADMIN_BLIND' 
+                    ? '관리자 블라인드 처리됨'
+                    : '신고로 블라인드 처리됨'
+                ) : post.title}
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 leading-relaxed">
+                {post.blinded ? '내용을 볼 수 없습니다.' : post.content}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
+                {post.blinded ? '🔒' : '👤'}
+              </span>
+              <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="flex items-center gap-1">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
+              <span className="flex items-center gap-1">❤️ {post.blinded ? '*' : post.likeCount}</span>
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+
+  // 일반 게시글 카드 렌더링
+  const renderPostCard = (post: Post) => {
+    return (
+      <div key={post.id} className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
+        <Link to={`/posts/${post.id}`} className="block">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full flex items-center justify-center">
+              <span className="text-sm">{CATEGORY_ICONS[post.category] || '📝'}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
+                {post.blinded ? (
+                  post.blindType === 'ADMIN_BLIND' 
+                    ? '관리자 블라인드 처리됨'
+                    : '신고로 블라인드 처리됨'
+                ) : post.title}
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-300 line-clamp-1">
+                {post.blinded ? '내용을 볼 수 없습니다.' : post.content.substring(0, 60) + '...'}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
+                {post.blinded ? '🔒' : '👤'}
+              </span>
+              <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="flex items-center gap-1">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
+              <span className="flex items-center gap-1">❤️ {post.blinded ? '*' : post.likeCount}</span>
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+
+  // 이미지 게시글 카드 렌더링 (개선된 버전)
+  const renderImagePostCard = (post: Post) => {
+    const extractFirstImageUrl = (content: string) => {
+      if (!content) return null;
+      
+      const isPlaceholderUrl = (url: string) => {
+        return url.includes('via.placeholder') || 
+               url.includes('placeholder.com') || 
+               url.includes('placeholder') ||
+               url.includes('%EC%9A%B0%EC%A3%BC') ||
+               url.includes('text=');
+      };
+      
+      const imgRegexes = [
+        /<img[^>]+src="([^"]+)"/i,
+        /<img[^>]+src='([^']+)'/i,
+        /<img[^>]+src=([^\s>]+)/i
+      ];
+      
+      for (const regex of imgRegexes) {
+        const match = content.match(regex);
+        if (match && match[1]) {
+          let url = match[1];
+          if (url.startsWith('"') && url.endsWith('"')) {
+            url = url.substring(1, url.length - 1);
+          }
+          if (isPlaceholderUrl(url)) continue;
+          return url;
+        }
+      }
+      
+      const urlRegexes = [
+        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp))/i,
+        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)[^\s]*)/i
+      ];
+      
+      for (const regex of urlRegexes) {
+        const match = content.match(regex);
+        if (match && match[1] && !isPlaceholderUrl(match[1])) {
+          return match[1];
+        }
+      }
+      
+      const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
+      const s3Match = content.match(s3Regex);
+      if (s3Match && !isPlaceholderUrl(s3Match[0])) {
+        return s3Match[0];
+      }
+      
+      return null;
+    };
+    
+    const imgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    const hasImageFailed = failedImages.has(post.id);
+    
+    return (
+      <div key={post.id} className="bg-slate-800/50 rounded-xl overflow-hidden border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
+        <Link to={`/posts/${post.id}`} className="block">
+          <div className="relative aspect-square bg-slate-700/50">
+            {imgSrc && !hasImageFailed ? (
+              <img 
+                src={imgSrc} 
+                alt={post.title} 
+                className="w-full h-full object-cover"
+                onError={() => setFailedImages(prev => new Set(prev).add(post.id))}
+                onLoad={() => setFailedImages(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(post.id);
+                  return newSet;
+                })}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700/50 to-purple-900/30">
+                <span className="text-3xl">🌌</span>
+              </div>
+            )}
+            
+            {post.blinded && (
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                <span className="text-3xl">🔒</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-3">
+            <h4 className="text-sm font-medium text-white line-clamp-2 mb-2">
+              {post.blinded ? (
+                post.blindType === 'ADMIN_BLIND' 
+                  ? '관리자 블라인드 처리됨'
+                  : '신고로 블라인드 처리됨'
+              ) : post.title}
+            </h4>
+            
+            <div className="flex justify-between items-center text-xs text-gray-400">
+              <div className="flex items-center gap-1">
+                <span className="bg-slate-700/50 rounded px-1 py-0.5">
+                  {post.blinded ? '🔒' : '👤'}
+                </span>
+                <span className="truncate max-w-[60px]">{post.blinded ? '***' : post.writer}</span>
+              </div>
+              <div className="flex gap-2">
+                <span>💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
+                <span>❤️ {post.blinded ? '*' : post.likeCount}</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+
+  // 기존 렌더링 함수 (호환성 유지)
   const renderPostItem = (post: Post, isHot: boolean = false) => {
     const postClasses = post.blinded 
       ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
@@ -588,22 +806,22 @@ export default function PostList() {
   
   return (
     <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized mobile-scroll">
-      {/* 헤더 섹션 */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
+      {/* 헤더 섹션 - 스크롤 시 자동 숨김 */}
+      <div className={`sticky top-0 z-40 transition-transform duration-300 ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'} relative overflow-hidden bg-gradient-to-r from-purple-900/90 to-pink-900/90 backdrop-blur-md border-b border-purple-500/20`}>
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-16 mobile-header">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-8">
           <div className="text-center">
-            <div className="inline-flex items-center gap-3 mb-3 sm:mb-4">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-lg">
+            <div className="inline-flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-lg sm:text-2xl shadow-lg">
                 <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
                   {CATEGORY_ICONS[category]}
                 </span>
               </div>
             </div>
-            <h1 className="text-2xl sm:text-5xl font-bold text-white sm:bg-gradient-to-r sm:from-white sm:via-purple-200 sm:to-white sm:bg-clip-text sm:text-transparent mb-3 sm:mb-4 mobile-text px-2">
+            <h1 className="text-lg sm:text-3xl font-bold text-white mb-2 sm:mb-3">
               {getCategoryLabel(category, t)} {t('home.board')}
             </h1>
-            <p className="text-base sm:text-xl text-gray-200 mobile-text-secondary max-w-2xl mx-auto px-4">
+            <p className="text-sm sm:text-base text-gray-200 max-w-2xl mx-auto px-2 sm:px-4 hidden sm:block">
               {getCategoryDescription(category, t)}
             </p>
           </div>
@@ -612,44 +830,40 @@ export default function PostList() {
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-8 mobile-optimized">
 
-        {/* 카테고리 선택 */}
-      <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-3 flex items-center justify-center gap-2">
-            <span className="text-white text-3xl animate-pulse">🚀</span>
+        {/* 카테고리 선택 - 모바일 최적화 */}
+      <div className="text-center mb-6 sm:mb-10">
+          <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-3 flex items-center justify-center gap-2">
+            <span className="text-white text-xl sm:text-3xl animate-pulse">🚀</span>
             <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
               {t('home.explore_boards')}
             </span>
           </h2>
-          <p className="text-gray-300 text-sm mb-6">{t('home.explore_boards_desc')}</p>
-          <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
+          <p className="text-gray-300 text-xs sm:text-sm mb-4 sm:mb-6 px-4">{t('home.explore_boards_desc')}</p>
+          <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4">
-          <Link to="/posts?category=NEWS&sort=recent" className="group touch-target">
-            <div className="relative mobile-board-btn p-2 sm:p-4 bg-gradient-to-br from-blue-600/60 to-cyan-600/60 active:from-blue-600/80 active:to-cyan-600/80 mouse:hover:from-blue-600/40 mouse:hover:to-cyan-600/40 rounded-lg sm:rounded-2xl border border-blue-500/60 active:border-blue-400/80 mouse:hover:border-blue-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 shadow-lg mouse:hover:shadow-blue-500/25 overflow-hidden h-full min-h-[70px] sm:min-h-[120px] flex flex-col justify-center">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 rounded-full"></div>
-              <div className="absolute top-2 right-2">
-                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">🤖 AI</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-4">
+          <Link to="/posts?category=NEWS&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 sm:p-4 bg-gradient-to-br from-blue-600/70 to-cyan-600/70 hover:from-blue-600/90 hover:to-cyan-600/90 active:from-blue-700/90 active:to-cyan-700/90 rounded-xl border border-blue-500/50 hover:border-blue-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-blue-500/30 overflow-hidden min-h-[100px] sm:min-h-[120px] flex flex-col justify-center touch-target">
+              <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
+                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-full flex items-center justify-center mb-2 sm:mb-3">
+                <div className="text-xl sm:text-2xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
               </div>
-              <div className="text-base font-bold text-blue-100 mb-1">{t('home.space_news')}</div>
-              <div className="text-xs text-blue-300 bg-blue-500/10 rounded-full py-1 px-3 inline-block">{t('home.news_auto')}</div>
+              <div className="text-sm sm:text-base font-bold text-blue-100 mb-1">{t('home.space_news')}</div>
+              <div className="text-xs text-blue-300 bg-blue-500/20 rounded-full py-1 px-2 inline-block">{t('home.news_auto')}</div>
             </div>
           </Link>
-          <Link to="/posts?category=DISCUSSION&sort=recent" className="group">
-            <div className="relative p-6 bg-gradient-to-br from-green-600/20 to-emerald-600/20 hover:from-green-600/40 hover:to-emerald-600/40 rounded-2xl border border-green-500/30 hover:border-green-400/50 transition-all duration-300 text-center transform hover:scale-105 shadow-lg hover:shadow-green-500/25 overflow-hidden h-full">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-green-500/10 rounded-full"></div>
-              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 rounded-full"></div>
-              <div className="absolute top-2 right-2">
-                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">🤖 AI</span>
+          <Link to="/posts?category=DISCUSSION&sort=recent" className="group touch-manipulation">
+            <div className="relative p-3 sm:p-4 bg-gradient-to-br from-green-600/70 to-emerald-600/70 hover:from-green-600/90 hover:to-emerald-600/90 active:from-green-700/90 active:to-emerald-700/90 rounded-xl border border-green-500/50 hover:border-green-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-green-500/30 overflow-hidden min-h-[100px] sm:min-h-[120px] flex flex-col justify-center touch-target">
+              <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
+                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse">
-                <div className="text-3xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-full flex items-center justify-center mb-2 sm:mb-3">
+                <div className="text-xl sm:text-2xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
               </div>
-              <div className="text-base font-bold text-green-100 mb-1">{t('home.discussion')}</div>
-              <div className="text-xs text-green-300 bg-green-500/10 rounded-full py-1 px-3 inline-block">{t('home.discussion_auto')}</div>
+              <div className="text-sm sm:text-base font-bold text-green-100 mb-1">{t('home.discussion')}</div>
+              <div className="text-xs text-green-300 bg-green-500/20 rounded-full py-1 px-2 inline-block">{t('home.discussion_auto')}</div>
             </div>
           </Link>
           <Link to="/posts?category=IMAGE&sort=recent" className="group">
