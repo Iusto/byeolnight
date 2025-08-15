@@ -500,7 +500,7 @@ export default function PostEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized mobile-scroll">
       {/* 파일 선택 입력 요소 - 화면에 보이지 않지만 React에서 관리 */}
       <input
         ref={fileInputRef}
@@ -509,26 +509,26 @@ export default function PostEdit() {
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
-      {/* 헤더 섹션 */}
+      {/* 헤더 섹션 - 모바일 최적화 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-4xl mx-auto px-6 py-16">
+        <div className="relative max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-16 mobile-header">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-lg">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl mx-auto mb-3 sm:mb-6 shadow-lg">
               ✏️
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
+            <h1 className="text-xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-3 sm:mb-4 mobile-text mobile-title px-2">
               {t('home.post_edit')}
             </h1>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3 sm:py-8 mobile-optimized">
+        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-3 sm:p-8 border border-purple-500/20 shadow-2xl mobile-section mobile-card-compact">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">{t('post.title')}</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2 mobile-text">{t('post.title')}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -537,38 +537,39 @@ export default function PostEdit() {
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={100}
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+                  className="w-full px-3 py-3 sm:px-4 sm:py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 mobile-input touch-target mobile-text"
                 />
-                <div className={`text-xs mt-1 ${title.length > 90 ? 'text-red-400' : 'text-gray-400'}`}>
+                <div className={`text-xs mt-1 mobile-caption ${title.length > 90 ? 'text-red-400' : 'text-gray-400'}`}>
                   {title.length}/100
                 </div>
               </div>
             </div>
             <div>
-              <div className="flex justify-between items-center mb-3">
-                <label className="text-sm font-medium text-gray-300">{t('post.content')}</label>
-                <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2 sm:gap-0">
+                <label className="text-sm font-medium text-gray-300 mobile-text">{t('post.content')}</label>
+                <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={handleImageUpload}
                     disabled={isImageValidating}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 disabled:transform-none"
+                    className="mobile-button touch-target touch-feedback flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-blue-600/80 active:bg-blue-600 mouse:hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 shadow-lg mouse:hover:shadow-blue-500/25 transform active:scale-95 mouse:hover:scale-105 disabled:transform-none flex-1 sm:flex-none"
                   >
                     {isImageValidating ? (
                       <>
-                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        {t('home.validating')}
+                        <div className="animate-spin w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        <span className="mobile-caption">{t('home.validating')}</span>
                       </>
                     ) : (
                       <>
-                        🖼️ {t('home.add_image')}
+                        <span className="text-sm sm:text-base">🖼️</span>
+                        <span className="mobile-caption">{t('home.add_image')}</span>
                       </>
                     )}
                   </button>
                 </div>
               </div>
               <div className="rounded-xl overflow-hidden border border-slate-600/50 quill-wrapper">
-                <div className="quill-container" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+                <div className="quill-container" style={{ height: window.innerWidth <= 768 ? '350px' : '500px', display: 'flex', flexDirection: 'column' }}>
                   <TuiEditor
                     ref={editorRef}
                     value={content}
@@ -597,11 +598,11 @@ export default function PostEdit() {
                       }
                     }}
                     placeholder={t('home.content_placeholder')}
-                    height="500px"
+                    height={window.innerWidth <= 768 ? '350px' : '500px'}
                     handleImageUpload={handleImageUpload}
                   />
-                  <div className="text-right text-sm mt-1">
-                    <span className={`${contentLength > 45000 ? (contentLength > 50000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
+                  <div className="text-right text-xs sm:text-sm mt-1">
+                    <span className={`mobile-caption ${contentLength > 45000 ? (contentLength > 50000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
                       {contentLength}/50,000자
                       {contentLength > 45000 && contentLength <= 50000 && (
                         <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
@@ -613,7 +614,7 @@ export default function PostEdit() {
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-gray-400 mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
+              <div className="text-xs text-gray-400 mt-2 p-2 sm:p-3 bg-slate-800/30 rounded-lg border border-slate-700/50 mobile-caption">
                 🎨 {t('home.editor_info_1')}<br/>
                 🖼️ {t('home.editor_info_2')}<br/>
                 🛡️ {t('home.editor_info_3')}<br/>
@@ -621,56 +622,56 @@ export default function PostEdit() {
               </div>
             </div>
           
-          {/* 이미지 검열 중 알림 */}
+          {/* 이미지 검열 중 알림 - 모바일 최적화 */}
           {isImageValidating && (
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm flex items-center gap-3">
-              <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+            <div className="p-3 sm:p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm flex items-center gap-2 sm:gap-3 mobile-card-compact">
+              <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-blue-400 border-t-transparent rounded-full flex-shrink-0"></div>
               <div>
-                <div className="font-medium">🛡️ 이미지 검열 중...</div>
-                <div className="text-xs text-blue-300 mt-1">안전한 콘텐츠를 위해 이미지를 검사하고 있습니다. 잠시만 기다려주세요.</div>
+                <div className="font-medium mobile-text">🛡️ 이미지 검열 중...</div>
+                <div className="text-xs text-blue-300 mt-1 mobile-caption">안전한 콘텐츠를 위해 이미지를 검사하고 있습니다. 잠시만 기다려주세요.</div>
               </div>
             </div>
           )}
           
-          {/* 검열 결과 알림 */}
+          {/* 검열 결과 알림 - 모바일 최적화 */}
           {validationAlert && (
-            <div className={`p-4 ${validationAlert.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : validationAlert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : 'bg-green-500/10 border-green-500/20 text-green-400'} border rounded-xl text-sm flex items-center gap-3 animate-fadeIn`}>
-              <div className={`${validationAlert.type === 'error' ? 'text-red-400' : validationAlert.type === 'warning' ? 'text-yellow-400' : 'text-green-400'} text-xl`}>
+            <div className={`p-3 sm:p-4 ${validationAlert.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : validationAlert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : 'bg-green-500/10 border-green-500/20 text-green-400'} border rounded-xl text-sm flex items-start gap-2 sm:gap-3 animate-fadeIn mobile-card-compact`}>
+              <div className={`${validationAlert.type === 'error' ? 'text-red-400' : validationAlert.type === 'warning' ? 'text-yellow-400' : 'text-green-400'} text-lg sm:text-xl flex-shrink-0`}>
                 {validationAlert.type === 'error' ? '⚠️' : validationAlert.type === 'warning' ? '⚠️' : '✅'}
               </div>
-              <div>
-                <div className="font-medium">{validationAlert.message}</div>
+              <div className="flex-1">
+                <div className="font-medium mobile-text">{validationAlert.message}</div>
                 {validationAlert.type === 'error' && (
-                  <div className="text-xs mt-1">
+                  <div className="text-xs mt-1 mobile-caption">
                     이미지가 자동으로 삭제되었습니다. 다른 이미지를 사용해주세요.
                   </div>
                 )}
               </div>
               <button 
                 onClick={() => setValidationAlert(null)} 
-                className="ml-auto text-sm hover:text-white transition-colors"
+                className="text-base sm:text-lg hover:text-white transition-colors touch-target flex-shrink-0"
               >
                 ×
               </button>
             </div>
           )}
 
-          {/* 업로드된 이미지 미리보기 */}
+          {/* 업로드된 이미지 미리보기 - 모바일 최적화 */}
           {uploadedImages.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                업로드된 이미지:
-                <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
+              <h3 className="text-sm font-medium text-gray-300 flex flex-col sm:flex-row items-start sm:items-center gap-2 mobile-text">
+                <span>업로드된 이미지:</span>
+                <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30 mobile-caption">
                   ✓ 안전한 이미지만 표시됨
                 </span>
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mobile-grid-2">
                 {uploadedImages.map((image, index) => (
                   <div key={index} className="relative group">
                     <img
                       src={image.url}
                       alt={image.originalName}
-                      className="w-full h-24 object-cover rounded-lg shadow-md"
+                      className="w-full h-20 sm:h-24 object-cover rounded-lg shadow-md mobile-thumbnail"
                       onError={(e) => {
                         console.error('이미지 로드 실패:', image.url);
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo=';
@@ -679,14 +680,14 @@ export default function PostEdit() {
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity touch-target"
                     >
                       ×
                     </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg truncate">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg truncate mobile-caption">
                       {image.originalName}
                     </div>
-                    <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
+                    <div className="absolute top-1 left-1 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1 mobile-caption">
                       ✓ 안전한 이미지
                     </div>
                   </div>
@@ -695,11 +696,11 @@ export default function PostEdit() {
             </div>
           )}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">{t('home.category')}</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2 mobile-text">{t('home.category')}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-3 sm:px-4 sm:py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent mobile-input touch-target mobile-text"
               >
                 <option value="DISCUSSION">{t('home.discussion')}</option>
                 <option value="IMAGE">{t('home.star_photo')}</option>
@@ -713,7 +714,7 @@ export default function PostEdit() {
             </div>
 
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+              <div className="p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm mobile-card-compact mobile-text">
                 {error}
               </div>
             )}
@@ -721,20 +722,20 @@ export default function PostEdit() {
             <button
               type="submit"
               disabled={isImageValidating || isSubmitting}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-purple-500/25"
+              className="w-full mobile-button touch-target touch-feedback bg-gradient-to-r from-purple-600 to-pink-600 active:from-purple-700 active:to-pink-700 mouse:hover:from-purple-700 mouse:hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 transform active:scale-95 mouse:hover:scale-105 disabled:transform-none shadow-lg mouse:hover:shadow-purple-500/25"
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  수정 중...
+                  <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span className="mobile-text">수정 중...</span>
                 </div>
               ) : isImageValidating ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  {t('home.image_validating')}
+                  <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span className="mobile-text">{t('home.image_validating')}</span>
                 </div>
               ) : (
-                `✏️ 수정 완료`
+                <span className="mobile-text">✏️ 수정 완료</span>
               )}
             </button>
           </form>

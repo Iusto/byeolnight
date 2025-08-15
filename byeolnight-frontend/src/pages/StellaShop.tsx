@@ -125,48 +125,48 @@ export default function StellaShop() {
     : icons.filter(icon => icon.grade === selectedGrade);
 
   const getButtonClassName = (isSelected: boolean, color: string) => {
-    const baseClasses = 'px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg';
+    const baseClasses = 'px-3 py-2 sm:px-6 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg mobile-button touch-target touch-feedback min-h-[44px] flex items-center justify-center';
     if (isSelected) {
       return `${baseClasses} ${color} text-white shadow-xl ring-2 ring-white ring-opacity-50`;
     }
-    return `${baseClasses} bg-gray-700 bg-opacity-50 text-gray-300 hover:bg-gray-600 hover:bg-opacity-70 backdrop-blur-sm`;
+    return `${baseClasses} bg-gray-700 bg-opacity-50 text-gray-300 hover:bg-gray-600 hover:bg-opacity-70 active:bg-gray-500 backdrop-blur-sm`;
   };
 
   const getPurchaseButtonClassName = (canPurchase: boolean, isPurchasing: boolean) => {
-    const baseClasses = 'w-full py-2 px-4 rounded-lg font-medium transition-all duration-200';
+    const baseClasses = 'w-full py-3 sm:py-2 px-4 rounded-lg font-medium transition-all duration-200 mobile-button touch-target touch-feedback min-h-[44px] flex items-center justify-center';
     if (!canPurchase) {
       return `${baseClasses} bg-red-600 bg-opacity-50 text-red-300 cursor-not-allowed`;
     }
     if (isPurchasing) {
       return `${baseClasses} bg-gray-600 text-gray-400 cursor-not-allowed`;
     }
-    return `${baseClasses} bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105`;
+    return `${baseClasses} bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 active:from-purple-800 active:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-6 sm:py-12 px-3 sm:px-6 mobile-optimized mobile-scroll">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <div className="text-center mb-6 sm:mb-8 mobile-header">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mobile-title">
             {t('shop.title')}
           </h1>
-          <p className="text-gray-400 mb-4">{t('shop.subtitle')}</p>
+          <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base mobile-subtitle">{t('shop.subtitle')}</p>
           {user ? (
-            <div className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 inline-block">
-              <p className="text-yellow-400 font-bold text-lg">
+            <div className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-3 sm:p-4 inline-block mobile-card">
+              <p className="text-yellow-400 font-bold text-base sm:text-lg mobile-text">
                 {t('shop.owned_stella')} {user.points?.toLocaleString() || 0}
               </p>
             </div>
           ) : (
-            <div className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 inline-block">
-              <p className="text-gray-400 text-lg">
+            <div className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-3 sm:p-4 inline-block mobile-card">
+              <p className="text-gray-400 text-base sm:text-lg mobile-text">
                 {t('shop.login_required_purchase')}
               </p>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-8">
           {grades.map(grade => {
             const gradeInfo = {
               ALL: { name: t('shop.grades.all'), icon: '🌌', color: 'bg-gradient-to-r from-gray-600 to-gray-700' },
@@ -183,21 +183,21 @@ export default function StellaShop() {
                 onClick={() => setSelectedGrade(grade)}
                 className={getButtonClassName(selectedGrade === grade, info.color)}
               >
-                <span className="mr-2">{info.icon}</span>
-                {info.name}
+                <span className="mr-1 sm:mr-2 text-sm sm:text-base">{info.icon}</span>
+                <span className="text-xs sm:text-sm mobile-caption">{info.name}</span>
               </button>
             );
           })}
         </div>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-            <p className="mt-4 text-gray-400">{t('shop.loading_icons')}</p>
+          <div className="text-center py-8 sm:py-12">
+            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-purple-400 mx-auto"></div>
+            <p className="mt-3 sm:mt-4 text-gray-400 text-sm sm:text-base mobile-text">{t('shop.loading_icons')}</p>
           </div>
         ) : icons.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-red-400 text-lg">{t('shop.no_icon_data')}</p>
+          <div className="text-center py-8 sm:py-12">
+            <p className="text-red-400 text-base sm:text-lg mobile-text">{t('shop.no_icon_data')}</p>
           </div>
         ) : (
           <>
@@ -216,19 +216,19 @@ export default function StellaShop() {
                 const info = gradeInfo[grade as keyof typeof gradeInfo];
                 
                 return (
-                  <div key={grade} className="mb-12">
-                    <div className="flex items-center justify-center mb-6">
+                  <div key={grade} className="mb-8 sm:mb-12">
+                    <div className="flex items-center justify-center mb-4 sm:mb-6">
                       <div className={`bg-gradient-to-r ${info.color} bg-clip-text text-transparent`}>
-                        <h2 className="text-2xl font-bold flex items-center gap-3">
-                          <span className="text-3xl">{info.icon}</span>
-                          {info.name}
-                          <span className="text-lg text-gray-400">({info.count}{t('shop.count_suffix')})</span>
+                        <h2 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3 mobile-title">
+                          <span className="text-xl sm:text-3xl">{info.icon}</span>
+                          <span className="mobile-text">{info.name}</span>
+                          <span className="text-sm sm:text-lg text-gray-400 mobile-caption">({info.count}{t('shop.count_suffix')})</span>
                         </h2>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6 mobile-grid-2">
                       {gradeIcons.map(icon => (
-                        <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105">
+                        <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-3 sm:p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105 active:scale-95 mobile-card-compact touch-feedback border border-transparent hover:border-purple-500/30">
                           <StellaIcon
                             icon={icon}
                             size="large"
@@ -237,20 +237,20 @@ export default function StellaShop() {
                             showPrice={true}
                           />
                           
-                          <div className="mt-4">
+                          <div className="mt-3 sm:mt-4">
                             {!user ? (
                               <button
                                 onClick={() => alert(t('shop.login_required_alert'))}
-                                className="w-full bg-gray-600 bg-opacity-50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                                className="w-full bg-gray-600 bg-opacity-50 text-gray-300 py-3 sm:py-2 px-4 rounded-lg font-medium cursor-not-allowed mobile-button touch-target min-h-[44px] flex items-center justify-center"
                               >
-                                {t('shop.login_required')}
+                                <span className="text-xs sm:text-sm mobile-caption">{t('shop.login_required')}</span>
                               </button>
                             ) : isOwned(icon.id) ? (
                               <button
                                 onClick={() => handleEquip(icon.id)}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                                className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white py-3 sm:py-2 px-4 rounded-lg font-medium transition-all duration-200 mobile-button touch-target touch-feedback min-h-[44px] flex items-center justify-center"
                               >
-                                {t('shop.equip')}
+                                <span className="text-xs sm:text-sm mobile-caption">{t('shop.equip')}</span>
                               </button>
                             ) : (
                               <button
@@ -259,14 +259,14 @@ export default function StellaShop() {
                                 className={getPurchaseButtonClassName(user.points >= icon.price, purchasing === icon.id)}
                               >
                                 {purchasing === icon.id ? (
-                                  <span className="flex items-center justify-center">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    {t('shop.purchasing')}
-                                  </span>
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
+                                    <span className="text-xs sm:text-sm mobile-caption">{t('shop.purchasing')}</span>
+                                  </>
                                 ) : user.points < icon.price ? (
-                                  t('shop.insufficient_stella')
+                                  <span className="text-xs sm:text-sm mobile-caption">{t('shop.insufficient_stella')}</span>
                                 ) : (
-                                  `${t('shop.purchase')} ${icon.price.toLocaleString()}`
+                                  <span className="text-xs sm:text-sm mobile-caption">{`${t('shop.purchase')} ${icon.price.toLocaleString()}`}</span>
                                 )}
                               </button>
                             )}
@@ -278,9 +278,9 @@ export default function StellaShop() {
                 );
               })
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6 mobile-grid-2">
                 {filteredIcons.map(icon => (
-                  <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105">
+                  <div key={icon.id} className="bg-[#1f2336] bg-opacity-80 backdrop-blur-md rounded-xl p-3 sm:p-4 hover:bg-[#252842] hover:bg-opacity-80 transition-all duration-300 hover:scale-105 active:scale-95 mobile-card-compact touch-feedback border border-transparent hover:border-purple-500/30">
                     <StellaIcon
                       icon={icon}
                       size="large"
@@ -289,20 +289,20 @@ export default function StellaShop() {
                       showPrice={true}
                     />
                     
-                    <div className="mt-4">
+                    <div className="mt-3 sm:mt-4">
                       {!user ? (
                         <button
                           onClick={() => alert(t('shop.login_required_alert'))}
-                          className="w-full bg-gray-600 bg-opacity-50 text-gray-300 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                          className="w-full bg-gray-600 bg-opacity-50 text-gray-300 py-3 sm:py-2 px-4 rounded-lg font-medium cursor-not-allowed mobile-button touch-target min-h-[44px] flex items-center justify-center"
                         >
-                          {t('shop.login_required')}
+                          <span className="text-xs sm:text-sm mobile-caption">{t('shop.login_required')}</span>
                         </button>
                       ) : isOwned(icon.id) ? (
                         <button
                           onClick={() => handleEquip(icon.id)}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white py-3 sm:py-2 px-4 rounded-lg font-medium transition-all duration-200 mobile-button touch-target touch-feedback min-h-[44px] flex items-center justify-center"
                         >
-                          {t('shop.equip')}
+                          <span className="text-xs sm:text-sm mobile-caption">{t('shop.equip')}</span>
                         </button>
                       ) : (
                         <button
@@ -311,14 +311,14 @@ export default function StellaShop() {
                           className={getPurchaseButtonClassName(user.points >= icon.price, purchasing === icon.id)}
                         >
                           {purchasing === icon.id ? (
-                            <span className="flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              {t('shop.purchasing')}
-                            </span>
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
+                              <span className="text-xs sm:text-sm mobile-caption">{t('shop.purchasing')}</span>
+                            </>
                           ) : user.points < icon.price ? (
-                            t('shop.insufficient_stella')
+                            <span className="text-xs sm:text-sm mobile-caption">{t('shop.insufficient_stella')}</span>
                           ) : (
-                            `${t('shop.purchase')} ${icon.price.toLocaleString()}`
+                            <span className="text-xs sm:text-sm mobile-caption">{`${t('shop.purchase')} ${icon.price.toLocaleString()}`}</span>
                           )}
                         </button>
                       )}
@@ -331,10 +331,10 @@ export default function StellaShop() {
         )}
 
         {filteredIcons.length === 0 && !loading && selectedGrade !== 'ALL' && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🚀</div>
-            <p className="text-gray-400 text-lg">{t('shop.no_icons_in_grade')}</p>
-            <p className="text-gray-500 text-sm mt-2">{t('shop.try_other_grade')}</p>
+          <div className="text-center py-8 sm:py-12">
+            <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">🚀</div>
+            <p className="text-gray-400 text-base sm:text-lg mobile-text">{t('shop.no_icons_in_grade')}</p>
+            <p className="text-gray-500 text-xs sm:text-sm mt-2 mobile-caption">{t('shop.try_other_grade')}</p>
           </div>
         )}
       </div>

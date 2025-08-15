@@ -222,86 +222,86 @@ export default function SuggestionDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-8">
-      <div className="max-w-4xl mx-auto px-6">
-        {/* 뒤로가기 버튼 */}
-        <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        {/* 뒤로가기 버튼 - 모바일 최적화 */}
+        <div className="mb-4 sm:mb-6">
           <Link
             to="/suggestions"
-            className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 transition-colors"
+            className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 active:text-purple-100 transition-colors min-h-[44px] touch-manipulation"
           >
             <span>←</span>
-            <span>{t('suggestion.back_to_list')}</span>
+            <span className="text-sm sm:text-base">{t('suggestion.back_to_list')}</span>
           </Link>
         </div>
 
         {/* 건의사항 상세 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 overflow-hidden">
-          {/* 헤더 */}
-          <div className="p-8 border-b border-purple-500/20">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
-                    {getCategories()[suggestion.category]}
+          {/* 헤더 - 모바일 최적화 */}
+          <div className="p-4 sm:p-8 border-b border-purple-500/20">
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
+                  {getCategories()[suggestion.category]}
+                </span>
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${STATUS_COLORS[suggestion.status]}`}>
+                  {getStatuses()[suggestion.status]}
+                </span>
+                {!suggestion.isPublic && (
+                  <span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
+                    {t('suggestion.private')}
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${STATUS_COLORS[suggestion.status]}`}>
-                    {getStatuses()[suggestion.status]}
-                  </span>
-                  {!suggestion.isPublic && (
-                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
-                      {t('suggestion.private')}
-                    </span>
-                  )}
-                </div>
-                <h1 className="text-2xl font-bold text-white mb-4">{suggestion.title}</h1>
+                )}
               </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">{suggestion.title}</h1>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-gray-400">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400 mt-4">
               <div className="flex items-center gap-2">
-                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-lg" />
+                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-base sm:text-lg" />
                 <span className="whitespace-nowrap">{suggestion.authorNickname}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>📅</span>
-                <span>{new Date(suggestion.createdAt).toLocaleString('ko-KR')}</span>
+                <span className="hidden sm:inline">{new Date(suggestion.createdAt).toLocaleString('ko-KR')}</span>
+                <span className="sm:hidden">{new Date(suggestion.createdAt).toLocaleDateString('ko-KR')}</span>
               </div>
               {suggestion.updatedAt !== suggestion.createdAt && (
                 <div className="flex items-center gap-2">
                   <span>✏️</span>
-                  <span>수정: {new Date(suggestion.updatedAt).toLocaleString('ko-KR')}</span>
+                  <span className="hidden sm:inline">수정: {new Date(suggestion.updatedAt).toLocaleString('ko-KR')}</span>
+                  <span className="sm:hidden">수정: {new Date(suggestion.updatedAt).toLocaleDateString('ko-KR')}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 내용 */}
-          <div className="p-8">
+          {/* 내용 - 모바일 최적화 */}
+          <div className="p-4 sm:p-8">
             <div className="prose prose-invert max-w-none">
-              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
                 {suggestion.content}
               </div>
             </div>
           </div>
 
-          {/* 관리자 답변 */}
+          {/* 관리자 답변 - 모바일 최적화 */}
           {suggestion.adminResponse && !editingResponse && (
-            <div className="mx-8 mb-8 bg-green-500/10 border border-green-500/30 rounded-lg overflow-hidden">
-              <div className="bg-green-500/20 px-6 py-3 border-b border-green-500/30">
-                <div className="flex items-center justify-between">
+            <div className="mx-4 sm:mx-8 mb-6 sm:mb-8 bg-green-500/10 border border-green-500/30 rounded-lg overflow-hidden">
+              <div className="bg-green-500/20 px-4 sm:px-6 py-3 border-b border-green-500/30">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-green-400">✅</span>
-                    <span className="text-green-300 font-medium">{t('suggestion.admin_response')}</span>
+                    <span className="text-green-300 font-medium text-sm sm:text-base">{t('suggestion.admin_response')}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-green-400">
-                      {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleString()}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="text-xs sm:text-sm text-green-400">
+                      {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleDateString()}
                     </div>
                     {user && user.role === 'ADMIN' && (
                       <button
                         onClick={startEditResponse}
-                        className="text-sm px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 rounded transition-all"
+                        className="text-xs sm:text-sm px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 active:bg-blue-600/60 text-blue-300 border border-blue-500/30 rounded transition-all min-h-[32px] touch-manipulation"
                       >
                         {t('suggestion.modify_response')}
                       </button>
@@ -309,8 +309,8 @@ export default function SuggestionDetail() {
                   </div>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="text-green-200 whitespace-pre-wrap leading-relaxed">
+              <div className="p-4 sm:p-6">
+                <div className="text-green-200 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
                   {suggestion.adminResponse}
                 </div>
               </div>
@@ -439,21 +439,21 @@ export default function SuggestionDetail() {
             </div>
           )}
 
-          {/* 액션 버튼 */}
+          {/* 액션 버튼 - 모바일 최적화 */}
           {user && user.id === suggestion.authorId && suggestion.status === 'PENDING' && (
-            <div className="p-8 border-t border-purple-500/20">
-              <div className="flex gap-4">
+            <div className="p-4 sm:p-8 border-t border-purple-500/20">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link 
                   to={`/suggestions/${suggestion.id}/edit`}
-                  className="px-6 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 rounded-lg transition-all text-center"
+                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-blue-600/20 hover:bg-blue-600/40 active:bg-blue-600/60 text-blue-300 border border-blue-500/30 rounded-lg transition-all text-center min-h-[48px] touch-manipulation"
                 >
-                  {t('suggestion.edit')}
+                  ✏️ {t('suggestion.edit')}
                 </Link>
                 <button 
                   onClick={handleDelete}
-                  className="px-6 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/30 rounded-lg transition-all"
+                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-red-600/20 hover:bg-red-600/40 active:bg-red-600/60 text-red-300 border border-red-500/30 rounded-lg transition-all min-h-[48px] touch-manipulation"
                 >
-                  {t('suggestion.delete')}
+                  🗑 {t('suggestion.delete')}
                 </button>
               </div>
             </div>

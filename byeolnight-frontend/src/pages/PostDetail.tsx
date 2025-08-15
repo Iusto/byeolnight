@@ -471,18 +471,19 @@ export default function PostDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      {/* 헤더 섹션 */}
+      {/* 헤더 섹션 - 모바일 최적화 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+          <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
             <button
               onClick={() => navigate(`/posts?category=${post.category}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-medium transition-all duration-200 backdrop-blur-sm border border-white/20"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 backdrop-blur-sm border border-white/20 min-h-[44px] touch-manipulation"
             >
-              ← {categoryName} {t('home.board')}
+              ← <span className="hidden sm:inline">{categoryName} {t('home.board')}</span>
+              <span className="sm:hidden">{categoryName}</span>
             </button>
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl shadow-lg border-2 border-white/20">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-lg border-2 border-white/20">
               <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif', textShadow: '0 0 4px rgba(0,0,0,0.8)' }}>
                 {{
                   NEWS: '🚀',
@@ -496,29 +497,29 @@ export default function PostDetail() {
               </span>
             </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
             <span className="text-white" style={{color: 'white !important'}}>
               {post.title}
             </span>
           </h1>
-          {/* 작성자 정보 */}
-          <div className="flex items-center gap-4 mb-4">
+          {/* 작성자 정보 - 모바일 최적화 */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
-                <UserIconDisplay iconName={post.writerIcon} size="large" className="text-2xl" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
+                <UserIconDisplay iconName={post.writerIcon} size="large" className="text-xl sm:text-2xl" />
               </div>
-              <div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-semibold text-white">{post.writer}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <span className="text-base sm:text-lg font-semibold text-white">{post.writer}</span>
                   <ClickableNickname 
                     userId={post.writerId} 
                     nickname={post.writer}
-                    className="text-xs text-gray-400 hover:text-purple-300 transition-colors border border-gray-600 hover:border-purple-400 px-2 py-1 rounded"
+                    className="text-xs text-gray-400 hover:text-purple-300 active:text-purple-200 transition-colors border border-gray-600 hover:border-purple-400 px-2 py-1 rounded min-h-[32px] touch-manipulation"
                   >
                     {t('home.user_info')}
                   </ClickableNickname>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-300 mt-1 flex-wrap">
                   <span className="flex items-center gap-1">
                     <span className="bg-slate-800/50 rounded px-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>❤️</span> {post.likeCount}
                   </span>
@@ -526,14 +527,16 @@ export default function PostDetail() {
                     <span className="bg-slate-800/50 rounded px-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>👁</span> {post.viewCount}
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="bg-slate-800/50 rounded px-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📅</span> {formattedDate}
+                    <span className="bg-slate-800/50 rounded px-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📅</span> 
+                    <span className="hidden sm:inline">{formattedDate}</span>
+                    <span className="sm:hidden">{new Date(post.createdAt).toLocaleDateString()}</span>
                   </span>
                 </div>
               </div>
             </div>
             {post.writerCertificates && post.writerCertificates.length > 0 && (
-              <div className="flex gap-2 ml-auto">
-                {post.writerCertificates.slice(0, 3).map((cert, idx) => {
+              <div className="flex gap-1 sm:gap-2 flex-wrap">
+                {post.writerCertificates.slice(0, 2).map((cert, idx) => {
                   const certIcons = {
                     '별빛 탐험가': '🌠',
                     '우주인 등록증': '🌍',
@@ -550,7 +553,7 @@ export default function PostDetail() {
                   
                   return (
                     <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-xs font-medium rounded-full border border-yellow-500/30 animate-pulse" title={cert}>
-                      {icon} {cert}
+                      {icon} <span className="hidden sm:inline">{cert}</span>
                     </span>
                   );
                 })}
@@ -560,8 +563,8 @@ export default function PostDetail() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
           {/* 게시글 내용 */}
           <div className="mb-8">
             <div className="prose prose-lg max-w-none dark:prose-invert youtube-content post-content" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>

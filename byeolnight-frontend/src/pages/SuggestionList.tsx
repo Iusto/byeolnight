@@ -81,82 +81,86 @@ export default function SuggestionList() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-8">
-      <div className="max-w-6xl mx-auto px-6">
-        {/* 헤더 */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* 헤더 - 모바일 최적화 */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">{t('suggestion.title')}</h1>
-            <p className="text-gray-300">{t('suggestion.subtitle')}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t('suggestion.title')}</h1>
+            <p className="text-gray-300 text-sm sm:text-base">{t('suggestion.subtitle')}</p>
           </div>
           
           {user && (
             <Link
               to="/suggestions/new"
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 active:from-purple-800 active:to-blue-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[48px] touch-manipulation"
             >
-              {t('suggestion.write_suggestion')}
+              ✏️ {t('suggestion.write_suggestion')}
             </Link>
           )}
         </div>
 
-        {/* 필터 */}
-        <div className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-6 mb-6 border border-purple-500/20">
-          <div className="flex flex-wrap gap-4">
+        {/* 필터 - 모바일 최적화 */}
+        <div className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 mb-6 border border-purple-500/20">
+          <div className="space-y-4">
             {/* 카테고리 필터 */}
-            <div className="flex flex-wrap gap-2">
-              <span className="text-gray-300 font-medium">{t('suggestion.category')}:</span>
-              <button
-                onClick={() => setSelectedCategory('ALL')}
-                className={`px-3 py-1 rounded-full text-sm transition-all ${
-                  selectedCategory === 'ALL' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50'
-                }`}
-              >
-                {t('suggestion.all')}
-              </button>
-              {Object.entries(getCategories()).map(([key, label]) => (
+            <div className="space-y-2">
+              <span className="text-gray-300 font-medium text-sm">{t('suggestion.category')}:</span>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={key}
-                  onClick={() => setSelectedCategory(key as SuggestionCategory)}
-                  className={`px-3 py-1 rounded-full text-sm transition-all ${
-                    selectedCategory === key 
+                  onClick={() => setSelectedCategory('ALL')}
+                  className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-all min-h-[36px] touch-manipulation ${
+                    selectedCategory === 'ALL' 
                       ? 'bg-purple-600 text-white' 
-                      : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50'
+                      : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 active:bg-gray-600/70'
                   }`}
                 >
-                  {label}
+                  {t('suggestion.all')}
                 </button>
-              ))}
+                {Object.entries(getCategories()).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedCategory(key as SuggestionCategory)}
+                    className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-all min-h-[36px] touch-manipulation ${
+                      selectedCategory === key 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 active:bg-gray-600/70'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* 상태 필터 */}
-            <div className="flex flex-wrap gap-2">
-              <span className="text-gray-300 font-medium">{t('suggestion.status')}:</span>
-              <button
-                onClick={() => setSelectedStatus('ALL')}
-                className={`px-3 py-1 rounded-full text-sm transition-all ${
-                  selectedStatus === 'ALL' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50'
-                }`}
-              >
-                {t('suggestion.all')}
-              </button>
-              {Object.entries(getStatuses()).map(([key, label]) => (
+            <div className="space-y-2">
+              <span className="text-gray-300 font-medium text-sm">{t('suggestion.status')}:</span>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={key}
-                  onClick={() => setSelectedStatus(key as SuggestionStatus)}
-                  className={`px-3 py-1 rounded-full text-sm transition-all ${
-                    selectedStatus === key 
+                  onClick={() => setSelectedStatus('ALL')}
+                  className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-all min-h-[36px] touch-manipulation ${
+                    selectedStatus === 'ALL' 
                       ? 'bg-purple-600 text-white' 
-                      : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50'
+                      : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 active:bg-gray-600/70'
                   }`}
                 >
-                  {label}
+                  {t('suggestion.all')}
                 </button>
-              ))}
+                {Object.entries(getStatuses()).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedStatus(key as SuggestionStatus)}
+                    className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-all min-h-[36px] touch-manipulation ${
+                      selectedStatus === key 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-gray-600/30 text-gray-300 hover:bg-gray-600/50 active:bg-gray-600/70'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -165,14 +169,14 @@ export default function SuggestionList() {
         <div className="space-y-4">
           {filteredSuggestions.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">📝</div>
-              <p className="text-gray-400 text-lg">{t('suggestion.no_suggestions')}</p>
+              <div className="text-4xl sm:text-6xl mb-4">📝</div>
+              <p className="text-gray-400 text-base sm:text-lg mb-4">{t('suggestion.no_suggestions')}</p>
               {user && (
                 <Link
                   to="/suggestions/new"
-                  className="inline-block mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-lg transition-colors min-h-[48px] touch-manipulation"
                 >
-                  {t('suggestion.write_first_suggestion')}
+                  ✏️ {t('suggestion.write_first_suggestion')}
                 </Link>
               )}
             </div>
@@ -183,52 +187,53 @@ export default function SuggestionList() {
               return (
               <div
                 key={suggestion.id}
-                className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-200 hover:shadow-lg"
+                className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-200 hover:shadow-lg"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
-                        {categories[suggestion.category]}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[suggestion.status]}`}>
-                        {statuses[suggestion.status]}
-                      </span>
-                      {!suggestion.isPublic && (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
-                          {t('suggestion.private')}
-                        </span>
-                      )}
-                    </div>
-                    {/* 제목: 공개/비공개 및 권한에 따라 Link 또는 span */}
-                    {(suggestion.isPublic || (user && (user.role === 'ADMIN' || user.id === suggestion.authorId))) ? (
-                      <Link
-                        to={`/suggestions/${suggestion.id}`}
-                        className="text-xl font-bold text-white hover:text-purple-300 transition-colors"
-                      >
-                        {suggestion.isPublic ? suggestion.title : t('suggestion.private_suggestion')}
-                      </Link>
-                    ) : (
-                      <span
-                        className="text-xl font-bold text-gray-500 cursor-not-allowed opacity-60 select-none"
-                        title={t('suggestion.private_suggestion_tooltip')}
-                      >
-                        {t('suggestion.private_suggestion')}
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
+                      {categories[suggestion.category]}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[suggestion.status]}`}>
+                      {statuses[suggestion.status]}
+                    </span>
+                    {!suggestion.isPublic && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
+                        {t('suggestion.private')}
                       </span>
                     )}
                   </div>
+                  
+                  {/* 제목: 공개/비공개 및 권한에 따라 Link 또는 span */}
+                  {(suggestion.isPublic || (user && (user.role === 'ADMIN' || user.id === suggestion.authorId))) ? (
+                    <Link
+                      to={`/suggestions/${suggestion.id}`}
+                      className="block text-lg sm:text-xl font-bold text-white hover:text-purple-300 active:text-purple-200 transition-colors leading-tight touch-manipulation"
+                    >
+                      {suggestion.isPublic ? suggestion.title : t('suggestion.private_suggestion')}
+                    </Link>
+                  ) : (
+                    <span
+                      className="block text-lg sm:text-xl font-bold text-gray-500 cursor-not-allowed opacity-60 select-none leading-tight"
+                      title={t('suggestion.private_suggestion_tooltip')}
+                    >
+                      {t('suggestion.private_suggestion')}
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex justify-between items-center text-sm text-gray-400">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 mt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
                     <span>{t('suggestion.author')} {suggestion.authorNickname}</span>
+                    <span className="hidden sm:inline">•</span>
                     <span>{new Date(suggestion.createdAt).toLocaleDateString()}</span>
                   </div>
                   
                   {suggestion.adminResponse && (
                     <div className="flex items-center gap-1 text-green-400">
                       <span>✅</span>
-                      <span>{t('suggestion.admin_response_completed')}</span>
+                      <span className="hidden sm:inline">{t('suggestion.admin_response_completed')}</span>
+                      <span className="sm:hidden">답변완료</span>
                     </div>
                   )}
                 </div>

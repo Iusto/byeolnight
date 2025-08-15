@@ -56,30 +56,30 @@ export default function SuggestionCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-8">
-      <div className="max-w-4xl mx-auto px-6">
-        {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">{t('suggestion.create_title')}</h1>
-          <p className="text-gray-300">{t('suggestion.create_subtitle')}</p>
+    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        {/* 헤더 - 모바일 최적화 */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t('suggestion.create_title')}</h1>
+          <p className="text-gray-300 text-sm sm:text-base">{t('suggestion.create_subtitle')}</p>
         </div>
 
-        {/* 작성 폼 */}
-        <div className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-8 border border-purple-500/20">
+        {/* 작성 폼 - 모바일 최적화 */}
+        <div className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl p-4 sm:p-8 border border-purple-500/20">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 카테고리 선택 */}
+            {/* 카테고리 선택 - 모바일 최적화 */}
             <div>
-              <label className="block text-white font-medium mb-3">{t('suggestion.category')}</label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <label className="block text-white font-medium mb-3 text-sm sm:text-base">{t('suggestion.category')}</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
                 {Object.entries(getCategories()).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, category: key as SuggestionCategory }))}
-                    className={`p-3 rounded-lg border-2 transition-all text-center ${
+                    className={`p-3 rounded-lg border-2 transition-all text-center min-h-[48px] touch-manipulation ${
                       formData.category === key
                         ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                        : 'border-gray-600 bg-gray-600/10 text-gray-300 hover:border-gray-500 hover:bg-gray-600/20'
+                        : 'border-gray-600 bg-gray-600/10 text-gray-300 hover:border-gray-500 hover:bg-gray-600/20 active:bg-gray-600/30'
                     }`}
                   >
                     <div className="text-sm font-medium">{label}</div>
@@ -88,9 +88,9 @@ export default function SuggestionCreate() {
               </div>
             </div>
 
-            {/* 제목 입력 */}
+            {/* 제목 입력 - 모바일 최적화 */}
             <div>
-              <label htmlFor="title" className="block text-white font-medium mb-3">
+              <label htmlFor="title" className="block text-white font-medium mb-3 text-sm sm:text-base">
                 {t('suggestion.title_label')} <span className="text-red-400">*</span>
               </label>
               <input
@@ -99,18 +99,18 @@ export default function SuggestionCreate() {
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder={t('suggestion.title_placeholder')}
-                className="w-full px-4 py-3 bg-[#2a2e45]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+                className="w-full px-4 py-3 bg-[#2a2e45]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all text-base min-h-[48px]"
                 maxLength={100}
                 required
               />
-              <div className="text-right text-sm text-gray-400 mt-1">
+              <div className="text-right text-xs sm:text-sm text-gray-400 mt-1">
                 {formData.title.length}/100
               </div>
             </div>
 
-            {/* 내용 입력 */}
+            {/* 내용 입력 - 모바일 최적화 */}
             <div>
-              <label htmlFor="content" className="block text-white font-medium mb-3">
+              <label htmlFor="content" className="block text-white font-medium mb-3 text-sm sm:text-base">
                 {t('suggestion.content_label')} <span className="text-red-400">*</span>
               </label>
               <textarea
@@ -118,35 +118,35 @@ export default function SuggestionCreate() {
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 placeholder={t('suggestion.content_placeholder')}
-                className="w-full px-4 py-3 bg-[#2a2e45]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all resize-none"
-                rows={12}
+                className="w-full px-4 py-3 bg-[#2a2e45]/60 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all resize-none text-base"
+                rows={window.innerWidth < 640 ? 8 : 12}
                 maxLength={2000}
                 required
               />
-              <div className="text-right text-sm text-gray-400 mt-1">
+              <div className="text-right text-xs sm:text-sm text-gray-400 mt-1">
                 {formData.content.length}/2000
               </div>
             </div>
 
-            {/* 공개/비공개 설정 */}
-            <div className="flex items-center gap-3">
+            {/* 공개/비공개 설정 - 모바일 최적화 */}
+            <div className="flex items-center gap-3 p-3 bg-gray-600/10 rounded-lg border border-gray-600/30">
               <input
                 type="checkbox"
                 id="isPublic"
                 checked={formData.isPublic}
                 onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
-                className="w-4 h-4 text-purple-600 bg-[#2a2e45]/60 border border-purple-500/30 rounded focus:ring-purple-400 focus:ring-2"
+                className="w-5 h-5 text-purple-600 bg-[#2a2e45]/60 border border-purple-500/30 rounded focus:ring-purple-400 focus:ring-2 touch-manipulation"
               />
-              <label htmlFor="isPublic" className="text-white text-sm">
+              <label htmlFor="isPublic" className="text-white text-sm sm:text-base cursor-pointer flex-1">
                 {t('suggestion.public_setting')}
               </label>
             </div>
 
-            {/* 안내 메시지 */}
+            {/* 안내 메시지 - 모바일 최적화 */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <span className="text-blue-400 text-xl">💡</span>
-                <div className="text-blue-300 text-sm">
+                <span className="text-blue-400 text-lg sm:text-xl">💡</span>
+                <div className="text-blue-300 text-xs sm:text-sm">
                   <p className="font-medium mb-2">{t('suggestion.guide_title')}</p>
                   <ul className="space-y-1 text-blue-200">
                     {t('suggestion.guide_items', { returnObjects: true }).map((item: string, index: number) => (
@@ -157,12 +157,12 @@ export default function SuggestionCreate() {
               </div>
             </div>
 
-            {/* 버튼 */}
-            <div className="flex gap-4 pt-4">
+            {/* 버튼 - 모바일 최적화 */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
               <button
                 type="button"
                 onClick={() => navigate('/suggestions')}
-                className="flex-1 px-6 py-3 bg-gray-600/30 hover:bg-gray-600/50 text-gray-300 font-medium rounded-lg transition-all duration-200"
+                className="w-full sm:flex-1 px-6 py-3 bg-gray-600/30 hover:bg-gray-600/50 active:bg-gray-600/70 text-gray-300 font-medium rounded-lg transition-all duration-200 min-h-[48px] touch-manipulation"
                 disabled={loading}
               >
                 {t('suggestion.cancel')}
@@ -170,7 +170,7 @@ export default function SuggestionCreate() {
               <button
                 type="submit"
                 disabled={loading || !formData.title.trim() || !formData.content.trim()}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+                className="w-full sm:flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 active:from-purple-800 active:to-blue-800 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed min-h-[48px] touch-manipulation"
               >
                 {loading ? t('suggestion.submitting') : t('suggestion.submit')}
               </button>

@@ -111,35 +111,35 @@ export default function SuggestionEdit() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-4xl mx-auto px-6 py-16">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-lg">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl mx-auto mb-4 sm:mb-6 shadow-lg">
               ✏️
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4">
               {t('suggestion.edit_title')}
             </h1>
-            <p className="text-xl text-gray-300">{t('suggestion.edit_subtitle')}</p>
+            <p className="text-base sm:text-xl text-gray-300">{t('suggestion.edit_subtitle')}</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 카테고리 선택 */}
+            {/* 카테고리 선택 - 모바일 최적화 */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">{t('suggestion.category')}</label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
                 {Object.entries(getCategories()).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setCategory(key)}
-                    className={`p-3 rounded-lg border-2 transition-all text-center ${
+                    className={`p-3 rounded-lg border-2 transition-all text-center min-h-[48px] touch-manipulation ${
                       category === key
                         ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                        : 'border-gray-600 bg-gray-600/10 text-gray-300 hover:border-gray-500 hover:bg-gray-600/20'
+                        : 'border-gray-600 bg-gray-600/10 text-gray-300 hover:border-gray-500 hover:bg-gray-600/20 active:bg-gray-600/30'
                     }`}
                   >
                     <div className="text-sm font-medium">{label}</div>
@@ -156,7 +156,7 @@ export default function SuggestionEdit() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('suggestion.title_placeholder')}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+                className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 text-base min-h-[48px]"
               />
             </div>
 
@@ -167,20 +167,20 @@ export default function SuggestionEdit() {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={t('suggestion.content_placeholder')}
                 required
-                rows={10}
-                className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 resize-none"
+                rows={window.innerWidth < 640 ? 8 : 10}
+                className="w-full px-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 resize-none text-base"
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 p-3 bg-gray-600/10 rounded-lg border border-gray-600/30">
               <input
                 type="checkbox"
                 id="isPublic"
                 checked={isPublic}
                 onChange={(e) => setIsPublic(e.target.checked)}
-                className="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                className="w-5 h-5 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 touch-manipulation"
               />
-              <label htmlFor="isPublic" className="text-sm text-gray-300">
+              <label htmlFor="isPublic" className="text-sm sm:text-base text-gray-300 cursor-pointer flex-1">
                 {t('suggestion.public_setting')}
               </label>
             </div>
@@ -191,17 +191,17 @@ export default function SuggestionEdit() {
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={() => navigate(`/suggestions/${id}`)}
-                className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-4 rounded-xl transition-all duration-200"
+                className="w-full sm:flex-1 bg-slate-600 hover:bg-slate-700 active:bg-slate-800 text-white font-semibold py-4 rounded-xl transition-all duration-200 min-h-[48px] touch-manipulation"
               >
                 {t('suggestion.cancel')}
               </button>
               <button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                className="w-full sm:flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/25 min-h-[48px] touch-manipulation"
               >
                 ✏️ {t('suggestion.edit_complete')}
               </button>
