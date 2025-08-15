@@ -66,11 +66,21 @@ public class PublicPostController {
     @Operation(summary = "게시글 단건 조회", description = """
     [비회원 접근 가능]
     - 게시글 ID 기반 단건 조회
-    - 삭제되었거나 블라인드된 게시글은 예외 처리됨
+    - 삭제된 게시글은 접근 불가
+    - 블라인드된 게시글은 관리자만 접근 가능
     """)
     @GetMapping("/{id:\\d+}")
-    public ResponseEntity<CommonResponse<PostResponseDto>> getPostById(@PathVariable Long id) {
-        PostResponseDto response = postService.getPostById(id, null);
+    public ResponseEntity<CommonResponse<PostResponseDto>> getPostById(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @org.springframework.security.core.annotation.AuthenticationPrincipal 
+            com.byeolnight.infrastructure.security.CustomUserDetails userDetails) {
+        
+        com.byeolnight.entity.user.User currentUser = null;
+        if (userDetails != null) {
+            currentUser = userDetails.getUser();
+        }
+        
+        PostResponseDto response = postService.getPostById(id, currentUser);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

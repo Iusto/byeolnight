@@ -162,8 +162,14 @@ public class PostService {
         Post post = postRepository.findWithWriterById(postId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 게시글입니다."));
 
-        if (post.isDeleted() || post.isBlinded()) {
-            throw new NotFoundException("삭제되었거나 블라인드 처리된 게시글입니다.");
+        // 삭제된 게시글은 관리자도 접근 불가
+        if (post.isDeleted()) {
+            throw new NotFoundException("삭제된 게시글입니다.");
+        }
+        
+        // 블라인드 처리된 게시글은 관리자만 접근 가능
+        if (post.isBlinded() && (currentUser == null || currentUser.getRole() != User.Role.ADMIN)) {
+            throw new NotFoundException("블라인드 처리된 게시글입니다.");
         }
 
         post.increaseViewCount();

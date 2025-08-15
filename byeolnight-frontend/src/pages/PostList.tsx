@@ -364,27 +364,27 @@ export default function PostList() {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
-                {post.blinded ? (
+                {post.blinded && !isAdmin ? (
                   post.blindType === 'ADMIN_BLIND' 
                     ? '관리자 블라인드 처리됨'
                     : '신고로 블라인드 처리됨'
                 ) : post.title}
               </h4>
               <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 leading-relaxed">
-                {post.blinded ? '내용을 볼 수 없습니다.' : post.content}
+                {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content}
               </p>
             </div>
           </div>
           <div className="flex justify-between items-center text-xs text-gray-400">
             <div className="flex items-center gap-2">
               <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
-                {post.blinded ? '🔒' : '👤'}
+                {post.blinded && !isAdmin ? '🔒' : '👤'}
               </span>
-              <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
+              <span className="truncate max-w-[80px]">{post.blinded && !isAdmin ? '***' : post.writer}</span>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="flex items-center gap-1">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
-              <span className="flex items-center gap-1">❤️ {post.blinded ? '*' : post.likeCount}</span>
+              <span className="flex items-center gap-1">💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}</span>
+              <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}</span>
             </div>
           </div>
         </Link>
@@ -403,27 +403,27 @@ export default function PostList() {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
-                {post.blinded ? (
+                {post.blinded && !isAdmin ? (
                   post.blindType === 'ADMIN_BLIND' 
                     ? '관리자 블라인드 처리됨'
                     : '신고로 블라인드 처리됨'
                 ) : post.title}
               </h4>
               <p className="text-xs sm:text-sm text-gray-300 line-clamp-1">
-                {post.blinded ? '내용을 볼 수 없습니다.' : post.content.substring(0, 60) + '...'}
+                {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content.substring(0, 60) + '...'}
               </p>
             </div>
           </div>
           <div className="flex justify-between items-center text-xs text-gray-400">
             <div className="flex items-center gap-2">
               <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
-                {post.blinded ? '🔒' : '👤'}
+                {post.blinded && !isAdmin ? '🔒' : '👤'}
               </span>
-              <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
+              <span className="truncate max-w-[80px]">{post.blinded && !isAdmin ? '***' : post.writer}</span>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="flex items-center gap-1">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
-              <span className="flex items-center gap-1">❤️ {post.blinded ? '*' : post.likeCount}</span>
+              <span className="flex items-center gap-1">💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}</span>
+              <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}</span>
             </div>
           </div>
         </Link>
@@ -508,7 +508,7 @@ export default function PostList() {
               </div>
             )}
             
-            {post.blinded && (
+            {post.blinded && !isAdmin && (
               <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                 <span className="text-3xl">🔒</span>
               </div>
@@ -517,7 +517,7 @@ export default function PostList() {
           
           <div className="p-3">
             <h4 className="text-sm font-medium text-white line-clamp-2 mb-2">
-              {post.blinded ? (
+              {post.blinded && !isAdmin ? (
                 post.blindType === 'ADMIN_BLIND' 
                   ? '관리자 블라인드 처리됨'
                   : '신고로 블라인드 처리됨'
@@ -527,13 +527,13 @@ export default function PostList() {
             <div className="flex justify-between items-center text-xs text-gray-400">
               <div className="flex items-center gap-1">
                 <span className="bg-slate-700/50 rounded px-1 py-0.5">
-                  {post.blinded ? '🔒' : '👤'}
+                  {post.blinded && !isAdmin ? '🔒' : '👤'}
                 </span>
-                <span className="truncate max-w-[60px]">{post.blinded ? '***' : post.writer}</span>
+                <span className="truncate max-w-[60px]">{post.blinded && !isAdmin ? '***' : post.writer}</span>
               </div>
               <div className="flex gap-2">
-                <span>💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
-                <span>❤️ {post.blinded ? '*' : post.likeCount}</span>
+                <span>💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}</span>
+                <span>❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}</span>
               </div>
             </div>
           </div>
@@ -571,7 +571,7 @@ export default function PostList() {
                   {isHot && <span className="text-orange-400 flex-shrink-0">🔥</span>}
                   {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs flex-shrink-0">[{post.dDay}]</span>}
                   <span className="break-words">
-                    {post.blinded ? (
+                    {post.blinded && !isAdmin ? (
                       post.blindType === 'ADMIN_BLIND' 
                         ? '관리자가 직접 블라인드 처리한 게시글입니다'
                         : '다수의 신고로 블라인드 처리된 게시글입니다'
@@ -589,24 +589,24 @@ export default function PostList() {
                 </h4>
                 <div className="flex items-center gap-3 text-sm text-gray-400 flex-shrink-0">
                   {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
-                  <span className="flex items-center gap-1">💬 {post.blinded ? '***' : (post.commentCount || 0)}</span>
-                  <span className="flex items-center gap-1">❤️ {post.blinded ? '***' : post.likeCount}</span>
+                  <span className="flex items-center gap-1">💬 {post.blinded && !isAdmin ? '***' : (post.commentCount || 0)}</span>
+                  <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '***' : post.likeCount}</span>
                 </div>
               </div>
               {isHot && (
                 <p className="text-sm text-gray-300 mb-3 line-clamp-2 leading-relaxed">
-                  {post.blinded ? '내용을 볼 수 없습니다.' : post.content}
+                  {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content}
                 </p>
               )}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-gray-400">
                 <span className="flex items-center gap-2">
                   <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                    {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
+                    {post.blinded && !isAdmin ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
                   </span>
-                  <span className="truncate">{post.blinded ? '***' : post.writer}</span>
+                  <span className="truncate">{post.blinded && !isAdmin ? '***' : post.writer}</span>
                 </span>
                 <span className="flex items-center gap-1 text-xs sm:text-sm">
-                  📅 {post.blinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}
+                  📅 {post.blinded && !isAdmin ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}
                 </span>
               </div>
             </Link>

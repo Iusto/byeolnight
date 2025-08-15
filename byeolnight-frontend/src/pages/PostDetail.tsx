@@ -178,18 +178,18 @@ export default function PostDetail() {
       console.log('게시글 데이터:', postData);
       console.log('게시글 이미지 데이터:', postData?.images);
       
-      // 삭제되거나 블라인드된 게시글 처리
-      if (postData && (postData.deleted || postData.blinded)) {
-        // 관리자가 아닌 경우 접근 제한
-        if (!user || user.role !== 'ADMIN') {
-          if (postData.deleted) {
-            setError('삭제된 게시글입니다.');
-          } else if (postData.blinded) {
-            setError('블라인드 처리된 게시글입니다.');
-          }
-          setLoading(false);
-          return;
-        }
+      // 삭제된 게시글은 관리자도 접근 불가
+      if (postData && postData.deleted) {
+        setError('삭제된 게시글입니다.');
+        setLoading(false);
+        return;
+      }
+      
+      // 블라인드 처리된 게시글은 관리자만 접근 가능
+      if (postData && postData.blinded && (!user || user.role !== 'ADMIN')) {
+        setError('블라인드 처리된 게시글입니다.');
+        setLoading(false);
+        return;
       }
       
       // 작성자 정보 보완 (선택적)

@@ -66,11 +66,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     
     private String extractTokenFromCookie(StompHeaderAccessor accessor) {
         String cookieHeader = accessor.getFirstNativeHeader("Cookie");
+        System.out.println("WebSocket Cookie 헤더: " + cookieHeader);
+        
         if (cookieHeader != null) {
             String[] cookies = cookieHeader.split(";");
             for (String cookie : cookies) {
                 String[] parts = cookie.trim().split("=", 2);
                 if (parts.length == 2 && "accessToken".equals(parts[0])) {
+                    System.out.println("accessToken 쿠키 발견: " + parts[1].substring(0, Math.min(20, parts[1].length())) + "...");
                     return parts[1];
                 }
             }

@@ -39,6 +39,7 @@ public class CinemaService {
     private static final String[] ENGLISH_KEYWORDS = {"space", "rocket", "satellite", "Mars", "Moon", "Sun", "Earth", "Jupiter", "Saturn", "Uranus", "Neptune", "Mercury", "Venus", "Pluto", "blackhole", "galaxy", "star", "stellar", "comet", "asteroid", "telescope", "astronomy", "aerospace", "spacecraft", "space station", "astronaut", "space launch", "space exploration", "nebula", "quasar", "neutron star", "white dwarf", "red giant", "supernova", "cluster", "interstellar", "dark matter", "dark energy", "big bang", "cosmology", "exoplanet", "extraterrestrial", "SETI", "space telescope", "Hubble", "James Webb", "Kepler", "Spitzer", "Chandra", "Compton", "ISS", "International Space Station", "Artemis", "Apollo", "Voyager", "Cassini", "Galileo", "New Horizons", "Parker", "Juno", "Mars exploration", "lunar exploration", "Jupiter mission", "Saturn mission", "solar mission", "asteroid mission", "comet mission", "space debris", "space weather", "solar wind", "magnetosphere", "aurora", "eclipse", "lunar eclipse", "meteor shower", "meteorite", "crater", "volcano", "atmosphere", "gravity", "orbit", "revolution", "rotation", "tidal", "Lagrange point", "gravitational wave", "relativity", "quantum mechanics", "string theory", "multiverse", "cosmic background", "redshift", "Doppler effect", "Hubble constant", "universe age", "universe size", "observable universe", "event horizon", "singularity", "wormhole"};
     private static final String[] ALL_KEYWORDS = java.util.stream.Stream.concat(java.util.Arrays.stream(KOREAN_KEYWORDS), java.util.Arrays.stream(ENGLISH_KEYWORDS)).map(String::toLowerCase).toArray(String[]::new);
     private static final String[] MUSIC_KEYWORDS = {"원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans", "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd", "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion", "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core", "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video", "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무", "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu", "가사", "lyrics", "노래", "song", "음악", "music", "앨범", "album", "미발매", "unreleased", "콘서트", "concert", "페스티벌", "festival", "칸타빌레", "cantabile", "더 시즌즈", "the seasons", "박보검", "샘 킴", "sam kim", "오현우", "ohHyunwoo", "일식", "eclipse", "[가사]", "[lyrics]", "kbs", "방송"};
+    private static final String[] COMMERCIAL_KEYWORDS = {"쇼핑", "shopping", "구매", "buy", "판매", "sale", "할인", "discount", "특가", "세일", "광고", "ad", "advertisement", "홍보", "promotion", "캠페인", "campaign", "브랜드", "brand", "제품", "product", "상품", "item", "리뷰", "review", "언박싱", "unboxing", "추천", "recommend", "후기", "testimonial", "체험", "experience", "협찬", "sponsored", "파트너십", "partnership", "마케팅", "marketing", "커머스", "commerce", "온라인쇼핑", "온라인몰", "쇼핑몰", "mall", "스토어", "store", "마트", "mart", "백화점", "department", "아울렛", "outlet", "혼수", "혼수용품", "웨딩", "wedding", "신혼", "newlywed", "인테리어", "interior", "가구", "furniture", "침구", "bedding", "러그", "rug", "카펫", "carpet", "커버", "cover", "세트", "set", "패키지", "package", "번들", "bundle", "딜", "deal", "오픈", "open", "런칭", "launch", "신제품", "new product", "출시", "release", "론칭", "launching", "이벤트", "event", "기획전", "exhibition", "페어", "fair", "박람회", "expo", "전시회", "show", "데모", "demo", "시연", "demonstration", "테스트", "test", "비교", "comparison", "vs", "대결", "battle", "순위", "ranking", "베스트", "best", "top", "추천템", "must have", "필수템", "essential", "아이템", "goods", "굿즈", "merchandise", "md", "콜라보", "collaboration", "한정", "limited", "독점", "exclusive", "프리미엄", "premium", "럭셔리", "luxury", "브랜딩", "branding", "로고", "logo", "디자인", "design", "스타일", "style", "패션", "fashion", "뷰티", "beauty", "코스메틱", "cosmetic", "메이크업", "makeup", "스킨케어", "skincare", "헤어", "hair", "네일", "nail", "향수", "perfume", "액세서리", "accessory", "주얼리", "jewelry", "시계", "watch", "가방", "bag", "신발", "shoes", "의류", "clothing", "옷", "clothes", "패션아이템", "fashion item", "트렌드", "trend", "유행", "popular", "인기", "hot", "핫템", "hot item", "대박", "jackpot", "완판", "sold out", "품절", "out of stock", "재입고", "restock", "예약", "reservation", "선주문", "pre-order", "주문", "order", "배송", "delivery", "택배", "parcel", "무료배송", "free shipping", "당일배송", "same day", "빠른배송", "fast delivery", "쿠폰", "coupon", "적립", "point", "포인트", "마일리지", "mileage", "혜택", "benefit", "서비스", "service", "멤버십", "membership", "회원", "member", "가입", "join", "등록", "register", "신규", "new", "첫구매", "first purchase", "재구매", "repurchase", "단골", "regular", "vip", "프리미어", "premier", "플래티넘", "platinum", "골드", "gold", "실버", "silver", "등급", "grade", "레벨", "level", "티어", "tier", "클래스", "class", "카테고리", "category", "분류", "classification", "종류", "type", "모델", "model", "버전", "version", "에디션", "edition", "시리즈", "series", "라인", "line", "컬렉션", "collection"};
 
     @Value("${app.security.external-api.ai.google-api-key:}")
     private String googleApiKey;
@@ -268,6 +269,13 @@ public class CinemaService {
         
         // K-POP 및 음악 관련 키워드 필터링
         if (isKPopOrMusicContent(titleLower, descLower)) {
+            log.debug("음악 콘텐츠로 제외: {}", title);
+            return false;
+        }
+        
+        // 상업적 콘텐츠 필터링
+        if (isCommercialContent(titleLower, descLower)) {
+            log.info("상업적 콘텐츠로 제외: {}", title);
             return false;
         }
         
@@ -309,6 +317,11 @@ public class CinemaService {
     
     private boolean isKPopOrMusicContent(String titleLower, String descLower) {
         return java.util.Arrays.stream(MUSIC_KEYWORDS)
+                .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
+    }
+    
+    private boolean isCommercialContent(String titleLower, String descLower) {
+        return java.util.Arrays.stream(COMMERCIAL_KEYWORDS)
                 .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
     }
     

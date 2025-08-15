@@ -26,13 +26,17 @@ class ChatConnector {
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    // HttpOnly 쿠키 방식이므로 토큰 헤더 제거, 쿠키 자동 전달
+    // SockJS에 withCredentials 옵션 설정
+    const sockJS = new SockJS(wsUrl, null, {
+      transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+      withCredentials: true
+    });
+    
     this.client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      webSocketFactory: () => sockJS,
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      // connectHeaders 제거 - 쿠키가 자동으로 전달됨
       onConnect: () => this.handleConnect(userNickname),
       onStompError: () => this.handleError(),
       onWebSocketError: () => this.handleError(),
