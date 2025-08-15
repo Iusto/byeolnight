@@ -591,26 +591,26 @@ export default function PostList() {
       {/* 헤더 섹션 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-16 mobile-header">
           <div className="text-center">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
+            <div className="inline-flex items-center gap-3 mb-3 sm:mb-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-lg">
                 <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
                   {CATEGORY_ICONS[category]}
                 </span>
               </div>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent mb-4 mobile-text px-2">
+            <h1 className="text-2xl sm:text-5xl font-bold text-white sm:bg-gradient-to-r sm:from-white sm:via-purple-200 sm:to-white sm:bg-clip-text sm:text-transparent mb-3 sm:mb-4 mobile-text px-2">
               {getCategoryLabel(category, t)} {t('home.board')}
             </h1>
-            <p className="text-lg sm:text-xl text-gray-300 mobile-text-secondary max-w-2xl mx-auto px-4">
+            <p className="text-base sm:text-xl text-gray-200 mobile-text-secondary max-w-2xl mx-auto px-4">
               {getCategoryDescription(category, t)}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 mobile-optimized">
 
         {/* 카테고리 선택 */}
       <div className="text-center mb-10">
@@ -625,7 +625,7 @@ export default function PostList() {
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4">
           <Link to="/posts?category=NEWS&sort=recent" className="group touch-target">
-            <div className="relative mobile-card p-2 sm:p-4 bg-gradient-to-br from-blue-600/30 to-cyan-600/30 active:from-blue-600/50 active:to-cyan-600/50 mouse:hover:from-blue-600/40 mouse:hover:to-cyan-600/40 rounded-lg sm:rounded-2xl border border-blue-500/40 active:border-blue-400/60 mouse:hover:border-blue-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 shadow-lg mouse:hover:shadow-blue-500/25 overflow-hidden h-full min-h-[80px] sm:min-h-[120px] flex flex-col justify-center">
+            <div className="relative mobile-board-btn p-2 sm:p-4 bg-gradient-to-br from-blue-600/60 to-cyan-600/60 active:from-blue-600/80 active:to-cyan-600/80 mouse:hover:from-blue-600/40 mouse:hover:to-cyan-600/40 rounded-lg sm:rounded-2xl border border-blue-500/60 active:border-blue-400/80 mouse:hover:border-blue-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 shadow-lg mouse:hover:shadow-blue-500/25 overflow-hidden h-full min-h-[70px] sm:min-h-[120px] flex flex-col justify-center">
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full"></div>
               <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 rounded-full"></div>
               <div className="absolute top-2 right-2">

@@ -127,18 +127,18 @@ export default function Home() {
       <div className="absolute top-10 right-10 w-32 h-32 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full blur-xl animate-pulse"></div>
       <div className="absolute bottom-10 left-10 w-24 h-24 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-lg animate-pulse" style={{animationDelay: '1s'}}></div>
       
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:py-20 text-center relative">
-        <div className="mb-6 sm:mb-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-20 text-center relative mobile-header">
+        <div className="mb-4 sm:mb-8">
           <div className="inline-block animate-float">
-            <span className="text-4xl sm:text-6xl md:text-8xl drop-shadow-2xl">🌌</span>
+            <span className="text-3xl sm:text-6xl md:text-8xl drop-shadow-2xl">🌌</span>
           </div>
         </div>
-        <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 animate-fade-in px-2">
-          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-lg mobile-text">
+        <h1 className="text-2xl sm:text-5xl md:text-7xl font-bold mb-3 sm:mb-6 animate-fade-in px-2">
+          <span className="text-white sm:bg-gradient-to-r sm:from-purple-400 sm:via-pink-400 sm:to-indigo-400 sm:bg-clip-text sm:text-transparent mobile-text">
             {t('home.bigtitle')}
           </span>
         </h1>
-        <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mobile-text-secondary mb-6 sm:mb-8 max-w-3xl mx-auto animate-fade-in-delay px-4">
+        <p className="text-base sm:text-xl md:text-2xl text-gray-200 mobile-text-secondary mb-4 sm:mb-8 max-w-3xl mx-auto animate-fade-in-delay px-4">
           {t('home.subtitle')}
         </p>
         <div className="inline-flex items-center gap-3 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md px-8 py-4 rounded-full border border-white/20 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105">
@@ -152,20 +152,20 @@ export default function Home() {
   );
 
   const BoardNavigation = () => (
-    <div className="mb-12">
-      <div className="text-center mb-8">
-        <div className="inline-block mb-4">
+    <div className="mb-8 sm:mb-12">
+      <div className="text-center mb-6 sm:mb-8">
+        <div className="inline-block mb-3 sm:mb-4">
           <div className="relative">
-            <span className="text-4xl animate-spin-slow">🚀</span>
+            <span className="text-3xl sm:text-4xl animate-spin-slow">🚀</span>
             <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-20 animate-pulse"></div>
           </div>
         </div>
-        <h2 className="text-3xl font-bold mb-3">
-          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3">
+          <span className="text-white sm:bg-gradient-to-r sm:from-purple-400 sm:via-pink-400 sm:to-indigo-400 sm:bg-clip-text sm:text-transparent mobile-text">
             {t('home.explore_boards')}
           </span>
         </h2>
-        <p className="text-gray-400 text-sm">{t('home.explore_subtitle')}</p>
+        <p className="text-gray-300 mobile-text-secondary text-sm">{t('home.explore_subtitle')}</p>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-4">
         {BOARD_CONFIGS.map((board, index) => (
@@ -175,7 +175,7 @@ export default function Home() {
             className="group touch-target"
           >
             <div 
-              className={`relative mobile-card p-2 sm:p-3 bg-gradient-to-br from-${board.color}-500/40 to-${board.color}-600/40 active:from-${board.color}-500/60 active:to-${board.color}-600/60 mouse:hover:from-${board.color}-600/40 mouse:hover:to-${board.color}-600/40 rounded-lg sm:rounded-xl border border-${board.color}-400/50 active:border-${board.color}-300/70 mouse:hover:border-${board.color}-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 mouse:hover:-translate-y-1 shadow-lg mouse:hover:shadow-${board.color}-500/25 backdrop-blur-sm min-h-[70px] sm:min-h-[90px] flex flex-col justify-center`}
+              className={`relative mobile-board-btn p-2 sm:p-3 bg-gradient-to-br from-${board.color}-500/60 to-${board.color}-600/60 active:from-${board.color}-500/80 active:to-${board.color}-600/80 mouse:hover:from-${board.color}-600/40 mouse:hover:to-${board.color}-600/40 rounded-lg sm:rounded-xl border border-${board.color}-400/60 active:border-${board.color}-300/80 mouse:hover:border-${board.color}-400/50 transition-all duration-300 text-center transform active:scale-95 mouse:hover:scale-105 mouse:hover:-translate-y-1 shadow-lg mouse:hover:shadow-${board.color}-500/25 backdrop-blur-sm min-h-[70px] sm:min-h-[90px] flex flex-col justify-center`}
               style={{animationDelay: `${index * 0.1}s`}}
             >
               {board.hasAI && (
@@ -191,7 +191,7 @@ export default function Home() {
               <div className="text-xl sm:text-2xl mb-1 sm:mb-2 group-hover:animate-bounce group-hover:scale-110 transition-transform duration-300">
                 {board.icon}
               </div>
-              <div className={`text-xs sm:text-sm font-medium text-${board.color}-100 group-hover:text-white transition-colors leading-tight`}>
+              <div className={`text-xs sm:text-sm font-medium text-white sm:text-${board.color}-100 group-hover:text-white transition-colors leading-tight`}>
                 {board.key === 'NEWS' ? t('home.space_news') : 
                  board.key === 'IMAGE' ? t('home.star_photo') :
                  board.key === 'STARLIGHT_CINEMA' ? t('home.star_cinema') :
@@ -321,11 +321,11 @@ export default function Home() {
       <div className="relative z-10">
         <HeroSection />
         
-        <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-12 mobile-optimized">
           <BoardNavigation />
 
-          <div className="grid lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-3 space-y-8">
+          <div className="grid lg:grid-cols-5 gap-4 sm:gap-8">
+            <div className="lg:col-span-3 space-y-4 sm:space-y-8">
               {/* 공지사항 */}
               <Section 
                 title={t('home.notice_board')} 

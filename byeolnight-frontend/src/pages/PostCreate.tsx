@@ -521,8 +521,8 @@ export default function PostCreate() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        <div className="mobile-card bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        <div className="mobile-section bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mobile-text-secondary mb-2">{t('post.title')}</label>
               <div className="relative">
