@@ -73,12 +73,7 @@ public class PublicPostController {
     public ResponseEntity<CommonResponse<PostResponseDto>> getPostById(
             @PathVariable Long id,
             @Parameter(hidden = true) @org.springframework.security.core.annotation.AuthenticationPrincipal 
-            com.byeolnight.infrastructure.security.CustomUserDetails userDetails) {
-        
-        com.byeolnight.entity.user.User currentUser = null;
-        if (userDetails != null) {
-            currentUser = userDetails.getUser();
-        }
+            com.byeolnight.entity.user.User currentUser) {
         
         PostResponseDto response = postService.getPostById(id, currentUser);
         return ResponseEntity.ok(CommonResponse.success(response));
