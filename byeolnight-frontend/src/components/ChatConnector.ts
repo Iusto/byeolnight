@@ -16,6 +16,7 @@ class ChatConnector {
   private callbacks: ChatConnectorCallbacks | null = null;
   private retryCount = 0;
   private maxRetries = 3;
+  private userNickname?: string;
 
   connect(callbacks: ChatConnectorCallbacks, userNickname?: string) {
     if (this.client && this.isConnected) {
@@ -72,6 +73,9 @@ class ChatConnector {
         this.callbacks?.onBanNotification?.(errorData);
       });
     }
+    
+    // 사용자 닉네임 저장
+    this.userNickname = userNickname;
   }
 
   private handleError() {
@@ -120,7 +124,7 @@ class ChatConnector {
     this.retryCount = 0;
     this.disconnect(); // 기존 연결 완전 종료
     if (this.callbacks) {
-      this.connect(this.callbacks);
+      this.connect(this.callbacks, this.userNickname);
     }
   }
 }

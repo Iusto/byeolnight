@@ -198,6 +198,18 @@ export default function ChatSidebar() {
     }
 
     try {
+      console.log('채팅 메시지 전송 시도:', {
+        roomId: 'public',
+        sender: user.nickname,
+        message: input,
+        connected: chatConnector.connected
+      });
+      
+      if (!chatConnector.connected) {
+        setError('채팅 연결이 끊어졌습니다. 재연결을 시도해주세요.');
+        return;
+      }
+      
       chatConnector.sendMessage({
         roomId: 'public',
         sender: user.nickname,
@@ -205,8 +217,10 @@ export default function ChatSidebar() {
       });
       setInput('');
       setError('');
+      console.log('채팅 메시지 전송 성공');
     } catch (error) {
-      setError(t('home.chat.send_failed'));
+      console.error('채팅 메시지 전송 실패:', error);
+      setError(t('home.chat.send_failed') + ': ' + (error as Error).message);
     }
   };
 

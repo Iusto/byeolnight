@@ -607,8 +607,8 @@ export default function Home() {
               </Section>
             </div>
 
-            {/* 채팅 사이드바 - 모바일에서 숨김 */}
-            <div className="hidden lg:block lg:col-span-2">
+            {/* 채팅 사이드바 */}
+            <div className="lg:col-span-2">
               <div className="sticky top-4">
                 <ChatSidebar />
               </div>

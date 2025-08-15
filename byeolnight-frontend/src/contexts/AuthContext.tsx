@@ -34,29 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isFetching, setIsFetching] = useState(false);
   const navigate = useNavigate();
 
-  // 세션 인증 상태 확인 함수 (간단한 헬스체크만 수행)
-  const waitForSessionAuth = async (): Promise<void> => {
-    const maxAttempts = 10;
-    const delay = 200;
-    
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        // 간단한 헬스체크 API로 세션 상태만 확인
-        const testResponse = await axios.get('/auth/check');
-        if (testResponse.status === 200) {
-          return; // 세션 인증 성공
-        }
-      } catch (error: any) {
-        if (error?.response?.status !== 401) {
-          return; // 401이 아닌 다른 에러는 세션 문제가 아님
-        }
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    
-    // 헬스체크 실패 시에도 계속 진행 (fetchMyInfo에서 처리)
-  };
+
 
   const fetchMyInfo = async () => {
     if (isFetching) {
@@ -136,8 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         safeSetRememberMe(rememberMe);
         
-        // 세션 준비 대기 후 사용자 정보 조회
-        await waitForSessionAuth();
+        // 로그인 성공 후 사용자 정보 조회
         await fetchMyInfo();
       } else {
         throw new Error(res.data?.message || 'Login failed');

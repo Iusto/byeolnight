@@ -156,4 +156,19 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
      * 블라인드 처리되지 않고 삭제되지 않은 게시글만 조회 (사이트맵용)
      */
     Page<Post> findByBlindedFalseAndIsDeletedFalse(Pageable pageable);
+    
+    /**
+     * 카테고리별 게시글 개수 조회 (삭제된 것 포함)
+     */
+    long countByCategory(Category category);
+    
+    /**
+     * 카테고리별 최신 게시글 조회
+     */
+    Optional<Post> findFirstByCategoryOrderByCreatedAtDesc(Category category);
+    
+    /**
+     * 특정 카테고리의 특정 날짜 이후 게시글 개수 조회
+     */
+    long countByCategoryAndCreatedAtAfter(Category category, LocalDateTime createdAt);
 }

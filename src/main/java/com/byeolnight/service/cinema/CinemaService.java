@@ -20,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Optional;
 import java.util.Objects;
 
 @Service
@@ -805,10 +806,82 @@ public class CinemaService {
     
     public Map<String, Object> getCinemaStatus() {
         Map<String, Object> status = new HashMap<>();
-        status.put("totalVideos", cinemaRepository.count());
-        status.put("recentVideos", cinemaRepository.findTop10ByOrderByCreatedAtDesc().size());
-        status.put("lastCollectionTime", LocalDateTime.now());
-        status.put("configuration", cinemaConfig);
+        
+        try {
+            // 기본 통계 정보
+            long totalCinemaPosts = postRepository.countByCategory(Post.Category.STARLIGHT_CINEMA);
+            status.put("totalCinemaPosts", totalCinemaPosts);
+            
+            // 최근 게시글 정보
+            Optional<Post> latestPost = postRepository.findFirstByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA);
+            boolean latestPostExists = latestPost.isPresent();
+            status.put("latestPostExists", latestPostExists);
+            
+            if (latestPostExists) {
+                Post latest = latestPost.get();
+                status.put("latestPostTitle", latest.getTitle());
+                status.put("lastUpdated", latest.getCreatedAt());
+                
+                // 마지막 업데이트로부터 경과 시간 계산
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime lastUpdate = latest.getCreatedAt();
+                long daysSinceUpdate = java.time.temporal.ChronoUnit.DAYS.between(lastUpdate, now);
+                status.put("daysSinceLastUpdate", daysSinceUpdate);
+                
+                // 시스템 상태 판단
+                boolean isHealthy = daysSinceUpdate < 2; // 2일 이내에 업데이트가 있어야 정상
+                status.put("systemHealthy", isHealthy);
+                
+                if (!isHealthy) {
+                    status.put("warning", "마지막 업데이트가 " + daysSinceUpdate + "일 전입니다. 스케줄러 확인이 필요합니다.");
+                }
+            } else {
+                status.put("latestPostTitle", null);
+                status.put("lastUpdated", null);
+                status.put("daysSinceLastUpdate", -1);
+                status.put("systemHealthy", false);
+                status.put("warning", "별빛 시네마 게시글이 없습니다.");
+            }
+            
+            // 오늘 생성된 게시글 수 확인
+            LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            long todayPosts = postRepository.countByCategoryAndCreatedAtAfter(Post.Category.STARLIGHT_CINEMA, todayStart);
+            status.put("todayPosts", todayPosts);
+            
+            // API 키 설정 상태
+            boolean googleApiConfigured = googleApiKey != null && !googleApiKey.trim().isEmpty();
+            boolean openaiApiConfigured = openaiApiKey != null && !openaiApiKey.trim().isEmpty();
+            
+            status.put("googleApiConfigured", googleApiConfigured);
+            status.put("openaiApiConfigured", openaiApiConfigured);
+            
+            // 시스템 설정 상태
+            Map<String, Object> systemConfig = new HashMap<>();
+            systemConfig.put("schedulerEnabled", true); // 스케줄러는 항상 활성화
+            systemConfig.put("dailyScheduleTime", "20:00 (KST)");
+            systemConfig.put("retryTimes", "20:05, 20:10 (KST)");
+            systemConfig.put("maxRetryCount", cinemaConfig.getCollection().getRetryCount());
+            systemConfig.put("keywordCount", cinemaConfig.getCollection().getKeywordCount());
+            status.put("systemConfig", systemConfig);
+            
+            // 전체 상태 메시지
+            if (totalCinemaPosts == 0) {
+                status.put("statusMessage", "별빛 시네마 시스템이 아직 시작되지 않았습니다.");
+            } else if (!latestPostExists) {
+                status.put("statusMessage", "별빛 시네마 게시글을 찾을 수 없습니다.");
+            } else if (status.get("daysSinceLastUpdate") != null && (Long) status.get("daysSinceLastUpdate") >= 2) {
+                status.put("statusMessage", "별빛 시네마 시스템에 주의가 필요합니다.");
+            } else {
+                status.put("statusMessage", "별빛 시네마 시스템이 정상 작동 중입니다.");
+            }
+            
+        } catch (Exception e) {
+            log.error("별빛 시네마 상태 조회 실패", e);
+            status.put("error", "상태 조회 실패: " + e.getMessage());
+            status.put("systemHealthy", false);
+            status.put("statusMessage", "시스템 상태를 확인할 수 없습니다.");
+        }
+        
         return status;
     }
 }

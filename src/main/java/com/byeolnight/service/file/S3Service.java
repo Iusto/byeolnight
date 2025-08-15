@@ -274,16 +274,96 @@ public class S3Service {
 
     public Map<String, Object> getS3Status() {
         Map<String, Object> status = new HashMap<>();
+        
         try {
+            // 기본 설정 정보
             status.put("bucketName", getBucketName());
-            status.put("region", getRegion());
-            status.put("accessKeyConfigured", getAccessKey() != null && !getAccessKey().trim().isEmpty());
-            status.put("secretKeyConfigured", getSecretKey() != null && !getSecretKey().trim().isEmpty());
-            status.put("connectionStatus", "OK");
+            status.put("configuredRegion", getRegion());
+            
+            // 자격 증명 확인
+            boolean accessKeyConfigured = getAccessKey() != null && !getAccessKey().trim().isEmpty();
+            boolean secretKeyConfigured = getSecretKey() != null && !getSecretKey().trim().isEmpty();
+            
+            if (!accessKeyConfigured || !secretKeyConfigured) {
+                status.put("connectionStatus", "ERROR");
+                status.put("bucketExists", false);
+                status.put("regionMatch", false);
+                status.put("error", "AWS 자격 증명이 설정되지 않았습니다.");
+                status.put("suggestion", "application.yml에서 AWS Access Key와 Secret Key를 확인해주세요.");
+                return status;
+            }
+            
+            // S3 클라이언트로 실제 연결 테스트
+            S3Client s3Client = createS3Client();
+            
+            // 버킷 존재 여부 확인
+            try {
+                HeadBucketRequest headBucketRequest = HeadBucketRequest.builder()
+                        .bucket(getBucketName())
+                        .build();
+                s3Client.headBucket(headBucketRequest);
+                
+                status.put("connectionStatus", "SUCCESS");
+                status.put("bucketExists", true);
+                
+                // 버킷의 실제 리전 확인
+                try {
+                    GetBucketLocationRequest locationRequest = GetBucketLocationRequest.builder()
+                            .bucket(getBucketName())
+                            .build();
+                    GetBucketLocationResponse locationResponse = s3Client.getBucketLocation(locationRequest);
+                    
+                    String actualRegion = locationResponse.locationConstraintAsString();
+                    // us-east-1의 경우 null이 반환될 수 있음
+                    if (actualRegion == null || actualRegion.isEmpty()) {
+                        actualRegion = "us-east-1";
+                    }
+                    
+                    status.put("actualRegion", actualRegion);
+                    status.put("regionMatch", actualRegion.equals(getRegion()));
+                    
+                    if (!actualRegion.equals(getRegion())) {
+                        status.put("warning", String.format("설정된 리전(%s)과 실제 버킷 리전(%s)이 다릅니다.", getRegion(), actualRegion));
+                        status.put("suggestion", "application.yml의 cloud.aws.region.static 설정을 " + actualRegion + "으로 변경해주세요.");
+                    }
+                    
+                } catch (Exception regionError) {
+                    log.warn("버킷 리전 조회 실패: {}", regionError.getMessage());
+                    status.put("actualRegion", "조회 실패");
+                    status.put("regionMatch", false);
+                    status.put("warning", "버킷 리전을 확인할 수 없습니다.");
+                }
+                
+            } catch (NoSuchBucketException e) {
+                status.put("connectionStatus", "ERROR");
+                status.put("bucketExists", false);
+                status.put("regionMatch", false);
+                status.put("error", "지정된 S3 버킷이 존재하지 않습니다.");
+                status.put("suggestion", "AWS 콘솔에서 " + getBucketName() + " 버킷을 생성하거나 올바른 버킷명을 설정해주세요.");
+                
+            } catch (S3Exception e) {
+                status.put("connectionStatus", "ERROR");
+                status.put("bucketExists", false);
+                status.put("regionMatch", false);
+                
+                if (e.statusCode() == 403) {
+                    status.put("error", "S3 버킷에 대한 접근 권한이 없습니다.");
+                    status.put("suggestion", "IAM 정책에서 s3:HeadBucket, s3:GetBucketLocation 권한을 확인해주세요.");
+                } else {
+                    status.put("error", "S3 연결 오류: " + e.getMessage());
+                    status.put("suggestion", "AWS 자격 증명과 리전 설정을 확인해주세요.");
+                }
+            }
+            
         } catch (Exception e) {
+            log.error("S3 상태 확인 중 오류 발생", e);
             status.put("connectionStatus", "ERROR");
-            status.put("error", e.getMessage());
+            status.put("bucketExists", false);
+            status.put("regionMatch", false);
+            status.put("error", "S3 상태 확인 실패: " + e.getMessage());
+            status.put("suggestion", "AWS 설정을 확인하고 네트워크 연결을 점검해주세요.");
         }
+        
         return status;
     }
 
