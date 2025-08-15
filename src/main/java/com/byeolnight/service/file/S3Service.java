@@ -327,6 +327,18 @@ public class S3Service {
                         status.put("suggestion", "application.yml의 cloud.aws.region.static 설정을 " + actualRegion + "으로 변경해주세요.");
                     }
                     
+                } catch (S3Exception regionError) {
+                    if (regionError.statusCode() == 403) {
+                        log.info("s3:GetBucketLocation 권한 없음 - 설정된 리전 사용: {}", getRegion());
+                        status.put("actualRegion", "권한 없음 (설정값 사용)");
+                        status.put("regionMatch", true);
+                        status.put("info", "리전 조회 권한이 없어 설정된 리전을 사용합니다.");
+                    } else {
+                        log.warn("버킷 리전 조회 실패: {}", regionError.getMessage());
+                        status.put("actualRegion", "조회 실패");
+                        status.put("regionMatch", false);
+                        status.put("warning", "버킷 리전을 확인할 수 없습니다.");
+                    }
                 } catch (Exception regionError) {
                     log.warn("버킷 리전 조회 실패: {}", regionError.getMessage());
                     status.put("actualRegion", "조회 실패");

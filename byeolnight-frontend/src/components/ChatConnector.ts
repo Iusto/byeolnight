@@ -43,8 +43,10 @@ class ChatConnector {
   }
 
   private handleConnect(userNickname?: string) {
+    console.log('WebSocket 연결 성공:', { userNickname });
     this.isConnected = true;
     this.retryCount = 0;
+    this.userNickname = userNickname;
     this.callbacks?.onConnect();
 
     if (!this.client) return;
@@ -73,20 +75,19 @@ class ChatConnector {
         this.callbacks?.onBanNotification?.(errorData);
       });
     }
-    
-    // 사용자 닉네임 저장
-    this.userNickname = userNickname;
   }
 
   private handleError() {
+    console.error('WebSocket 연결 오류 발생');
     this.isConnected = false;
     this.callbacks?.onError();
     
     if (this.retryCount < this.maxRetries) {
       this.retryCount++;
+      console.log(`재연결 시도 ${this.retryCount}/${this.maxRetries}`);
       setTimeout(() => {
         if (this.callbacks) {
-          this.connect(this.callbacks);
+          this.connect(this.callbacks, this.userNickname);
         }
       }, 3000 * this.retryCount);
     }
@@ -99,8 +100,9 @@ class ChatConnector {
 
   sendMessage(message: { roomId: string; sender: string; message: string }) {
     console.log('ChatConnector.sendMessage 호출:', {
-      connected: this.client?.connected,
+      clientConnected: this.client?.connected,
       isConnected: this.isConnected,
+      clientActive: this.client?.active,
       message
     });
     
@@ -109,8 +111,11 @@ class ChatConnector {
       throw new Error('STOMP 클라이언트가 초기화되지 않았습니다.');
     }
     
-    if (!this.client.connected) {
-      console.error('WebSocket이 연결되어 있지 않습니다.');
+    if (!this.client.connected || !this.client.active) {
+      console.error('WebSocket이 연결되어 있지 않습니다.', {
+        connected: this.client.connected,
+        active: this.client.active
+      });
       throw new Error('WebSocket이 연결되어 있지 않습니다.');
     }
 
@@ -136,7 +141,7 @@ class ChatConnector {
   }
 
   get connected() {
-    return this.isConnected && this.client?.connected;
+    return this.isConnected && this.client?.connected && this.client?.active;
   }
 
   retryConnection() {

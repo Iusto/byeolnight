@@ -42,6 +42,8 @@ public class ChatController {
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageDto chatMessage, Principal principal, 
                            org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
+        log.info("채팅 메시지 수신: {}, Principal: {}", chatMessage, principal != null ? principal.getName() : "null");
+        
         // IP 주소 추출
         String clientIp = "unknown";
         try {
@@ -54,6 +56,7 @@ public class ChatController {
         }
         
         if (principal instanceof Authentication auth && auth.getPrincipal() instanceof User user) {
+            log.info("인증된 사용자 메시지: {}", user.getNickname());
             chatMessage.setSender(user.getNickname());  // ✅ 이메일 대신 닉네임 사용
             
             // ✅ 채팅 금지 사용자 확인 - 메시지 저장 및 전송 전에 먼저 확인
@@ -65,9 +68,11 @@ public class ChatController {
                 return; // 메시지 전송 차단
             }
         } else {
+            log.warn("인증되지 않은 사용자의 채팅 시도 차단. Principal: {}", principal);
             return; // 인증되지 않은 사용자는 메시지 전송 불가
         }
 
+        log.info("채팅 메시지 저장 및 전송: {}", chatMessage);
         chatService.save(chatMessage, clientIp);
         messagingTemplate.convertAndSend("/topic/public", chatMessage);
     }

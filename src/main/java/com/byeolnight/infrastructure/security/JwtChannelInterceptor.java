@@ -40,16 +40,23 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             
             // HttpOnly 쿠키에서 토큰 추출
             String token = extractTokenFromCookie(accessor);
+            System.out.println("WebSocket 연결 - 토큰: " + (token != null ? "존재" : "없음"));
+            
             if (token != null) {
                 try {
                     if (jwtTokenProvider.validate(token)) {
                         Authentication auth = jwtTokenProvider.getAuthentication(token);
                         accessor.setUser(auth);
+                        System.out.println("WebSocket 인증 성공: " + auth.getName());
+                    } else {
+                        System.out.println("WebSocket 토큰 검증 실패: 유효하지 않은 토큰");
                     }
                 } catch (Exception e) {
                     // 토큰 검증 실패 시 로그만 출력하고 연결은 허용
                     System.out.println("WebSocket 토큰 검증 실패: " + e.getMessage());
                 }
+            } else {
+                System.out.println("WebSocket 연결 - 토큰 없음, 비로그인 사용자로 연결");
             }
             // 토큰이 없거나 유효하지 않아도 비로그인 사용자로 연결 허용
         }

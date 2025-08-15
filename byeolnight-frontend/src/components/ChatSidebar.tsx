@@ -96,7 +96,9 @@ export default function ChatSidebar() {
   };
 
   const handleRetryConnection = () => {
+    console.log('수동 재연결 시도');
     setError('');
+    setConnecting(true);
     chatConnector.retryConnection();
   };
 
@@ -219,8 +221,9 @@ export default function ChatSidebar() {
       });
       
       if (!chatConnector.connected) {
-        console.error('채팅 연결이 끊어졌습니다.');
-        setError('채팅 연결이 끊어졌습니다. 재연결을 시도해주세요.');
+        console.error('채팅 연결이 끊어졌습니다. 재연결 시도...');
+        setError('채팅 연결이 끊어졌습니다. 재연결 중...');
+        handleRetryConnection();
         return;
       }
       
@@ -320,7 +323,9 @@ export default function ChatSidebar() {
 
   useEffect(() => {
     loadInitialMessages();
-    initializeWebSocket();
+    if (user) {
+      initializeWebSocket();
+    }
     
     if (user) {
       checkBanStatus();
