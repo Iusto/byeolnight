@@ -20,7 +20,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<boolean>;
   refreshUserInfo: () => Promise<void>;
@@ -92,28 +92,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string, rememberMe: boolean = false) => {
+  const login = async (email: string, password: string) => {
     try {
       const loginData = { email, password };
       const res = await axios.post('/auth/login', loginData);
 
       if (res.data?.success) {
-        const safeSetRememberMe = (value: boolean) => {
-          try {
-            if (value) {
-              localStorage.setItem('rememberMe', 'true');
-              sessionStorage.setItem('rememberMe', 'true');
-            } else {
-              localStorage.removeItem('rememberMe');
-              sessionStorage.removeItem('rememberMe');
-            }
-          } catch (storageError) {
-            // Storage 접근 실패 시 무시
-          }
-        };
-        
-        safeSetRememberMe(rememberMe);
-        
+        // HttpOnly 쿠키로 토큰이 자동 저장됨
         // 로그인 성공 후 사용자 정보 조회
         await fetchMyInfo();
       } else {
@@ -131,27 +116,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       // 로그아웃 API 실패는 무시
     } finally {
-      try {
-        localStorage.removeItem('rememberMe');
-        sessionStorage.removeItem('rememberMe');
-      } catch (storageError) {
-        // Storage 접근 실패 시 무시
-      }
+      // HttpOnly 쿠키는 서버에서 자동 삭제됨
       setUser(null);
       alert("로그아웃 되었습니다.");
       navigate('/');
     }
   };
 
-  const getSafeRememberMe = (): boolean => {
-    try {
-      const localStorage_value = localStorage.getItem('rememberMe');
-      const sessionStorage_value = sessionStorage.getItem('rememberMe');
-      return localStorage_value === 'true' || sessionStorage_value === 'true';
-    } catch (storageError) {
-      return true;
-    }
-  };
+
 
   // 초기 로딩 시 로그인 상태 확인 (페이지 새로고침 시에만)
   useEffect(() => {
@@ -163,11 +135,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
   }, []);
 
-  // 주기적으로 토큰 갱신
+  // 주기적으로 토큰 갱신 (HttpOnly 쿠키 방식에서는 항상 실행)
   useEffect(() => {
-    const rememberMe = getSafeRememberMe();
-    
-    if (user && rememberMe) {
+    if (user) {
       const interval = setInterval(async () => {
         try {
           await refreshToken();

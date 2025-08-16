@@ -20,6 +20,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +42,7 @@ public class ChatController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageDto chatMessage, Principal principal, 
-                           org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
+                           StompHeaderAccessor headerAccessor) {
         log.info("채팅 메시지 수신: {}, Principal: {}", chatMessage, principal != null ? principal.getName() : "null");
         
         // IP 주소 추출

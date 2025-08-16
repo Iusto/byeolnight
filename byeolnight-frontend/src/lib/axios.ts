@@ -22,32 +22,12 @@ const instance = axios.create({
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
-// 로그인 유지 옵션 확인 (안전한 Storage 접근)
-const getRememberMeOption = (): boolean => {
-  try {
-    return localStorage.getItem('rememberMe') === 'true' || 
-           sessionStorage.getItem('rememberMe') === 'true';
-  } catch {
-    return true; // 인앱브라우저 대응
-  }
-};
-
 // 대기열 처리
 const processQueue = (error: any) => {
   failedQueue.forEach(({ resolve, reject }) => {
     error ? reject(error) : resolve(null);
   });
   failedQueue = [];
-};
-
-// Storage 정리
-const clearAuthStorage = () => {
-  try {
-    localStorage.removeItem('rememberMe');
-    sessionStorage.removeItem('rememberMe');
-  } catch {
-    // 인앱브라우저에서 Storage 접근 실패 시 무시
-  }
 };
 
 // 토큰 갱신 시도
@@ -72,7 +52,6 @@ instance.interceptors.request.use(
     }
     
     // HttpOnly 쿠키는 브라우저가 자동으로 전송 (withCredentials: true)
-    
     return config;
   },
   (error) => Promise.reject(error)
@@ -86,11 +65,6 @@ instance.interceptors.response.use(
 
     // 401 에러가 아니거나 이미 재시도한 경우
     if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
-    }
-
-    // 로그인 유지 옵션이 비활성화된 경우
-    if (!getRememberMeOption()) {
       return Promise.reject(error);
     }
 
@@ -112,7 +86,6 @@ instance.interceptors.response.use(
       return instance(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-      clearAuthStorage();
       
       // 로그인 페이지가 아닌 경우 리다이렉트
       if (window.location.pathname !== '/login') {

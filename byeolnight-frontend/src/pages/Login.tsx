@@ -23,7 +23,7 @@ export default function Login() {
     setError('')
     
     try {
-      await login(email, password, false)
+      await login(email, password)
       navigate('/', { replace: true })
     } catch (err: any) {
       setError(err.message || '로그인 실패')

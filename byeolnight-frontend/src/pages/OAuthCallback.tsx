@@ -32,11 +32,20 @@ export default function OAuthCallback() {
         }
 
         if (token) {
-          // 토큰이 있으면 AuthContext에서 자동으로 사용자 정보를 갱신하므로 대기만 함
-          setStatus('success')
-          setTimeout(() => navigate('/'), 1500)
+          // OAuth 로그인 성공 - HttpOnly 쿠키로 토큰이 자동 저장됨
+          // 사용자 정보 갱신 후 메인 페이지로 이동
+          await refreshUserInfo();
+          setStatus('success');
+          setTimeout(() => navigate('/'), 1500);
         } else {
-          throw new Error('인증 토큰이 없습니다')
+          // 토큰이 없어도 HttpOnly 쿠키로 인증될 수 있음
+          try {
+            await refreshUserInfo();
+            setStatus('success');
+            setTimeout(() => navigate('/'), 1500);
+          } catch {
+            throw new Error('인증에 실패했습니다');
+          }
         }
       } catch (err: any) {
         console.error('OAuth 콜백 처리 오류:', err)
@@ -53,13 +62,9 @@ export default function OAuthCallback() {
     if (!nickname.trim()) return
 
     try {
-      const token = searchParams.get('token')
+      // HttpOnly 쿠키로 인증되므로 Authorization 헤더 불필요
       const response = await axios.post('/auth/oauth/setup-nickname', {
         nickname: nickname.trim()
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       })
 
       if (response.data.success) {
