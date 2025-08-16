@@ -26,9 +26,12 @@ class ChatConnector {
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    // 쿠키를 수동으로 추출하여 헤더로 전송
-    const token = this.getCookieValue('accessToken');
+    // 토큰 추출 (쿠키 우선, localStorage 보조)
+    const token = this.getCookieValue('accessToken') || localStorage.getItem('accessToken');
     const connectHeaders: any = {};
+    
+    console.log('WebSocket 연결 시도:', { token: token ? '존재' : '없음', userNickname });
+    
     if (token) {
       connectHeaders['Authorization'] = `Bearer ${token}`;
     }

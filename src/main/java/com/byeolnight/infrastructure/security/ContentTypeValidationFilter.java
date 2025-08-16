@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Content-Type 검증 필터
@@ -38,6 +39,21 @@ public class ContentTypeValidationFilter extends OncePerRequestFilter {
                     "{\"success\":false,\"message\":\"지원하지 않는 콘텐츠 타입입니다. application/json을 사용해주세요.\"}"
                 );
                 return;
+            }
+            
+            // UTF-8 인코딩 검증 (JSON 요청만)
+            if (contentType.startsWith("application/json")) {
+                String encoding = request.getCharacterEncoding();
+                if (encoding != null && !"UTF-8".equalsIgnoreCase(encoding)) {
+                    log.warn("잘못된 문자 인코딩 요청: {} from {}", encoding, request.getRemoteAddr());
+                    
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write(
+                        "{\"success\":false,\"message\":\"잘못된 문자 인코딩입니다. UTF-8을 사용해주세요.\"}"
+                    );
+                    return;
+                }
             }
         }
         

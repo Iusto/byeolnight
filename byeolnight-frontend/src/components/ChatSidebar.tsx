@@ -198,7 +198,7 @@ export default function ChatSidebar() {
       return;
     }
     
-    if (!user) {
+    if (!user || !user.nickname) {
       console.log('로그인하지 않은 사용자로 인해 전송 취소');
       setError('로그인이 필요합니다.');
       return;
@@ -232,6 +232,12 @@ export default function ChatSidebar() {
         sender: user.nickname,
         message: input.trim()
       };
+      
+      console.log('메시지 전송 데이터:', messageData);
+      console.log('WebSocket 연결 상태:', {
+        connected: chatConnector.connected,
+        user: user.nickname
+      });
       
       console.log('메시지 데이터:', messageData);
       chatConnector.sendMessage(messageData);
@@ -323,9 +329,9 @@ export default function ChatSidebar() {
 
   useEffect(() => {
     loadInitialMessages();
-    if (user) {
-      initializeWebSocket();
-    }
+    
+    // 비로그인 사용자도 WebSocket 연결 허용 (읽기 전용)
+    initializeWebSocket();
     
     if (user) {
       checkBanStatus();

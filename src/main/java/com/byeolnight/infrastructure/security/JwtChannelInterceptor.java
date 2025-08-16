@@ -54,15 +54,23 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                         System.out.println("WebSocket 인증 성공: " + auth.getName());
                     } else {
                         System.out.println("WebSocket 토큰 검증 실패: 유효하지 않은 토큰");
+                        // 유효하지 않은 토큰이라도 비로그인 사용자로 연결 허용
                     }
                 } catch (Exception e) {
                     System.out.println("WebSocket 토큰 검증 실패: " + e.getMessage());
+                    // 예외 발생 시도 비로그인 사용자로 연결 허용
                 }
             } else {
                 System.out.println("WebSocket 연결 - 토큰 없음, 비로그인 사용자로 연결");
             }
         }
 
+        // 연결 성공 로그
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            System.out.println("WebSocket CONNECT 완료 - User: " + 
+                (accessor.getUser() != null ? accessor.getUser().getName() : "비로그인"));
+        }
+        
         return message;
     }
     
@@ -83,11 +91,20 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             for (String cookie : cookies) {
                 String[] parts = cookie.trim().split("=", 2);
                 if (parts.length == 2 && "accessToken".equals(parts[0])) {
-                    System.out.println("accessToken 쿠키 발견: " + parts[1].substring(0, Math.min(20, parts[1].length())) + "...");
-                    return parts[1];
+                    String token = parts[1];
+                    System.out.println("accessToken 쿠키 발견: " + token.substring(0, Math.min(20, token.length())) + "...");
+                    return token;
                 }
             }
         }
+        
+        // 쿠키에서 찾지 못한 경우 추가 헤더 확인
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            System.out.println("Authorization 헤더에서 토큰 발견");
+            return authHeader.substring(7);
+        }
+        
         return null;
     }
     

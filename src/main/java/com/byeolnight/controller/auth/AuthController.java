@@ -86,8 +86,13 @@ public class AuthController {
             }
 
             String email = jwtTokenProvider.getEmail(refreshToken);
+            log.debug("토큰 재발급 요청 - 이메일: {}", email);
+            
             User user = userService.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+                    .orElseThrow(() -> {
+                        log.warn("토큰 재발급 실패 - 사용자 없음: {}", email);
+                        return new IllegalArgumentException("해당 사용자를 찾을 수 없습니다.");
+                    });
 
             auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(email, 
                     IpUtil.getClientIp(request), request.getHeader("User-Agent")));
@@ -107,6 +112,10 @@ public class AuthController {
                     .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                     .body(CommonResponse.success(tokenResponse));
 
+        } catch (IllegalArgumentException e) {
+            log.error("토큰 재발급 오류 - 사용자 없음: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(CommonResponse.fail("인증 정보가 유효하지 않습니다. 다시 로그인해주세요."));
         } catch (Exception e) {
             log.error("토큰 재발급 오류", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
