@@ -127,8 +127,23 @@ public class JwtTokenProvider {
     }
 
     public org.springframework.security.core.Authentication getAuthentication(String token) {
-        // 임시 구현 - 실제로는 UserDetailsService 사용
-        return null;
+        try {
+            Long userId = getUserIdFromToken(token);
+            
+            // UserService를 통해 User 조회
+            com.byeolnight.service.user.UserService userService = 
+                com.byeolnight.infrastructure.config.ApplicationContextProvider.getBean(com.byeolnight.service.user.UserService.class);
+            
+            com.byeolnight.entity.user.User user = userService.findById(userId);
+            
+            // UsernamePasswordAuthenticationToken 생성
+            return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                user, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+            );
+        } catch (Exception e) {
+            log.error("토큰에서 Authentication 생성 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
     public Long getUserIdFromRequest(jakarta.servlet.http.HttpServletRequest request) {

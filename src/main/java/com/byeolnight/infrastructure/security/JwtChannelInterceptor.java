@@ -38,11 +38,8 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
             }
             
-            // 토큰 추출: 핸드셰이크 세션 -> Authorization 헤더 -> 쿠키 순서
-            String token = (String) accessor.getSessionAttributes().get("token");
-            if (token == null) {
-                token = extractTokenFromHeader(accessor);
-            }
+            // 토큰 추출: Authorization 헤더 -> 쿠키 순서
+            String token = extractTokenFromHeader(accessor);
             if (token == null) {
                 token = extractTokenFromCookie(accessor);
             }
@@ -130,30 +127,5 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
         
         return "unknown";
-    }
-    
-    private String extractTokenFromUrl(StompHeaderAccessor accessor) {
-        try {
-            // WebSocket URL에서 토큰 추출
-            String destination = accessor.getDestination();
-            if (destination != null && destination.contains("token=")) {
-                String[] parts = destination.split("token=");
-                if (parts.length > 1) {
-                    String token = parts[1].split("&")[0]; // 다른 파라미터가 있을 경우 처리
-                    System.out.println("URL 파라미터에서 토큰 발견: " + token.substring(0, Math.min(20, token.length())) + "...");
-                    return java.net.URLDecoder.decode(token, "UTF-8");
-                }
-            }
-            
-            // SockJS 연결 정보에서 토큰 추출 시도
-            Object nativeHeaders = accessor.getSessionAttributes().get("token");
-            if (nativeHeaders != null) {
-                System.out.println("세션에서 토큰 발견");
-                return nativeHeaders.toString();
-            }
-        } catch (Exception e) {
-            System.out.println("URL 토큰 추출 실패: " + e.getMessage());
-        }
-        return null;
     }
 }

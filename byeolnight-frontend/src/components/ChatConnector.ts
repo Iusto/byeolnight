@@ -36,11 +36,8 @@ class ChatConnector {
       connectHeaders['Authorization'] = `Bearer ${token}`;
     }
     
-    // URL 파라미터로 토큰 전달
-    const finalWsUrl = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
-    
     this.client = new Client({
-      webSocketFactory: () => new SockJS(finalWsUrl),
+      webSocketFactory: () => new SockJS(wsUrl),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
