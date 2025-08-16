@@ -358,15 +358,25 @@ export default function ChatSidebar() {
       <div className="bg-[#1f2336]/70 backdrop-blur-md p-4 rounded-xl h-[600px] flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-purple-300">💬 {t('home.chat.realtime_chat')}</h3>
-          {isAdmin && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAdminDashboard(!showAdminDashboard)}
-              className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors"
-              title={t('home.chat.admin_dashboard')}
+              onClick={handleRetryConnection}
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors flex items-center gap-1"
+              title="채팅 재연결"
+              disabled={connecting}
             >
-              🛡️ {t('home.chat.admin')}
+              🔄 재연결
             </button>
-          )}
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdminDashboard(!showAdminDashboard)}
+                className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors"
+                title={t('home.chat.admin_dashboard')}
+              >
+                🛡️ {t('home.chat.admin')}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden">
