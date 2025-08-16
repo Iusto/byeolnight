@@ -30,11 +30,6 @@ git remote add upstream https://github.com/original-owner/byeolnight.git
 # 3. 개발 환경 설정
 cp .env.example .env
 # .env 파일을 개발용 설정으로 수정
-
-# 4. 로컬 환경 실행
-./run-local.bat  # Windows
-# 또는
-./run-local.sh   # Linux/Mac
 ```
 
 ### 2. 브랜치 전략
