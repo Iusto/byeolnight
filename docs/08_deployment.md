@@ -32,11 +32,6 @@ cd byeolnight
 # 2. 환경변수 설정
 cp .env.example .env
 # .env 파일을 열어서 실제 값들로 수정
-
-# 3. 로컬 개발 환경 실행 (권장)
-./run-local.bat  # Windows
-# 또는
-chmod +x run-local.sh && ./run-local.sh  # Linux/Mac
 ```
 
 ### 3. 환경변수 설정 (.env 파일)
