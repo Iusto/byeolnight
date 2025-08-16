@@ -44,7 +44,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 token = extractTokenFromCookie(accessor);
             }
             
-            System.out.println("토큰 추출 결과: " + (token != null ? "성공" : "실패"));
+            if (token != null) {
+                System.out.println("토큰 추출 성공");
+            }
             
             System.out.println("WebSocket 연결 - 토큰: " + (token != null ? "존재" : "없음"));
             
