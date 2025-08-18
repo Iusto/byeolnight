@@ -142,13 +142,21 @@ class ChatConnector {
   async retryConnection() {
     console.log('ChatConnector.retryConnection 호출');
     this.retryCount = 0;
-    this.disconnect();
     
-    // 즉시 재연결 시도
-    if (this.callbacks) {
-      console.log('재연결 시도 시작');
-      await this.connect(this.callbacks, this.userNickname);
+    // 기존 연결 정리
+    if (this.client) {
+      this.client.deactivate();
+      this.client = null;
     }
+    this.isConnected = false;
+    
+    // 연결 해제 완료 대기 후 재연결
+    setTimeout(async () => {
+      if (this.callbacks) {
+        console.log('재연결 시도 시작');
+        await this.connect(this.callbacks, this.userNickname);
+      }
+    }, 500);
   }
 
   // WebSocket Handshake에서 HttpOnly 쿠키 자동 처리
