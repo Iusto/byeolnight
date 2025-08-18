@@ -27,19 +27,13 @@ export default function OAuthCallback() {
 
         if (token) {
           // OAuth 로그인 성공 - HttpOnly 쿠키로 토큰이 자동 저장됨
-          // 사용자 정보 갱신 후 메인 페이지로 이동
-          await refreshUserInfo();
+          // AuthContext에서 자동으로 사용자 정보를 로드하므로 즉시 리다이렉트
           setStatus('success');
-          setTimeout(() => navigate('/'), 1500);
+          setTimeout(() => navigate('/'), 800);
         } else {
           // 토큰이 없어도 HttpOnly 쿠키로 인증될 수 있음
-          try {
-            await refreshUserInfo();
-            setStatus('success');
-            setTimeout(() => navigate('/'), 1500);
-          } catch {
-            throw new Error('인증에 실패했습니다');
-          }
+          setStatus('success');
+          setTimeout(() => navigate('/'), 800);
         }
       } catch (err: any) {
         console.error('OAuth 콜백 처리 오류:', err)

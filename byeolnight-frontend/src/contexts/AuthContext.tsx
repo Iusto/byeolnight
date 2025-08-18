@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const res = await axios.post('/auth/token/refresh');
       
       if (res.data?.success) {
-        await fetchMyInfo();
+        // 토큰 갱신 성공 시 사용자 정보는 필요시에만 로드
         return true;
       }
       return false;
@@ -136,7 +136,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       const interval = setInterval(async () => {
         try {
-          await refreshToken();
+          const success = await refreshToken();
+          // 토큰 갱신 실패 시에만 사용자 정보 재로드
+          if (!success) {
+            setUser(null);
+          }
         } catch (refreshError) {
           // 토큰 갱신 실패 시 무시
         }
