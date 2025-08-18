@@ -7,9 +7,8 @@ export default function OAuthCallback() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { refreshUserInfo } = useAuth()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'nickname_required'>('loading')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState('')
-  const [nickname, setNickname] = useState('')
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -24,12 +23,7 @@ export default function OAuthCallback() {
           return
         }
 
-        if (needsNickname === 'true' && token) {
-          // 닉네임 설정 페이지로 리다이렉트
-          const userId = searchParams.get('userId')
-          navigate(`/oauth/setup-nickname?userId=${userId}&token=${token}`)
-          return
-        }
+
 
         if (token) {
           // OAuth 로그인 성공 - HttpOnly 쿠키로 토큰이 자동 저장됨
@@ -57,26 +51,7 @@ export default function OAuthCallback() {
     handleOAuthCallback()
   }, [searchParams, navigate, refreshUserInfo])
 
-  const handleNicknameSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!nickname.trim()) return
 
-    try {
-      // HttpOnly 쿠키로 인증되므로 Authorization 헤더 불필요
-      const response = await axios.post('/auth/oauth/setup-nickname', {
-        nickname: nickname.trim()
-      })
-
-      if (response.data.success) {
-        setStatus('success')
-        setTimeout(() => navigate('/'), 1500)
-      } else {
-        setError(response.data.message || '닉네임 설정에 실패했습니다')
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || '닉네임 설정 중 오류가 발생했습니다')
-    }
-  }
 
   if (status === 'loading') {
     return (
@@ -89,49 +64,7 @@ export default function OAuthCallback() {
     )
   }
 
-  if (status === 'nickname_required') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
-          <h2 className="text-2xl font-bold text-center mb-6">닉네임 설정</h2>
-          <p className="text-gray-300 text-center mb-6">
-            별 헤는 밤에 오신 것을 환영합니다!<br/>
-            사용하실 닉네임을 설정해주세요.
-          </p>
-          
-          <form onSubmit={handleNicknameSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="닉네임을 입력하세요"
-              className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={20}
-              required
-            />
-            
-            {error && (
-              <div className="text-sm text-red-400 text-center">
-                {error}
-              </div>
-            )}
-            
-            <button
-              type="submit"
-              disabled={!nickname.trim()}
-              className={`w-full py-2 rounded transition-colors ${
-                !nickname.trim()
-                  ? 'bg-gray-600 cursor-not-allowed text-gray-400'
-                  : 'bg-purple-700 hover:bg-purple-800 text-white'
-              }`}
-            >
-              닉네임 설정 완료
-            </button>
-          </form>
-        </div>
-      </div>
-    )
-  }
+
 
   if (status === 'success') {
     return (

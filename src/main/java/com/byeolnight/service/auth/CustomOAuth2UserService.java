@@ -175,13 +175,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private String generateUniqueNickname(String baseNickname) {
         String normalizedNickname = normalizeNickname(baseNickname);
         
+        // 기본 닉네임이 사용 가능하면 그대로 사용
         if (!userRepository.existsByNickname(normalizedNickname)) {
             return normalizedNickname;
         }
         
-        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 4);
-        String prefix = normalizedNickname.length() > 3 ? normalizedNickname.substring(0, 3) : normalizedNickname;
-        return prefix + uniqueSuffix;
+        // 중복된 경우 최대 10번 시도하여 고유한 닉네임 생성
+        for (int attempt = 1; attempt <= 10; attempt++) {
+            String uniqueSuffix = UUID.randomUUID().toString().substring(0, 4);
+            String prefix = normalizedNickname.length() > 4 ? normalizedNickname.substring(0, 4) : normalizedNickname;
+            String candidateNickname = prefix + uniqueSuffix;
+            
+            if (!userRepository.existsByNickname(candidateNickname)) {
+                log.info("고유 닉네임 생성 완료: {} -> {} (시도 횟수: {})", baseNickname, candidateNickname, attempt);
+                return candidateNickname;
+            }
+        }
+        
+        // 10번 시도해도 실패한 경우 타임스탬프 기반 닉네임 생성
+        String timestampNickname = "사용자" + System.currentTimeMillis() % 100000;
+        log.warn("닉네임 생성 최대 시도 초과, 타임스탬프 기반 닉네임 사용: {}", timestampNickname);
+        return timestampNickname;
     }
     
     private String normalizeNickname(String nickname) {

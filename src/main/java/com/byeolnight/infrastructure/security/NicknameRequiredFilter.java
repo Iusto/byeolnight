@@ -34,9 +34,8 @@ public class NicknameRequiredFilter extends OncePerRequestFilter {
                 if (user != null && (user.getNickname() == null || user.getNickname().trim().isEmpty())) {
                     String requestURI = request.getRequestURI();
                     
-                    // 닉네임 설정 API는 허용
-                    if (!requestURI.equals("/auth/oauth/setup-nickname") && 
-                        !requestURI.startsWith("/auth/") &&
+                    // 인증 및 공개 API는 허용
+                    if (!requestURI.startsWith("/auth/") &&
                         !requestURI.startsWith("/public/")) {
                         
                         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
