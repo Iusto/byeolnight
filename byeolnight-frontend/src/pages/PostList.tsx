@@ -1225,45 +1225,41 @@ export default function PostList() {
           <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-purple-500/20 shadow-lg">
             <form onSubmit={handleSearch} className="space-y-4">
               {/* 검색 입력 영역 - 한 줄 배치 */}
-              <div className="flex gap-2 sm:gap-3">
-                {/* 검색 유형 선택 */}
+              <div className="flex gap-1 sm:gap-2">
                 <select
                   value={searchTypeInput}
                   onChange={(e) => setSearchTypeInput(e.target.value)}
-                  className="bg-slate-700/50 text-white rounded-xl px-3 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 min-w-[100px] sm:min-w-[120px]"
+                  className="bg-slate-700/50 text-white rounded-lg px-2 py-3 text-xs sm:text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 w-16 sm:w-auto sm:min-w-[100px]"
                   aria-label="검색 유형 선택"
                 >
-                  <option value="title">{t('post.title')}</option>
-                  <option value="content">{t('post.content')}</option>
-                  <option value="titleAndContent">{t('home.title_content')}</option>
-                  <option value="writer">{t('home.writer')}</option>
+                  <option value="title">제목</option>
+                  <option value="content">내용</option>
+                  <option value="titleAndContent">제목+내용</option>
+                  <option value="writer">작성자</option>
                 </select>
                 
-                {/* 검색어 입력 */}
                 <input
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={t('home.search_placeholder')}
-                  className="flex-1 bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+                  placeholder="검색어 입력"
+                  className="flex-1 bg-slate-700/50 text-white rounded-lg px-3 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
                   aria-label="검색어 입력"
                 />
                 
-                {/* 검색 버튼 */}
                 <button
                   type="submit"
-                  className="px-4 sm:px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 whitespace-nowrap"
+                  className="px-3 sm:px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap"
                   aria-label="검색 실행"
                 >
-                  🔍 {t('common.search')}
+                  🔍
                 </button>
                 
-                {/* 초기화 버튼 (검색어가 있을 때만 표시) */}
-                {searchKeyword && (
+{(searchKeyword || searchInput) && (
                   <button
                     type="button"
                     onClick={handleSearchReset}
-                    className="px-3 sm:px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap"
+                    className="px-2 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-all duration-200"
                     aria-label="검색 초기화"
                   >
                     ✕
