@@ -4,6 +4,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import axios from '../lib/axios';
 import AdminChatControls from './AdminChatControls';
 import AdminChatModal from './AdminChatModal';
+import EmojiPicker from './EmojiPicker';
 import chatConnector from './ChatConnector';
 
 interface ChatMessage {
@@ -479,7 +480,7 @@ export default function ChatSidebar() {
         )}
 
         {user ? (
-          <div className="flex">
+          <div className="flex items-end">
             <input
               type="text"
               className={`flex-1 px-3 py-2 rounded-l text-white placeholder-gray-400 ${
@@ -492,6 +493,10 @@ export default function ChatSidebar() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
+            />
+            <EmojiPicker
+              onEmojiSelect={(emoji) => setInput(prev => prev + emoji)}
+              className="border-l-0"
             />
             <button
               onClick={sendMessage}

@@ -332,7 +332,7 @@ export default function Profile() {
   };
 
   const getTabClassName = (tabName: string, isActive: boolean) => {
-    const baseClasses = 'py-3 px-4 rounded-md transition-all font-medium whitespace-nowrap';
+    const baseClasses = 'py-3 px-2 sm:px-4 rounded-md transition-all font-medium whitespace-nowrap text-sm sm:text-base min-w-[44px] flex items-center justify-center';
     if (isActive) {
       return `${baseClasses} bg-purple-600 text-white`;
     }
@@ -340,7 +340,7 @@ export default function Profile() {
   };
 
   const getMessageTabClassName = (tabName: string, isActive: boolean) => {
-    const baseClasses = 'flex-1 py-2 px-4 rounded-md transition-all text-sm';
+    const baseClasses = 'flex-1 py-3 px-2 sm:px-4 rounded-md transition-all text-xs sm:text-sm min-h-[44px] flex items-center justify-center';
     if (isActive) {
       return `${baseClasses} bg-blue-600 text-white`;
     }
@@ -395,42 +395,48 @@ export default function Profile() {
             </Link>
           </div>
 
-          <div className="flex space-x-1 bg-[#2a2e45] bg-opacity-60 rounded-lg p-1 overflow-x-auto">
+          <div className="flex space-x-1 bg-[#2a2e45] bg-opacity-60 rounded-lg p-1 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('info')}
               className={getTabClassName('info', activeTab === 'info')}
             >
-              📋 기본정보
+              <span className="block sm:hidden">📋</span>
+              <span className="hidden sm:block">📋 기본정보</span>
             </button>
             <button
               onClick={() => setActiveTab('posts')}
               className={getTabClassName('posts', activeTab === 'posts')}
             >
-              📝 내게시글
+              <span className="block sm:hidden">📝</span>
+              <span className="hidden sm:block">📝 내게시글</span>
             </button>
             <button
               onClick={() => setActiveTab('comments')}
               className={getTabClassName('comments', activeTab === 'comments')}
             >
-              💬 내댓글
+              <span className="block sm:hidden">💬</span>
+              <span className="hidden sm:block">💬 내댓글</span>
             </button>
             <button
               onClick={() => setActiveTab('icons')}
               className={getTabClassName('icons', activeTab === 'icons')}
             >
-              🎨 내아이콘
+              <span className="block sm:hidden">🎨</span>
+              <span className="hidden sm:block">🎨 내아이콘</span>
             </button>
             <button
               onClick={() => setActiveTab('messages')}
               className={getTabClassName('messages', activeTab === 'messages')}
             >
-              📩 쪽지함
+              <span className="block sm:hidden">📩</span>
+              <span className="hidden sm:block">📩 쪽지함</span>
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
               className={getTabClassName('notifications', activeTab === 'notifications')}
             >
-              🔔 알림
+              <span className="block sm:hidden">🔔</span>
+              <span className="hidden sm:block">🔔 알림</span>
             </button>
           </div>
         </div>
@@ -439,7 +445,7 @@ export default function Profile() {
           {activeTab === 'info' && profile && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-white mb-6">📋 기본 정보</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-6">
                   <h3 className="text-lg font-bold text-white mb-4">🔐 계정 정보</h3>
                   <div className="space-y-4">
@@ -467,7 +473,7 @@ export default function Profile() {
 
                 <div className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-6">
                   <h3 className="text-lg font-bold text-white mb-4">✨ 활동 정보</h3>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div className="flex items-center justify-between p-4 bg-[#1f2336] bg-opacity-60 rounded-lg">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span className="text-2xl flex-shrink-0">✨</span>
@@ -663,12 +669,12 @@ export default function Profile() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {icons.map((icon) => (
                     <div
                       key={icon.id}
                       className={[
-                        'relative p-4 rounded-lg text-center transition-all min-h-[180px] flex flex-col justify-between',
+                        'relative p-4 rounded-lg text-center transition-all min-h-[160px] sm:min-h-[180px] flex flex-col justify-between',
                         icon.equipped
                           ? 'bg-purple-600 bg-opacity-30 border-2 border-purple-400'
                           : 'bg-[#2a2e45] bg-opacity-60 hover:bg-[#2a2e45] hover:bg-opacity-80'
@@ -685,7 +691,7 @@ export default function Profile() {
                         onClick={() => handleIconEquip(icon.id)}
                         disabled={iconLoading === icon.id}
                         className={[
-                          'w-full py-2 px-2 text-xs rounded transition-colors font-medium',
+                          'w-full py-3 px-2 text-xs sm:text-sm rounded transition-colors font-medium min-h-[44px] flex items-center justify-center',
                           icon.equipped
                             ? 'bg-red-600 bg-opacity-20 text-red-400 hover:bg-red-600 hover:bg-opacity-30'
                             : 'bg-purple-600 bg-opacity-20 text-purple-400 hover:bg-purple-600 hover:bg-opacity-30',
@@ -724,13 +730,15 @@ export default function Profile() {
                   onClick={() => setMessageTab('received')}
                   className={getMessageTabClassName('received', messageTab === 'received')}
                 >
-                  📥 받은 쪽지 ({receivedMessages.totalCount})
+                  <span className="block sm:hidden">📥 ({receivedMessages.totalCount})</span>
+                  <span className="hidden sm:block">📥 받은 쪽지 ({receivedMessages.totalCount})</span>
                 </button>
                 <button
                   onClick={() => setMessageTab('sent')}
                   className={getMessageTabClassName('sent', messageTab === 'sent')}
                 >
-                  📤 보낸 쪽지 ({sentMessages.totalCount})
+                  <span className="block sm:hidden">📤 ({sentMessages.totalCount})</span>
+                  <span className="hidden sm:block">📤 보낸 쪽지 ({sentMessages.totalCount})</span>
                 </button>
               </div>
 
@@ -751,7 +759,7 @@ export default function Profile() {
                         key={message.id}
                         onClick={() => handleMessageClick(message)}
                         className={[
-                          'bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors cursor-pointer',
+                          'bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors cursor-pointer min-h-[80px] flex flex-col justify-between',
                           !message.isRead ? 'border-l-4 border-blue-500' : ''
                         ].join(' ')}
                       >
@@ -768,7 +776,7 @@ export default function Profile() {
                             </span>
                             <button
                               onClick={(e) => handleDeleteMessage(message.id, e)}
-                              className="p-1 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0"
+                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="쪽지 삭제"
                             >
                               ✕
@@ -807,7 +815,7 @@ export default function Profile() {
                             </span>
                             <button
                               onClick={(e) => handleDeleteMessage(message.id, e)}
-                              className="p-1 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0"
+                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="쪽지 삭제"
                             >
                               ✕
@@ -894,7 +902,7 @@ export default function Profile() {
                         </div>
                         <button
                           onClick={(e) => handleDeleteNotification(notification.id, e)}
-                          className="ml-2 p-1 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0"
+                          className="ml-2 p-2 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                           title="알림 삭제"
                         >
                           ✕
@@ -910,17 +918,17 @@ export default function Profile() {
         
         {selectedMessage && (
           <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#1f2336] bg-opacity-95 backdrop-blur-md rounded-xl border border-purple-500 border-opacity-20 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b border-purple-500 border-opacity-20">
-                <h2 className="text-xl font-bold text-white">📩 쪽지 상세</h2>
+            <div className="bg-[#1f2336] bg-opacity-95 backdrop-blur-md rounded-xl border border-purple-500 border-opacity-20 w-full max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-purple-500 border-opacity-20">
+                <h2 className="text-lg sm:text-xl font-bold text-white">📩 쪽지 상세</h2>
                 <button
                   onClick={() => setSelectedMessage(null)}
-                  className="p-2 hover:bg-purple-600 hover:bg-opacity-20 rounded-lg transition-colors text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-purple-600 hover:bg-opacity-20 rounded-lg transition-colors text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   ✕
                 </button>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-4 sm:p-6 space-y-4">
                 <div>
                   <h3 className="text-lg font-bold text-white mb-2">{selectedMessage.title}</h3>
                   <div className="text-sm text-gray-400 space-y-1">

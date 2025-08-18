@@ -21,9 +21,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
-                .addInterceptors(handshakeInterceptor) // HttpOnly 쿠키 처리
-                .withSockJS()
-                .setSessionCookieNeeded(false);
+                .addInterceptors(handshakeInterceptor); // HttpOnly 쿠키 처리
     }
 
     @Override

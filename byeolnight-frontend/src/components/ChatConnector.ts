@@ -1,4 +1,3 @@
-import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
 interface ChatConnectorCallbacks {
@@ -29,7 +28,7 @@ class ChatConnector {
     console.log('WebSocket 연결 시도:', { userNickname });
     
     this.client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      brokerURL: wsUrl.startsWith('http') ? wsUrl.replace(/^http/, 'ws') : `ws://localhost:8080${wsUrl}`,
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -138,35 +137,15 @@ class ChatConnector {
   }
 
   async retryConnection() {
-    console.log('ChatConnector.retryConnection 호출 - JWT 토큰 갱신 후 재연결');
+    console.log('ChatConnector.retryConnection 호출');
     this.retryCount = 0;
-    this.disconnect(); // 기존 연결 완전 종료
+    this.disconnect();
     
-    // 잠시 대기 후 재연결 시도 (최신 JWT 토큰으로)
-    setTimeout(async () => {
-      if (this.callbacks) {
-        console.log('재연결 시도 시작 - 최신 JWT 토큰으로 연결');
-        
-        // 토큰 갱신 시도
-        try {
-          const refreshResponse = await fetch('/api/auth/token/refresh', {
-            method: 'POST',
-            credentials: 'include'
-          });
-          
-          if (refreshResponse.ok) {
-            console.log('토큰 갱신 성공, WebSocket 재연결 시도');
-          } else {
-            console.log('토큰 갱신 실패, 기존 토큰으로 재연결 시도');
-          }
-        } catch (error) {
-          console.log('토큰 갱신 오류, 기존 토큰으로 재연결 시도:', error);
-        }
-        
-        // 최신 인증 상태로 재연결
-        await this.connect(this.callbacks, this.userNickname);
-      }
-    }, 1000);
+    // 즉시 재연결 시도
+    if (this.callbacks) {
+      console.log('재연결 시도 시작');
+      await this.connect(this.callbacks, this.userNickname);
+    }
   }
 
   // WebSocket Handshake에서 HttpOnly 쿠키 자동 처리

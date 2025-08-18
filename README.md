@@ -29,13 +29,13 @@
 ## 🚀 주요 기능
 
 ### 💬 실시간 커뮤니케이션
-- **채팅 시스템**: WebSocket(STOMP) 기반 실시간 공개 채팅, 하트비트 + 재연결로 99% 안정성
+- **채팅 시스템**: Native WebSocket(STOMP) + HttpOnly 쿠키 인증 기반 실시간 공개 채팅, 하트비트 + 재연결로 99% 안정성
 - **쪽지 시스템**: 1:1 개인 메시지, Soft Delete, 자동 정리, 읽음 상태 관리
 - **알림 시스템**: 실시간 알림 + 브라우저 네이티브 알림, 인앱 브라우저 호환성 100%
 
 ### 🔐 강화된 보안
 - **이메일 인증**: HTML 템플릿 + 8자리 영숫자 코드, 재시도 로직, 시도 횟수 제한 (5회/10분)
-- **JWT + Redis**: 토큰 자동 갱신, 탈취 감지, 계정 잠금, 데이터 손실 95% 감소
+- **JWT + HttpOnly 쿠키 + Redis**: 토큰 자동 갱신, 블랙리스트 관리, 탈취 감지, 데이터 손실 95% 감소
 - **이미지 검열**: Google Vision API 기반 부적절 콘텐츠 자동 차단
 - **동시성 제어**: Redis 분산 락으로 포인트 중복 지급 99% 해결
 - **소셜 연동 보안**: 연동 해제 실시간 감지, 즉시 탈퇴 + 30일 복구, 플랫폼별 API 연동 해제
@@ -100,7 +100,7 @@
 - **MySQL 8.0** + **Redis 7.0** - 데이터 저장, 캐싱, 분산 락
 - **Redisson** - Redis 기반 분산 락으로 동시성 제어
 - **AWS S3** - Presigned URL 기반 파일 업로드
-- **WebSocket (STOMP)** - 실시간 양방향 통신
+- **Native WebSocket (STOMP) + HttpOnly 쿠키** - 실시간 양방향 통신, 보안 강화된 인증
 - **Spring Scheduling** - 뉴스 수집, 데이터 정리 자동화
 - **Swagger UI** - 완전한 API 문서화, 상세한 파라미터 설명 및 예시 제공
 
@@ -108,7 +108,7 @@
 - **React 18** + **TypeScript** - 컴포넌트 기반 UI, 타입 안전성
 - **Vite** + **TailwindCSS** - 빠른 개발 서버, 유틸리티 우선 스타일링
 - **React Router DOM v7** - 클라이언트 사이드 라우팅
-- **Axios** + **SockJS/STOMP** - HTTP 통신 및 WebSocket 연결
+- **Axios** + **Native WebSocket/STOMP** - HTTP 통신 및 WebSocket 연결
 - **React i18next** - 다국어 지원 (한국어, 영어, 일본어)
 - **Toast UI Editor** - 마크다운 기반 에디터
 
@@ -265,7 +265,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 
 ### 설정 및 보안
 - **중앙화된 설정**: 50+ 암호화된 설정 항목
-- **JWT 토큰**: Access Token (30분) + Refresh Token (7일)
+- **JWT + Redis**: Access Token (30분) + Refresh Token (7일), HttpOnly 쿠키 + 블랙리스트 관리
 - **Redis 캐시**: 인증 토큰, 세션, 분산 락
 - **파일 업로드**: S3 Presigned URL (서버 부하 33% 감소)
 - **계정 보존**: 탈퇴/밴 계정 5년 보존 후 완전 삭제 (개인정보보호법 준수)
