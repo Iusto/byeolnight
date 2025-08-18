@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from '../lib/axios';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 interface AdminChatStats {
   totalMessages: number;
@@ -53,12 +52,8 @@ const AdminChatTable: React.FC = () => {
   }, []);
 
   const connectWebSocket = () => {
-    const socket = new SockJS(import.meta.env.VITE_WS_URL || '/ws');
     const client = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
-      },
+      brokerURL: (import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws').replace('http', 'ws'),
       onConnect: () => {
         client.subscribe('/topic/admin/chat-update', (message) => {
           const data = JSON.parse(message.body);

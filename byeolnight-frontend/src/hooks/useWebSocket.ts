@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 export const useWebSocket = (onNotification?: (notification: any) => void) => {
   const clientRef = useRef<Client | null>(null);
@@ -12,7 +11,7 @@ export const useWebSocket = (onNotification?: (notification: any) => void) => {
     const connect = () => {
       try {
         const client = new Client({
-          webSocketFactory: () => new SockJS('/ws'),
+          brokerURL: (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws',
           connectHeaders: {},
           reconnectDelay: 5000,
           heartbeatIncoming: 4000,

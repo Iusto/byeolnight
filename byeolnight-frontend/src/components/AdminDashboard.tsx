@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../lib/axios';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 // 관리자 기능 타입 정의
 interface AdminChatStats {
@@ -61,13 +60,9 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const connectWebSocket = () => {
-    const wsUrl = import.meta.env.VITE_WS_URL || (window.location.protocol === 'https:' ? 'https://byeolnight.com/ws' : 'http://localhost:8080/ws');
-    const socket = new SockJS(wsUrl);
+    const wsUrl = import.meta.env.VITE_WS_URL || (window.location.protocol === 'https:' ? 'wss://byeolnight.com/ws' : 'ws://localhost:8080/ws');
     const client = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
-      },
+      brokerURL: wsUrl,
       onConnect: () => {
         // 관리자 알림 구독
         client.subscribe('/topic/admin/chat-update', (message) => {
