@@ -66,11 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(userData);
       return true;
     } catch (err: any) {
-      if (err?.response?.status === 401) {
-        setUser(null);
-        return false;
-      }
-      
+      // 401 에러는 비로그인 상태로 처리 (정상)
       setUser(null);
       return false;
     } finally {

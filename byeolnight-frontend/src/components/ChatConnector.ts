@@ -22,13 +22,16 @@ class ChatConnector {
     }
 
     this.callbacks = callbacks;
-    const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    // HttpOnly 쿠키가 WebSocket Handshake에서 자동으로 처리됨
-    console.log('WebSocket 연결 시도:', { userNickname });
+    // Docker 빌드 시 설정된 환경변수 사용
+    const wsUrl = import.meta.env.VITE_WS_URL || 
+      (window.location.hostname === 'localhost' ? 'ws://localhost:8080/ws' : 
+       `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+    
+    console.log('WebSocket 연결 시도:', { wsUrl, userNickname });
     
     this.client = new Client({
-      brokerURL: wsUrl.startsWith('http') ? wsUrl.replace(/^http/, 'ws') : `ws://localhost:8080${wsUrl}`,
+      brokerURL: wsUrl,
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,

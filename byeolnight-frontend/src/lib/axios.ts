@@ -1,11 +1,9 @@
 import axios from 'axios';
 
 // API 기본 URL 설정
-// 개발: .env.local 파일 사용
-// 배포: 상대 경로 사용 (같은 도메인)
-const API_BASE_URL = import.meta.env.DEV 
-  ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080')
-  : '/api';
+// Docker 빌드 시 설정된 환경변수 사용
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '/api');
 const REQUEST_TIMEOUT = 30000;
 
 // Axios 인스턴스 생성
@@ -87,8 +85,15 @@ instance.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError);
       
-      // 로그인 페이지가 아닌 경우 리다이렉트
-      if (window.location.pathname !== '/login') {
+      // 공개 페이지에서는 리다이렉트하지 않음
+      const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password'];
+      const currentPath = window.location.pathname;
+      const isPublicPath = publicPaths.some(path => 
+        currentPath === path || currentPath.startsWith('/posts/')
+      );
+      
+      // 비공개 페이지에서만 로그인 페이지로 리다이렉트
+      if (!isPublicPath && currentPath !== '/login') {
         window.location.href = '/login';
       }
       
