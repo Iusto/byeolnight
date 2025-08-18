@@ -849,90 +849,90 @@ export default function PostList() {
           <p className="text-gray-300 text-xs sm:text-sm mb-4 sm:mb-6 px-4">{t('home.explore_boards_desc')}</p>
           <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
           <Link to="/posts?category=NEWS&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-blue-600/70 to-cyan-600/70 hover:from-blue-600/90 hover:to-cyan-600/90 active:from-blue-700/90 active:to-cyan-700/90 rounded-xl border border-blue-500/50 hover:border-blue-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-blue-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="absolute top-1 right-1">
-                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-md">🤖</span>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-blue-600/70 to-cyan-600/70 hover:from-blue-600/90 hover:to-cyan-600/90 active:from-blue-700/90 active:to-cyan-700/90 rounded-lg sm:rounded-xl border border-blue-500/50 hover:border-blue-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-blue-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1">
+                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🚀</div>
               </div>
-              <div className="text-sm font-bold text-blue-100 mb-1">{t('home.space_news')}</div>
-              <div className="text-xs text-blue-300 bg-blue-500/20 rounded-full py-1 px-2 inline-block">{t('home.news_auto')}</div>
+              <div className="text-xs sm:text-sm font-bold text-blue-100 mb-1 leading-tight">{t('home.space_news')}</div>
+              <div className="text-xs text-blue-300 bg-blue-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.news_auto')}</div>
             </div>
           </Link>
           <Link to="/posts?category=DISCUSSION&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-green-600/70 to-emerald-600/70 hover:from-green-600/90 hover:to-emerald-600/90 active:from-green-700/90 active:to-emerald-700/90 rounded-xl border border-green-500/50 hover:border-green-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-green-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="absolute top-1 right-1">
-                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-md">🤖</span>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-green-600/70 to-emerald-600/70 hover:from-green-600/90 hover:to-emerald-600/90 active:from-green-700/90 active:to-emerald-700/90 rounded-lg sm:rounded-xl border border-green-500/50 hover:border-green-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-green-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1">
+                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>💬</div>
               </div>
-              <div className="text-sm font-bold text-green-100 mb-1">{t('home.discussion')}</div>
-              <div className="text-xs text-green-300 bg-green-500/20 rounded-full py-1 px-2 inline-block">{t('home.discussion_auto')}</div>
+              <div className="text-xs sm:text-sm font-bold text-green-100 mb-1 leading-tight">{t('home.discussion')}</div>
+              <div className="text-xs text-green-300 bg-green-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.discussion_auto')}</div>
             </div>
           </Link>
           <Link to="/posts?category=IMAGE&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-purple-600/70 to-indigo-600/70 hover:from-purple-600/90 hover:to-indigo-600/90 active:from-purple-700/90 active:to-indigo-700/90 rounded-xl border border-purple-500/50 hover:border-purple-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-purple-500/30 to-indigo-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-purple-600/70 to-indigo-600/70 hover:from-purple-600/90 hover:to-indigo-600/90 active:from-purple-700/90 active:to-indigo-700/90 rounded-lg sm:rounded-xl border border-purple-500/50 hover:border-purple-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-purple-500/30 to-indigo-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🌌</div>
               </div>
-              <div className="text-sm font-bold text-purple-100 mb-1">{t('home.star_photo')}</div>
-              <div className="text-xs text-purple-300 bg-purple-500/20 rounded-full py-1 px-2 inline-block">{t('home.gallery')}</div>
+              <div className="text-xs sm:text-sm font-bold text-purple-100 mb-1 leading-tight">{t('home.star_photo')}</div>
+              <div className="text-xs text-purple-300 bg-purple-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.gallery')}</div>
             </div>
           </Link>
 
           <Link to="/posts?category=REVIEW&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-yellow-600/70 to-orange-600/70 hover:from-yellow-600/90 hover:to-orange-600/90 active:from-yellow-700/90 active:to-orange-700/90 rounded-xl border border-yellow-500/50 hover:border-yellow-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-yellow-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-yellow-500/30 to-orange-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-yellow-600/70 to-orange-600/70 hover:from-yellow-600/90 hover:to-orange-600/90 active:from-yellow-700/90 active:to-orange-700/90 rounded-lg sm:rounded-xl border border-yellow-500/50 hover:border-yellow-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-yellow-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-yellow-500/30 to-orange-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>⭐</div>
               </div>
-              <div className="text-sm font-bold text-yellow-100 mb-1">{t('home.review')}</div>
-              <div className="text-xs text-yellow-300 bg-yellow-500/20 rounded-full py-1 px-2 inline-block">{t('home.review_share')}</div>
+              <div className="text-xs sm:text-sm font-bold text-yellow-100 mb-1 leading-tight">{t('home.review')}</div>
+              <div className="text-xs text-yellow-300 bg-yellow-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.review_share')}</div>
             </div>
           </Link>
           <Link to="/posts?category=FREE&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-pink-600/70 to-rose-600/70 hover:from-pink-600/90 hover:to-rose-600/90 active:from-pink-700/90 active:to-rose-700/90 rounded-xl border border-pink-500/50 hover:border-pink-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-pink-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-pink-500/30 to-rose-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-pink-600/70 to-rose-600/70 hover:from-pink-600/90 hover:to-rose-600/90 active:from-pink-700/90 active:to-rose-700/90 rounded-lg sm:rounded-xl border border-pink-500/50 hover:border-pink-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-pink-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-pink-500/30 to-rose-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎈</div>
               </div>
-              <div className="text-sm font-bold text-pink-100 mb-1">{t('home.free')}</div>
-              <div className="text-xs text-pink-300 bg-pink-500/20 rounded-full py-1 px-2 inline-block">{t('home.free_chat')}</div>
+              <div className="text-xs sm:text-sm font-bold text-pink-100 mb-1 leading-tight">{t('home.free')}</div>
+              <div className="text-xs text-pink-300 bg-pink-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.free_chat')}</div>
             </div>
           </Link>
           <Link to="/posts?category=NOTICE&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-red-600/70 to-orange-600/70 hover:from-red-600/90 hover:to-orange-600/90 active:from-red-700/90 active:to-orange-700/90 rounded-xl border border-red-500/50 hover:border-red-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-red-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-red-500/30 to-orange-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-red-600/70 to-orange-600/70 hover:from-red-600/90 hover:to-orange-600/90 active:from-red-700/90 active:to-orange-700/90 rounded-lg sm:rounded-xl border border-red-500/50 hover:border-red-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-red-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-red-500/30 to-orange-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>📢</div>
               </div>
-              <div className="text-sm font-bold text-red-100 mb-1">{t('home.notice')}</div>
-              <div className="text-xs text-red-300 bg-red-500/20 rounded-full py-1 px-2 inline-block">{t('home.important_notice')}</div>
+              <div className="text-xs sm:text-sm font-bold text-red-100 mb-1 leading-tight">{t('home.notice')}</div>
+              <div className="text-xs text-red-300 bg-red-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.important_notice')}</div>
             </div>
           </Link>
           <Link to="/posts?category=STARLIGHT_CINEMA&sort=recent" className="group touch-manipulation">
-            <div className="relative p-3 bg-gradient-to-br from-purple-600/70 to-pink-600/70 hover:from-purple-600/90 hover:to-pink-600/90 active:from-purple-700/90 active:to-pink-700/90 rounded-xl border border-purple-500/50 hover:border-purple-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 overflow-hidden min-h-[100px] flex flex-col justify-center touch-target">
-              <div className="absolute top-1 right-1">
-                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-md">🤖</span>
+            <div className="relative p-2 sm:p-3 bg-gradient-to-br from-purple-600/70 to-pink-600/70 hover:from-purple-600/90 hover:to-pink-600/90 active:from-purple-700/90 active:to-pink-700/90 rounded-lg sm:rounded-xl border border-purple-500/50 hover:border-purple-400/70 transition-all duration-300 text-center transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 overflow-hidden min-h-[80px] sm:min-h-[100px] flex flex-col justify-center touch-target">
+              <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1">
+                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded-full font-bold shadow-md">🤖</span>
               </div>
-              <div className="w-8 h-8 mx-auto bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full flex items-center justify-center mb-2">
-                <div className="text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full flex items-center justify-center mb-1 sm:mb-2">
+                <div className="text-lg sm:text-xl" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>🎬</div>
               </div>
-              <div className="text-sm font-bold text-purple-100 mb-1">{t('home.star_cinema')}</div>
-              <div className="text-xs text-purple-300 bg-purple-500/20 rounded-full py-1 px-2 inline-block">{t('home.video_curation')}</div>
+              <div className="text-xs sm:text-sm font-bold text-purple-100 mb-1 leading-tight">{t('home.star_cinema')}</div>
+              <div className="text-xs text-purple-300 bg-purple-500/20 rounded-full py-0.5 px-1.5 sm:py-1 sm:px-2 inline-block">{t('home.video_curation')}</div>
             </div>
           </Link>
         </div>
 
         {/* 게시판별 이용안내 배너 */}
         {category === 'NEWS' && (
-          <div className="mb-6 p-4 bg-blue-900/30 rounded-lg border border-blue-600/30">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">🤖</span>
-              <h3 className="text-lg font-semibold text-blue-200">{t('home.auto_news_update')}</h3>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-900/30 rounded-lg border border-blue-600/30">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <span className="text-lg sm:text-2xl">🤖</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-blue-200">{t('home.auto_news_update')}</h3>
             </div>
-            <p className="text-blue-200 text-sm leading-relaxed">
+            <p className="text-blue-200 text-xs sm:text-sm leading-relaxed">
               {t('home.news_bot_desc')}
               <br />
               <strong>[{t('home.target_sources')}]</strong><br />
@@ -945,12 +945,12 @@ export default function PostList() {
         )}
         
         {category === 'IMAGE' && (
-          <div className="mb-6 p-4 bg-purple-900/30 rounded-lg border border-purple-600/30">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">🌌</span>
-              <h3 className="text-lg font-semibold text-purple-200">{t('home.star_photo')} {t('home.board_usage_guide')}</h3>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-purple-900/30 rounded-lg border border-purple-600/30">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <span className="text-lg sm:text-2xl">🌌</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-purple-200">{t('home.star_photo')} {t('home.board_usage_guide')}</h3>
             </div>
-            <p className="text-purple-200 text-sm leading-relaxed">
+            <p className="text-purple-200 text-xs sm:text-sm leading-relaxed">
               {t('home.image_board_desc')}
               <br />
               <strong>📷 {t('home.image_recommended')}</strong>
@@ -959,12 +959,12 @@ export default function PostList() {
         )}
         
         {category === 'REVIEW' && (
-          <div className="mb-6 p-4 bg-yellow-900/30 rounded-lg border border-yellow-600/30">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">⭐</span>
-              <h3 className="text-lg font-semibold text-yellow-200">{t('home.review')} {t('home.board_usage_guide')}</h3>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-yellow-900/30 rounded-lg border border-yellow-600/30">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <span className="text-lg sm:text-2xl">⭐</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-yellow-200">{t('home.review')} {t('home.board_usage_guide')}</h3>
             </div>
-            <p className="text-yellow-200 text-sm leading-relaxed">
+            <p className="text-yellow-200 text-xs sm:text-sm leading-relaxed">
               {t('home.review_board_desc')}
               <br />
               <strong>🎆 {t('home.review_recommended')}</strong>
@@ -973,12 +973,12 @@ export default function PostList() {
         )}
         
         {category === 'FREE' && (
-          <div className="mb-6 p-4 bg-green-900/30 rounded-lg border border-green-600/30">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">🎈</span>
-              <h3 className="text-lg font-semibold text-green-200">{t('home.free')} {t('home.board_usage_guide')}</h3>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-900/30 rounded-lg border border-green-600/30">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <span className="text-lg sm:text-2xl">🎈</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-green-200">{t('home.free')} {t('home.board_usage_guide')}</h3>
             </div>
-            <p className="text-green-200 text-sm leading-relaxed">
+            <p className="text-green-200 text-xs sm:text-sm leading-relaxed">
               {t('home.free_board_desc')}
               <br />
               <strong>🚀 {t('home.recommended_content')}</strong>
@@ -987,12 +987,12 @@ export default function PostList() {
         )}
         
         {category === 'NOTICE' && (
-          <div className="mb-6 p-4 bg-red-900/30 rounded-lg border border-red-600/30">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">📢</span>
-              <h3 className="text-lg font-semibold text-red-200">{t('home.notice_board')} {t('home.board_usage_guide')}</h3>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-900/30 rounded-lg border border-red-600/30">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <span className="text-lg sm:text-2xl">📢</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-red-200">{t('home.notice_board')} {t('home.board_usage_guide')}</h3>
             </div>
-            <p className="text-red-200 text-sm leading-relaxed">
+            <p className="text-red-200 text-xs sm:text-sm leading-relaxed">
               {t('home.notice_board_desc')}
               <br />
               <strong>⚠️ {t('home.notice_warning')}</strong>
@@ -1001,12 +1001,12 @@ export default function PostList() {
         )}
         
         {category === 'STARLIGHT_CINEMA' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-lg border border-purple-600/30">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">🤖</span>
-              <h3 className="text-lg font-semibold text-purple-200">{t('home.ai_cinema_curation')}</h3>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-lg border border-purple-600/30">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <span className="text-lg sm:text-2xl">🤖</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-purple-200">{t('home.ai_cinema_curation')}</h3>
             </div>
-            <p className="text-purple-200 text-sm leading-relaxed">
+            <p className="text-purple-200 text-xs sm:text-sm leading-relaxed">
               {t('home.cinema_bot_desc')}
               <br />
               <strong>🎬 {t('home.curation_content')}</strong>
@@ -1220,17 +1220,17 @@ export default function PostList() {
         
 
 
-        {/* 검색 기능 - 모바일 최적화 */}
+        {/* 검색 기능 - 개선된 디자인 */}
         <div className="mb-6 sm:mb-8">
-          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-purple-500/20 shadow-lg mobile-card-compact">
-            <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:gap-4">
-              {/* 모바일에서 검색 유형과 입력창을 세로로 배치 */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-purple-500/20 shadow-lg">
+            <form onSubmit={handleSearch} className="space-y-4">
+              {/* 검색 입력 영역 - 한 줄 배치 */}
+              <div className="flex gap-2 sm:gap-3">
                 {/* 검색 유형 선택 */}
                 <select
                   value={searchTypeInput}
                   onChange={(e) => setSearchTypeInput(e.target.value)}
-                  className="bg-slate-700/50 text-white rounded-xl px-3 py-3 sm:px-4 sm:py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 mobile-input touch-target"
+                  className="bg-slate-700/50 text-white rounded-xl px-3 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 min-w-[100px] sm:min-w-[120px]"
                   aria-label="검색 유형 선택"
                 >
                   <option value="title">{t('post.title')}</option>
@@ -1245,16 +1245,14 @@ export default function PostList() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={t('home.search_placeholder')}
-                  className="flex-1 bg-slate-700/50 text-white rounded-xl px-3 py-3 sm:px-4 sm:py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200 mobile-input touch-target"
+                  className="flex-1 bg-slate-700/50 text-white rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
                   aria-label="검색어 입력"
                 />
-              </div>
-              
-              {/* 검색 버튼 */}
-              <div className="flex gap-2 sm:gap-3">
+                
+                {/* 검색 버튼 */}
                 <button
                   type="submit"
-                  className="px-4 py-3 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 mobile-button touch-target touch-feedback"
+                  className="px-4 sm:px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 whitespace-nowrap"
                   aria-label="검색 실행"
                 >
                   🔍 {t('common.search')}
@@ -1265,10 +1263,10 @@ export default function PostList() {
                   <button
                     type="button"
                     onClick={handleSearchReset}
-                    className="px-4 py-3 sm:px-6 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200 mobile-button touch-target touch-feedback"
+                    className="px-3 sm:px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap"
                     aria-label="검색 초기화"
                   >
-                    {t('home.reset')}
+                    ✕
                   </button>
                 )}
               </div>
@@ -1276,8 +1274,8 @@ export default function PostList() {
             
             {/* 현재 검색 상태 표시 */}
             {searchKeyword && (
-              <div className="mt-4 p-3 bg-purple-900/30 rounded-lg border border-purple-600/30 animate-fadeIn">
-                <p className="text-sm text-purple-200 flex items-center gap-2">
+              <div className="mt-3 p-3 bg-purple-900/30 rounded-lg border border-purple-600/30 animate-fadeIn">
+                <p className="text-sm text-purple-200 flex flex-wrap items-center gap-2">
                   <span className="text-purple-300">{t('home.search_result')}:</span> 
                   <span className="font-semibold text-white bg-purple-800/30 px-2 py-1 rounded">"{searchKeyword}"</span> 
                   <span className="text-purple-300 text-xs bg-purple-800/20 px-2 py-1 rounded-full">
