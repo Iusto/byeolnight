@@ -26,14 +26,21 @@ class ChatConnector {
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    // 토큰 추출 (쿠키 우선, localStorage 보조)
-    const token = this.getCookieValue('accessToken') || localStorage.getItem('accessToken');
+    // 토큰 추출 (쿠키에서만 - HttpOnly 쿠키 방식)
+    const token = this.getCookieValue('accessToken');
     const connectHeaders: any = {};
     
-    console.log('WebSocket 연결 시도:', { token: token ? '존재' : '없음', userNickname });
+    console.log('WebSocket 연결 시도:', { 
+      token: token ? '존재' : '없음', 
+      userNickname,
+      cookieExists: document.cookie.includes('accessToken')
+    });
     
     if (token) {
       connectHeaders['Authorization'] = `Bearer ${token}`;
+      console.log('Authorization 헤더 설정 완료');
+    } else {
+      console.warn('토큰을 찾을 수 없습니다. 비로그인 사용자로 연결됩니다.');
     }
     
     this.client = new Client({
@@ -161,10 +168,11 @@ class ChatConnector {
     this.retryCount = 0;
     this.disconnect(); // 기존 연결 완전 종료
     
-    // 잠시 대기 후 재연결 시도
+    // 잠시 대기 후 재연결 시도 (최신 토큰으로)
     setTimeout(() => {
       if (this.callbacks) {
-        console.log('재연결 시도 시작');
+        console.log('재연결 시도 시작 - 최신 토큰으로 연결');
+        // 최신 토큰 상태로 재연결
         this.connect(this.callbacks, this.userNickname);
       }
     }, 1000);

@@ -44,11 +44,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 token = extractTokenFromCookie(accessor);
             }
             
-            if (token != null) {
-                System.out.println("토큰 추출 성공");
-            }
-            
             System.out.println("WebSocket 연결 - 토큰: " + (token != null ? "존재" : "없음"));
+            
+            if (token != null) {
+                System.out.println("토큰 추출 성공 - 길이: " + token.length());
+            } else {
+                System.out.println("토큰 추출 실패 - 모든 헤더 확인:");
+                System.out.println("  - Authorization: " + accessor.getFirstNativeHeader("Authorization"));
+                System.out.println("  - Cookie: " + accessor.getFirstNativeHeader("Cookie"));
+            }
             
             if (token != null) {
                 try {
@@ -87,6 +91,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     }
     
     private String extractTokenFromCookie(StompHeaderAccessor accessor) {
+        // SockJS는 브라우저 쿠키를 자동으로 전달하지 않으므로 
+        // 클라이언트에서 Authorization 헤더로 전달된 토큰을 우선 확인
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            System.out.println("Authorization 헤더에서 토큰 발견");
+            return authHeader.substring(7);
+        }
+        
+        // 쿠키 헤더 확인 (SockJS 환경에서는 제한적)
         String cookieHeader = accessor.getFirstNativeHeader("Cookie");
         System.out.println("WebSocket Cookie 헤더: " + cookieHeader);
         
@@ -102,13 +115,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             }
         }
         
-        // 쿠키에서 찾지 못한 경우 추가 헤더 확인
-        String authHeader = accessor.getFirstNativeHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            System.out.println("Authorization 헤더에서 토큰 발견");
-            return authHeader.substring(7);
-        }
-        
+        System.out.println("토큰을 찾을 수 없습니다 - Authorization 헤더와 쿠키 모두 확인했으나 없음");
         return null;
     }
     

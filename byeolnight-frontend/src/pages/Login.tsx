@@ -10,6 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [language, setLanguage] = useState('ko')
+  const [rememberMe, setRememberMe] = useState(false)
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,6 +87,7 @@ export default function Login() {
       signup: '회원가입',
       resetPassword: '비밀번호 재설정',
       goHome: '홈페이지로',
+      rememberMe: '로그인 유지',
 
     },
     en: {
@@ -101,6 +103,7 @@ export default function Login() {
       signup: 'Sign Up',
       resetPassword: 'Reset Password',
       goHome: 'Go Home',
+      rememberMe: 'Remember Me',
 
     },
     ja: {
@@ -116,6 +119,7 @@ export default function Login() {
       signup: 'ユーザー登録',
       resetPassword: 'パスワードリセット',
       goHome: 'ホームへ',
+      rememberMe: 'ログイン状態を保持',
 
     }
   }
@@ -164,6 +168,19 @@ export default function Login() {
             className="w-full bg-[#2a2e44] border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
           />
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="mr-2 rounded border-gray-600 bg-[#2a2e44] text-purple-500 focus:ring-purple-500"
+            />
+            <label htmlFor="rememberMe" className="text-sm text-gray-300">
+              {t.rememberMe}
+            </label>
+          </div>
           
           {error && (
             <div className="text-red-400 text-sm text-center">{error}</div>

@@ -499,15 +499,6 @@ export default function ChatSidebar() {
               </>
             )}
           </div>
-          {error && !connecting && (
-            <button
-              onClick={handleRetryConnection}
-              className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition-colors"
-              title={t('home.chat.retry_connection')}
-            >
-              🔄
-            </button>
-          )}
         </div>
 
         {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) && (
