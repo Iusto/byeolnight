@@ -2,10 +2,14 @@ package com.byeolnight.service.auth;
 
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
+import com.byeolnight.service.auth.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -18,7 +22,11 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    @Value("${app.security.cookie.domain:}")
+    private String cookieDomain;
+    
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenService tokenService;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -28,16 +36,19 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         User user = oAuth2User.getUser();
 
         try {
-            String[] tokens = jwtTokenProvider.generateTokens(user.getId(), 
-                    request.getHeader("User-Agent"), 
-                    request.getRemoteAddr());
+            String accessToken = jwtTokenProvider.createAccessToken(user);
+            String refreshToken = jwtTokenProvider.createRefreshToken(user);
+            long refreshTokenValidity = jwtTokenProvider.getRefreshTokenValidity();
             
-            String accessToken = tokens[0];
-            String refreshToken = tokens[1];
+            // Redis에 Refresh Token 저장
+            tokenService.saveRefreshToken(user.getEmail(), refreshToken, refreshTokenValidity);
 
-            // 쿠키 설정
-            response.addCookie(createCookie("accessToken", accessToken, 30 * 60)); // 30분
-            response.addCookie(createCookie("refreshToken", refreshToken, 7 * 24 * 60 * 60)); // 7일
+            // ResponseCookie로 HttpOnly 쿠키 설정 (일반 로그인과 동일)
+            ResponseCookie refreshCookie = createRefreshCookie(refreshToken, refreshTokenValidity);
+            ResponseCookie accessCookie = createAccessCookie(accessToken);
+            
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
 
             String baseUrl = request.getServerName().contains("localhost") ? 
                     "http://localhost:5173" : "https://byeolnight.com";
@@ -61,12 +72,33 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         }
     }
 
-    private jakarta.servlet.http.Cookie createCookie(String name, String value, int maxAge) {
-        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // 로컬 개발용
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        return cookie;
+    private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(validity / 1000);
+        
+        if (!cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
+        }
+        
+        return builder.build();
+    }
+
+    private ResponseCookie createAccessCookie(String accessToken) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", accessToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(1800);
+        
+        if (!cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
+        }
+        
+        return builder.build();
     }
 }

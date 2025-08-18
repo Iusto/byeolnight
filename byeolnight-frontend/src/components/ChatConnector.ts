@@ -26,33 +26,36 @@ class ChatConnector {
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    // HttpOnly 쿠키는 JavaScript에서 접근 불가능하므로
-    // 서버에서 현재 인증 상태를 확인하여 토큰 유효성 검증
-    let isAuthenticated = false;
-    try {
-      const response = await fetch('/api/member/users/me', {
-        credentials: 'include'
-      });
-      isAuthenticated = response.ok;
-    } catch (error) {
-      console.log('인증 상태 확인 실패:', error);
-      isAuthenticated = false;
-    }
-    
     const connectHeaders: any = {};
     
-    console.log('WebSocket 연결 시도:', { 
-      isAuthenticated,
-      userNickname
-    });
-    
-    // 인증된 사용자인 경우 특별한 헤더 추가 (서버에서 세션 기반으로 인증)
-    if (isAuthenticated && userNickname) {
-      connectHeaders['X-User-Nickname'] = userNickname;
-      console.log('인증된 사용자 헤더 설정 완료');
-    } else {
-      console.log('비로그인 사용자로 연결');
+    // HttpOnly 쿠키에서 토큰을 가져와 Authorization 헤더로 전달
+    // SockJS는 쿠키를 자동 전달하지 않으므로 수동으로 처리
+    try {
+      const response = await fetch('/api/auth/check', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.accessToken) {
+          // 인증된 사용자 - 토큰을 Authorization 헤더로 전달
+          connectHeaders['Authorization'] = `Bearer ${data.data.accessToken}`;
+          console.log('인증된 사용자로 WebSocket 연결, 토큰 전달');
+        }
+        if (userNickname) {
+          connectHeaders['X-User-Nickname'] = userNickname;
+        }
+      } else {
+        console.log('비로그인 사용자로 WebSocket 연결');
+      }
+    } catch (error) {
+      console.log('인증 상태 확인 실패, 비로그인으로 연결:', error);
     }
+    
+    console.log('WebSocket 연결 시도:', { 
+      userNickname,
+      headers: connectHeaders
+    });
     
     this.client = new Client({
       webSocketFactory: () => new SockJS(wsUrl),
@@ -189,8 +192,8 @@ class ChatConnector {
     }, 1000);
   }
 
-  // HttpOnly 쿠키는 JavaScript에서 접근 불가능하므로 제거
-  // 대신 서버 API를 통해 인증 상태 확인
+  // SockJS는 HttpOnly 쿠키를 자동 전달하지 않으므로
+  // 백엔드에서 토큰을 응답으로 제공하는 방식으로 처리
 }
 
 export default new ChatConnector();
