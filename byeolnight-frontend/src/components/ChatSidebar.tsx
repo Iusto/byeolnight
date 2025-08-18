@@ -40,10 +40,10 @@ export default function ChatSidebar() {
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // WebSocket 연결 및 콜백 설정
-  const initializeWebSocket = () => {
+  const initializeWebSocket = async () => {
     setConnecting(true);
     
-    chatConnector.connect({
+    await chatConnector.connect({
       onMessage: (msg) => {
         setMessages(prev => [...prev.slice(-50), msg]);
       },

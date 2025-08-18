@@ -38,38 +38,41 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
             }
             
-            // 토큰 추출: Authorization 헤더 -> 쿠키 순서
+            // 1. JWT 토큰 기반 인증 시도
             String token = extractTokenFromHeader(accessor);
             if (token == null) {
                 token = extractTokenFromCookie(accessor);
             }
             
-            System.out.println("WebSocket 연결 - 토큰: " + (token != null ? "존재" : "없음"));
-            
-            if (token != null) {
-                System.out.println("토큰 추출 성공 - 길이: " + token.length());
-            } else {
-                System.out.println("토큰 추출 실패 - 모든 헤더 확인:");
-                System.out.println("  - Authorization: " + accessor.getFirstNativeHeader("Authorization"));
-                System.out.println("  - Cookie: " + accessor.getFirstNativeHeader("Cookie"));
-            }
+            boolean authenticated = false;
             
             if (token != null) {
                 try {
                     if (jwtTokenProvider.validate(token)) {
                         Authentication auth = jwtTokenProvider.getAuthentication(token);
                         accessor.setUser(auth);
-                        System.out.println("WebSocket 인증 성공: " + auth.getName());
-                    } else {
-                        System.out.println("WebSocket 토큰 검증 실패: 유효하지 않은 토큰");
-                        // 유효하지 않은 토큰이라도 비로그인 사용자로 연결 허용
+                        authenticated = true;
+                        System.out.println("WebSocket JWT 인증 성공: " + auth.getName());
                     }
                 } catch (Exception e) {
-                    System.out.println("WebSocket 토큰 검증 실패: " + e.getMessage());
-                    // 예외 발생 시도 비로그인 사용자로 연결 허용
+                    System.out.println("WebSocket JWT 토큰 검증 실패: " + e.getMessage());
                 }
-            } else {
-                System.out.println("WebSocket 연결 - 토큰 없음, 비로그인 사용자로 연결");
+            }
+            
+            // 2. JWT 인증 실패 시 닉네임 헤더 기반 세션 인증 시도
+            if (!authenticated) {
+                String userNickname = accessor.getFirstNativeHeader("X-User-Nickname");
+                if (userNickname != null && !userNickname.trim().isEmpty()) {
+                    // 간단한 사용자 인증 객체 생성 (세션 기반)
+                    Authentication sessionAuth = createSessionAuthentication(userNickname);
+                    accessor.setUser(sessionAuth);
+                    authenticated = true;
+                    System.out.println("WebSocket 세션 기반 인증 성공: " + userNickname);
+                }
+            }
+            
+            if (!authenticated) {
+                System.out.println("WebSocket 연결 - 인증 실패, 비로그인 사용자로 연결");
             }
         }
 
@@ -136,5 +139,10 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
         
         return "unknown";
+    }
+    
+    private Authentication createSessionAuthentication(String nickname) {
+        return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+            nickname, null, java.util.Collections.emptyList());
     }
 }
