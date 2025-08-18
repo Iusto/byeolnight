@@ -99,7 +99,22 @@ export default function ChatSidebar() {
     console.log('수동 재연결 시도');
     setError('');
     setConnecting(true);
+    setConnected(false);
+    
+    // 재연결 시도 후 일정 시간 후에도 연결되지 않으면 connecting을 false로 설정
+    const timeoutId = setTimeout(() => {
+      if (!chatConnector.connected) {
+        setConnecting(false);
+        setError('채팅 연결에 실패했습니다. 다시 시도해주세요.');
+      }
+    }, 10000); // 10초 타임아웃
+    
     chatConnector.retryConnection();
+    
+    // 연결 성공 시 타임아웃 클리어를 위해 콜백에서 처리
+    const originalOnConnect = chatConnector.connect;
+    
+    return () => clearTimeout(timeoutId);
   };
 
   const loadInitialMessages = async () => {

@@ -99,6 +99,9 @@ class ChatConnector {
           this.connect(this.callbacks, this.userNickname);
         }
       }, 3000 * this.retryCount);
+    } else {
+      console.error('최대 재연결 시도 횟수 초과');
+      this.callbacks?.onError();
     }
   }
 
@@ -154,11 +157,17 @@ class ChatConnector {
   }
 
   retryConnection() {
+    console.log('ChatConnector.retryConnection 호출');
     this.retryCount = 0;
     this.disconnect(); // 기존 연결 완전 종료
-    if (this.callbacks) {
-      this.connect(this.callbacks, this.userNickname);
-    }
+    
+    // 잠시 대기 후 재연결 시도
+    setTimeout(() => {
+      if (this.callbacks) {
+        console.log('재연결 시도 시작');
+        this.connect(this.callbacks, this.userNickname);
+      }
+    }, 1000);
   }
 
   private getCookieValue(name: string): string | null {
