@@ -1,17 +1,5 @@
 package com.byeolnight.infrastructure.security;
 
-/**
- * Spring Security 메인 설정 클래스
- * 
- * 역할:
- * - HTTP 보안 설정 (CSRF 비활성화, CORS 설정)
- * - URL 별 인증/인가 정책 설정
- * - JWT 인증 필터 등록
- * - 예외 처리기 설정 (401/403 에러 응답)
- * - 비밀번호 인코더 및 인증 매니저 빈 등록
- */
-
-
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.user.CustomUserDetailsService;
 import com.byeolnight.service.auth.CustomOAuth2UserService;
@@ -59,11 +47,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        .maximumSessions(0)
-                        .maxSessionsPreventsLogin(false)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AuthWhitelist.PATHS).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/suggestions", "/api/suggestions/**").permitAll()
@@ -72,19 +56,14 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)
-                        )
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureHandler(oAuth2AuthenticationFailureHandler)
-                        .authorizationEndpoint(authorization -> authorization
-                                .baseUri("/oauth2/authorization")
-                        )
                 )
 
-                .addFilterBefore(contentTypeValidationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(nicknameRequiredFilter(), JwtAuthenticationFilter.class)
+                .addFilterBefore(new ContentTypeValidationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService, tokenService), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new NicknameRequiredFilter(), JwtAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler())
@@ -93,27 +72,16 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService, tokenService);
-    }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://byeolnight.com",
-                "https://byeolnight.com",
-                "http://www.byeolnight.com",
-                "https://www.byeolnight.com"
-        ));
+        config.setAllowedOrigins(List.of("http://localhost:5173", "https://byeolnight.com"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-        config.setMaxAge(3600L); // preflight 캐시 시간 설정
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -133,21 +101,11 @@ public class SecurityConfig {
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
-            // 응답이 이미 커밋된 경우 처리 방지
             if (!response.isCommitted()) {
                 SecurityUtils.writeAuthErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, "접근 권한이 없습니다.");
             }
         };
     }
 
-    @Bean
-    @Lazy
-    public NicknameRequiredFilter nicknameRequiredFilter() {
-        return new NicknameRequiredFilter();
-    }
 
-    @Bean
-    public ContentTypeValidationFilter contentTypeValidationFilter() {
-        return new ContentTypeValidationFilter();
-    }
 }
