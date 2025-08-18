@@ -1220,21 +1220,19 @@ export default function PostList() {
         
 
 
-        {/* 검색 기능 - 개선된 디자인 */}
-        <div className="mb-6 sm:mb-8">
-          <div className="bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-purple-500/20 shadow-lg">
-            <form onSubmit={handleSearch} className="space-y-4">
-              {/* 검색 입력 영역 - 한 줄 배치 */}
-              <div className="flex gap-1 sm:gap-2">
+        {/* 검색 기능 - 컴팩트한 디자인 */}
+        <div className="mb-4 sm:mb-6">
+          <div className="bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-600/30">
+            <form onSubmit={handleSearch}>
+              <div className="flex gap-1 w-full overflow-hidden">
                 <select
                   value={searchTypeInput}
                   onChange={(e) => setSearchTypeInput(e.target.value)}
-                  className="bg-slate-700/50 text-white rounded-lg px-2 py-3 text-xs sm:text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 w-16 sm:w-auto sm:min-w-[100px]"
-                  aria-label="검색 유형 선택"
+                  className="bg-slate-700/50 text-white rounded-lg px-1 py-2 text-xs border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 w-14 sm:w-auto sm:min-w-[80px] flex-shrink-0"
                 >
                   <option value="title">제목</option>
                   <option value="content">내용</option>
-                  <option value="titleAndContent">제목+내용</option>
+                  <option value="titleAndContent">전체</option>
                   <option value="writer">작성자</option>
                 </select>
                 
@@ -1242,25 +1240,22 @@ export default function PostList() {
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="검색어 입력"
-                  className="flex-1 bg-slate-700/50 text-white rounded-lg px-3 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
-                  aria-label="검색어 입력"
+                  placeholder="검색"
+                  className="flex-1 min-w-0 bg-slate-700/50 text-white rounded-lg px-2 py-2 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400 transition-all duration-200"
                 />
                 
                 <button
                   type="submit"
-                  className="px-3 sm:px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap"
-                  aria-label="검색 실행"
+                  className="px-2 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-all duration-200 flex-shrink-0"
                 >
                   🔍
                 </button>
                 
-{(searchKeyword || searchInput) && (
+                {(searchKeyword || searchInput) && (
                   <button
                     type="button"
                     onClick={handleSearchReset}
-                    className="px-2 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-all duration-200"
-                    aria-label="검색 초기화"
+                    className="px-2 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm transition-all duration-200 flex-shrink-0"
                   >
                     ✕
                   </button>
@@ -1268,16 +1263,16 @@ export default function PostList() {
               </div>
             </form>
             
-            {/* 현재 검색 상태 표시 */}
+            {/* 검색 결과 표시 */}
             {searchKeyword && (
-              <div className="mt-3 p-3 bg-purple-900/30 rounded-lg border border-purple-600/30 animate-fadeIn">
-                <p className="text-sm text-purple-200 flex flex-wrap items-center gap-2">
+              <div className="mt-2 p-2 bg-purple-900/30 rounded-lg border border-purple-600/30">
+                <p className="text-xs sm:text-sm text-purple-200 flex flex-wrap items-center gap-1">
                   <span className="text-purple-300">{t('home.search_result')}:</span> 
-                  <span className="font-semibold text-white bg-purple-800/30 px-2 py-1 rounded">"{searchKeyword}"</span> 
-                  <span className="text-purple-300 text-xs bg-purple-800/20 px-2 py-1 rounded-full">
-                    {searchType === 'titleAndContent' ? t('home.title_content') : 
-                     searchType === 'title' ? t('post.title') : 
-                     searchType === 'content' ? t('post.content') : t('home.writer')}
+                  <span className="font-semibold text-white bg-purple-800/30 px-1.5 py-0.5 rounded text-xs">"{searchKeyword}"</span> 
+                  <span className="text-purple-300 text-xs bg-purple-800/20 px-1.5 py-0.5 rounded-full">
+                    {searchType === 'titleAndContent' ? '전체' : 
+                     searchType === 'title' ? '제목' : 
+                     searchType === 'content' ? '내용' : '작성자'}
                   </span>
                 </p>
               </div>
@@ -1285,56 +1280,59 @@ export default function PostList() {
           </div>
         </div>
 
-        {/* 정렬 및 글쓰기 - 모바일 최적화 */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            {/* 정렬 옵션 */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm sm:text-base text-gray-300 mobile-text">{t('home.sort')}:</label>
-              <select
-                value={sort}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-[#2a2e45] text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 mobile-input touch-target"
-              >
-                <option value="recent">{t('home.recent')}</option>
-                <option value="popular">{t('home.popular')}</option>
-              </select>
+        {/* 정렬 및 글쓰기 - 최적화된 레이아웃 */}
+        <div className="bg-slate-800/30 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-600/30">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            {/* 왼쪽: 정렬 및 관리자 기능 */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {/* 정렬 옵션 */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm text-gray-300">{t('home.sort')}:</span>
+                <select
+                  value={sort}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className="bg-slate-700/50 text-white rounded-lg px-2 py-1.5 text-xs sm:text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 min-w-0"
+                >
+                  <option value="recent">{t('home.recent')}</option>
+                  <option value="popular">{t('home.popular')}</option>
+                </select>
+              </div>
+              
+              {/* 관리자 기능 */}
+              {isAdmin && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="selectAll"
+                      checked={selectedPosts.length > 0 && selectedPosts.length === [...hotPosts, ...normalPosts].length}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="selectAll" className="text-xs sm:text-sm text-gray-300">{t('home.select_all')}</label>
+                  </div>
+                  {selectedPosts.length > 0 && (
+                    <button
+                      onClick={() => setShowMoveModal(true)}
+                      className="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg transition-colors"
+                    >
+                      {t('home.move_category')} ({selectedPosts.length})
+                    </button>
+                  )}
+                </>
+              )}
             </div>
             
-            {/* 관리자 기능: 게시글 선택 및 카테고리 이동 - 모바일 최적화 */}
-            {isAdmin && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="selectAll"
-                    checked={selectedPosts.length > 0 && selectedPosts.length === [...hotPosts, ...normalPosts].length}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 touch-target"
-                  />
-                  <label htmlFor="selectAll" className="text-sm text-gray-300 mobile-text">{t('home.select_all')}</label>
-                </div>
-                {selectedPosts.length > 0 && (
-                  <button
-                    onClick={() => setShowMoveModal(true)}
-                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors mobile-button touch-target touch-feedback"
-                  >
-                    {t('home.move_category')} ({selectedPosts.length})
-                  </button>
-                )}
-              </div>
+            {/* 오른쪽: 글쓰기 버튼 */}
+            {canWrite && (
+              <Link
+                to={`/posts/write?fixedCategory=${category}`}
+                className="w-full sm:w-auto px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg transition-all duration-200 text-center text-xs sm:text-sm"
+              >
+                ✍️ {getCategoryLabel(category, t)} {t('home.write_post')}
+              </Link>
             )}
           </div>
-          
-          {/* 글쓰기 버튼 - 모바일 최적화 */}
-          {canWrite && (
-            <Link
-              to={`/posts/write?fixedCategory=${category}`}
-              className="w-full sm:w-auto px-4 py-3 sm:px-6 sm:py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center mobile-button touch-target touch-feedback"
-            >
-              ✍️ {getCategoryLabel(category, t)} {t('home.write_post')}
-            </Link>
-          )}
         </div>
 
         {/* 게시글 목록 */}
