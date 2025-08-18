@@ -77,44 +77,15 @@ export default function ChatSidebar() {
           setRemainingTime(0);
         }
       },
-      onAdminUpdate: (data) => {
-        if (data.type === 'MESSAGE_UNBLINDED') {
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === data.messageId ? { ...msg, isBlinded: false } : msg
-            )
-          );
-        } else if (data.type === 'MESSAGE_BLINDED') {
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === data.messageId ? { ...msg, isBlinded: true } : msg
-            )
-          );
-        }
-      }
+
     }, user?.nickname);
   };
 
   const handleRetryConnection = () => {
-    console.log('수동 재연결 시도');
     setError('');
     setConnecting(true);
     setConnected(false);
-    
-    // 재연결 시도 후 일정 시간 후에도 연결되지 않으면 connecting을 false로 설정
-    const timeoutId = setTimeout(() => {
-      if (!chatConnector.connected) {
-        setConnecting(false);
-        setError('채팅 연결에 실패했습니다. 다시 시도해주세요.');
-      }
-    }, 10000); // 10초 타임아웃
-    
     chatConnector.retryConnection();
-    
-    // 연결 성공 시 타임아웃 클리어를 위해 콜백에서 처리
-    const originalOnConnect = chatConnector.connect;
-    
-    return () => clearTimeout(timeoutId);
   };
 
   const loadInitialMessages = async () => {
@@ -206,15 +177,11 @@ export default function ChatSidebar() {
   };
 
   const sendMessage = async () => {
-    console.log('채팅 메시지 전송 시작:', { input: input.trim(), user: user?.nickname });
+
     
-    if (!input.trim()) {
-      console.log('빈 메시지로 인해 전송 취소');
-      return;
-    }
+    if (!input.trim()) return;
     
     if (!user || !user.nickname) {
-      console.log('로그인하지 않은 사용자로 인해 전송 취소');
       setError('로그인이 필요합니다.');
       return;
     }
@@ -222,7 +189,6 @@ export default function ChatSidebar() {
     if (banStatus?.banned || bannedUsers.has(user.nickname)) {
       const reason = banStatus?.reason || t('home.chat.banned_status');
       setError(reason + ' ' + t('home.chat.contact_admin'));
-      console.log('밴 상태로 인해 전송 취소:', reason);
       return;
     }
 
@@ -248,19 +214,11 @@ export default function ChatSidebar() {
         message: input.trim()
       };
       
-      console.log('메시지 전송 데이터:', messageData);
-      console.log('WebSocket 연결 상태:', {
-        connected: chatConnector.connected,
-        user: user.nickname
-      });
-      
-      console.log('메시지 데이터:', messageData);
+
       chatConnector.sendMessage(messageData);
       
-      // 성공 시 입력창 초기화
       setInput('');
       setError('');
-      console.log('채팅 메시지 전송 성공');
     } catch (error) {
       console.error('채팅 메시지 전송 실패:', error);
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
@@ -334,9 +292,7 @@ export default function ChatSidebar() {
     );
   };
 
-  const handleMessageUnblind = (messageId: string) => {
-    // WebSocket에서 처리됨
-  };
+
 
   const handleUserBan = (username: string) => {
     setBannedUsers(prev => new Set([...prev, username]));
@@ -450,7 +406,7 @@ export default function ChatSidebar() {
                               sender={msg.sender}
                               isBlinded={msg.isBlinded}
                               onMessageBlind={handleMessageBlind}
-                              onMessageUnblind={handleMessageUnblind}
+                              onMessageUnblind={() => {}}
                               onUserBan={handleUserBan}
                             />
                           )}

@@ -142,10 +142,12 @@ public class AuthController {
             
             ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
             ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
+            ResponseCookie deleteJSessionId = createDeleteCookie("JSESSIONID");
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, deleteJSessionId.toString())
                     .body(CommonResponse.success("로그아웃되었습니다."));
                     
         } catch (Exception e) {
@@ -361,10 +363,12 @@ public class AuthController {
             
             ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
             ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
+            ResponseCookie deleteJSessionId = createDeleteCookie("JSESSIONID");
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, deleteJSessionId.toString())
                     .body(CommonResponse.success("회원 탈퇴가 완료되었습니다."));
                     
         } catch (Exception e) {

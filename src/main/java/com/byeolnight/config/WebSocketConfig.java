@@ -15,12 +15,15 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtChannelInterceptor jwtChannelInterceptor;
+    private final WebSocketHandshakeInterceptor handshakeInterceptor;
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .addInterceptors(handshakeInterceptor) // HttpOnly 쿠키 처리
+                .withSockJS()
+                .setSessionCookieNeeded(false);
     }
 
     @Override

@@ -38,41 +38,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
             }
             
-            // 1. JWT 토큰 기반 인증 시도
-            String token = extractTokenFromHeader(accessor);
-            if (token == null) {
-                token = extractTokenFromCookie(accessor);
-            }
+            // Handshake에서 설정된 인증 정보 사용 (HttpOnly 쿠키 기반)
+            Authentication handshakeAuth = (Authentication) accessor.getSessionAttributes().get("authentication");
             
-            boolean authenticated = false;
-            
-            if (token != null) {
-                try {
-                    if (jwtTokenProvider.validate(token)) {
-                        Authentication auth = jwtTokenProvider.getAuthentication(token);
-                        accessor.setUser(auth);
-                        authenticated = true;
-                        System.out.println("WebSocket JWT 인증 성공: " + auth.getName());
-                    }
-                } catch (Exception e) {
-                    System.out.println("WebSocket JWT 토큰 검증 실패: " + e.getMessage());
-                }
-            }
-            
-            // 2. JWT 인증 실패 시 닉네임 헤더 기반 세션 인증 시도
-            if (!authenticated) {
-                String userNickname = accessor.getFirstNativeHeader("X-User-Nickname");
-                if (userNickname != null && !userNickname.trim().isEmpty()) {
-                    // 간단한 사용자 인증 객체 생성 (세션 기반)
-                    Authentication sessionAuth = createSessionAuthentication(userNickname);
-                    accessor.setUser(sessionAuth);
-                    authenticated = true;
-                    System.out.println("WebSocket 세션 기반 인증 성공: " + userNickname);
-                }
-            }
-            
-            if (!authenticated) {
-                System.out.println("WebSocket 연결 - 인증 실패, 비로그인 사용자로 연결");
+            if (handshakeAuth != null) {
+                accessor.setUser(handshakeAuth);
+                System.out.println("✅ WebSocket 인증 성공 (Handshake): " + handshakeAuth.getName());
+            } else {
+                System.out.println("🔓 WebSocket 비로그인 사용자 연결");
             }
         }
 
@@ -85,42 +58,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         return message;
     }
     
-    private String extractTokenFromHeader(StompHeaderAccessor accessor) {
-        String authHeader = accessor.getFirstNativeHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        return null;
-    }
-    
-    private String extractTokenFromCookie(StompHeaderAccessor accessor) {
-        // SockJS는 브라우저 쿠키를 자동으로 전달하지 않으므로 
-        // 클라이언트에서 Authorization 헤더로 전달된 토큰을 우선 확인
-        String authHeader = accessor.getFirstNativeHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            System.out.println("Authorization 헤더에서 토큰 발견");
-            return authHeader.substring(7);
-        }
-        
-        // 쿠키 헤더 확인 (SockJS 환경에서는 제한적)
-        String cookieHeader = accessor.getFirstNativeHeader("Cookie");
-        System.out.println("WebSocket Cookie 헤더: " + cookieHeader);
-        
-        if (cookieHeader != null) {
-            String[] cookies = cookieHeader.split(";");
-            for (String cookie : cookies) {
-                String[] parts = cookie.trim().split("=", 2);
-                if (parts.length == 2 && "accessToken".equals(parts[0])) {
-                    String token = parts[1];
-                    System.out.println("accessToken 쿠키 발견: " + token.substring(0, Math.min(20, token.length())) + "...");
-                    return token;
-                }
-            }
-        }
-        
-        System.out.println("토큰을 찾을 수 없습니다 - Authorization 헤더와 쿠키 모두 확인했으나 없음");
-        return null;
-    }
+
     
     private String extractClientIpFromHeaders(StompHeaderAccessor accessor) {
         // WebSocket 헤더에서 IP 추출 (IpUtil과 동일한 우선순위)
@@ -141,8 +79,5 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         return "unknown";
     }
     
-    private Authentication createSessionAuthentication(String nickname) {
-        return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-            nickname, null, java.util.Collections.emptyList());
-    }
+
 }

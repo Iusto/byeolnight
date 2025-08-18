@@ -5,6 +5,7 @@ import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.service.auth.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,22 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             
             response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
             response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+            
+            // OAuth2 인증 완료 후 세션 즉시 무효화 (JWT 토큰 기반 인증으로 통일)
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                session.invalidate();
+                log.info("OAuth2 로그인 완료 후 세션 무효화: {}", user.getEmail());
+            }
+
+            ResponseCookie deleteJSessionId = ResponseCookie.from("JSESSIONID", "")
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Lax")
+                    .path("/")
+                    .maxAge(0)
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, deleteJSessionId.toString());
 
             String baseUrl = request.getServerName().contains("localhost") ? 
                     "http://localhost:5173" : "https://byeolnight.com";

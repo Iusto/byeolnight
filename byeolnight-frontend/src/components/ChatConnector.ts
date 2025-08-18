@@ -7,7 +7,6 @@ interface ChatConnectorCallbacks {
   onDisconnect: () => void;
   onError: () => void;
   onBanNotification?: (banData: any) => void;
-  onAdminUpdate?: (data: any) => void;
 }
 
 class ChatConnector {
@@ -26,43 +25,15 @@ class ChatConnector {
     this.callbacks = callbacks;
     const wsUrl = import.meta.env.VITE_WS_URL || '/ws';
     
-    const connectHeaders: any = {};
-    
-    // HttpOnly 쿠키에서 토큰을 가져와 Authorization 헤더로 전달
-    // SockJS는 쿠키를 자동 전달하지 않으므로 수동으로 처리
-    try {
-      const response = await fetch('/api/auth/check', {
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data?.accessToken) {
-          // 인증된 사용자 - 토큰을 Authorization 헤더로 전달
-          connectHeaders['Authorization'] = `Bearer ${data.data.accessToken}`;
-          console.log('인증된 사용자로 WebSocket 연결, 토큰 전달');
-        }
-        if (userNickname) {
-          connectHeaders['X-User-Nickname'] = userNickname;
-        }
-      } else {
-        console.log('비로그인 사용자로 WebSocket 연결');
-      }
-    } catch (error) {
-      console.log('인증 상태 확인 실패, 비로그인으로 연결:', error);
-    }
-    
-    console.log('WebSocket 연결 시도:', { 
-      userNickname,
-      headers: connectHeaders
-    });
+    // HttpOnly 쿠키가 WebSocket Handshake에서 자동으로 처리됨
+    console.log('WebSocket 연결 시도:', { userNickname });
     
     this.client = new Client({
       webSocketFactory: () => new SockJS(wsUrl),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      connectHeaders,
+      connectHeaders: {},
       onConnect: () => this.handleConnect(userNickname),
       onStompError: () => this.handleError(),
       onWebSocketError: () => this.handleError(),
@@ -87,22 +58,11 @@ class ChatConnector {
       this.callbacks?.onMessage(body);
     });
 
-    // 관리자 업데이트 구독
-    this.client.subscribe('/topic/admin/chat-update', (message) => {
-      const data = JSON.parse(message.body);
-      this.callbacks?.onAdminUpdate?.(data);
-    });
-
-    // 사용자별 알림 구독
+    // 사용자별 밴 알림 구독 (로그인 사용자만)
     if (userNickname) {
-      this.client.subscribe(`/queue/user.${userNickname}.ban`, (message) => {
+      this.client.subscribe(`/user/queue/ban-notification`, (message) => {
         const banData = JSON.parse(message.body);
         this.callbacks?.onBanNotification?.(banData);
-      });
-
-      this.client.subscribe(`/user/queue/ban-notification`, (message) => {
-        const errorData = JSON.parse(message.body);
-        this.callbacks?.onBanNotification?.(errorData);
       });
     }
   }
@@ -177,23 +137,40 @@ class ChatConnector {
     return this.isConnected && this.client?.connected && this.client?.active;
   }
 
-  retryConnection() {
-    console.log('ChatConnector.retryConnection 호출');
+  async retryConnection() {
+    console.log('ChatConnector.retryConnection 호출 - JWT 토큰 갱신 후 재연결');
     this.retryCount = 0;
     this.disconnect(); // 기존 연결 완전 종료
     
-    // 잠시 대기 후 재연결 시도 (최신 인증 상태로)
+    // 잠시 대기 후 재연결 시도 (최신 JWT 토큰으로)
     setTimeout(async () => {
       if (this.callbacks) {
-        console.log('재연결 시도 시작 - 최신 인증 상태로 연결');
+        console.log('재연결 시도 시작 - 최신 JWT 토큰으로 연결');
+        
+        // 토큰 갱신 시도
+        try {
+          const refreshResponse = await fetch('/api/auth/token/refresh', {
+            method: 'POST',
+            credentials: 'include'
+          });
+          
+          if (refreshResponse.ok) {
+            console.log('토큰 갱신 성공, WebSocket 재연결 시도');
+          } else {
+            console.log('토큰 갱신 실패, 기존 토큰으로 재연결 시도');
+          }
+        } catch (error) {
+          console.log('토큰 갱신 오류, 기존 토큰으로 재연결 시도:', error);
+        }
+        
         // 최신 인증 상태로 재연결
         await this.connect(this.callbacks, this.userNickname);
       }
     }, 1000);
   }
 
-  // SockJS는 HttpOnly 쿠키를 자동 전달하지 않으므로
-  // 백엔드에서 토큰을 응답으로 제공하는 방식으로 처리
+  // WebSocket Handshake에서 HttpOnly 쿠키 자동 처리
+  // 토큰 추출 및 인증은 백엔드에서 완전히 처리됨
 }
 
 export default new ChatConnector();
