@@ -5,6 +5,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import DiscussionTopicBanner from '../components/DiscussionTopicBanner';
+import AdSense from '../components/AdSense';
 
 // 상수 및 타입 정의
 
@@ -1333,6 +1334,16 @@ export default function PostList() {
               </Link>
             )}
           </div>
+        </div>
+
+        {/* 광고 영역 */}
+        <div className="mb-6">
+          <AdSense 
+            adSlot="2222222222" 
+            adFormat="auto"
+            className="text-center"
+            style={{ display: 'block', minHeight: '150px' }}
+          />
         </div>
 
         {/* 게시글 목록 */}

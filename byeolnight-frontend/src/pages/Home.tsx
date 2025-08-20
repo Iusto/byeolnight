@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ChatSidebar from '../components/ChatSidebar';
 import { useAuth } from '../contexts/AuthContext';
+import AdSense from '../components/AdSense';
 
 interface Post {
   id: number;
@@ -361,6 +362,16 @@ export default function Home() {
                 </div>
               </Section>
 
+              {/* 광고 영역 */}
+              <div className="mb-6">
+                <AdSense 
+                  adSlot="1234567890" 
+                  adFormat="auto"
+                  className="text-center"
+                  style={{ display: 'block', minHeight: '100px' }}
+                />
+              </div>
+
               {/* 인기 게시글 - 모바일 2열 그리드 */}
               <div className="mobile-section bg-gradient-to-br from-slate-800/60 via-orange-900/40 to-red-900/50 backdrop-blur-md rounded-2xl p-3 sm:p-6 border border-orange-500/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-orange-500/20 transition-all duration-500 mobile-card-compact">
                 {/* 배경 효과 */}
@@ -385,6 +396,16 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* 광고 영역 2 */}
+              <div className="mb-6">
+                <AdSense 
+                  adSlot="0987654321" 
+                  adFormat="rectangle"
+                  className="text-center"
+                  style={{ display: 'block', minHeight: '250px' }}
+                />
               </div>
 
               {/* 별 사진 갤러리 */}

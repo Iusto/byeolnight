@@ -10,6 +10,7 @@ import ClickableNickname from '../components/ClickableNickname';
 import UserIconDisplay from '../components/UserIconDisplay';
 import CommentList from '../components/CommentList';
 import CommentForm from '../components/CommentForm';
+import AdSense from '../components/AdSense';
 
 interface Post {
   id: number;
@@ -608,6 +609,16 @@ export default function PostDetail() {
                 🔧 개발 정보: iframe 지원 {iframeSupported ? '✅ 활성화' : '❌ 차단됨'}
               </div>
             )}
+          </div>
+          
+          {/* 광고 영역 */}
+          <div className="my-8">
+            <AdSense 
+              adSlot="1111111111" 
+              adFormat="auto"
+              className="text-center"
+              style={{ display: 'block', minHeight: '200px' }}
+            />
           </div>
         
         {/* S3 이미지 표시 */}
