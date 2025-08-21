@@ -35,7 +35,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full mb-2 left-0 sm:right-0 sm:left-auto bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-[9999] w-80 max-w-[90vw]">
+        <div className="absolute top-full mt-2 left-0 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-[9999] w-72 max-w-[calc(100vw-2rem)]">
           {/* 카테고리 탭 */}
           <div className="flex border-b border-gray-600">
             {Object.keys(EMOJI_CATEGORIES).map((category) => (
