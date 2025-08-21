@@ -51,6 +51,7 @@ jobs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          .gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
@@ -69,10 +70,16 @@ jobs:
     - name: Gradle 실행 권한 설정
       run: chmod +x ./gradlew
 
+    - name: 의존성 다운로드
+      env:
+        GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
+      run: |
+        ./gradlew dependencies --no-daemon --refresh-dependencies
+        
     - name: 테스트 실행
       env:
         GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
-      run: ./gradlew test --no-daemon --info
+      run: ./gradlew test --no-daemon --stacktrace
 
     - name: 테스트 결과 업로드
       uses: actions/upload-artifact@v4

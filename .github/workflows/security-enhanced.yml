@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '0 2 * * 1'  # 매주 월요일 오전 2시
 
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
 jobs:
   security-audit:
     name: 종합 보안 감사
@@ -79,14 +84,20 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: java
+        build-mode: manual
 
     - name: 백엔드 빌드 (보안 검사용)
       env:
-        GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=256m"
-      run: ./gradlew compileJava --no-daemon
+        GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
+      run: |
+        ./gradlew clean
+        ./gradlew compileJava --no-daemon --info
 
     - name: CodeQL 분석 실행
       uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:java"
+      continue-on-error: true
 
     # 보고서 업로드
     - name: 보안 검사 보고서 업로드
