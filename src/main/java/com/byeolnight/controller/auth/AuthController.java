@@ -364,7 +364,6 @@ public class AuthController {
             userService.withdraw(user.getId(), password, reason);
             
             // 토큰 무효화 처리
-            String userEmail = user.getEmail();
             if (userEmail != null) {
                 tokenService.deleteRefreshToken(userEmail);
             }
