@@ -41,48 +41,78 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       {isOpen && (
         isChat ? (
           <div className="absolute top-full mt-2 right-0 sm:left-0 sm:right-auto z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl">
-        ) : createPortal(
-          <div className="fixed z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl bottom-20 left-4">,
-          document.body
-        )
-      ) && (
-        <div>
-          {/* 카테고리 탭 */}
-          <div className="flex border-b border-gray-600">
-            {Object.keys(EMOJI_CATEGORIES).map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => setActiveCategory(category)}
-                className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
-                  activeCategory === category
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-
-          {/* 이모티콘 그리드 */}
-          <div className="p-3 max-h-48 overflow-y-auto">
-            <div className="grid grid-cols-5 gap-2">
-              {(EMOJI_CATEGORIES[activeCategory] || []).map((emoji, index) => (
+            {/* 카테고리 탭 */}
+            <div className="flex border-b border-gray-600">
+              {Object.keys(EMOJI_CATEGORIES).map((category) => (
                 <button
-                  key={index}
+                  key={category}
                   type="button"
-                  onClick={() => handleEmojiClick(emoji)}
-                  className="p-2 text-lg hover:bg-gray-700 rounded transition-colors"
-                  title={emoji}
+                  onClick={() => setActiveCategory(category)}
+                  className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                    activeCategory === category
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
                 >
-                  {emoji}
+                  {category}
                 </button>
               ))}
             </div>
+            {/* 이모티콘 그리드 */}
+            <div className="p-3 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-5 gap-2">
+                {(EMOJI_CATEGORIES[activeCategory] || []).map((emoji, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleEmojiClick(emoji)}
+                    className="p-2 text-lg hover:bg-gray-700 rounded transition-colors"
+                    title={emoji}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          </div>
-        ) : null
+        ) : createPortal(
+          <div className="fixed z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl bottom-20 left-4">
+            {/* 카테고리 탭 */}
+            <div className="flex border-b border-gray-600">
+              {Object.keys(EMOJI_CATEGORIES).map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveCategory(category)}
+                  className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                    activeCategory === category
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            {/* 이모티콘 그리드 */}
+            <div className="p-3 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-5 gap-2">
+                {(EMOJI_CATEGORIES[activeCategory] || []).map((emoji, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleEmojiClick(emoji)}
+                    className="p-2 text-lg hover:bg-gray-700 rounded transition-colors"
+                    title={emoji}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
       )}
 
       {/* 클릭 외부 영역 감지 */}

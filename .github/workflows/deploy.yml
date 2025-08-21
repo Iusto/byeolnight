@@ -1,188 +1,36 @@
-name: 배포
+name: 배포 완료 표시
 
 on:
-  # push:
-  #   branches: [ master ]  # 자동 배포 비활성화
   workflow_dispatch:  # 수동 실행만 가능
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+    inputs:
+      deployment_status:
+        description: '배포 상태'
+        required: true
+        default: 'completed'
+        type: choice
+        options:
+        - completed
+        - failed
 
 jobs:
-  build-and-push:
-    name: Docker 이미지 빌드 및 푸시
+  deployment-status:
+    name: 배포 상태 기록
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
-
-    steps:
-    - name: 코드 체크아웃
-      uses: actions/checkout@v4
-
-    - name: JDK 21 설정
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Gradle 실행 권한 설정
-      run: chmod +x ./gradlew
-
-    - name: 백엔드 빌드
-      run: ./gradlew build -x test
-
-    - name: Config Server 빌드
-      run: |
-        cd config-server
-        chmod +x ./gradlew
-        ./gradlew build -x test
-
-    - name: Docker Buildx 설정
-      uses: docker/setup-buildx-action@v3
-
-    - name: GitHub Container Registry 로그인
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: 백엔드 메타데이터 추출
-      id: meta-backend
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
-        tags: |
-          type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: 백엔드 이미지 빌드 및 푸시
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: ${{ steps.meta-backend.outputs.tags }}
-        labels: ${{ steps.meta-backend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: 프론트엔드 메타데이터 추출
-      id: meta-frontend
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
-        tags: |
-          type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: 프론트엔드 이미지 빌드 및 푸시
-      uses: docker/build-push-action@v5
-      with:
-        context: ./byeolnight-frontend
-        file: ./byeolnight-frontend/Dockerfile
-        push: true
-        tags: ${{ steps.meta-frontend.outputs.tags }}
-        labels: ${{ steps.meta-frontend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Config Server 메타데이터 추출
-      id: meta-config
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config-server
-        tags: |
-          type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Config Server 이미지 빌드 및 푸시
-      uses: docker/build-push-action@v5
-      with:
-        context: ./config-server
-        file: ./config-server/Dockerfile
-        push: true
-        tags: ${{ steps.meta-config.outputs.tags }}
-        labels: ${{ steps.meta-config.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  deploy:
-    name: 운영 서버 배포
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.ref == 'refs/heads/master'
     
     steps:
-    - name: 운영 서버 배포
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_SSH_KEY }}
-        script: |
-          cd /opt/byeolnight
-          
-          # 환경변수 검증
-          if [ ! -f ".env.prod" ]; then
-            echo "❌ .env.prod 파일이 없습니다!"
-            exit 1
-          fi
-          
-          # Config Repository 업데이트 (Git 기반)
-          if [ -d "config-repo" ]; then
-            cd config-repo && git pull origin main && cd ..
-          fi
-          
-          # 새 이미지 pull
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config-server:latest
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
-          
-          # 서비스 재시작 (환경변수 파일 사용)
-          docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
-          docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
-          
-          # 서비스 상태 확인 및 헬스체크
-          sleep 30
-          docker-compose -f docker-compose.prod.yml ps
-          
-          # 헬스체크 수행
-          echo "🔍 서비스 헬스체크 수행 중..."
-          curl -f http://localhost:8080/actuator/health || {
-            echo "❌ 헬스체크 실패! 로그를 확인하세요."
-            docker-compose -f docker-compose.prod.yml logs --tail=50
-            exit 1
-          }
-          echo "✅ 서비스가 정상적으로 실행 중입니다."
-          
-          # 이전 이미지 정리
-          docker image prune -f
-
-  notify:
-    name: 배포 알림
-    runs-on: ubuntu-latest
-    needs: [build-and-push, deploy]
-    if: always()
-    
-    steps:
-    - name: 배포 성공 알림
-      if: needs.deploy.result == 'success'
+    - name: 배포 완료 표시
       run: |
-        echo "✅ 배포가 성공적으로 완료되었습니다!"
-        echo "🚀 새 버전이 운영 환경에 반영되었습니다."
-    
-    - name: 배포 실패 알림
-      if: needs.deploy.result == 'failure'
-      run: |
-        echo "❌ 배포가 실패했습니다!"
-        echo "🔍 로그를 확인하여 문제를 해결해주세요."
+        echo "📋 배포 상태: ${{ github.event.inputs.deployment_status }}"
+        echo "👤 배포자: ${{ github.actor }}"
+        echo "📅 배포 시간: $(date)"
+        echo "🔗 커밋: ${{ github.sha }}"
+        
+        if [ "${{ github.event.inputs.deployment_status }}" = "completed" ]; then
+          echo "✅ 수동 배포가 완료되었습니다!"
+          echo "🚀 서비스가 정상적으로 운영 중입니다."
+        else
+          echo "❌ 배포 중 문제가 발생했습니다."
+          echo "🔍 로그를 확인하여 문제를 해결해주세요."
+        fi
+        
+        echo "💡 실제 배포는 서버에서 './deploy.sh' 스크립트로 수행됩니다."
