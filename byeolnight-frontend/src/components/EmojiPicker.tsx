@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   onEmojiSelect: (emoji: string) => void;
@@ -38,11 +39,14 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       </button>
 
       {isOpen && (
-        <div className={`absolute z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl ${
-          isChat 
-            ? 'bottom-full mb-2 right-0 sm:right-0 sm:transform sm:-translate-x-full' // 채팅: PC에서 왼쪽으로 완전 이동
-            : 'top-full mt-2 left-0' // 댓글: 아래쪽, 왼쪽 정렬
-        }`}>
+        isChat ? (
+          <div className="absolute top-full mt-2 right-0 sm:left-0 sm:right-auto z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl">
+        ) : createPortal(
+          <div className="fixed z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl bottom-20 left-4">,
+          document.body
+        )
+      ) && (
+        <div>
           {/* 카테고리 탭 */}
           <div className="flex border-b border-gray-600">
             {Object.keys(EMOJI_CATEGORIES).map((category) => (
@@ -77,15 +81,17 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
               ))}
             </div>
           </div>
-        </div>
+          </div>
+        ) : null
       )}
 
       {/* 클릭 외부 영역 감지 */}
-      {isOpen && (
+      {isOpen && !isChat && createPortal(
         <div
           className="fixed inset-0 z-[99998]"
           onClick={() => setIsOpen(false)}
-        />
+        />,
+        document.body
       )}
     </div>
   );

@@ -338,16 +338,20 @@ public class AuthController {
     @DeleteMapping("/withdraw")
     @Operation(summary = "회원 탈퇴")
     public ResponseEntity<CommonResponse<String>> withdraw(
-            @AuthenticationPrincipal User user,
             @RequestBody(required = false) com.byeolnight.dto.user.WithdrawRequestDto dto,
             @CookieValue(name = "accessToken", required = false) String accessToken,
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletRequest request) {
         try {
-            if (user == null) {
+            // 쿠키에서 직접 사용자 정보 추출
+            String userEmail = extractUserEmail(null, accessToken, refreshToken);
+            if (userEmail == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("로그인이 필요합니다."));
             }
+            
+            User user = userService.findByEmail(userEmail)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
             
             String password = "";
             String reason = "사용자 요청";
