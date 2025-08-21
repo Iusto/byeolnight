@@ -2,9 +2,12 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
+
+# package-lock.json을 포함한 의존성 파일 복사
 COPY package*.json ./
-# package-lock.json 삭제 후 의존성 설치 (rollup 관련 오류 해결)
-RUN rm -f package-lock.json && npm install --legacy-peer-deps
+
+# npm ci로 빠른 설치 (락 파일 기반)
+RUN npm ci --only=production --silent
 
 COPY . .
 

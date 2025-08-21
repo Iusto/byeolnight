@@ -68,7 +68,7 @@ MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
 EOF
 
-docker compose build --no-cache && docker compose up -d
+docker compose build && docker compose up -d
 
 echo "✅ 배포 완료! 로그 확인 중..."
 docker logs -f byeolnight-app-1
