@@ -706,9 +706,12 @@ export default function PostEdit() {
                 <option value="IMAGE">{t('home.star_photo')}</option>
                 <option value="REVIEW">{t('home.review')}</option>
                 <option value="FREE">{t('home.free')}</option>
-                <option value="STARLIGHT_CINEMA">{t('home.star_cinema')}</option>
                 {user?.role === 'ADMIN' && (
-                  <option value="NEWS">{t('home.space_news')}</option>
+                  <>
+                    <option value="NOTICE">{t('home.notice')}</option>
+                    <option value="NEWS">{t('home.space_news')}</option>
+                    <option value="STARLIGHT_CINEMA">{t('home.star_cinema')}</option>
+                  </>
                 )}
               </select>
             </div>

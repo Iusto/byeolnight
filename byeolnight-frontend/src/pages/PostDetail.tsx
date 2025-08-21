@@ -108,6 +108,8 @@ export default function PostDetail() {
       .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
       .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
       .post-content h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; }
+      .post-content img { max-width: 100% !important; height: auto !important; margin: 16px 0 !important; border-radius: 8px !important; display: block !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important; cursor: pointer !important; }
+      .post-content img:hover { opacity: 0.9 !important; transition: opacity 0.2s ease !important; }
       .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.4rem 0 !important; color: #cbd5e1 !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
       .post-content strong { font-weight: bold !important; color: #f1f5f9 !important; }
       .post-content em { font-style: italic !important; color: #a78bfa !important; }
@@ -568,23 +570,15 @@ export default function PostDetail() {
         <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
           {/* 게시글 내용 */}
           <div className="mb-8">
-            <div className="prose prose-lg max-w-none dark:prose-invert youtube-content post-content" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+            <div className="prose prose-lg max-w-none dark:prose-invert youtube-content post-content" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', lineHeight: '1.7' }}>
               <ReactMarkdown
-                children={post.content.replace(/🖼️ 관련 이미지: (https?:\/\/[^\s\n]+)/g, '')}
+                children={post.content}
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
                   img: ({ node, ...props }) => (
                     <img
                       {...props}
-                      style={{
-                        maxWidth: '100%',
-                        height: 'auto',
-                        margin: '16px 0',
-                        borderRadius: '8px',
-                        display: 'block',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-                      }}
                       loading="lazy"
                       onError={(e) => {
                         console.error('마크다운 이미지 로드 실패:', props.src);
@@ -592,7 +586,6 @@ export default function PostDetail() {
                         e.currentTarget.onerror = null;
                       }}
                       onClick={() => props.src && window.open(props.src, '_blank')}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
                   )
                 }}
