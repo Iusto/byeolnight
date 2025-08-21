@@ -30,16 +30,14 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const isMobile = window.innerWidth < 768;
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
       
       if (isChat && !isMobile) {
-        // PC 채팅: 왼쪽으로 확장
         setPosition({
           top: rect.top,
-          left: rect.left - 288 - 8 // 모달 너비(288px) + 여백(8px)
+          left: rect.left - 288 - 8
         });
       } else {
-        // 댓글 또는 모바일: 아래로 확장
         setPosition({
           top: rect.bottom + 8,
           left: rect.left
@@ -102,7 +100,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
         😊
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <>
           <div
             className="fixed inset-0 z-[99999]"
