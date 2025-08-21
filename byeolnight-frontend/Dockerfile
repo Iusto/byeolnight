@@ -6,8 +6,8 @@ WORKDIR /app
 # package-lock.json을 포함한 의존성 파일 복사
 COPY package*.json ./
 
-# npm install로 의존성 설치 (에러 로그 확인)
-RUN npm install
+# npm ci로 빠른 설치 (새로운 락 파일)
+RUN npm ci
 
 COPY . .
 
