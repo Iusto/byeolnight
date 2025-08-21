@@ -306,6 +306,16 @@ public class AuthController {
         return null;
     }
 
+    private Long extractUserId(String accessToken, String refreshToken) {
+        if (accessToken != null && jwtTokenProvider.validate(accessToken)) {
+            return jwtTokenProvider.getUserIdFromToken(accessToken);
+        }
+        if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
+            return jwtTokenProvider.getUserIdFromToken(refreshToken);
+        }
+        return null;
+    }
+
     private void blacklistToken(String token) {
         if (token != null && jwtTokenProvider.validate(token)) {
             long remainingTime = jwtTokenProvider.getExpiration(token);
@@ -343,15 +353,14 @@ public class AuthController {
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletRequest request) {
         try {
-            // 쿠키에서 직접 사용자 정보 추출
-            String userEmail = extractUserEmail(null, accessToken, refreshToken);
-            if (userEmail == null) {
+            // 토큰에서 userId 직접 추출
+            Long userId = extractUserId(accessToken, refreshToken);
+            if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("로그인이 필요합니다."));
             }
             
-            User user = userService.findByEmail(userEmail)
-                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            User user = userService.findById(userId);
             
             String password = "";
             String reason = "사용자 요청";
@@ -364,9 +373,7 @@ public class AuthController {
             userService.withdraw(user.getId(), password, reason);
             
             // 토큰 무효화 처리
-            if (userEmail != null) {
-                tokenService.deleteRefreshToken(userEmail);
-            }
+            tokenService.deleteRefreshToken(user.getEmail());
             
             // 현재 토큰들을 블랙리스트에 추가
             blacklistToken(accessToken);

@@ -40,7 +40,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
 
       {isOpen && (
         isChat ? (
-          <div className="absolute top-full mt-2 right-0 sm:left-0 sm:right-auto z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl">
+          <div className="absolute top-full mt-2 right-0 transform -translate-x-full sm:left-0 sm:right-auto sm:transform-none z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl">
             {/* 카테고리 탭 */}
             <div className="flex border-b border-gray-600">
               {Object.keys(EMOJI_CATEGORIES).map((category) => (
@@ -75,8 +75,8 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
               </div>
             </div>
           </div>
-        ) : createPortal(
-          <div className="fixed z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl bottom-20 left-4">
+        ) : (
+          <div className="absolute top-full mt-2 left-0 z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl">
             {/* 카테고리 탭 */}
             <div className="flex border-b border-gray-600">
               {Object.keys(EMOJI_CATEGORIES).map((category) => (
@@ -110,18 +110,15 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
                 ))}
               </div>
             </div>
-          </div>,
-          document.body
-        )
+          </div>
       )}
 
       {/* 클릭 외부 영역 감지 */}
-      {isOpen && !isChat && createPortal(
+      {isOpen && (
         <div
           className="fixed inset-0 z-[99998]"
           onClick={() => setIsOpen(false)}
-        />,
-        document.body
+        />
       )}
     </div>
   );
