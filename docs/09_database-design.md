@@ -12,14 +12,23 @@ erDiagram
         varchar email UK
         varchar password
         varchar nickname UK
-        varchar phone
-        boolean email_verified
-        boolean phone_verified
-        int points
+        varchar profile_image_url
+        varchar social_provider
+        enum role
+        enum status
+        boolean nickname_changed
+        datetime nickname_updated_at
+        datetime last_login_at
         int login_fail_count
-        datetime locked_until
+        boolean account_locked
+        datetime last_failed_login
+        varchar ban_reason
+        int points
+        bigint equipped_icon_id
+        varchar equipped_icon_name
+        varchar withdrawal_reason
+        datetime withdrawn_at
         datetime created_at
-        datetime updated_at
     }
     
     DailyAttendance {
@@ -40,15 +49,24 @@ erDiagram
     %% 게시글 도메인
     Post {
         bigint id PK
-        bigint user_id FK
+        bigint writer_id FK
         varchar title
         text content
-        varchar category
-        boolean is_blinded
+        enum category
+        int view_count
         int like_count
-        int comment_count
+        int report_count
+        boolean is_deleted
+        boolean blinded
+        enum blind_type
+        bigint blinded_by_admin_id
+        boolean pinned
+        boolean discussion_topic
+        bigint origin_topic_id
         datetime created_at
         datetime updated_at
+        datetime deleted_at
+        datetime blinded_at
     }
     
     Comment {
@@ -105,6 +123,9 @@ erDiagram
         boolean is_read
         boolean sender_deleted
         boolean receiver_deleted
+        datetime sender_deleted_at
+        datetime receiver_deleted_at
+        datetime read_at
         datetime created_at
     }
     
@@ -278,20 +299,30 @@ erDiagram
 ```sql
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    nickname VARCHAR(50) NOT NULL UNIQUE,
-    phone VARCHAR(20),
-    email_verified BOOLEAN DEFAULT FALSE,
-    phone_verified BOOLEAN DEFAULT FALSE,
-    points INT DEFAULT 0,
-    login_fail_count INT DEFAULT 0,
-    locked_until DATETIME NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255),
+    nickname VARCHAR(8) NOT NULL,
+    profile_image_url VARCHAR(500),
+    social_provider VARCHAR(20),
+    role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
+    status ENUM('ACTIVE', 'BANNED', 'SUSPENDED', 'WITHDRAWN') NOT NULL DEFAULT 'ACTIVE',
+    nickname_changed BOOLEAN NOT NULL DEFAULT FALSE,
+    nickname_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login_at DATETIME,
+    login_fail_count INT NOT NULL DEFAULT 0,
+    account_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    last_failed_login DATETIME,
+    ban_reason VARCHAR(255),
+    points INT NOT NULL DEFAULT 0,
+    equipped_icon_id BIGINT,
+    equipped_icon_name VARCHAR(50),
+    withdrawal_reason VARCHAR(255),
+    withdrawn_at DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     INDEX idx_email (email),
     INDEX idx_nickname (nickname),
+    INDEX idx_status (status),
     INDEX idx_created_at (created_at)
 );
 ```
@@ -300,21 +331,30 @@ CREATE TABLE users (
 ```sql
 CREATE TABLE posts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    is_blinded BOOLEAN DEFAULT FALSE,
-    like_count INT DEFAULT 0,
-    comment_count INT DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    writer_id BIGINT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    content VARCHAR(10000) NOT NULL,
+    category ENUM('NEWS', 'DISCUSSION', 'IMAGE', 'REVIEW', 'FREE', 'NOTICE', 'SUGGESTION', 'STARLIGHT_CINEMA') NOT NULL,
+    view_count INT NOT NULL DEFAULT 0,
+    like_count INT NOT NULL DEFAULT 0,
+    report_count INT NOT NULL DEFAULT 0,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    blinded BOOLEAN NOT NULL DEFAULT FALSE,
+    blind_type ENUM('ADMIN_BLIND', 'REPORT_BLIND'),
+    blinded_by_admin_id BIGINT,
+    pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    discussion_topic BOOLEAN NOT NULL DEFAULT FALSE,
+    origin_topic_id BIGINT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    deleted_at DATETIME,
+    blinded_at DATETIME,
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_category_created (category, created_at DESC),
-    INDEX idx_user_created (user_id, created_at DESC),
-    INDEX idx_like_count (like_count DESC),
-    FULLTEXT INDEX ft_title_content (title, content)
+    FOREIGN KEY (writer_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_post_created_at (created_at),
+    INDEX idx_post_category_created (category, created_at),
+    INDEX idx_post_writer_created (writer_id, created_at),
+    INDEX idx_post_pinned_created (pinned, created_at)
 );
 ```
 
@@ -324,12 +364,15 @@ CREATE TABLE messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     sender_id BIGINT NOT NULL,
     receiver_id BIGINT NOT NULL,
-    title VARCHAR(255) NOT NULL,
+    title VARCHAR(100) NOT NULL,
     content TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    sender_deleted BOOLEAN DEFAULT FALSE,
-    receiver_deleted BOOLEAN DEFAULT FALSE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    sender_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    receiver_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    sender_deleted_at DATETIME,
+    receiver_deleted_at DATETIME,
+    read_at DATETIME,
+    created_at DATETIME NOT NULL,
     
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -381,6 +424,17 @@ CREATE TABLE delete_logs (
 ```sql
 -- 사용자 포인트는 음수가 될 수 없음
 ALTER TABLE users ADD CONSTRAINT chk_points_positive CHECK (points >= 0);
+
+-- 로그인 실패 횟수 제한
+ALTER TABLE users ADD CONSTRAINT chk_login_fail_count CHECK (login_fail_count >= 0 AND login_fail_count <= 10);
+
+-- 게시글 카테고리는 정의된 값만 허용 (ENUM으로 이미 제한됨)
+-- 알림 타입 제한
+ALTER TABLE notifications ADD CONSTRAINT chk_notification_type 
+CHECK (type IN ('COMMENT', 'MESSAGE', 'LIKE', 'REPORT', 'SYSTEM'));
+
+-- 닉네임 길이 제한
+ALTER TABLE users ADD CONSTRAINT chk_nickname_length CHECK (CHAR_LENGTH(nickname) BETWEEN 2 AND 8);R TABLE users ADD CONSTRAINT chk_points_positive CHECK (points >= 0);
 
 -- 로그인 실패 횟수 제한
 ALTER TABLE users ADD CONSTRAINT chk_login_fail_count CHECK (login_fail_count >= 0 AND login_fail_count <= 10);

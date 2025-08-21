@@ -1,4 +1,4 @@
-# ⏰ 스케줄러 테스트 가이드
+# 10. 스케줄러 테스트 가이드
 
 ## 📋 테스트 파일 구성
 
@@ -17,6 +17,7 @@
   - 시스템 사용자 생성/조회
   - 토론 주제 비활성화
   - 토론 주제 내용 파싱 (정상/실패/길이제한)
+  - 뉴스 수집 재시도 로직 검증
 
 ### 3. **SchedulerCronExpressionTest.java** - 크론 표현식 전용 테스트
 - **목적**: 모든 스케줄러의 실행 시간 검증
@@ -33,7 +34,7 @@
 | 스케줄러 | 실행 시간 | 기능 | 테스트 상태 |
 |---------|----------|------|------------|
 | **PostCleanupScheduler** | 매일 8시 | 30일 경과 게시글/댓글 삭제 | ✅ 완료 |
-| **SpaceNewsScheduler** | 매일 8시 (재시도: 5분/10분) | 우주 뉴스 수집 | ✅ 완료 |
+| **SpaceNewsScheduler** | 매일 8시 (재시도: 8시 5분/10분) | 우주 뉴스 수집 | ✅ 완료 |
 | **DiscussionTopicScheduler** | 매일 8시 5분 | AI 토론 주제 생성 | ✅ 완료 |
 | **MessageCleanupService** | 매일 8시 | 3년 경과 쪽지 삭제 | ✅ 완료 |
 | **SocialAccountCleanupService** | 매일 9시/10시 | 소셜 계정 정리 | ✅ 완료 |
@@ -76,10 +77,10 @@ BUILD SUCCESSFUL in 3s
 5 actionable tasks: 1 executed, 4 up-to-date
 
 ✅ SchedulerUnitTest: 6개 테스트 통과
-✅ SchedulerServiceTest: 7개 테스트 통과  
+✅ SchedulerServiceTest: 8개 테스트 통과  
 ✅ SchedulerCronExpressionTest: 7개 테스트 통과
 
-총 20개 테스트 모두 성공
+총 21개 테스트 모두 성공
 ```
 
 ## 🔧 테스트 설계 원칙

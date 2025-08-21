@@ -222,6 +222,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 ### 🚀 운영 및 개발
 - [📦 배포 가이드](./docs/08_deployment.md)
 - [📊 데이터베이스 설계](./docs/09_database-design.md)
+- [⏰ 스케줄러 테스트 가이드](./docs/10_scheduler-testing.md)
 
 ---
 
