@@ -210,7 +210,7 @@ export default function Home() {
   const PostCard = ({ post, showStats = true }: { post: Post; showStats?: boolean }) => (
     <div className="group bg-gradient-to-br from-white/10 to-white/20 hover:from-white/15 hover:to-white/25 rounded-xl p-3 sm:p-4 transition-all duration-300 border border-white/20 hover:border-purple-400/50 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-1">
       <Link to={`/posts/${post.id}`} className="block">
-        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-sm sm:text-base">
+        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-xs sm:text-sm">
           {post.dDay && (
             <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs mr-1 sm:mr-2 shadow-lg animate-pulse">
               {post.dDay}
@@ -344,7 +344,7 @@ export default function Home() {
                             <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                               {t('home.notice')}
                             </span>
-                            <span className="font-semibold text-emerald-100 group-hover:text-white transition-colors">
+                            <span className="font-semibold text-emerald-100 group-hover:text-white transition-colors text-sm sm:text-base line-clamp-1">
                               {post.title}
                             </span>
                           </div>
@@ -449,7 +449,7 @@ export default function Home() {
                             )}
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
                               <div className="p-2 sm:p-3 w-full">
-                                <p className="text-white text-xs sm:text-sm font-medium truncate">{photo.title}</p>
+                                <p className="text-white text-xs font-medium line-clamp-1">{photo.title}</p>
                                 <p className="text-gray-300 text-xs">👁 {photo.viewCount} • ❤️ {photo.likeCount}</p>
                               </div>
                             </div>
@@ -480,7 +480,7 @@ export default function Home() {
                     <div key={post.id} className="bg-blue-900/20 rounded-lg p-4 hover:bg-blue-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-blue-100">{post.title}</span>
+                          <span className="font-semibold text-blue-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
                           <div className="flex items-center gap-2 text-blue-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -509,7 +509,7 @@ export default function Home() {
                     <div key={post.id} className="bg-purple-900/20 rounded-lg p-4 hover:bg-purple-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-purple-100">{post.title}</span>
+                          <span className="font-semibold text-purple-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
                           <div className="flex items-center gap-2 text-purple-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -544,7 +544,7 @@ export default function Home() {
                     <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-green-100">{post.title}</span>
+                          <span className="font-semibold text-green-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
                           <div className="flex items-center gap-2 text-green-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -573,7 +573,7 @@ export default function Home() {
                     <div key={post.id} className="bg-pink-900/20 rounded-lg p-4 hover:bg-pink-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-pink-100">{post.title}</span>
+                          <span className="font-semibold text-pink-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
                           <div className="flex items-center gap-2 text-pink-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -608,9 +608,9 @@ export default function Home() {
                     <div key={post.id} className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 hover:from-purple-900/30 hover:to-pink-900/30 transition-all duration-300 border border-purple-700/20">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-purple-100 flex items-center gap-2">
-                            <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded text-xs font-bold">🎬 AI</span>
-                            {post.title}
+                          <span className="font-semibold text-purple-100 flex items-center gap-2 flex-1 mr-3">
+                            <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded text-xs font-bold flex-shrink-0">🎬 AI</span>
+                            <span className="text-sm sm:text-base line-clamp-1">{post.title}</span>
                           </span>
                           <div className="flex items-center gap-2 text-purple-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
