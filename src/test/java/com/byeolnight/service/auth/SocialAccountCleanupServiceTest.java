@@ -179,6 +179,69 @@ class SocialAccountCleanupServiceTest {
     }
 
     @Test
+    @DisplayName("복구 가능한 계정 확인 - 30일 내 탈퇴")
+    void hasRecoverableAccount_WithinThirtyDays_ShouldReturnTrue() {
+        // given
+        User recentWithdrawnUser = User.builder()
+                .id(7L)
+                .email("recent@test.com")
+                .password(null)
+                .build();
+        recentWithdrawnUser.setSocialProvider("google");
+        recentWithdrawnUser.withdraw("테스트");
+        setWithdrawnAt(recentWithdrawnUser, LocalDateTime.now().minusDays(15)); // 15일 전 탈퇴
+
+        when(userRepository.findByEmail("recent@test.com"))
+                .thenReturn(Optional.of(recentWithdrawnUser));
+
+        // when
+        boolean result = socialAccountCleanupService.hasRecoverableAccount("recent@test.com");
+
+        // then
+        assertTrue(result);
+        // 상태는 변경되지 않음 (확인만 함)
+        assertEquals(User.UserStatus.WITHDRAWN, recentWithdrawnUser.getStatus());
+        assertNotNull(recentWithdrawnUser.getWithdrawnAt());
+    }
+
+    @Test
+    @DisplayName("복구 가능한 계정 확인 - 30일 경과")
+    void hasRecoverableAccount_AfterThirtyDays_ShouldReturnFalse() {
+        // given
+        User oldWithdrawnUser = User.builder()
+                .id(8L)
+                .email("old@test.com")
+                .password(null)
+                .build();
+        oldWithdrawnUser.setSocialProvider("naver");
+        oldWithdrawnUser.withdraw("테스트");
+        setWithdrawnAt(oldWithdrawnUser, LocalDateTime.now().minusDays(35)); // 35일 전 탈퇴
+
+        when(userRepository.findByEmail("old@test.com"))
+                .thenReturn(Optional.of(oldWithdrawnUser));
+
+        // when
+        boolean result = socialAccountCleanupService.hasRecoverableAccount("old@test.com");
+
+        // then
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("복구 가능한 계정 확인 - 활성 계정")
+    void hasRecoverableAccount_ActiveAccount_ShouldReturnFalse() {
+        // given
+        when(userRepository.findByEmail("social@test.com"))
+                .thenReturn(Optional.of(activeSocialUser));
+
+        // when
+        boolean result = socialAccountCleanupService.hasRecoverableAccount("social@test.com");
+
+        // then
+        assertFalse(result);
+    }
+
+    @Test
     @DisplayName("30일 내 소셜 계정 복구 성공")
     void recoverWithdrawnAccount_WithinThirtyDays_ShouldRecover() {
         // given

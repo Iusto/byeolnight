@@ -36,6 +36,7 @@ public class AdminUserController {
     private final StringRedisTemplate redisTemplate;
     private final com.byeolnight.service.user.PointService pointService;
     private final com.byeolnight.service.user.WithdrawnUserCleanupService withdrawnUserCleanupService;
+    private final com.byeolnight.service.auth.SocialAccountCleanupService socialAccountCleanupService;
 
     @Operation(summary = "전체 사용자 요약 조회", description = "관리자 권한으로 전체 사용자 목록을 조회합니다.")
     @ApiResponses({
@@ -286,6 +287,36 @@ public class AdminUserController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(com.byeolnight.infrastructure.common.CommonResponse.fail(e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "탈퇴 계정 복구", description = "관리자가 30일 내 탈퇴한 계정을 복구합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "계정 복구 성공"),
+            @ApiResponse(responseCode = "400", description = "복구 불가능한 계정"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "사용자 없음")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/users/recover")
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> recoverWithdrawnAccount(
+            @RequestParam String email,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            boolean recovered = socialAccountCleanupService.recoverWithdrawnAccount(email);
+            if (recovered) {
+                return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
+                        "계정이 성공적으로 복구되었습니다."));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(com.byeolnight.infrastructure.common.CommonResponse.fail(
+                                "복구할 수 없는 계정입니다. (30일 경과 또는 존재하지 않음)"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(com.byeolnight.infrastructure.common.CommonResponse.fail(
+                            "계정 복구 중 오류가 발생했습니다: " + e.getMessage()));
         }
     }
 

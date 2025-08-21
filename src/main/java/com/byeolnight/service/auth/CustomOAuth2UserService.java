@@ -95,11 +95,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
     
     private User processNewUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
-        if (socialAccountCleanupService.recoverWithdrawnAccount(userInfo.getEmail())) {
-            log.info("30일 내 탈퇴한 소셜 계정 자동 복구: {}", userInfo.getEmail());
-            return userRepository.findByEmail(userInfo.getEmail())
-                    .map(recoveredUser -> recoverUser(recoveredUser, userInfo, registrationId))
-                    .orElseGet(() -> createUser(userInfo, registrationId));
+        // 복구 가능한 계정이 있는지 확인
+        if (socialAccountCleanupService.hasRecoverableAccount(userInfo.getEmail())) {
+            String errorMsg = "탈퇴한 계정이 있습니다. 복구를 원하시면 관리자에게 문의하세요.";
+            storeErrorMessage(errorMsg);
+            throw new OAuth2AuthenticationException(errorMsg);
         }
         return createUser(userInfo, registrationId);
     }

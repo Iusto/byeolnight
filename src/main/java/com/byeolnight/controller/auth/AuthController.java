@@ -91,6 +91,8 @@ public class AuthController {
             User user = userService.findByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("토큰 재발급 실패 - 사용자 없음: {}", email);
+                        // 토큰을 블랙리스트에 추가하여 재사용 방지
+                        tokenService.deleteRefreshToken(email);
                         return new IllegalArgumentException("해당 사용자를 찾을 수 없습니다.");
                     });
 
@@ -338,6 +340,8 @@ public class AuthController {
     public ResponseEntity<CommonResponse<String>> withdraw(
             @AuthenticationPrincipal User user,
             @RequestBody(required = false) com.byeolnight.dto.user.WithdrawRequestDto dto,
+            @CookieValue(name = "accessToken", required = false) String accessToken,
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletRequest request) {
         try {
             if (user == null) {
@@ -355,11 +359,15 @@ public class AuthController {
             
             userService.withdraw(user.getId(), password, reason);
             
-            // 로그아웃 처리
+            // 토큰 무효화 처리
             String userEmail = user.getEmail();
             if (userEmail != null) {
                 tokenService.deleteRefreshToken(userEmail);
             }
+            
+            // 현재 토큰들을 블랙리스트에 추가
+            blacklistToken(accessToken);
+            blacklistAuthHeaderToken(request, accessToken);
             
             ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
             ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");

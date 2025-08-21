@@ -17,6 +17,9 @@ const EMOJI_CATEGORIES: Record<string, string[]> = {
 export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('우주');
+  
+  // 채팅인지 댓글인지 구분
+  const isChat = className?.includes('border-l-0');
 
   const handleEmojiClick = (emoji: string) => {
     onEmojiSelect(emoji);
@@ -35,7 +38,11 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 left-0 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-[9999] w-72 max-w-[calc(100vw-2rem)]">
+        <div className={`absolute z-[9999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl ${
+          isChat 
+            ? 'bottom-full mb-2 right-0 sm:left-0 sm:right-auto' // 채팅: 위쪽, PC에서 왼쪽 확장
+            : 'top-full mt-2 left-0' // 댓글: 아래쪽, 왼쪽 정렬
+        }`}>
           {/* 카테고리 탭 */}
           <div className="flex border-b border-gray-600">
             {Object.keys(EMOJI_CATEGORIES).map((category) => (

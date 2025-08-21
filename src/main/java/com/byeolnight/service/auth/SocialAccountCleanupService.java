@@ -108,6 +108,18 @@ public class SocialAccountCleanupService {
     }
 
     /**
+     * 복구 가능한 계정이 있는지 확인 (복구하지 않음)
+     */
+    @Transactional(readOnly = true)
+    public boolean hasRecoverableAccount(String email) {
+        return userRepository.findByEmail(email)
+                .filter(user -> user.getStatus() == User.UserStatus.WITHDRAWN &&
+                        user.getWithdrawnAt() != null &&
+                        user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)))
+                .isPresent();
+    }
+
+    /**
      * 30일 내 소셜 계정 복구
      */
     @Transactional
