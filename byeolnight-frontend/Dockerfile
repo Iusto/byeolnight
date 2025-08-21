@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # npm ci로 빠른 설치 (락 파일 기반)
-RUN npm ci --only=production --silent
+RUN npm ci --silent
 
 COPY . .
 
