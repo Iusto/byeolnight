@@ -27,14 +27,30 @@ cd byeolnight
 # 2. 원본 저장소를 upstream으로 추가
 git remote add upstream https://github.com/original-owner/byeolnight.git
 
-# 3. 개발 환경 설정
-cp .env.example .env
-# .env 파일을 개발용 설정으로 수정
+# 3. Config Server 설정 파일 준비
+# config-repo/configs/byeolnight-local.yml 파일에 개발용 설정 입력
+# (민감한 정보는 {cipher}로 암호화하여 저장)
 
-# 4. 로컬 환경 실행
-./run-local.bat  # Windows
-# 또는
-./run-local.sh   # Linux/Mac
+# 4. Config Server 기반 로컬 환경 실행
+# 방법 1: 자동화 스크립트 사용 (Windows)
+./start-dev.bat
+
+# 방법 2: 수동 실행 (모든 OS)
+# Config Server 먼저 시작 (첫 번째 터미널)
+cd config-server
+gradlew bootRun
+
+# 데이터베이스 서비스 시작 (두 번째 터미널)
+docker-compose -f docker-compose.local.yml up -d mysql redis
+
+# 메인 애플리케이션 시작 (세 번째 터미널)
+cd ..
+gradlew bootRun --args='--spring.profiles.active=local'
+
+# 프론트엔드 개발 서버 시작 (네 번째 터미널)
+cd byeolnight-frontend
+npm install
+npm run dev
 ```
 
 ### 2. 브랜치 전략
@@ -124,21 +140,45 @@ Closes #123
 
 #### 코드 작성 가이드라인
 
-**Backend (Java/Spring Boot)**:
+**Backend (Java/Spring Boot + Config Server)**:
 ```java
-// 1. 클래스명은 명확하고 의미있게
+// 1. Config Server 설정값 주입 예시
+@Component
 public class UserAuthenticationService {
+    
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
+    
+    @Value("${app.security.max-login-attempts}")
+    private int maxLoginAttempts;
     
     // 2. 메서드명은 동작을 명확히 표현
     public TokenResponse authenticateUser(LoginRequest request) {
-        // 3. 주석은 '왜'를 설명 ('무엇'이 아닌)
-        // 로그인 실패 횟수를 증가시켜 계정 보안을 강화
-        increaseLoginFailCount(user);
+        // 3. Config Server에서 가져온 설정값 활용
+        if (user.getLoginFailCount() >= maxLoginAttempts) {
+            throw new AccountLockedException("계정이 잠겼습니다.");
+        }
         
-        // 4. 예외 처리는 구체적으로
-        throw new AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        // 4. JWT 토큰 생성 시 Config Server 설정 사용
+        return jwtTokenProvider.createToken(user, accessTokenExpiration);
     }
 }
+```
+
+**Config Server 설정 파일 작성**:
+```yaml
+# config-repo/configs/byeolnight-local.yml
+app:
+  security:
+    max-login-attempts: 5
+    account-lock-duration: 300000  # 5분
+
+jwt:
+  secret: '{cipher}AQC...암호화된_시크릿키'
+  access-token-expiration: 1800000  # 30분
+  refresh-token-expiration: 604800000  # 7일
+
+# 새로운 설정 추가 시 암호화 필요한 값은 반드시 {cipher} 접두사 사용
 ```
 
 **Frontend (React/TypeScript)**:
@@ -274,27 +314,42 @@ Closes #123
 ## 📞 소통 채널
 
 ### GitHub
-- **Issues**: 버그 리포트, 기능 요청
-- **Discussions**: 일반적인 질문, 아이디어 논의
-- **Pull Requests**: 코드 기여
+- **Issues**: 버그 리포트, 기능 요청, Config Server 설정 관련 문의
+- **Discussions**: 일반적인 질문, 아이디어 논의, 아키텍처 설계 논의
+- **Pull Requests**: 코드 기여, Config Server 설정 변경
 
 ### 이메일
 - **메인테이너 연락**: byeolnightservice@gmail.com
-- **보안 이슈**: byeolnightservice@gmail.com
+- **보안 이슈**: byeolnightservice@gmail.com (Config Server 암호화 키 등 민감한 정보 포함)
+
+### Config Server 관련 문의
+- Config Server 설정 구조 변경이나 새로운 암호화 설정이 필요한 경우 이슈로 먼저 논의
+- 운영 환경 설정 변경은 반드시 리뷰 과정을 거쳐야 함
 
 ## ❓ 자주 묻는 질문
 
 ### Q: 처음 기여하는데 어떤 작업부터 시작하면 좋을까요?
 A: `good first issue` 라벨이 있는 이슈부터 시작하세요. 주로 문서 개선이나 간단한 버그 수정이 포함됩니다.
 
-### Q: 새로운 기능을 제안하고 싶어요.
-A: 먼저 GitHub Issues에서 기능 요청 이슈를 생성해주세요. 커뮤니티와 메인테이너의 피드백을 받은 후 개발을 시작하는 것이 좋습니다.
+### Q: Config Server 설정을 어떻게 추가하나요?
+A: 
+1. `config-repo/configs/byeolnight-local.yml`에 설정 추가
+2. 민감한 정보는 Config Server 암호화 엔드포인트로 암호화 후 `{cipher}` 접두사와 함께 저장
+3. 애플리케이션에서 `@Value` 또는 `@ConfigurationProperties`로 주입
+4. Config Server 재시작 후 애플리케이션에서 `/actuator/refresh`로 설정 새로고침
 
-### Q: 코드 리뷰에서 수정 요청을 받았어요.
-A: 피드백은 코드 품질 향상을 위한 것입니다. 궁금한 점이 있다면 언제든 질문하세요. 모든 기여자를 환영합니다!
+### Q: 새로운 기능을 제안하고 싶어요.
+A: 먼저 GitHub Issues에서 기능 요청 이슈를 생성해주세요. Config Server 설정이 필요한 기능이라면 설정 구조도 함께 제안해주세요.
+
+### Q: 로컬 개발 환경에서 Config Server 연결이 안 돼요.
+A: 
+1. Config Server가 먼저 시작되었는지 확인 (http://localhost:8888/actuator/health)
+2. `config-repo/configs/byeolnight-local.yml` 파일이 존재하는지 확인
+3. 애플리케이션 로그에서 "Located property source" 메시지 확인
+4. 설정 파일 YAML 문법 오류 확인
 
 ### Q: 테스트 코드 작성이 어려워요.
-A: 기존 테스트 코드를 참고하거나, 테스트 작성에 대한 도움이 필요하면 이슈에 `help wanted` 라벨을 추가해주세요.
+A: Config Server 기반 테스트는 `@TestPropertySource` 또는 테스트용 설정 파일을 사용하세요. 기존 테스트 코드를 참고하거나 도움이 필요하면 이슈에 `help wanted` 라벨을 추가해주세요.
 
 ---
 
