@@ -480,10 +480,10 @@ export default function ChatSidebar() {
         )}
 
         {user ? (
-          <div className="flex items-end">
+          <div className="flex items-end gap-0">
             <input
               type="text"
-              className={`flex-1 px-3 py-2 rounded-l text-white placeholder-gray-400 ${
+              className={`flex-1 min-w-0 px-3 py-2 rounded-l text-white placeholder-gray-400 ${
                 banStatus?.banned || bannedUsers.has(user?.nickname || '')
                   ? 'bg-red-900/30 border border-red-500 cursor-not-allowed' 
                   : 'bg-black/30'
@@ -496,15 +496,15 @@ export default function ChatSidebar() {
             />
             <EmojiPicker
               onEmojiSelect={(emoji) => setInput(prev => prev + emoji)}
-              className="border-l-0"
+              className="border-l-0 flex-shrink-0"
             />
             <button
               onClick={sendMessage}
-              className={`px-4 rounded-r transition ${
+              className={`px-3 py-2 rounded-r transition flex-shrink-0 ${
                 banStatus?.banned || bannedUsers.has(user?.nickname || '')
                   ? 'bg-red-600 cursor-not-allowed'
                   : 'bg-purple-600 hover:bg-purple-700'
-              } text-white`}
+              } text-white text-sm`}
               disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
             >
               {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? t('home.chat.banned') : t('home.chat.send')}
