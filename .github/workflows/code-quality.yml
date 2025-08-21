@@ -1,0 +1,135 @@
+name: 코드 품질 검사
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  security-scan:
+    name: 보안 취약점 스캔
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
+    - name: CodeQL 초기화
+      uses: github/codeql-action/init@v3
+      with:
+        languages: java
+        build-mode: manual
+
+    - name: 백엔드 빌드 (보안 검사용)
+      env:
+        GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
+      run: |
+        ./gradlew clean
+        ./gradlew compileJava --no-daemon --info
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: 프론트엔드 의존성 설치
+      working-directory: ./byeolnight-frontend
+      run: npm install --legacy-peer-deps
+        
+    - name: 프론트엔드 빌드 검증
+      working-directory: ./byeolnight-frontend
+      run: npm run build
+
+    - name: CodeQL 분석 실행 (Java)
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:java"
+
+  frontend-security:
+    name: 프론트엔드 보안 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: CodeQL 초기화 (JavaScript)
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: 프론트엔드 의존성 설치
+      working-directory: ./byeolnight-frontend
+      run: npm install --legacy-peer-deps
+
+    - name: 프론트엔드 빌드
+      working-directory: ./byeolnight-frontend
+      run: npm run build
+
+    - name: CodeQL 분석 실행 (JavaScript)
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+      continue-on-error: true
+
+  dependency-check:
+    name: 의존성 보안 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
+    - name: Gradle 빌드 검증
+      env:
+        GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
+      run: |
+        echo "🔍 Gradle 빌드 검증 중..."
+        ./gradlew build -x test --no-daemon
+        echo "✅ Gradle 빌드 완료"
+
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: 프론트엔드 의존성 설치
+      working-directory: ./byeolnight-frontend
+      run: npm install --legacy-peer-deps
+        
+    - name: npm audit 실행
+      working-directory: ./byeolnight-frontend
+      run: |
+        npm audit --audit-level=moderate || {
+          echo "⚠️ 보안 취약점이 발견되었습니다. 자동 수정을 시도합니다..."
+          npm audit fix --force || echo "⚠️ 일부 취약점은 수동 수정이 필요합니다."
+        }

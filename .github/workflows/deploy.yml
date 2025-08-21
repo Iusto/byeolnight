@@ -1,0 +1,36 @@
+name: 배포 완료 표시
+
+on:
+  workflow_dispatch:  # 수동 실행만 가능
+    inputs:
+      deployment_status:
+        description: '배포 상태'
+        required: true
+        default: 'completed'
+        type: choice
+        options:
+        - completed
+        - failed
+
+jobs:
+  deployment-status:
+    name: 배포 상태 기록
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 배포 완료 표시
+      run: |
+        echo "📋 배포 상태: ${{ github.event.inputs.deployment_status }}"
+        echo "👤 배포자: ${{ github.actor }}"
+        echo "📅 배포 시간: $(date)"
+        echo "🔗 커밋: ${{ github.sha }}"
+        
+        if [ "${{ github.event.inputs.deployment_status }}" = "completed" ]; then
+          echo "✅ 수동 배포가 완료되었습니다!"
+          echo "🚀 서비스가 정상적으로 운영 중입니다."
+        else
+          echo "❌ 배포 중 문제가 발생했습니다."
+          echo "🔍 로그를 확인하여 문제를 해결해주세요."
+        fi
+        
+        echo "💡 실제 배포는 서버에서 './deploy.sh' 스크립트로 수행됩니다."

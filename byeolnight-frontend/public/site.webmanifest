@@ -1,0 +1,39 @@
+{
+  "name": "별 헤는 밤",
+  "short_name": "별헤는밤",
+  "description": "우주를 테마로 한 감성적인 커뮤니티 플랫폼",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0c2a",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["social", "entertainment"],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

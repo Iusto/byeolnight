@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: byeolnight
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  cloud:
+    config:
+      uri: ${CONFIG_SERVER_URI:http://localhost:8888}
+      username: ${CONFIG_USERNAME:config-admin}
+      password: ${CONFIG_PASSWORD:config-secret-2024}
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+      request-connect-timeout: 5000
+      request-read-timeout: 10000
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,configprops
+  endpoint:
+    health:
+      show-details: when-authorized

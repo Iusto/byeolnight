@@ -1,0 +1,33 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  security:
+    user:
+      name: config-admin
+      password: config-secret-2024
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:../config-repo/configs,classpath:/
+        git:
+          uri: file:///tmp/config-repo
+          clone-on-start: false
+      encrypt:
+        enabled: true
+
+# 암호화 설정
+encrypt:
+  key: byeolnight-config-encryption-key-2025!@#$%^&*()
+  fail-on-error: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,149 @@
+name: 성능 테스트
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # 매주 월요일 오전 2시
+  workflow_dispatch:     # 수동 실행 가능
+    inputs:
+      target_url:
+        description: '테스트할 URL'
+        required: true
+        default: 'http://localhost:8080'
+      duration:
+        description: '테스트 지속 시간 (초)'
+        required: true
+        default: '60'
+
+jobs:
+  load-test:
+    name: 부하 테스트
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: K6 설치
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install k6
+
+    - name: 부하 테스트 스크립트 생성
+      run: |
+        cat > load-test.js << 'EOF'
+        import http from 'k6/http';
+        import { check, sleep } from 'k6';
+        import { Rate } from 'k6/metrics';
+
+        export let errorRate = new Rate('errors');
+
+        export let options = {
+          stages: [
+            { duration: '2m', target: 10 },   // 2분간 10명까지 증가
+            { duration: '5m', target: 10 },   // 5분간 10명 유지
+            { duration: '2m', target: 20 },   // 2분간 20명까지 증가
+            { duration: '5m', target: 20 },   // 5분간 20명 유지
+            { duration: '2m', target: 0 },    // 2분간 0명까지 감소
+          ],
+          thresholds: {
+            http_req_duration: ['p(95)<500'],  // 95%의 요청이 500ms 이하
+            errors: ['rate<0.1'],              // 에러율 10% 이하
+          },
+        };
+
+        const BASE_URL = __ENV.TARGET_URL || 'http://localhost:8080';
+
+        export default function() {
+          // 메인 페이지 테스트
+          let response = http.get(`${BASE_URL}/api/health`);
+          check(response, {
+            'status is 200': (r) => r.status === 200,
+            'response time < 500ms': (r) => r.timings.duration < 500,
+          }) || errorRate.add(1);
+
+          // 게시글 목록 API 테스트
+          response = http.get(`${BASE_URL}/api/posts?page=0&size=10`);
+          check(response, {
+            'posts API status is 200': (r) => r.status === 200,
+          }) || errorRate.add(1);
+
+          sleep(1);
+        }
+        EOF
+
+    - name: 부하 테스트 실행
+      run: |
+        TARGET_URL="${{ github.event.inputs.target_url || 'http://localhost:8080' }}"
+        echo "🎯 테스트 대상 URL: $TARGET_URL"
+        k6 run --env TARGET_URL="$TARGET_URL" load-test.js
+
+    - name: 테스트 결과 업로드
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-test-results
+        path: |
+          *.json
+          *.html
+
+  lighthouse:
+    name: Lighthouse 성능 측정
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: Lighthouse CI 실행
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        urls: |
+          ${{ github.event.inputs.target_url || 'http://localhost:8080' }}
+        configPath: './.lighthouserc.json'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+
+  database-performance:
+    name: 데이터베이스 성능 테스트
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: byeolnight_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Gradle 실행 권한 설정
+      run: chmod +x ./gradlew
+
+    - name: 성능 테스트 실행
+      run: |
+        # 실제 성능 테스트는 별도 프로파일로 실행
+        ./gradlew test --tests "*PerformanceTest" -Dspring.profiles.active=performance
+      env:
+        DB_HOST: localhost
+        DB_PORT: 3306
+        DB_NAME: byeolnight_test
+        DB_USERNAME: root
+        DB_PASSWORD: test

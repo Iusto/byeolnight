@@ -1,0 +1,68 @@
+{
+  "name": "byeolnight-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@stomp/stompjs": "^7.1.1",
+    "@toast-ui/editor": "^3.1.0",
+    "@toast-ui/react-editor": "^3.1.0",
+    "axios": "^1.7.9",
+    "clsx": "^2.1.1",
+    "i18next": "^25.3.2",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^15.6.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.6.2",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
+
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@types/node": "^24.0.10",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+
+    "@types/uuid": "^9.0.8",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.1",
+    "terser": "^5.36.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.5"
+  },
+  "overrides": {
+    "axios": "^1.7.9",
+    "postcss": "^8.5.6",
+    "semver": "^7.6.0",
+    "braces": "^3.0.3",
+    "micromatch": "^4.0.8",
+    "dompurify": "^3.2.4"
+  },
+  "resolutions": {
+    "axios": "^1.7.9",
+    "postcss": "^8.5.6",
+    "semver": "^7.6.0",
+    "braces": "^3.0.3",
+    "micromatch": "^4.0.8",
+    "dompurify": "^3.2.4"
+  }
+}

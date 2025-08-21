@@ -1,0 +1,750 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 스텔라 아이콘 애니메이션 */
+@keyframes stella-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes stella-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.5)); }
+  50% { filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8)); }
+}
+
+@keyframes stella-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes stella-bounce {
+  0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
+  40%, 43% { transform: translateY(-8px); }
+  70% { transform: translateY(-4px); }
+  90% { transform: translateY(-2px); }
+}
+
+@keyframes stella-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes stella-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes stella-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes stella-heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes stella-blink {
+  0%, 90% { opacity: 1; }
+  95% { opacity: 0.3; }
+}
+
+/* 우주 테마 애니메이션 추가 */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-delay {
+  0% { opacity: 0; transform: translateY(20px); }
+  50% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cosmic-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(-5px) rotate(-1deg); }
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes planet-orbit {
+  from { transform: rotate(0deg) translateX(20px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(20px) rotate(-360deg); }
+}
+
+@keyframes nebula-drift {
+  0% { transform: translateX(-10px) translateY(-5px); }
+  25% { transform: translateX(10px) translateY(-10px); }
+  50% { transform: translateX(15px) translateY(5px); }
+  75% { transform: translateX(-5px) translateY(10px); }
+  100% { transform: translateX(-10px) translateY(-5px); }
+}
+
+/* 애니메이션 클래스 */
+.animate-pulse { animation: stella-pulse 2s ease-in-out infinite; }
+.animate-fade-in { animation: fade-in 0.8s ease-out forwards; }
+.animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+.animate-fade-in-delay { animation: fade-in-delay 1.2s ease-out forwards; }
+.animate-cosmic-float { animation: cosmic-float 6s ease-in-out infinite; }
+.animate-star-twinkle { animation: star-twinkle 2s ease-in-out infinite; }
+.animate-planet-orbit { animation: planet-orbit 20s linear infinite; }
+.animate-nebula-drift { animation: nebula-drift 15s ease-in-out infinite; }
+.animate-glow { animation: stella-glow 2s ease-in-out infinite; }
+.animate-glow-slow { animation: stella-glow 3s ease-in-out infinite; }
+.animate-rotate { animation: stella-rotate 3s linear infinite; }
+.animate-spin-slow { animation: stella-rotate 8s linear infinite; }
+.animate-bounce { animation: stella-bounce 1s infinite; }
+.animate-bounce-slow { animation: stella-bounce 2s infinite; }
+.animate-shimmer { 
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: stella-shimmer 2s infinite;
+}
+.animate-gradient {
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  animation: stella-gradient 4s ease infinite;
+}
+.animate-float { animation: stella-float 3s ease-in-out infinite; }
+.animate-float-glow { 
+  animation: stella-float 3s ease-in-out infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-heartbeat { animation: stella-heartbeat 1.5s ease-in-out infinite; }
+.animate-blink { animation: stella-blink 3s infinite; }
+.animate-blink-fast { animation: stella-blink 1s infinite; }
+.animate-pulse-fast { animation: stella-pulse 1s ease-in-out infinite; }
+.animate-halo {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  animation: stella-glow 2s ease-in-out infinite;
+}
+.animate-wave {
+  animation: stella-float 2s ease-in-out infinite;
+}
+.animate-wave-slow {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-love {
+  animation: stella-heartbeat 1s ease-in-out infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-flicker {
+  animation: stella-blink 0.5s infinite;
+}
+.animate-heatwave {
+  animation: stella-shimmer 1.5s infinite, stella-glow 2s ease-in-out infinite;
+}
+.animate-petal {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-glitch {
+  animation: stella-blink 0.1s infinite;
+}
+.animate-pixelate {
+  image-rendering: pixelated;
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-icepulse {
+  filter: hue-rotate(180deg);
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-vortex {
+  animation: stella-rotate 2s linear infinite;
+}
+.animate-swing {
+  transform-origin: top center;
+  animation: stella-float 3s ease-in-out infinite;
+}
+.animate-shine {
+  animation: stella-shimmer 3s infinite;
+}
+.animate-dualcore {
+  animation: stella-pulse 1s ease-in-out infinite, stella-rotate 4s linear infinite;
+}
+.animate-trail {
+  animation: stella-shimmer 2s infinite;
+}
+.animate-implode {
+  animation: stella-heartbeat 2s ease-in-out infinite reverse;
+}
+.animate-snow {
+  animation: stella-float 5s ease-in-out infinite;
+}
+.animate-sway {
+  animation: stella-float 4s ease-in-out infinite;
+}
+.animate-flare {
+  animation: stella-glow 1s ease-in-out infinite;
+}
+.animate-fade {
+  animation: stella-pulse 3s ease-in-out infinite;
+}
+.animate-fire {
+  animation: stella-glow 1.5s ease-in-out infinite, stella-float 2s ease-in-out infinite;
+}
+.animate-box {
+  animation: stella-bounce 2s infinite;
+}
+.animate-orbit {
+  animation: stella-rotate 6s linear infinite;
+}
+.animate-focus {
+  animation: stella-pulse 2s ease-in-out infinite;
+}
+.animate-rain {
+  animation: stella-float 1s ease-in-out infinite;
+}
+.animate-darkshine {
+  filter: brightness(0.7);
+  animation: stella-shimmer 3s infinite;
+}
+.animate-dimflare {
+  filter: brightness(0.8);
+  animation: stella-glow 2s ease-in-out infinite;
+}
+.animate-glitter {
+  animation: stella-shimmer 1s infinite;
+}
+.animate-drip {
+  animation: stella-float 6s ease-in-out infinite;
+}
+.animate-sparkle {
+  animation: stella-shimmer 1.5s infinite, stella-pulse 2s ease-in-out infinite;
+}
+.animate-eclipse {
+  animation: stella-pulse 4s ease-in-out infinite;
+}
+.animate-glow-fast {
+  animation: stella-glow 1s ease-in-out infinite;
+}
+
+/* SVG 아이콘 렌더링 최적화 */
+svg {
+  display: block !important;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* 아이콘 컨테이너 최적화 */
+.icon-container {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.icon-container svg {
+  flex-shrink: 0;
+  display: block !important;
+}
+
+/* 이모지 폰트 렌더링 최적화 */
+* {
+  font-display: swap;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 이모지 강제 렌더링 */
+* {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+}
+
+.emoji-icon {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+  color: inherit !important;
+  background: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* 모바일 최적화 시스템 */
+@media (max-width: 768px) {
+  .mobile-optimized {
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
+  }
+  
+  .mobile-compact {
+    padding: 8px !important;
+    margin: 4px 0 !important;
+  }
+  
+  .mobile-header {
+    padding: 8px 0 !important;
+  }
+  
+  .mobile-tab {
+    min-height: 44px !important;
+    font-size: 14px !important;
+    padding: 10px 6px !important;
+  }
+  
+  .mobile-input {
+    min-height: 44px !important;
+    font-size: 16px !important;
+    padding: 10px 14px !important;
+  }
+  
+  .mobile-button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+  }
+  
+  /* 모바일 밝기 개선 - WCAG 대비 기준 적용 */
+  .mobile-bright {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%) !important;
+  }
+  
+  .mobile-card {
+    background: rgba(71, 85, 105, 0.9) !important;
+    border: 1px solid rgba(148, 163, 184, 0.4) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .mobile-text {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .mobile-text-secondary {
+    color: #f1f5f9 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* 모바일 섹션 배경 강화 */
+  .mobile-section {
+    background: rgba(71, 85, 105, 0.7) !important;
+    border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  }
+  
+  /* 모바일 게시글 카드 배경 */
+  .mobile-post-card {
+    background: rgba(100, 116, 139, 0.6) !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  }
+  
+  /* 모바일 네비게이션 강화 - 자동 숨김 지원 */
+  .mobile-nav {
+    background: rgba(30, 41, 59, 0.98) !important;
+    backdrop-filter: blur(16px) !important;
+    transition: transform 0.3s ease-in-out !important;
+  }
+  
+  .mobile-nav.nav-hidden {
+    transform: translateY(-100%) !important;
+  }
+  
+  .mobile-nav.nav-visible {
+    transform: translateY(0) !important;
+  }
+  
+  /* 모바일 로고 텍스트 */
+  .mobile-logo {
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* 모바일 버튼 강화 */
+  .mobile-board-btn {
+    background: rgba(100, 116, 139, 0.8) !important;
+    border: 1px solid rgba(148, 163, 184, 0.5) !important;
+    color: #f8fafc !important;
+  }
+  
+  /* 모바일 2열 그리드 레이아웃 */
+  .mobile-grid-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  
+  .mobile-grid-3 {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  
+  /* 모바일 카드 최적화 */
+  .mobile-card-compact {
+    padding: 12px !important;
+    margin: 6px 0 !important;
+    border-radius: 12px !important;
+  }
+  
+  /* 모바일 썸네일 최적화 */
+  .mobile-thumbnail {
+    aspect-ratio: 16/9 !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+  }
+  
+  /* 모바일 텍스트 크기 조정 */
+  .mobile-title {
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+    font-weight: 600 !important;
+  }
+  
+  .mobile-subtitle {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+  }
+  
+  .mobile-caption {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 12px;
+  }
+  
+  /* 터치 디바이스에서 호버 효과 비활성화 */
+  .hover\:scale-105:hover,
+  .hover\:scale-110:hover,
+  .hover\:-translate-y-1:hover {
+    transform: none;
+  }
+  
+  /* 터치 피드백 강화 */
+  .touch-feedback:active {
+    transform: scale(0.98);
+    opacity: 0.8;
+    transition: all 0.1s ease;
+  }
+  
+  /* 터치 스크롤 최적화 */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* 터치 버튼 최적화 */
+  .touch-button {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 12px;
+    touch-action: manipulation;
+  }
+}
+
+/* 인앱 브라우저 호환성 강화 */
+.inapp-safe {
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* iOS Safari 확대 방지 */
+  -webkit-text-size-adjust: 100%;
+  /* 터치 지연 제거 */
+  touch-action: manipulation;
+}
+
+.inapp-safe input,
+.inapp-safe textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  /* iOS 확대 방지를 위한 최소 폰트 크기 */
+  font-size: 16px;
+}
+
+/* 모바일 스크롤 개선 */
+.mobile-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+
+.mobile-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.mobile-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.mobile-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+/* Tailwind 기반 우주 테마 - 모바일 최적화 */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh; /* 동적 뷰포트 높이 */
+  /* 모바일 터치 최적화 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+  /* 스크롤 성능 최적화 */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* 나머지 기존 Vite 스타일 */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+/* 버튼 기본 디자인 */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* 긴 텍스트 처리 전역 스타일 */
+.break-words {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* 게시글 내용 영역 전용 스타일 */
+.post-content {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.post-content * {
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.post-content img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.post-content pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-x: auto;
+}
+
+.post-content code {
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+}
+
+/* React Quill 다크 테마 커스터마이징 */
+.ql-toolbar {
+  background-color: #2a2e45 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 8px 8px 0 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  padding: 8px !important;
+}
+
+.ql-toolbar .ql-stroke {
+  fill: none;
+  stroke: #e2e8f0 !important;
+}
+
+.ql-toolbar .ql-fill {
+  fill: #e2e8f0 !important;
+  stroke: none;
+}
+
+.ql-toolbar .ql-picker-label {
+  color: #e2e8f0 !important;
+}
+
+.ql-toolbar .ql-picker-options {
+  background-color: #2a2e45 !important;
+  border: 1px solid #4a5568 !important;
+}
+
+.ql-toolbar .ql-picker-item:hover {
+  background-color: #4a5568 !important;
+  color: #ffffff !important;
+}
+
+.ql-container {
+  background-color: #1f2336 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 0 0 8px 8px !important;
+  color: #e2e8f0 !important;
+  display: block !important;
+  height: 350px !important;
+}
+
+.ql-editor {
+  color: #e2e8f0 !important;
+  min-height: 300px !important;
+  height: 100% !important;
+  display: block !important;
+  overflow-y: auto !important;
+}
+
+.ql-editor.ql-blank::before {
+  color: #a0aec0 !important;
+  font-style: italic;
+}
+
+.ql-editor h1, .ql-editor h2, .ql-editor h3 {
+  color: #ffffff !important;
+}
+
+.ql-editor strong {
+  color: #ffffff !important;
+}
+
+.ql-editor a {
+  color: #9f7aea !important;
+}
+
+/* ReactQuill 강제 표시 */
+.quill {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 400px !important;
+}
+
+/* 툴바 버튼 강제 표시 */
+.ql-formats {
+  display: inline-flex !important;
+  margin-right: 8px !important;
+  margin-bottom: 4px !important;
+}
+
+/* AdSense 광고 스타일 */
+.adsense-container {
+  margin: 20px 0;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+}
+
+.adsense-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
+  pointer-events: none;
+}
+
+.adsense-container .adsbygoogle {
+  position: relative;
+  z-index: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 모바일 AdSense 최적화 */
+@media (max-width: 768px) {
+  .adsense-container {
+    margin: 16px 0;
+    padding: 12px;
+    border-radius: 8px;
+  }
+}
+
+/* 광고 로딩 상태 */
+.adsense-container:empty::after {
+  content: '광고';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  color: rgba(148, 163, 184, 0.6);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 밝은 테마 대응 */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

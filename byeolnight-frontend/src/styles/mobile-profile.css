@@ -1,0 +1,88 @@
+/* Profile 페이지 모바일 최적화 스타일 */
+
+/* 스크롤바 숨김 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 모바일 터치 영역 최적화 */
+@media (max-width: 640px) {
+  /* 탭 버튼 최소 터치 영역 보장 */
+  .tab-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 8px;
+  }
+  
+  /* 메시지 탭 버튼 */
+  .message-tab-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 8px;
+  }
+  
+  /* 삭제 버튼 터치 영역 */
+  .delete-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+  
+  /* 아이콘 장착/해제 버튼 */
+  .icon-equip-button {
+    min-height: 44px;
+    padding: 12px 8px;
+  }
+  
+  /* 메시지 카드 최소 높이 */
+  .message-card {
+    min-height: 80px;
+  }
+  
+  /* 모달 창 모바일 최적화 */
+  .modal-content {
+    max-height: 90vh;
+    margin: 16px;
+  }
+  
+  /* 헤더 패딩 조정 */
+  .modal-header {
+    padding: 16px;
+  }
+  
+  /* 본문 패딩 조정 */
+  .modal-body {
+    padding: 16px;
+  }
+}
+
+/* 태블릿 최적화 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* 아이콘 그리드 조정 */
+  .icon-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* 활동 정보 카드 */
+  .activity-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 데스크톱 최적화 */
+@media (min-width: 1025px) {
+  /* 아이콘 그리드 최대 5열 */
+  .icon-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  
+  /* 기본 정보 2열 레이아웃 */
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
