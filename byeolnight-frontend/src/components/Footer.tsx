@@ -4,7 +4,7 @@ export default function Footer() {
   const { t } = useTranslation();
   
   return (
-    <footer className="relative bg-gradient-to-r from-slate-900 via-purple-900/50 to-slate-900 text-white mt-12 overflow-hidden">
+    <footer className="relative bg-gradient-to-r from-slate-900 via-purple-900/50 to-slate-900 text-white mt-12 overflow-hidden z-10">
       {/* 배경 별 효과 */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-4 left-10 w-1 h-1 bg-white rounded-full animate-pulse"></div>
