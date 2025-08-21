@@ -111,6 +111,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
               </div>
             </div>
           </div>
+        )
       )}
 
       {/* 클릭 외부 영역 감지 */}
