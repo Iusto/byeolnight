@@ -340,11 +340,11 @@ export default function Home() {
                     <div key={post.id} className="group bg-emerald-900/20 hover:bg-emerald-900/40 rounded-xl p-4 transition-all duration-300 border border-emerald-700/20 hover:border-emerald-500/50">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex-shrink-0">
                               {t('home.notice')}
                             </span>
-                            <span className="font-semibold text-emerald-100 group-hover:text-white transition-colors text-sm sm:text-base line-clamp-1">
+                            <span className="font-semibold text-emerald-100 group-hover:text-white transition-colors text-sm sm:text-base line-clamp-1 min-w-0">
                               {post.title}
                             </span>
                           </div>
