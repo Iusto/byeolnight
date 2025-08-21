@@ -128,18 +128,18 @@ export default function Home() {
       <div className="absolute top-5 right-5 sm:top-10 sm:right-10 w-16 h-16 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full blur-xl animate-pulse"></div>
       <div className="absolute bottom-5 left-5 sm:bottom-10 sm:left-10 w-12 h-12 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-lg animate-pulse" style={{animationDelay: '1s'}}></div>
       
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-20 text-center relative mobile-header">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-20 text-center relative">
         <div className="mb-2 sm:mb-8">
           <div className="inline-block animate-float">
             <span className="text-2xl sm:text-6xl md:text-8xl drop-shadow-2xl">🌌</span>
           </div>
         </div>
-        <h1 className="text-xl sm:text-5xl md:text-7xl font-bold mb-2 sm:mb-6 animate-fade-in px-2 mobile-title">
+        <h1 className="text-2xl sm:text-5xl md:text-7xl font-bold mb-2 sm:mb-6 animate-fade-in px-2">
           <span className="text-white sm:bg-gradient-to-r sm:from-purple-400 sm:via-pink-400 sm:to-indigo-400 sm:bg-clip-text sm:text-transparent mobile-text">
             {t('home.bigtitle')}
           </span>
         </h1>
-        <p className="text-sm sm:text-xl md:text-2xl text-gray-200 mobile-text-secondary mb-3 sm:mb-8 max-w-3xl mx-auto animate-fade-in-delay px-4 mobile-subtitle">
+        <p className="text-sm sm:text-xl md:text-2xl text-gray-200 mb-3 sm:mb-8 max-w-5xl mx-auto animate-fade-in-delay px-4">
           {t('home.subtitle')}
         </p>
         <div className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md px-4 py-2 sm:px-8 sm:py-4 rounded-full border border-white/20 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105 touch-target">
@@ -161,22 +161,22 @@ export default function Home() {
             <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-20 animate-pulse"></div>
           </div>
         </div>
-        <h2 className="text-lg sm:text-3xl font-bold mb-1 sm:mb-3 mobile-title">
+        <h2 className="text-lg sm:text-3xl font-bold mb-1 sm:mb-3">
           <span className="text-white sm:bg-gradient-to-r sm:from-purple-400 sm:via-pink-400 sm:to-indigo-400 sm:bg-clip-text sm:text-transparent mobile-text">
             {t('home.explore_boards')}
           </span>
         </h2>
-        <p className="text-gray-300 mobile-text-secondary text-xs sm:text-sm mobile-caption">{t('home.explore_subtitle')}</p>
+        <p className="text-gray-300 text-xs sm:text-sm">{t('home.explore_subtitle')}</p>
       </div>
-      <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5 sm:gap-4 mobile-grid-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-4">
         {BOARD_CONFIGS.map((board, index) => (
           <Link 
             key={board.key} 
             to={board.path || `/posts?category=${board.key}&sort=recent`} 
-            className="group touch-target"
+            className="group"
           >
             <div 
-              className={`relative mobile-board-btn p-2 sm:p-3 bg-gradient-to-br ${board.bgClass} rounded-lg sm:rounded-xl border ${board.borderClass} ${board.hoverBgClass} ${board.hoverBorderClass} transition-all duration-300 text-center transform active:scale-95 hover:scale-105 hover:-translate-y-1 shadow-lg ${board.shadowClass} backdrop-blur-sm min-h-[60px] sm:min-h-[90px] flex flex-col justify-center touch-feedback`}
+              className={`relative p-3 sm:p-4 bg-gradient-to-br ${board.bgClass} rounded-xl border ${board.borderClass} ${board.hoverBgClass} ${board.hoverBorderClass} transition-all duration-300 text-center transform active:scale-95 hover:scale-105 hover:-translate-y-1 shadow-lg ${board.shadowClass} backdrop-blur-sm min-h-[70px] sm:min-h-[90px] flex flex-col justify-center`}
               style={{animationDelay: `${index * 0.1}s`}}
             >
               {board.hasAI && (
@@ -192,7 +192,7 @@ export default function Home() {
               <div className="text-base sm:text-2xl mb-1 sm:mb-2 group-hover:animate-bounce group-hover:scale-110 transition-transform duration-300">
                 {board.icon}
               </div>
-              <div className={`text-xs sm:text-sm font-medium text-white sm:${board.textClass} group-hover:text-white transition-colors leading-tight mobile-caption`}>
+              <div className={`text-xs sm:text-sm font-medium text-white sm:${board.textClass} group-hover:text-white transition-colors leading-tight`}>
                 {board.key === 'NEWS' ? t('home.space_news') : 
                  board.key === 'IMAGE' ? t('home.star_photo') :
                  board.key === 'STARLIGHT_CINEMA' ? t('home.star_cinema') :
@@ -208,9 +208,9 @@ export default function Home() {
   );
 
   const PostCard = ({ post, showStats = true }: { post: Post; showStats?: boolean }) => (
-    <div className="group mobile-post-card bg-gradient-to-br from-white/10 to-white/20 hover:from-white/15 hover:to-white/25 rounded-xl p-2 sm:p-4 transition-all duration-300 border border-white/20 hover:border-purple-400/50 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-1 touch-feedback mobile-card-compact">
-      <Link to={`/posts/${post.id}`} className="touch-target">
-        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-sm sm:text-base mobile-title">
+    <div className="group bg-gradient-to-br from-white/10 to-white/20 hover:from-white/15 hover:to-white/25 rounded-xl p-3 sm:p-4 transition-all duration-300 border border-white/20 hover:border-purple-400/50 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-1">
+      <Link to={`/posts/${post.id}`} className="block">
+        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-sm sm:text-base">
           {post.dDay && (
             <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs mr-1 sm:mr-2 shadow-lg animate-pulse">
               {post.dDay}
@@ -249,7 +249,7 @@ export default function Home() {
     borderColor: string;
     children: React.ReactNode;
   }) => (
-    <div className={`${bgColor.replace('/30', '/50').replace('/20', '/40')} ${borderColor.replace('/20', '/40')} backdrop-blur-md rounded-2xl p-3 sm:p-6 border shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group mobile-card mobile-card-compact`}>
+    <div className={`${bgColor.replace('/30', '/50').replace('/20', '/40')} ${borderColor.replace('/20', '/40')} backdrop-blur-md rounded-2xl p-4 sm:p-6 border shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group`}>
       {/* 섹션 배경 효과 */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       
@@ -261,13 +261,13 @@ export default function Home() {
             </div>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur opacity-30 animate-pulse"></div>
           </div>
-          <h3 className="text-base sm:text-2xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent mobile-text mobile-title">
+          <h3 className="text-base sm:text-2xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
             {title}
           </h3>
         </div>
         <Link 
           to={link} 
-          className="group/btn flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 hover:from-purple-700 hover:via-purple-800 hover:to-pink-700 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/50 hover:scale-105 backdrop-blur-sm border border-purple-400/30 mobile-button touch-target touch-feedback"
+          className="group/btn flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 hover:from-purple-700 hover:via-purple-800 hover:to-pink-700 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/50 hover:scale-105 backdrop-blur-sm border border-purple-400/30"
         >
           <span className="hidden sm:inline">{t('home.view_all')}</span>
           <span className="sm:hidden text-xs">더보기</span>
@@ -295,7 +295,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white relative overflow-hidden mobile-optimized">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-x-hidden">
       {/* 우주 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-900/40 to-slate-900 sm:from-purple-900/20 sm:via-slate-900/40 sm:to-slate-900"></div>
@@ -322,11 +322,11 @@ export default function Home() {
       <div className="relative z-10">
         <HeroSection />
         
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-12 mobile-optimized">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-12">
           <BoardNavigation />
 
-          <div className="grid lg:grid-cols-5 gap-3 sm:gap-8">
-            <div className="lg:col-span-3 space-y-3 sm:space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8">
+            <div className="lg:col-span-3 space-y-4 sm:space-y-8">
               {/* 공지사항 */}
               <Section 
                 title={t('home.notice_board')} 
@@ -373,23 +373,23 @@ export default function Home() {
               </div>
 
               {/* 인기 게시글 - 모바일 2열 그리드 */}
-              <div className="mobile-section bg-gradient-to-br from-slate-800/60 via-orange-900/40 to-red-900/50 backdrop-blur-md rounded-2xl p-3 sm:p-6 border border-orange-500/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-orange-500/20 transition-all duration-500 mobile-card-compact">
+              <div className="bg-gradient-to-br from-slate-800/60 via-orange-900/40 to-red-900/50 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-orange-500/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-orange-500/20 transition-all duration-500">
                 {/* 배경 효과 */}
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-red-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="absolute top-2 right-2 sm:top-4 sm:right-4 w-10 h-10 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-full blur-xl animate-pulse"></div>
                 
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 relative z-10">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 relative z-10">
                   <div className="relative">
                     <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-base sm:text-xl shadow-lg hover:shadow-orange-500/50 transition-all duration-300 animate-pulse">
                       🔥
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-400 rounded-full blur opacity-40 animate-ping"></div>
                   </div>
-                  <h2 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent mobile-title">
+                  <h2 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent">
                     {t('home.popular_posts')}
                   </h2>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 relative z-10 mobile-grid-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-4 relative z-10">
                   {filteredPosts.map((post, index) => (
                     <div key={post.id} style={{animationDelay: `${index * 0.1}s`}} className="animate-fade-in-up">
                       <PostCard post={post} />
@@ -419,20 +419,20 @@ export default function Home() {
                 {filteredStarPhotos.length === 0 ? (
                   <div className="text-center py-6 sm:py-8">
                     <div className="text-4xl sm:text-6xl mb-2 sm:mb-4 opacity-50">🌌</div>
-                    <p className="text-indigo-300 text-sm mobile-caption">{t('home.no_star_photos')}</p>
+                    <p className="text-indigo-300 text-sm">{t('home.no_star_photos')}</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 mobile-grid-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                     {filteredStarPhotos.slice(0, 8).map((photo) => {
                       const imageUrl = photo.thumbnailUrl || extractFirstImage(photo.content);
                       return (
-                        <Link to={`/posts/${photo.id}`} key={photo.id} className="touch-target">
-                          <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20 relative aspect-square touch-feedback">
+                        <Link to={`/posts/${photo.id}`} key={photo.id} className="block">
+                          <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20 relative aspect-square">
                             {imageUrl ? (
                               <img
                                 src={imageUrl}
                                 alt="별 사진"
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 mobile-thumbnail"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 loading="lazy"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
@@ -449,8 +449,8 @@ export default function Home() {
                             )}
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
                               <div className="p-2 sm:p-3 w-full">
-                                <p className="text-white text-xs sm:text-sm font-medium truncate mobile-caption">{photo.title}</p>
-                                <p className="text-gray-300 text-xs mobile-caption">👁 {photo.viewCount} • ❤️ {photo.likeCount}</p>
+                                <p className="text-white text-xs sm:text-sm font-medium truncate">{photo.title}</p>
+                                <p className="text-gray-300 text-xs">👁 {photo.viewCount} • ❤️ {photo.likeCount}</p>
                               </div>
                             </div>
                           </div>
@@ -629,7 +629,7 @@ export default function Home() {
             </div>
 
             {/* 채팅 사이드바 */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 order-first lg:order-last">
               <div className="sticky top-4">
                 <ChatSidebar />
               </div>
