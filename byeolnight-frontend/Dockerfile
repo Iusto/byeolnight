@@ -6,8 +6,8 @@ WORKDIR /app
 # package-lock.json을 포함한 의존성 파일 복사
 COPY package*.json ./
 
-# npm ci로 빠른 설치 (락 파일 기반)
-RUN npm ci --silent
+# npm install로 의존성 설치
+RUN npm install --silent
 
 COPY . .
 
