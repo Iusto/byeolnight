@@ -61,6 +61,11 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 탈퇴 API 호출 후 401 에러는 토큰 재발급 시도하지 않음
+    if (originalRequest.url?.includes('/auth/withdraw')) {
+      return Promise.reject(error);
+    }
+
     // 401 에러가 아니거나 이미 재시도한 경우
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);

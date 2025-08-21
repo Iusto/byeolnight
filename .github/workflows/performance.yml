@@ -8,7 +8,7 @@ on:
       target_url:
         description: '테스트할 URL'
         required: true
-        default: 'https://byeolnight.com'
+        default: 'http://localhost:8080'
       duration:
         description: '테스트 지속 시간 (초)'
         required: true
@@ -77,6 +77,7 @@ jobs:
     - name: 부하 테스트 실행
       run: |
         TARGET_URL="${{ github.event.inputs.target_url || 'http://localhost:8080' }}"
+        echo "🎯 테스트 대상 URL: $TARGET_URL"
         k6 run --env TARGET_URL="$TARGET_URL" load-test.js
 
     - name: 테스트 결과 업로드
@@ -100,7 +101,7 @@ jobs:
       uses: treosh/lighthouse-ci-action@v10
       with:
         urls: |
-          ${{ github.event.inputs.target_url || 'https://byeolnight.com' }}
+          ${{ github.event.inputs.target_url || 'http://localhost:8080' }}
         configPath: './.lighthouserc.json'
         uploadArtifacts: true
         temporaryPublicStorage: true

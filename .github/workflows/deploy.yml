@@ -152,9 +152,18 @@ jobs:
           docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
           docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
           
-          # 서비스 상태 확인
+          # 서비스 상태 확인 및 헬스체크
           sleep 30
           docker-compose -f docker-compose.prod.yml ps
+          
+          # 헬스체크 수행
+          echo "🔍 서비스 헬스체크 수행 중..."
+          curl -f http://localhost:8080/actuator/health || {
+            echo "❌ 헬스체크 실패! 로그를 확인하세요."
+            docker-compose -f docker-compose.prod.yml logs --tail=50
+            exit 1
+          }
+          echo "✅ 서비스가 정상적으로 실행 중입니다."
           
           # 이전 이미지 정리
           docker image prune -f

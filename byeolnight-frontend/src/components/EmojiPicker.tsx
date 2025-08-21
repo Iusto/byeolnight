@@ -38,9 +38,9 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       </button>
 
       {isOpen && (
-        <div className={`absolute z-[9999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl ${
+        <div className={`absolute z-[99999] w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl ${
           isChat 
-            ? 'bottom-full mb-2 right-0 sm:left-0 sm:right-auto' // 채팅: 위쪽, PC에서 왼쪽 확장
+            ? 'bottom-full mb-2 right-0 sm:right-0 sm:transform sm:-translate-x-full' // 채팅: PC에서 왼쪽으로 완전 이동
             : 'top-full mt-2 left-0' // 댓글: 아래쪽, 왼쪽 정렬
         }`}>
           {/* 카테고리 탭 */}
@@ -83,7 +83,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       {/* 클릭 외부 영역 감지 */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[9998]"
+          className="fixed inset-0 z-[99998]"
           onClick={() => setIsOpen(false)}
         />
       )}

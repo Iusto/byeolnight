@@ -97,7 +97,6 @@ jobs:
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:java"
-      continue-on-error: true
 
     # 보고서 업로드
     - name: 보안 검사 보고서 업로드

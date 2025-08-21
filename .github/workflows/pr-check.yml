@@ -101,8 +101,13 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          // PR 작성자가 아닌 팀원들을 리뷰어로 할당
-          const reviewers = ['reviewer1', 'reviewer2']; // 실제 GitHub 사용자명으로 변경
+          // 현재 리포지토리에 리뷰어가 설정되어 있지 않으므로 주석 처리
+          console.log('현재 리포지토리에 리뷰어가 설정되어 있지 않습니다.');
+          console.log('PR 작성자:', context.payload.pull_request.user.login);
+          
+          // 리뷰어 설정이 필요한 경우 아래 코드를 사용하세요:
+          /*
+          const reviewers = ['actual-github-username']; // 실제 GitHub 사용자명으로 변경
           const author = context.payload.pull_request.user.login;
           const availableReviewers = reviewers.filter(reviewer => reviewer !== author);
           
@@ -111,6 +116,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
-              reviewers: availableReviewers.slice(0, 2) // 최대 2명
+              reviewers: availableReviewers.slice(0, 2)
             });
           }
+          */

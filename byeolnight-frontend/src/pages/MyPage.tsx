@@ -75,10 +75,13 @@ export default function MyPage() {
           reason
         }
       });
+      
+      // 탈퇴 성공 메시지 표시
       alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
       
-      // 탈퇴 후 완전한 로그아웃 처리
-      await logout();
+      // 홈으로 이동 (HttpOnly 쿠키는 서버에서 이미 삭제됨)
+      window.location.href = '/';
+      
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || '회원 탈퇴에 실패했습니다.';
       alert(errorMsg);
