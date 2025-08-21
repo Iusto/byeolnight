@@ -42,13 +42,13 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm, socialProvid
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4">
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
       />
       
-      <div className="relative bg-gray-800 border border-gray-600 rounded-xl shadow-2xl p-6 min-w-[500px] max-w-[600px] mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-gray-800 border border-gray-600 rounded-xl shadow-2xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-[600px] max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">⚠️ 회원 탈퇴</h3>
           <button
@@ -137,17 +137,17 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm, socialProvid
             </label>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4">
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition"
+              className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition order-2 sm:order-1"
             >
               취소
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+              className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition order-1 sm:order-2"
             >
               탈퇴하기
             </button>

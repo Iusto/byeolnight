@@ -119,8 +119,8 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1f2336]/95 backdrop-blur-md rounded-xl border border-purple-500/20 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-[#1f2336]/95 backdrop-blur-md rounded-xl border border-purple-500/20 w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-purple-500/20">
           <h2 className="text-xl font-bold text-white">👤 사용자 프로필</h2>
