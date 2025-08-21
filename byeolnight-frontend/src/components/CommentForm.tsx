@@ -58,10 +58,20 @@ export default function CommentForm({ postId, onCommentAdded }: Props) {
           }}
           rows={3}
           placeholder={user ? "댓글을 입력하세요..." : "댓글을 작성하려면 로그인이 필요합니다."}
-          className="w-full p-3 pr-12 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
+          className="w-full p-3 rounded bg-[#2a2e45] text-white focus:outline-none mb-2"
           disabled={!user || isSubmitting}
           maxLength={COMMENT_MAX_LENGTH}
         />
+        <div className="text-xs text-gray-400 mb-3 text-right">
+          {newComment.length}/{COMMENT_MAX_LENGTH}
+        </div>
+      </div>
+      {error && (
+        <div className="text-red-400 text-sm mb-3">
+          {error}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
         {user && (
           <EmojiPicker
             onEmojiSelect={(emoji) => {
@@ -70,29 +80,21 @@ export default function CommentForm({ postId, onCommentAdded }: Props) {
                 setNewComment(newText);
               }
             }}
-            className="absolute top-2 right-2"
+            className="flex-shrink-0"
           />
         )}
-        <div className="text-xs text-gray-400 mb-2 text-right">
-          {newComment.length}/{COMMENT_MAX_LENGTH}
-        </div>
+        <button
+          type="submit"
+          className={`flex-1 px-4 py-2 rounded text-sm transition ${
+            !user || isSubmitting
+              ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+              : 'bg-blue-500 hover:bg-blue-600'
+          }`}
+          disabled={!user || isSubmitting}
+        >
+          {isSubmitting ? '등록 중...' : user ? '댓글 등록' : '로그인 필요'}
+        </button>
       </div>
-      {error && (
-        <div className="text-red-400 text-sm mb-2">
-          {error}
-        </div>
-      )}
-      <button
-        type="submit"
-        className={`px-4 py-2 rounded text-sm transition ${
-          !user || isSubmitting
-            ? 'bg-gray-500 cursor-not-allowed text-gray-300'
-            : 'bg-blue-500 hover:bg-blue-600'
-        }`}
-        disabled={!user || isSubmitting}
-      >
-        {isSubmitting ? '등록 중...' : user ? '댓글 등록' : '로그인 필요'}
-      </button>
     </form>
   );
 }
