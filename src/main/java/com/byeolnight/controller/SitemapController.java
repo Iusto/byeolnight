@@ -98,20 +98,36 @@ public class SitemapController {
         StringBuilder sitemap = new StringBuilder();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
-        Pageable pageable = PageRequest.of(page, PAGE_SIZE);
-        Page<Post> postPage = postRepository.findByBlindedFalseAndIsDeletedFalse(pageable);
-        
-        sitemap.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        sitemap.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
-        
-        for (Post post : postPage.getContent()) {
-            sitemap.append("  <url>\n");
-            sitemap.append("    <loc>").append(baseUrl).append("/posts/").append(post.getId()).append("</loc>\n");
-            sitemap.append("    <lastmod>").append(post.getUpdatedAt().format(formatter)).append("</lastmod>\n");
-            sitemap.append("    <changefreq>monthly</changefreq>\n");
-            sitemap.append("    <priority>0.6</priority>\n");
-            sitemap.append("  </url>\n");
+        try {
+            Pageable pageable = PageRequest.of(page, PAGE_SIZE);
+            Page<Post> postPage = postRepository.findByBlindedFalseAndIsDeletedFalse(pageable);
+            
+            sitemap.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+            sitemap.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+            
+            // 게시글이 있는 경우에만 URL 추가
+            if (postPage.hasContent()) {
+                for (Post post : postPage.getContent()) {
+                    if (post.getId() != null && post.getUpdatedAt() != null) {
+                        sitemap.append("  <url>\n");
+                        sitemap.append("    <loc>").append(baseUrl).append("/posts/").append(post.getId()).append("</loc>\n");
+                        sitemap.append("    <lastmod>").append(post.getUpdatedAt().format(formatter)).append("</lastmod>\n");
+                        sitemap.append("    <changefreq>monthly</changefreq>\n");
+                        sitemap.append("    <priority>0.6</priority>\n");
+                        sitemap.append("  </url>\n");
+                    }
+                }
+            }
+            
+            sitemap.append("</urlset>");
+        } catch (Exception e) {
+            // 오류 발생 시 빈 사이트맵 반환
+            sitemap = new StringBuilder();
+            sitemap.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+            sitemap.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+            sitemap.append("</urlset>");
         }
+        
         return sitemap.toString();
     }
 
