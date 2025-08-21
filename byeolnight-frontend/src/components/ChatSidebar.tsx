@@ -495,8 +495,8 @@ export default function ChatSidebar() {
               disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
             />
             <EmojiPicker
-              onEmojiSelect={(emoji) => setInput(prev => prev + emoji)}
-              className="border-l-0 flex-shrink-0 chat-emoji"
+              onEmojiSelect={(emoji) => setInput(prev => prev + emoji))
+              className="border-l-0 flex-shrink-0"
             />
             <button
               onClick={sendMessage}
