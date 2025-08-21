@@ -6,8 +6,8 @@ WORKDIR /app
 # package-lock.json을 포함한 의존성 파일 복사
 COPY package*.json ./
 
-# legacy-peer-deps 호환 락 파일로 npm ci 사용
-RUN npm ci
+# React 17/18 호환성 문제 해결
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
