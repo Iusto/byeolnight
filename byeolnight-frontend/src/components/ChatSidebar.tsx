@@ -496,7 +496,7 @@ export default function ChatSidebar() {
             />
             <EmojiPicker
               onEmojiSelect={(emoji) => setInput(prev => prev + emoji)}
-              className="border-l-0 flex-shrink-0"
+              className="border-l-0 flex-shrink-0 chat-emoji"
             />
             <button
               onClick={sendMessage}

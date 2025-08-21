@@ -80,7 +80,7 @@ export default function CommentForm({ postId, onCommentAdded }: Props) {
                 setNewComment(newText);
               }
             }}
-            className="flex-shrink-0"
+            className="flex-shrink-0 comment-emoji"
           />
         )}
         <button
