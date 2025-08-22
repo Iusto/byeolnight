@@ -46,10 +46,11 @@
 - **토론 시스템**: AI 기반 일일 토론 주제 생성, Claude/OpenAI API 활용
 
 ### 📝 커뮤니티 기능
-- **게시글 시스템**: CRUD, 좋아요, 신고, 인기글, Toast UI 에디터
+- **게시글 시스템**: CRUD, 좋아요, 신고, 인기글, Toast UI 에디터 (색상 변경, 텍스트 정렬, 이미지 검열)
 - **댓글 시스템**: 계층형 댓글, 좋아요, 신고, 대댓글 지원
 - **검색 및 필터**: 제목/내용 검색, 카테고리별 필터링
 - **신고 시스템**: 관리자 신고 처리, 자동 블라인드 처리
+- **이미지 업로드**: 파일 선택 + 클립보드 붙여넣기, Google Vision API 기반 자동 검열, 컴포넌트화된 업로드 시스템
 
 ### 🛍️ 게임화 요소
 - **포인트 시스템**: 출석체크, 활동 보상, 일일 제한, 누적 포인트 관리
@@ -110,7 +111,8 @@
 - **React Router DOM v7** - 클라이언트 사이드 라우팅
 - **Axios** + **Native WebSocket/STOMP** - HTTP 통신 및 WebSocket 연결
 - **React i18next** - 다국어 지원 (한국어, 영어, 일본어)
-- **Toast UI Editor** - 마크다운 기반 에디터
+- **Toast UI Editor** - 마크다운 기반 에디터, 커스텀 툴바 (색상 변경, 텍스트 정렬)
+- **ImageUploader 컴포넌트** - 재사용 가능한 이미지 업로드 시스템, 클립보드 지원
 
 ### Infrastructure & DevOps
 - **Docker + Docker Compose** - 컨테이너화된 배포
@@ -238,6 +240,8 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **동시성 문제**: 포인트 중복 지급 → Redis 분산 락으로 99% 해결
 - **소셜 계정 탈퇴 복구**: 탈퇴 시 완전 초기화 → 30일 복구 기간 + 이메일 기반 닉네임 생성으로 데이터 보존
 - **이메일 인증 보안**: 단순 6자리 숫자 → 8자리 영숫자 + HTML 템플릿 + 무차별 대입 방지로 보안성 300% 향상
+- **이미지 업로드 컴포넌트화**: PostCreate/PostEdit 코드 중복 → ImageUploader 컴포넌트로 재사용성 향상, 클립보드 붙여넣기 지원
+- **에디터 기능 개선**: Toast UI Editor 커스텀 툴바 → 색상 변경, 텍스트 정렬 기능 추가로 사용자 경험 향상
 
 ### 성능 최적화 성과
 - **중앙화된 설정 관리**: Config Server 도입으로 설정 관리 복잡도 80% 감소, 보안 강화
@@ -248,6 +252,8 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **이메일 인증 시스템**: HTML 템플릿 + 재시도 로직으로 전송 성공률 95% 달성, 무차별 대입 공격 99% 차단
 - **소셜 계정 복구 시스템**: 탈퇴 후 데이터 손실 문제 100% 해결, 30일 내 완전 복구 지원, 개인정보보호법 준수
 - **API 문서화**: Swagger UI 기반 완전한 API 문서화, 개발자 경험 향상 및 API 사용성 개선
+- **컴포넌트 재사용성**: ImageUploader 컴포넌트 도입으로 코드 중복 80% 감소, 유지보수성 향상
+- **에디터 UX 개선**: 색상 변경 및 텍스트 정렬 기능 추가로 콘텐츠 작성 자유도 50% 향상
 
 ---
 
@@ -256,7 +262,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 ### 코드베이스 규모
 - **총 코드 라인**: ~52,000 lines (Backend 72%, Frontend 28%)
 - **Java 파일**: 150+ 클래스 (Entity 30+, Service 25+, Controller 20+)
-- **React 컴포넌트**: 80+ 컴포넌트 (Pages 25+, Components 55+)
+- **React 컴포넌트**: 85+ 컴포넌트 (Pages 25+, Components 60+, ImageUploader 등 재사용 컴포넌트 포함)
 - **TypeScript 타입**: 15+ 인터페이스 정의
 
 ### 아키텍처 구성

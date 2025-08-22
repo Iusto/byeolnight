@@ -20,6 +20,163 @@ const isValidImageUrl = (url: string): boolean => {
 // 이미지 업로드 처리 여부를 전역 플래그로 표시
 export const isHandlingImageUpload = { current: false };
 
+// 색상 버튼 생성 함수
+const createColorButton = () => {
+  const button = document.createElement('button');
+  button.className = 'toastui-editor-toolbar-icons';
+  button.style.cssText = `
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+  `;
+  button.innerHTML = '🎨';
+  button.title = '글씨 색상';
+  
+  const colors = ['#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff', '#808080', '#ffa500', '#800080', '#008000'];
+  
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    const colorPicker = document.createElement('div');
+    colorPicker.style.cssText = `
+      position: absolute;
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      border-radius: 4px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      z-index: 1000;
+    `;
+    
+    colors.forEach(color => {
+      const colorBtn = document.createElement('button');
+      colorBtn.style.cssText = `
+        width: 20px;
+        height: 20px;
+        background: ${color};
+        border: 1px solid #666;
+        cursor: pointer;
+        border-radius: 2px;
+      `;
+      colorBtn.addEventListener('click', () => {
+        const editor = (window as any).currentEditor;
+        if (editor) {
+          const selectedText = editor.getSelectedText();
+          if (selectedText) {
+            editor.replaceSelection(`<span style="color: ${color}">${selectedText}</span>`);
+          }
+        }
+        colorPicker.remove();
+      });
+      colorPicker.appendChild(colorBtn);
+    });
+    
+    document.body.appendChild(colorPicker);
+    const rect = button.getBoundingClientRect();
+    colorPicker.style.left = rect.left + 'px';
+    colorPicker.style.top = (rect.bottom + 5) + 'px';
+    
+    setTimeout(() => {
+      const closeHandler = () => {
+        colorPicker.remove();
+        document.removeEventListener('click', closeHandler);
+      };
+      document.addEventListener('click', closeHandler);
+    }, 100);
+  });
+  
+  return button;
+};
+
+// 정렬 버튼 생성 함수
+const createAlignButton = () => {
+  const button = document.createElement('button');
+  button.className = 'toastui-editor-toolbar-icons';
+  button.style.cssText = `
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+  `;
+  button.innerHTML = '📐';
+  button.title = '텍스트 정렬';
+  
+  const alignments = [
+    { name: '왼쪽 정렬', value: 'left', icon: '⬅️' },
+    { name: '가운데 정렬', value: 'center', icon: '↔️' },
+    { name: '오른쪽 정렬', value: 'right', icon: '➡️' }
+  ];
+  
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    const alignPicker = document.createElement('div');
+    alignPicker.style.cssText = `
+      position: absolute;
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      border-radius: 4px;
+      padding: 4px;
+      z-index: 1000;
+    `;
+    
+    alignments.forEach(align => {
+      const alignBtn = document.createElement('button');
+      alignBtn.style.cssText = `
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        text-align: left;
+        border-radius: 2px;
+      `;
+      alignBtn.innerHTML = `${align.icon} ${align.name}`;
+      alignBtn.addEventListener('mouseover', () => {
+        alignBtn.style.background = '#4a5568';
+      });
+      alignBtn.addEventListener('mouseout', () => {
+        alignBtn.style.background = 'none';
+      });
+      alignBtn.addEventListener('click', () => {
+        const editor = (window as any).currentEditor;
+        if (editor) {
+          const selectedText = editor.getSelectedText();
+          if (selectedText) {
+            editor.replaceSelection(`<div style="text-align: ${align.value}">${selectedText}</div>`);
+          }
+        }
+        alignPicker.remove();
+      });
+      alignPicker.appendChild(alignBtn);
+    });
+    
+    document.body.appendChild(alignPicker);
+    const rect = button.getBoundingClientRect();
+    alignPicker.style.left = rect.left + 'px';
+    alignPicker.style.top = (rect.bottom + 5) + 'px';
+    
+    setTimeout(() => {
+      const closeHandler = () => {
+        alignPicker.remove();
+        document.removeEventListener('click', closeHandler);
+      };
+      document.addEventListener('click', closeHandler);
+    }, 100);
+  });
+  
+  return button;
+};
+
 interface TuiEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -56,6 +213,9 @@ const TuiEditor = forwardRef(({
     if (instance && value !== instance.getMarkdown()) {
       instance.setMarkdown(value);
     }
+    
+    // 전역 에디터 참조 설정 (커스텀 버튼에서 사용)
+    (window as any).currentEditor = instance;
   }, [value]);
 
   // 마크다운 변경 시 외부 콜백 호출
@@ -150,9 +310,21 @@ const TuiEditor = forwardRef(({
       toolbarItems={[
         ['heading', 'bold', 'italic', 'strike'],
         ['hr', 'quote'],
-        ['ul', 'ol', 'task', 'indent', 'outdent'],
-        ['table', 'link'],
-        ['code', 'codeblock'],
+        ['ul', 'ol', 'task'],
+        ['table'],
+        ['codeblock'],
+        [
+          {
+            el: createColorButton(),
+            command: 'color',
+            tooltip: '글씨 색상'
+          },
+          {
+            el: createAlignButton(),
+            command: 'align',
+            tooltip: '텍스트 정렬'
+          }
+        ],
         ['scrollSync'],
       ]}
     />

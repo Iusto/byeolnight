@@ -295,17 +295,15 @@ export default function PostEdit() {
             <div>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2 sm:gap-0">
                 <label className="text-sm font-medium text-gray-300 mobile-text">{t('post.content')}</label>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <ImageUploader
-                    uploadedImages={uploadedImages}
-                    setUploadedImages={setUploadedImages}
-                    onImageInsert={insertImageToEditor}
-                    isImageValidating={isImageValidating}
-                    setIsImageValidating={setIsImageValidating}
-                    validationAlert={validationAlert}
-                    setValidationAlert={setValidationAlert}
-                  />
-                </div>
+                <ImageUploader
+                  uploadedImages={uploadedImages}
+                  setUploadedImages={setUploadedImages}
+                  onImageInsert={insertImageToEditor}
+                  isImageValidating={isImageValidating}
+                  setIsImageValidating={setIsImageValidating}
+                  validationAlert={validationAlert}
+                  setValidationAlert={setValidationAlert}
+                />
               </div>
               <div className="rounded-xl overflow-hidden border border-slate-600/50 quill-wrapper">
                 <div className="quill-container" style={{ height: window.innerWidth <= 768 ? '350px' : '500px', display: 'flex', flexDirection: 'column' }}>

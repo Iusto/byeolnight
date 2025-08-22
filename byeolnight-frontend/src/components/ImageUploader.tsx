@@ -74,7 +74,7 @@ export default function ImageUploader({
       });
       console.log('검열 통과된 클립보드 이미지 추가');
       
-      return imageData.url;
+      return imageData;
     } catch (error: any) {
       console.error('클립보드 이미지 업로드 오류:', {
         message: error.message,
@@ -145,16 +145,16 @@ export default function ImageUploader({
           
           try {
             // 이미지 업로드 및 검열 시작
-            const imageUrl = await uploadClipboardImage(file);
-            if (!imageUrl) throw new Error('이미지 URL을 받지 못했습니다.');
+            const imageData = await uploadClipboardImage(file);
+            if (!imageData || !imageData.url) throw new Error('이미지 URL을 받지 못했습니다.');
             
             // URL 검증
-            if (!isValidImageUrl(imageUrl)) {
+            if (!isValidImageUrl(imageData.url)) {
               throw new Error('유효하지 않은 이미지 URL입니다.');
             }
             
             // 검열 통과한 이미지만 에디터에 삽입
-            onImageInsert(imageUrl, '클립보드 이미지');
+            onImageInsert(imageData, '클립보드 이미지');
           } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', {
               message: error.message,
@@ -310,7 +310,7 @@ export default function ImageUploader({
   }, []);
 
   return (
-    <>
+    <div className="space-y-4">
       {/* 파일 선택 입력 요소 - 화면에 보이지 않지만 React에서 관리 */}
       <input
         ref={fileInputRef}
@@ -320,25 +320,27 @@ export default function ImageUploader({
         style={{ display: 'none' }}
       />
 
-      {/* 이미지 업로드 버튼 */}
-      <button
-        type="button"
-        onClick={handleImageUpload}
-        disabled={isImageValidating}
-        className="mobile-button touch-target touch-feedback flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-blue-600/80 active:bg-blue-600 mouse:hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 shadow-lg mouse:hover:shadow-blue-500/25 transform active:scale-95 mouse:hover:scale-105 disabled:transform-none flex-1 sm:flex-none"
-      >
-        {isImageValidating ? (
-          <>
-            <div className="animate-spin w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full"></div>
-            <span className="mobile-caption">검열 중</span>
-          </>
-        ) : (
-          <>
-            <span className="text-sm sm:text-base">🖼️</span>
-            <span className="mobile-caption">이미지 추가</span>
-          </>
-        )}
-      </button>
+      {/* 이미지 업로드 버튼 영역 */}
+      <div className="flex gap-2 w-full sm:w-auto">
+        <button
+          type="button"
+          onClick={handleImageUpload}
+          disabled={isImageValidating}
+          className="mobile-button touch-target touch-feedback flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-blue-600/80 active:bg-blue-600 mouse:hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 shadow-lg mouse:hover:shadow-blue-500/25 transform active:scale-95 mouse:hover:scale-105 disabled:transform-none flex-1 sm:flex-none min-w-[120px]"
+        >
+          {isImageValidating ? (
+            <>
+              <div className="animate-spin w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full"></div>
+              <span className="mobile-caption">검열 중</span>
+            </>
+          ) : (
+            <>
+              <span className="text-sm sm:text-base">🖼️</span>
+              <span className="mobile-caption">이미지 추가</span>
+            </>
+          )}
+        </button>
+      </div>
 
       {/* 이미지 검열 중 알림 - 모바일 최적화 */}
       {isImageValidating && (
@@ -413,6 +415,6 @@ export default function ImageUploader({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
