@@ -471,6 +471,13 @@ export default function Profile() {
                     <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">권한</label>
                     <div className="text-white bg-slate-800/50 px-3 py-2 rounded-lg text-sm">
                       {profile.role === 'ADMIN' ? '관리자' : '일반 사용자'}
+                      {user?.socialProvider && (
+                        <span className="ml-2 text-xs px-2 py-1 rounded-full bg-blue-600/20 text-blue-300">
+                          {user.socialProvider === 'GOOGLE' && '구글'}
+                          {user.socialProvider === 'KAKAO' && '카카오'}
+                          {user.socialProvider === 'NAVER' && '네이버'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

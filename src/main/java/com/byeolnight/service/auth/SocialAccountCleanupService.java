@@ -112,10 +112,12 @@ public class SocialAccountCleanupService {
      */
     @Transactional(readOnly = true)
     public boolean hasRecoverableAccount(String email) {
+        // 원본 이메일로 탈퇴된 계정 찾기
         return userRepository.findByEmail(email)
                 .filter(user -> user.getStatus() == User.UserStatus.WITHDRAWN &&
                         user.getWithdrawnAt() != null &&
-                        user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)))
+                        user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)) &&
+                        user.isSocialUser())
                 .isPresent();
     }
 
@@ -124,41 +126,53 @@ public class SocialAccountCleanupService {
      */
     @Transactional
     public boolean recoverWithdrawnAccount(String email) {
-        // 탈퇴된 이메일 형태에서 원본 이메일 추출
-        String originalEmail = email;
-        if (email.startsWith("withdrawn_") && email.endsWith("@byeolnight.local")) {
-            // withdrawn_123@byeolnight.local 형태에서 ID 추출하여 원본 계정 찾기
-            try {
-                String idStr = email.substring(10, email.indexOf("@"));
-                Long userId = Long.parseLong(idStr);
-                return userRepository.findById(userId)
-                        .filter(user -> user.getStatus() == User.UserStatus.WITHDRAWN &&
-                                user.getWithdrawnAt() != null &&
-                                user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)))
-                        .map(user -> {
-                            user.changeStatus(User.UserStatus.ACTIVE);
-                            user.clearWithdrawalInfo();
-                            // 원본 이메일로 복원하지 않고 새로운 소셜 로그인으로 처리
-                            log.info("소셜 계정 복구 성공: ID={}", userId);
-                            return true;
-                        })
-                        .orElse(false);
-            } catch (NumberFormatException e) {
-                log.warn("탈퇴 계정 ID 파싱 실패: {}", email);
-                return false;
-            }
-        }
-        
-        return userRepository.findByEmail(originalEmail)
+        // 원본 이메일로 탈퇴된 계정 찾기
+        return userRepository.findByEmail(email)
                 .filter(user -> user.getStatus() == User.UserStatus.WITHDRAWN &&
                         user.getWithdrawnAt() != null &&
                         user.getWithdrawnAt().isAfter(LocalDateTime.now().minusDays(30)))
                 .map(user -> {
+                    // 계정 상태를 활성화로 변경
                     user.changeStatus(User.UserStatus.ACTIVE);
                     user.clearWithdrawalInfo();
-                    log.info("소셜 계정 복구 성공: {}", originalEmail);
+                    
+                    // 원본 이메일과 닉네임으로 복원
+                    String baseNickname = email.split("@")[0];
+                    String uniqueNickname = generateUniqueNickname(baseNickname);
+                    user.updateNickname(uniqueNickname, LocalDateTime.now());
+                    
+                    log.info("소셜 계정 복구 성공: {} -> 닉네임: {}", email, uniqueNickname);
                     return true;
                 })
                 .orElse(false);
+    }
+    
+    /**
+     * 고유한 닉네임 생성
+     */
+    private String generateUniqueNickname(String baseNickname) {
+        String normalizedNickname = normalizeNickname(baseNickname);
+        
+        if (!userRepository.existsByNickname(normalizedNickname)) {
+            return normalizedNickname;
+        }
+        
+        // 중복된 경우 숫자 접미사 추가
+        for (int i = 1; i <= 999; i++) {
+            String candidateNickname = normalizedNickname + i;
+            if (!userRepository.existsByNickname(candidateNickname)) {
+                return candidateNickname;
+            }
+        }
+        
+        // 999번 시도해도 실패한 경우 타임스탬프 기반
+        return "사용자" + System.currentTimeMillis() % 100000;
+    }
+    
+    private String normalizeNickname(String nickname) {
+        if (nickname.length() < 2) {
+            return "사용자";
+        }
+        return nickname.length() > 8 ? nickname.substring(0, 8) : nickname;
     }
 }

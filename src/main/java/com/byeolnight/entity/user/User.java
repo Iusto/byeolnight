@@ -242,6 +242,7 @@ public class User implements UserDetails {
     public void clearWithdrawalInfo() {
         this.withdrawalReason = null;
         this.withdrawnAt = null;
+        // 탈퇴 시 변경된 이메일과 닉네임은 복구 시 수동으로 변경
     }
 
     /** 개인정보 완전 삭제 (5년 경과 후) */

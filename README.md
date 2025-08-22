@@ -38,7 +38,7 @@
 - **JWT + HttpOnly 쿠키 + Redis**: 토큰 자동 갱신, 블랙리스트 관리, 탈취 감지, 데이터 손실 95% 감소
 - **이미지 검열**: Google Vision API 기반 부적절 콘텐츠 자동 차단
 - **동시성 제어**: Redis 분산 락으로 포인트 중복 지급 99% 해결
-- **소셜 연동 보안**: 연동 해제 실시간 감지, 즉시 탈퇴 + 30일 복구, 플랫폼별 API 연동 해제
+- **소셜 계정 복구 시스템**: 30일 내 완전 복구, 이메일 기반 고유 닉네임 자동 생성, 단계별 데이터 정리 (30일/5년)
 
 ### 🤖 AI 기반 콘텐츠
 - **뉴스 수집**: NewsData.io API + AI 요약/분류, 200개 키워드 활용, DB 조회 성능 85% 향상
@@ -223,6 +223,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - [📦 배포 가이드](./docs/08_deployment.md)
 - [📊 데이터베이스 설계](./docs/09_database-design.md)
 - [⏰ 스케줄러 테스트 가이드](./docs/10_scheduler-testing.md)
+- [🔄 소셜 계정 탈퇴 복구 시스템](docs/11_social-account-recovery.md)
 
 ---
 
@@ -235,7 +236,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **인앱 브라우저 호환성**: Notification API 미지원 → 타입 체크로 호환성 100% 달성
 - **S3 파일 업로드**: 서버 부하 → Presigned URL로 직접 업로드, 부하 33% 감소
 - **동시성 문제**: 포인트 중복 지급 → Redis 분산 락으로 99% 해결
-- **소셜 계정 관리**: 로그인 실패 의존 → 능동적 연동 상태 검증 + 즉시 처리로 사용자 경험 개선
+- **소셜 계정 탈퇴 복구**: 탈퇴 시 완전 초기화 → 30일 복구 기간 + 이메일 기반 닉네임 생성으로 데이터 보존
 - **이메일 인증 보안**: 단순 6자리 숫자 → 8자리 영숫자 + HTML 템플릿 + 무차별 대입 방지로 보안성 300% 향상
 
 ### 성능 최적화 성과
@@ -245,6 +246,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **YouTube 서비스 개선**: 영상 다양성 2배 증가, 중복 영상 5% 미만
 - **CI/CD 자동화**: GitHub Actions로 배포 시간 90% 단축, 수동 오류 99% 감소
 - **이메일 인증 시스템**: HTML 템플릿 + 재시도 로직으로 전송 성공률 95% 달성, 무차별 대입 공격 99% 차단
+- **소셜 계정 복구 시스템**: 탈퇴 후 데이터 손실 문제 100% 해결, 30일 내 완전 복구 지원, 개인정보보호법 준수
 - **API 문서화**: Swagger UI 기반 완전한 API 문서화, 개발자 경험 향상 및 API 사용성 개선
 
 ---

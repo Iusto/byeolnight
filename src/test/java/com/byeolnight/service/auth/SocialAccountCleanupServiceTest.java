@@ -179,20 +179,20 @@ class SocialAccountCleanupServiceTest {
     }
 
     @Test
-    @DisplayName("복구 가능한 계정 확인 - 30일 내 탈퇴")
+    @DisplayName("복구 가능한 계정 확인 - 30일 내 탈퇴한 소셜 사용자만")
     void hasRecoverableAccount_WithinThirtyDays_ShouldReturnTrue() {
         // given
-        User recentWithdrawnUser = User.builder()
+        User recentWithdrawnSocialUser = User.builder()
                 .id(7L)
                 .email("recent@test.com")
                 .password(null)
                 .build();
-        recentWithdrawnUser.setSocialProvider("google");
-        recentWithdrawnUser.withdraw("테스트");
-        setWithdrawnAt(recentWithdrawnUser, LocalDateTime.now().minusDays(15)); // 15일 전 탈퇴
+        recentWithdrawnSocialUser.setSocialProvider("google"); // 소셜 사용자
+        recentWithdrawnSocialUser.withdraw("테스트");
+        setWithdrawnAt(recentWithdrawnSocialUser, LocalDateTime.now().minusDays(15)); // 15일 전 탈퇴
 
         when(userRepository.findByEmail("recent@test.com"))
-                .thenReturn(Optional.of(recentWithdrawnUser));
+                .thenReturn(Optional.of(recentWithdrawnSocialUser));
 
         // when
         boolean result = socialAccountCleanupService.hasRecoverableAccount("recent@test.com");
@@ -200,8 +200,31 @@ class SocialAccountCleanupServiceTest {
         // then
         assertTrue(result);
         // 상태는 변경되지 않음 (확인만 함)
-        assertEquals(User.UserStatus.WITHDRAWN, recentWithdrawnUser.getStatus());
-        assertNotNull(recentWithdrawnUser.getWithdrawnAt());
+        assertEquals(User.UserStatus.WITHDRAWN, recentWithdrawnSocialUser.getStatus());
+        assertNotNull(recentWithdrawnSocialUser.getWithdrawnAt());
+    }
+
+    @Test
+    @DisplayName("복구 가능한 계정 확인 - 일반 사용자는 복구 불가")
+    void hasRecoverableAccount_RegularUser_ShouldReturnFalse() {
+        // given
+        User recentWithdrawnRegularUser = User.builder()
+                .id(11L)
+                .email("regular@test.com")
+                .password("password")
+                .build();
+        // socialProvider 설정 안함 (일반 사용자)
+        recentWithdrawnRegularUser.withdraw("테스트");
+        setWithdrawnAt(recentWithdrawnRegularUser, LocalDateTime.now().minusDays(15)); // 15일 전 탈퇴
+
+        when(userRepository.findByEmail("regular@test.com"))
+                .thenReturn(Optional.of(recentWithdrawnRegularUser));
+
+        // when
+        boolean result = socialAccountCleanupService.hasRecoverableAccount("regular@test.com");
+
+        // then
+        assertFalse(result); // 일반 사용자는 복구 불가
     }
 
     @Test
@@ -242,29 +265,33 @@ class SocialAccountCleanupServiceTest {
     }
 
     @Test
-    @DisplayName("30일 내 소셜 계정 복구 성공")
+    @DisplayName("30일 내 소셜 계정 복구 성공 - 닉네임 자동 생성")
     void recoverWithdrawnAccount_WithinThirtyDays_ShouldRecover() {
         // given
         User recentWithdrawnUser = User.builder()
                 .id(7L)
-                .email("recent@test.com")
+                .email("testuser@gmail.com")
+                .nickname("탈퇴회원_7")
                 .password(null)
                 .build();
         recentWithdrawnUser.setSocialProvider("google"); // 소셜 사용자로 설정
         recentWithdrawnUser.withdraw("테스트");
         setWithdrawnAt(recentWithdrawnUser, LocalDateTime.now().minusDays(15)); // 15일 전 탈퇴
 
-        when(userRepository.findByEmail("recent@test.com"))
+        when(userRepository.findByEmail("testuser@gmail.com"))
                 .thenReturn(Optional.of(recentWithdrawnUser));
+        when(userRepository.existsByNickname("testuser"))
+                .thenReturn(false); // 닉네임 사용 가능
 
         // when
-        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("recent@test.com");
+        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("testuser@gmail.com");
 
         // then
         assertTrue(result);
         assertEquals(User.UserStatus.ACTIVE, recentWithdrawnUser.getStatus());
         assertNull(recentWithdrawnUser.getWithdrawnAt());
         assertNull(recentWithdrawnUser.getWithdrawalReason());
+        assertEquals("testuser", recentWithdrawnUser.getNickname()); // 이메일 기반 닉네임 생성
     }
 
     @Test
@@ -292,40 +319,87 @@ class SocialAccountCleanupServiceTest {
     }
 
     @Test
-    @DisplayName("탈퇴 이메일 형태로 계정 복구")
-    void recoverWithdrawnAccount_WithWithdrawnEmailFormat_ShouldRecover() {
+    @DisplayName("닉네임 중복 시 숫자 접미사 추가")
+    void recoverWithdrawnAccount_DuplicateNickname_ShouldAddSuffix() {
         // given
-        User withdrawnUserById = User.builder()
-                .id(123L)
-                .email("withdrawn_123@byeolnight.local")
+        User recentWithdrawnUser = User.builder()
+                .id(8L)
+                .email("popular@gmail.com")
+                .nickname("탈퇴회원_8")
                 .password(null)
                 .build();
-        withdrawnUserById.setSocialProvider("google"); // 소셜 사용자로 설정
-        withdrawnUserById.withdraw("테스트");
-        setWithdrawnAt(withdrawnUserById, LocalDateTime.now().minusDays(10)); // 10일 전 탈퇴
+        recentWithdrawnUser.setSocialProvider("google");
+        recentWithdrawnUser.withdraw("테스트");
+        setWithdrawnAt(recentWithdrawnUser, LocalDateTime.now().minusDays(10));
 
-        when(userRepository.findById(123L))
-                .thenReturn(Optional.of(withdrawnUserById));
+        when(userRepository.findByEmail("popular@gmail.com"))
+                .thenReturn(Optional.of(recentWithdrawnUser));
+        when(userRepository.existsByNickname("popular"))
+                .thenReturn(true); // 기본 닉네임 중복
+        when(userRepository.existsByNickname("popular1"))
+                .thenReturn(false); // 숫자 접미사 추가한 닉네임 사용 가능
 
         // when
-        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("withdrawn_123@byeolnight.local");
+        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("popular@gmail.com");
 
         // then
         assertTrue(result);
-        assertEquals(User.UserStatus.ACTIVE, withdrawnUserById.getStatus());
-        assertNull(withdrawnUserById.getWithdrawnAt());
-        assertNull(withdrawnUserById.getWithdrawalReason());
+        assertEquals(User.UserStatus.ACTIVE, recentWithdrawnUser.getStatus());
+        assertEquals("popular1", recentWithdrawnUser.getNickname()); // 숫자 접미사 추가
     }
 
     @Test
-    @DisplayName("잘못된 탈퇴 이메일 형태 복구 실패")
-    void recoverWithdrawnAccount_InvalidWithdrawnEmailFormat_ShouldFail() {
+    @DisplayName("짧은 이메일 닉네임 처리")
+    void recoverWithdrawnAccount_ShortEmailNickname_ShouldUseDefault() {
+        // given
+        User recentWithdrawnUser = User.builder()
+                .id(9L)
+                .email("a@test.com")
+                .nickname("탈퇴회원_9")
+                .password(null)
+                .build();
+        recentWithdrawnUser.setSocialProvider("kakao");
+        recentWithdrawnUser.withdraw("테스트");
+        setWithdrawnAt(recentWithdrawnUser, LocalDateTime.now().minusDays(5));
+
+        when(userRepository.findByEmail("a@test.com"))
+                .thenReturn(Optional.of(recentWithdrawnUser));
+        when(userRepository.existsByNickname("사용자"))
+                .thenReturn(false);
+
         // when
-        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("withdrawn_invalid@byeolnight.local");
+        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("a@test.com");
 
         // then
-        assertFalse(result);
-        verify(userRepository, never()).findById(any());
+        assertTrue(result);
+        assertEquals("사용자", recentWithdrawnUser.getNickname()); // 기본 닉네임 사용
+    }
+
+    @Test
+    @DisplayName("긴 이메일 닉네임 8자로 제한")
+    void recoverWithdrawnAccount_LongEmailNickname_ShouldTruncate() {
+        // given
+        User recentWithdrawnUser = User.builder()
+                .id(10L)
+                .email("verylongusername@test.com")
+                .nickname("탈퇴회원_10")
+                .password(null)
+                .build();
+        recentWithdrawnUser.setSocialProvider("naver");
+        recentWithdrawnUser.withdraw("테스트");
+        setWithdrawnAt(recentWithdrawnUser, LocalDateTime.now().minusDays(7));
+
+        when(userRepository.findByEmail("verylongusername@test.com"))
+                .thenReturn(Optional.of(recentWithdrawnUser));
+        when(userRepository.existsByNickname("verylong"))
+                .thenReturn(false);
+
+        // when
+        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("verylongusername@test.com");
+
+        // then
+        assertTrue(result);
+        assertEquals("verylong", recentWithdrawnUser.getNickname()); // 8자로 제한
     }
 
     @Test
@@ -340,6 +414,141 @@ class SocialAccountCleanupServiceTest {
 
         // then
         assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("탈퇴 신청 후 30일 이전 사용자 재로그인 시 복구 처리 완전 성공")
+    void recoverWithdrawnAccount_Within30Days_CompleteRecovery() {
+        // given - 15일 전 탈퇴한 소셜 사용자
+        User withdrawnUser = User.builder()
+                .id(100L)
+                .email("recover@gmail.com")
+                .nickname("탈퇴회원_100")
+                .password(null)
+                .role(User.Role.USER)
+                .status(User.UserStatus.ACTIVE)
+                .points(500) // 기존 포인트
+                .build();
+        withdrawnUser.setSocialProvider("google");
+        withdrawnUser.withdraw("사용자 요청");
+        setWithdrawnAt(withdrawnUser, LocalDateTime.now().minusDays(15)); // 15일 전 탈퇴
+
+        when(userRepository.findByEmail("recover@gmail.com"))
+                .thenReturn(Optional.of(withdrawnUser));
+        when(userRepository.existsByNickname("recover"))
+                .thenReturn(false);
+
+        // when
+        boolean result = socialAccountCleanupService.recoverWithdrawnAccount("recover@gmail.com");
+
+        // then - 완전 복구 확인
+        assertTrue(result);
+        assertEquals(User.UserStatus.ACTIVE, withdrawnUser.getStatus());
+        assertNull(withdrawnUser.getWithdrawnAt());
+        assertNull(withdrawnUser.getWithdrawalReason());
+        assertEquals("recover", withdrawnUser.getNickname()); // 이메일 기반 닉네임
+        assertEquals(500, withdrawnUser.getPoints()); // 기존 포인트 유지
+        assertEquals("google", withdrawnUser.getSocialProvider()); // 소셜 제공자 유지
+    }
+
+    @Test
+    @DisplayName("탈퇴 신청 후 30일 경과 사용자 재로그인 시 복구 불가 - 새 계정 처리")
+    void hasRecoverableAccount_After30Days_ShouldReturnFalse_NewAccountProcess() {
+        // given - 35일 전 탈퇴한 소셜 사용자
+        User expiredWithdrawnUser = User.builder()
+                .id(200L)
+                .email("expired@gmail.com")
+                .nickname("탈퇴회원_200")
+                .password(null)
+                .build();
+        expiredWithdrawnUser.setSocialProvider("kakao");
+        expiredWithdrawnUser.withdraw("사용자 요청");
+        setWithdrawnAt(expiredWithdrawnUser, LocalDateTime.now().minusDays(35)); // 35일 전 탈퇴
+
+        when(userRepository.findByEmail("expired@gmail.com"))
+                .thenReturn(Optional.of(expiredWithdrawnUser));
+
+        // when - 복구 가능 여부 확인
+        boolean isRecoverable = socialAccountCleanupService.hasRecoverableAccount("expired@gmail.com");
+        boolean recoverResult = socialAccountCleanupService.recoverWithdrawnAccount("expired@gmail.com");
+
+        // then - 복구 불가, 새 계정 처리 필요
+        assertFalse(isRecoverable); // 30일 경과로 복구 불가
+        assertFalse(recoverResult); // 복구 실패
+        assertEquals(User.UserStatus.WITHDRAWN, expiredWithdrawnUser.getStatus()); // 상태 변경 없음
+    }
+
+    @Test
+    @DisplayName("탈퇴 신청 후 30일 경과 유저 Soft Delete 및 연동 해제 처리")
+    void maskPersonalInfoAfterThirtyDays_ShouldSoftDeleteAndDisconnect() {
+        // given - 31일 전 탈퇴한 소셜 사용자
+        LocalDateTime thirtyOneDaysAgo = LocalDateTime.now().minusDays(31);
+        
+        User expiredSocialUser = User.builder()
+                .id(300L)
+                .email("softdelete@gmail.com")
+                .nickname("소프트삭제유저")
+                .password(null)
+                .build();
+        expiredSocialUser.setSocialProvider("naver");
+        expiredSocialUser.withdraw("사용자 요청");
+        setWithdrawnAt(expiredSocialUser, thirtyOneDaysAgo);
+
+        List<User> expiredUsers = List.of(expiredSocialUser);
+
+        when(userRepository.findByStatusAndWithdrawnAtBefore(
+                eq(User.UserStatus.WITHDRAWN), any(LocalDateTime.class)))
+                .thenReturn(expiredUsers);
+
+        // when - 30일 경과 계정 개인정보 마스킹 실행
+        socialAccountCleanupService.maskPersonalInfoAfterThirtyDays();
+
+        // then - Soft Delete 처리 확인
+        verify(userRepository).findByStatusAndWithdrawnAtBefore(
+                eq(User.UserStatus.WITHDRAWN), any(LocalDateTime.class));
+        
+        // 개인정보 마스킹이 실제로 실행되었는지 확인
+        // maskPersonalInfoAfterThirtyDays() 메서드가 completelyRemovePersonalInfo()를 호출하여 마스킹 완료
+        assertEquals("DELETED_300", expiredSocialUser.getNickname()); // 마스킹된 닉네임
+        assertEquals("deleted_300@removed.local", expiredSocialUser.getEmail()); // 마스킹된 이메일
+        assertEquals("5년 경과로 인한 자동 삭제", expiredSocialUser.getWithdrawalReason()); // 마스킹 사유
+        assertTrue(expiredSocialUser.isSocialUser()); // 소셜 제공자 정보는 여전히 유지
+        assertEquals(User.UserStatus.WITHDRAWN, expiredSocialUser.getStatus()); // 상태는 여전히 WITHDRAWN
+    }
+
+    @Test
+    @DisplayName("탈퇴 신청 후 5년 경과 소셜 계정 완전 삭제 및 연동 해제")
+    void cleanupWithdrawnSocialAccounts_After5Years_CompleteDelete() {
+        // given - 5년 1일 전 탈퇴한 소셜 사용자
+        LocalDateTime fiveYearsAgo = LocalDateTime.now().minusYears(5).minusDays(1);
+        
+        User fiveYearOldUser = User.builder()
+                .id(400L)
+                .email("deleted_400@removed.local") // 이미 마스킹된 상태
+                .nickname("DELETED_400")
+                .password(null)
+                .build();
+        fiveYearOldUser.setSocialProvider("google"); // 소셜 제공자 정보 유지
+        fiveYearOldUser.withdraw("사용자 요청");
+        setWithdrawnAt(fiveYearOldUser, fiveYearsAgo);
+
+        List<User> fiveYearOldUsers = List.of(fiveYearOldUser);
+
+        when(userRepository.findByStatusAndWithdrawnAtBefore(
+                eq(User.UserStatus.WITHDRAWN), any(LocalDateTime.class)))
+                .thenReturn(fiveYearOldUsers);
+
+        // when - 5년 경과 소셜 계정 완전 삭제
+        socialAccountCleanupService.cleanupWithdrawnSocialAccounts();
+
+        // then - 완전 삭제 확인
+        verify(userRepository).findByStatusAndWithdrawnAtBefore(
+                eq(User.UserStatus.WITHDRAWN), any(LocalDateTime.class));
+        verify(userRepository).delete(fiveYearOldUser); // 소셜 사용자만 삭제
+        
+        assertTrue(fiveYearOldUser.isSocialUser()); // 삭제 전 소셜 사용자 확인
+        // 연동 해제 및 완전 삭제 처리 확인
+        assertNotNull(fiveYearOldUser.getSocialProvider()); // 삭제 전까지 소셜 제공자 정보 유지
     }
 
     @Test

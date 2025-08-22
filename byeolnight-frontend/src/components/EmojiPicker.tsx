@@ -31,11 +31,17 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const modalWidth = 288; // w-72 = 288px
       
-      if (isChat && !isMobile) {
+      if (isChat) {
+        // 채팅에서는 항상 입력칸 아래에 표시
+        const leftPosition = isMobile 
+          ? Math.max(8, rect.right - modalWidth) // 모바일: 오른쪽 끝에서 왼쪽으로
+          : Math.max(8, rect.left - modalWidth + rect.width); // PC: 버튼 오른쪽 끝에서 왼쪽으로
+        
         setPosition({
-          top: rect.top,
-          left: rect.left - 288 - 8
+          top: rect.bottom + 8,
+          left: leftPosition
         });
       } else {
         setPosition({
@@ -51,7 +57,7 @@ export default function EmojiPicker({ onEmojiSelect, className = '' }: Props) {
       className="fixed w-72 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-[100000]"
       style={{
         top: `${position.top}px`,
-        left: `${Math.max(8, position.left)}px`
+        left: `${position.left}px`
       }}
     >
       <div className="flex border-b border-gray-600">
