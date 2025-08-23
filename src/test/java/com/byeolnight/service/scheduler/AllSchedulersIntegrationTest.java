@@ -97,7 +97,7 @@ class AllSchedulersIntegrationTest {
         User socialUser = createWithdrawnSocialUser();
         String originalEmail = socialUser.getEmail();
         
-        socialAccountCleanupService.maskPersonalInfoAfterThirtyDays();
+        socialAccountCleanupService.completelyMaskPersonalInfoAfterFiveYears();
         
         User updated = userRepository.findById(socialUser.getId()).orElseThrow();
         assertThat(updated.getEmail()).isNotEqualTo(originalEmail);
@@ -130,7 +130,7 @@ class AllSchedulersIntegrationTest {
             postCleanupScheduler.cleanupExpiredPosts();
             discussionTopicScheduler.deactivateOldTopics();
             messageCleanupService.cleanupOldMessages();
-            socialAccountCleanupService.maskPersonalInfoAfterThirtyDays();
+            socialAccountCleanupService.completelyMaskPersonalInfoAfterFiveYears();
             withdrawnUserCleanupService.cleanupWithdrawnUsers();
         }).doesNotThrowAnyException();
     }

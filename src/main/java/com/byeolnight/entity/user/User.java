@@ -125,6 +125,11 @@ public class User implements UserDetails {
     /** 탈퇴 일시 */
     @Column
     private LocalDateTime withdrawnAt;
+    
+    /** 탈퇴 신청 여부 확인 (소셜 사용자 복구용) */
+    public boolean isWithdrawalRequested() {
+        return withdrawnAt != null;
+    }
 
     /** 계정 생성 시각 */
     @Column(nullable = false)
@@ -230,11 +235,13 @@ public class User implements UserDetails {
 
     /** 회원 탈퇴 처리 */
     public void withdraw(String reason) {
-        this.status = UserStatus.WITHDRAWN;
         this.withdrawalReason = reason;
         this.withdrawnAt = LocalDateTime.now();
+        this.status = UserStatus.WITHDRAWN;
+        
+        // 모든 사용자는 탈퇴 시 즉시 닉네임만 마스킹 (이메일은 30일 후 마스킹)
         this.nickname = "탈퇴회원_" + this.id;
-        this.email = "withdrawn_" + this.id + "@byeolnight.local";
+        
         // socialProvider 유지 (소셜 사용자 구분용)
     }
 
@@ -242,9 +249,15 @@ public class User implements UserDetails {
     public void clearWithdrawalInfo() {
         this.withdrawalReason = null;
         this.withdrawnAt = null;
+        this.status = UserStatus.ACTIVE; // 복구 시 상태를 ACTIVE로 변경
         // 탈퇴 시 변경된 이메일과 닉네임은 복구 시 수동으로 변경
     }
 
+    /** 30일 경과 후 이메일 마스킹 처리 */
+    public void maskEmailAfterThirtyDays() {
+        this.email = "withdrawn_" + this.id + "@byeolnight.local";
+    }
+    
     /** 개인정보 완전 삭제 (5년 경과 후) */
     public void completelyRemovePersonalInfo() {
         this.nickname = "DELETED_" + this.id;
