@@ -91,7 +91,7 @@ instance.interceptors.response.use(
       processQueue(refreshError);
       
       // 공개 페이지에서는 리다이렉트하지 않음
-      const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password'];
+      const publicPaths = ['/', '/posts', '/login', '/signup', '/password-reset'];
       const currentPath = window.location.pathname;
       const isPublicPath = publicPaths.some(path => 
         currentPath === path || currentPath.startsWith('/posts/')

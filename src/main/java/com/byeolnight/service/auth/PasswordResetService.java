@@ -28,6 +28,9 @@ public class PasswordResetService {
     private final UserService userService;
     private final JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
+    
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     public void sendPasswordResetEmail(String email) {
         Optional<User> userOpt = userService.findByEmail(email);
@@ -102,7 +105,7 @@ public class PasswordResetService {
                         <p>안녕하세요!</p>
                         <p>비밀번호 재설정을 요청하셨습니다. 아래 링크를 클릭하여 새로운 비밀번호를 설정해주세요.</p>
                         <p style="text-align: center;">
-                            <a href="https://byeolnight.com/password-reset?token=%s" class="button">비밀번호 재설정하기</a>
+                            <a href="%s/password-reset?token=%s" class="button">비밀버호 재설정하기</a>
                         </p>
                         <p><strong>주의사항:</strong></p>
                         <ul>
@@ -116,6 +119,6 @@ public class PasswordResetService {
                 </div>
             </body>
             </html>
-            """, token);
+            """, frontendUrl, token);
     }
 }
