@@ -12,7 +12,11 @@ COPY package.json pnpm-lock.yaml* .npmrc ./
 # 의존성 설치 (pnpm 캐시 활용)
 RUN pnpm install --frozen-lockfile
 
-COPY . .
+# 소스 코드 복사 (node_modules 제외)
+COPY src/ ./src/
+COPY public/ ./public/
+COPY *.html *.js *.ts *.json *.cjs ./
+COPY tsconfig*.json vite.config.ts tailwind.config.js postcss.config.cjs eslint.config.js ./
 
 # 빌드 시 환경변수 설정
 ARG VITE_API_BASE_URL
