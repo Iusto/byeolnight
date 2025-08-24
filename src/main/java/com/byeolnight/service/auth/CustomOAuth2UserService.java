@@ -85,7 +85,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         switch (user.getStatus()) {
             case BANNED -> throwAccountError("계정이 밴되었습니다. 관리자에게 문의하세요.");
             case SUSPENDED -> throwAccountError("계정이 정지되었습니다. 관리자에게 문의하세요.");
-            case WITHDRAWN -> throwAccountError("탈퇴한 계정입니다.");
+            case WITHDRAWN -> {
+                // 복구 가능한 계정인지 확인
+                if (socialAccountCleanupService.canRecover(user.getEmail())) {
+                    String errorMsg = "RECOVERABLE_ACCOUNT:" + user.getEmail() + ":" + user.getSocialProvider();
+                    storeErrorMessage(errorMsg);
+                    throw new OAuth2AuthenticationException(errorMsg);
+                } else {
+                    throwAccountError("탈퇴한 계정입니다.");
+                }
+            }
         }
     }
     

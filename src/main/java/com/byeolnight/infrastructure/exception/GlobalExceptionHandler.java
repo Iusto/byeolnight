@@ -37,7 +37,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DuplicateEmailException.class)
     public ResponseEntity<CommonResponse<?>> handleDuplicateEmail(DuplicateEmailException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(CommonResponse.fail(ex.getMessage()));
+        log.warn("[이메일 중복] {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(CommonResponse.fail(ex.getMessage()));
     }
 
     /**

@@ -266,8 +266,9 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         
-        // 비밀번호가 제공된 경우에만 검증 (일반 사용자)
-        if (password != null && !password.isEmpty() && !userSecurityService.matchesPassword(password, user.getPassword())) {
+        // 소셜 사용자가 아닌 경우에만 비밀번호 검증
+        if (!user.isSocialUser() && password != null && !password.isEmpty() && 
+            !userSecurityService.matchesPassword(password, user.getPassword())) {
             throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         
