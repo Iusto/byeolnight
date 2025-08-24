@@ -1,13 +1,16 @@
 # 멀티 스테이지 빌드
 FROM node:20-alpine AS builder
 
+# pnpm 설치
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-# package-lock.json을 포함한 의존성 파일 복사
-COPY package*.json ./
+# pnpm 의존성 파일 복사
+COPY package.json pnpm-lock.yaml* .npmrc ./
 
-# React 17/18 호환성 문제 해결
-RUN npm install --legacy-peer-deps
+# 의존성 설치 (pnpm 캐시 활용)
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
@@ -17,7 +20,7 @@ ARG VITE_WS_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_WS_URL=$VITE_WS_URL
 
-RUN npm run build
+RUN pnpm run build
 
 # Nginx로 정적 파일 서빙
 FROM nginx:alpine

@@ -180,8 +180,8 @@ gradlew bootRun --args='--spring.profiles.active=local'
 
 # 4. 프론트엔드 시작 (별도 터미널)
 cd byeolnight-frontend
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ### 3. Docker 기반 전체 실행
