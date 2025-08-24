@@ -57,7 +57,7 @@ export default function PasswordReset() {
     setLoading(true); // 로딩 시작
 
     try {
-      await axios.post('/auth/password/reset', {
+      await axios.post('/auth/password/reset-confirm', {
         token,
         newPassword: form.newPassword,
       });

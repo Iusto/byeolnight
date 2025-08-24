@@ -16,6 +16,7 @@ import com.byeolnight.service.auth.AuthService;
 
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.auth.EmailAuthService;
+import com.byeolnight.service.auth.PasswordResetService;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +48,7 @@ public class AuthController {
     private final TokenService tokenService;
     private final UserService userService;
     private final EmailAuthService emailAuthService;
+    private final PasswordResetService passwordResetService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
     private final SocialAccountCleanupService socialAccountCleanupService;
 
@@ -373,6 +375,36 @@ public class AuthController {
         }
     }
     
+    @PostMapping("/password/reset-request")
+    @Operation(summary = "비밀번호 재설정 요청")
+    public ResponseEntity<CommonResponse<String>> requestPasswordReset(
+            @Valid @RequestBody PasswordResetRequestDto dto) {
+        try {
+            passwordResetService.sendPasswordResetEmail(dto.getEmail());
+            return ResponseEntity.ok(CommonResponse.success("비밀번호 재설정 이메일이 전송되었습니다."));
+        } catch (Exception e) {
+            log.error("비밀번호 재설정 요청 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("이메일 전송에 실패했습니다."));
+        }
+    }
+
+    @PostMapping("/password/reset-confirm")
+    @Operation(summary = "비밀번호 재설정 확인")
+    public ResponseEntity<CommonResponse<String>> confirmPasswordReset(
+            @Valid @RequestBody PasswordResetConfirmDto dto) {
+        try {
+            passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
+            return ResponseEntity.ok(CommonResponse.success("비밀번호가 성공적으로 변경되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(CommonResponse.fail(e.getMessage()));
+        } catch (Exception e) {
+            log.error("비밀번호 재설정 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("비밀번호 재설정에 실패했습니다."));
+        }
+    }
+
     @DeleteMapping("/withdraw")
     @Operation(summary = "회원 탈퇴")
     public ResponseEntity<CommonResponse<String>> withdraw(
