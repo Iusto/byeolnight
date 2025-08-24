@@ -48,7 +48,7 @@ function App() {
       {/* 독립적인 페이지들 (Layout 없음) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route path="/reset-password" element={<PasswordReset />} />
+      <Route path="/password-reset" element={<PasswordReset />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/oauth/setup-nickname" element={<OAuthNicknameSetup />} />
       <Route path="/oauth/recover" element={<OAuthRecover />} />
