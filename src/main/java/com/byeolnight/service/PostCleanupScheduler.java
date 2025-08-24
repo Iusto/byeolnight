@@ -70,6 +70,18 @@ public class PostCleanupScheduler {
             log.error("게시글 정리 작업 중 오류 발생", e);
         }
     }
+
+    @Scheduled(cron = "0 0 18 * * *") // 매일 오후 6시
+    public void cleanupOrphanImages() {
+        log.info("고아 이미지 자동 정리 작업 시작");
+        
+        try {
+            int deletedCount = s3Service.cleanupOrphanImages();
+            log.info("고아 이미지 자동 정리 완료: {}개 삭제", deletedCount);
+        } catch (Exception e) {
+            log.error("고아 이미지 정리 작업 중 오류 발생", e);
+        }
+    }
     
     private void cleanupExpiredComments(LocalDateTime threshold) {
         try {
