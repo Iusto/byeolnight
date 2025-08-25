@@ -103,10 +103,10 @@ jobs:
 
         export let options = {
           stages: [
-            { duration: '30s', target: 5 },   // 30초간 5명까지 증가
-            { duration: '1m', target: 5 },    // 1분간 5명 유지
             { duration: '30s', target: 10 },  // 30초간 10명까지 증가
             { duration: '1m', target: 10 },   // 1분간 10명 유지
+            { duration: '30s', target: 20 },  // 30초간 20명까지 증가
+            { duration: '1m', target: 20 },   // 1분간 20명 유지
             { duration: '30s', target: 0 },   // 30초간 0명까지 감소
           ],
           thresholds: {
@@ -158,6 +158,20 @@ jobs:
           check(response, {
             'search status is 200': (r) => r.status === 200,
             'search response time < 600ms': (r) => r.timings.duration < 600,
+          }) || errorRate.add(1);
+
+          // 7. 인기 게시글 API
+          response = http.get(`${BASE_URL}/api/posts/popular?page=0&size=5`);
+          check(response, {
+            'popular posts status is 200': (r) => r.status === 200,
+            'popular posts response time < 500ms': (r) => r.timings.duration < 500,
+          }) || errorRate.add(1);
+
+          // 8. 스텔라 상점 API
+          response = http.get(`${BASE_URL}/api/shop/items`);
+          check(response, {
+            'shop items status is 200': (r) => r.status === 200,
+            'shop items response time < 400ms': (r) => r.timings.duration < 400,
           }) || errorRate.add(1);
 
           sleep(1);
