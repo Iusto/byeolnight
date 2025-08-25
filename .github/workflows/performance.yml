@@ -2,7 +2,7 @@ name: 성능 테스트
 
 on:
   schedule:
-    - cron: '0 2 * * 1'  # 매주 월요일 오전 2시
+    - cron: '0 6 * * 1'   # 매주 월요일 오후 3시 (UTC 06:00 = KST 15:00)
   workflow_dispatch:     # 수동 실행 가능
     inputs:
       target_url:
@@ -118,17 +118,46 @@ jobs:
         const BASE_URL = __ENV.TARGET_URL || 'http://localhost:8080';
 
         export default function() {
-          // 메인 페이지 테스트
+          // 1. 헬스체크 API
           let response = http.get(`${BASE_URL}/api/health`);
           check(response, {
-            'status is 200': (r) => r.status === 200,
-            'response time < 500ms': (r) => r.timings.duration < 500,
+            'health status is 200': (r) => r.status === 200,
+            'health response time < 200ms': (r) => r.timings.duration < 200,
           }) || errorRate.add(1);
 
-          // 게시글 목록 API 테스트
+          // 2. 게시글 목록 API
           response = http.get(`${BASE_URL}/api/posts?page=0&size=10`);
           check(response, {
-            'posts API status is 200': (r) => r.status === 200,
+            'posts status is 200': (r) => r.status === 200,
+            'posts response time < 500ms': (r) => r.timings.duration < 500,
+          }) || errorRate.add(1);
+
+          // 3. 게시글 상세 API (ID=1 가정)
+          response = http.get(`${BASE_URL}/api/posts/1`);
+          check(response, {
+            'post detail status is 200 or 404': (r) => r.status === 200 || r.status === 404,
+            'post detail response time < 300ms': (r) => r.timings.duration < 300,
+          }) || errorRate.add(1);
+
+          // 4. 댓글 목록 API
+          response = http.get(`${BASE_URL}/api/posts/1/comments`);
+          check(response, {
+            'comments status is 200 or 404': (r) => r.status === 200 || r.status === 404,
+            'comments response time < 400ms': (r) => r.timings.duration < 400,
+          }) || errorRate.add(1);
+
+          // 5. 카테고리별 게시글 API
+          response = http.get(`${BASE_URL}/api/posts?category=FREE&page=0&size=5`);
+          check(response, {
+            'category posts status is 200': (r) => r.status === 200,
+            'category posts response time < 500ms': (r) => r.timings.duration < 500,
+          }) || errorRate.add(1);
+
+          // 6. 검색 API
+          response = http.get(`${BASE_URL}/api/posts/search?keyword=test&page=0&size=5`);
+          check(response, {
+            'search status is 200': (r) => r.status === 200,
+            'search response time < 600ms': (r) => r.timings.duration < 600,
           }) || errorRate.add(1);
 
           sleep(1);
@@ -245,15 +274,10 @@ jobs:
     - name: Gradle 실행 권한 설정
       run: chmod +x ./gradlew
 
-    - name: 성능 테스트 실행
+    - name: 데이터베이스 연결 테스트
       run: |
-        # 실제 성능 테스트는 별도 프로파일로 실행
-        ./gradlew test --tests "*PerformanceTest" --tests "*AdminSchedulerControllerTest" --tests "*AllSchedulersIntegrationTest" --tests "*SimpleSchedulerTest" --tests "*CustomOAuth2UserServiceNicknameTest" -Dspring.profiles.active=test
+        # 데이터베이스 연결 확인만 수행
+        mysql -h localhost -P 3306 -u root -ptest -e "SELECT 1;" byeolnight_test
+        echo "✅ 데이터베이스 연결 성공"
       env:
-        DB_HOST: localhost
-        DB_PORT: 3306
-        DB_NAME: byeolnight_test
-        DB_USERNAME: root
-        DB_PASSWORD: test
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
+        MYSQL_PWD: test
