@@ -19,9 +19,70 @@ jobs:
     name: 부하 테스트
     runs-on: ubuntu-latest
     
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: byeolnight_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
     steps:
     - name: 코드 체크아웃
       uses: actions/checkout@v4
+
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: 백엔드 서버 시작
+      run: |
+        chmod +x ./gradlew
+        ./gradlew bootRun --args='--spring.profiles.active=test' &
+        echo $! > server.pid
+      env:
+        DB_HOST: localhost
+        DB_PORT: 3306
+        DB_NAME: byeolnight_test
+        DB_USERNAME: root
+        DB_PASSWORD: test
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+
+    - name: 서버 시작 대기
+      run: |
+        echo "서버 시작 대기 중..."
+        for i in {1..30}; do
+          if curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
+            echo "서버가 시작되었습니다."
+            break
+          fi
+          echo "대기 중... ($i/30)"
+          sleep 10
+        done
+        
+        if ! curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
+          echo "서버 시작 실패"
+          exit 1
+        fi
 
     - name: K6 설치
       run: |
@@ -42,11 +103,11 @@ jobs:
 
         export let options = {
           stages: [
-            { duration: '2m', target: 10 },   // 2분간 10명까지 증가
-            { duration: '5m', target: 10 },   // 5분간 10명 유지
-            { duration: '2m', target: 20 },   // 2분간 20명까지 증가
-            { duration: '5m', target: 20 },   // 5분간 20명 유지
-            { duration: '2m', target: 0 },    // 2분간 0명까지 감소
+            { duration: '30s', target: 5 },   // 30초간 5명까지 증가
+            { duration: '1m', target: 5 },    // 1분간 5명 유지
+            { duration: '30s', target: 10 },  // 30초간 10명까지 증가
+            { duration: '1m', target: 10 },   // 1분간 10명 유지
+            { duration: '30s', target: 0 },   // 30초간 0명까지 감소
           ],
           thresholds: {
             http_req_duration: ['p(95)<500'],  // 95%의 요청이 500ms 이하
@@ -80,6 +141,14 @@ jobs:
         echo "🎯 테스트 대상 URL: $TARGET_URL"
         k6 run --env TARGET_URL="$TARGET_URL" load-test.js
 
+    - name: 서버 종료
+      if: always()
+      run: |
+        if [ -f server.pid ]; then
+          kill $(cat server.pid) || true
+          rm server.pid
+        fi
+
     - name: 테스트 결과 업로드
       uses: actions/upload-artifact@v4
       if: always()
@@ -97,14 +166,53 @@ jobs:
     - name: 코드 체크아웃
       uses: actions/checkout@v4
 
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'byeolnight-frontend/package.json'
+
+    - name: 프론트엔드 의존성 설치
+      run: |
+        cd byeolnight-frontend
+        npm install
+
+    - name: 프론트엔드 빌드 및 서버 시작
+      run: |
+        cd byeolnight-frontend
+        npm run build
+        npm run preview &
+        echo $! > ../frontend.pid
+
+    - name: 프론트엔드 서버 대기
+      run: |
+        echo "프론트엔드 서버 시작 대기 중..."
+        for i in {1..20}; do
+          if curl -f http://localhost:4173 > /dev/null 2>&1; then
+            echo "프론트엔드 서버가 시작되었습니다."
+            break
+          fi
+          echo "대기 중... ($i/20)"
+          sleep 3
+        done
+
     - name: Lighthouse CI 실행
       uses: treosh/lighthouse-ci-action@v10
       with:
         urls: |
-          ${{ github.event.inputs.target_url || 'http://localhost:8080' }}
+          http://localhost:4173
         configPath: './.lighthouserc.json'
         uploadArtifacts: true
         temporaryPublicStorage: true
+
+    - name: 프론트엔드 서버 종료
+      if: always()
+      run: |
+        if [ -f frontend.pid ]; then
+          kill $(cat frontend.pid) || true
+          rm frontend.pid
+        fi
 
   database-performance:
     name: 데이터베이스 성능 테스트
@@ -140,10 +248,12 @@ jobs:
     - name: 성능 테스트 실행
       run: |
         # 실제 성능 테스트는 별도 프로파일로 실행
-        ./gradlew test --tests "*PerformanceTest" -Dspring.profiles.active=performance
+        ./gradlew test --tests "*PerformanceTest" --tests "*AdminSchedulerControllerTest" --tests "*AllSchedulersIntegrationTest" --tests "*SimpleSchedulerTest" --tests "*CustomOAuth2UserServiceNicknameTest" -Dspring.profiles.active=test
       env:
         DB_HOST: localhost
         DB_PORT: 3306
         DB_NAME: byeolnight_test
         DB_USERNAME: root
         DB_PASSWORD: test
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379

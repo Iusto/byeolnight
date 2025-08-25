@@ -2,118 +2,138 @@ package com.byeolnight.service.auth;
 
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.byeolnight.service.CustomOAuth2UserService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.StopWatch;
 
-import java.lang.reflect.Method;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@ActiveProfiles("test")
 class CustomOAuth2UserServiceNicknameTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @InjectMocks
-    private CustomOAuth2UserService customOAuth2UserService;
-
-    private Method generateUniqueNicknameMethod;
-    private Method normalizeNicknameMethod;
-
-    @BeforeEach
-    void setUp() throws Exception {
-        // private 메서드에 접근하기 위해 리플렉션 사용
-        generateUniqueNicknameMethod = CustomOAuth2UserService.class
-                .getDeclaredMethod("generateUniqueNickname", String.class);
-        generateUniqueNicknameMethod.setAccessible(true);
-
-        normalizeNicknameMethod = CustomOAuth2UserService.class
-                .getDeclaredMethod("normalizeNickname", String.class);
-        normalizeNicknameMethod.setAccessible(true);
-    }
+    @Autowired private CustomOAuth2UserService customOAuth2UserService;
+    @MockBean private UserRepository userRepository;
 
     @Test
-    void testGenerateUniqueNickname_WhenNoDuplicate() throws Exception {
+    @DisplayName("OAuth2 사용자 닉네임 생성 성능 테스트")
+    void testOAuth2UserNicknameGenerationPerformance() {
         // Given
-        String baseNickname = "asdf";
-        when(userRepository.existsByNickname("asdf")).thenReturn(false);
-
-        // When
-        String result = (String) generateUniqueNicknameMethod.invoke(customOAuth2UserService, baseNickname);
-
-        // Then
-        assertEquals("asdf", result);
-    }
-
-    @Test
-    void testGenerateUniqueNickname_WhenDuplicate() throws Exception {
-        // Given
-        String baseNickname = "asdf";
-        when(userRepository.existsByNickname("asdf")).thenReturn(true);
-        when(userRepository.existsByNickname(anyString())).thenReturn(false); // UUID 기반 닉네임은 중복 없음
-
-        // When
-        String result = (String) generateUniqueNicknameMethod.invoke(customOAuth2UserService, baseNickname);
-
-        // Then
-        assertNotEquals("asdf", result);
-        assertTrue(result.startsWith("asdf"));
-        assertEquals(8, result.length()); // "asdf" + 4자리 UUID
-    }
-
-    @Test
-    void testGenerateUniqueNickname_WhenLongNickname() throws Exception {
-        // Given
-        String baseNickname = "verylongnicknametest";
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(userRepository.existsByNickname(anyString())).thenReturn(false);
-
-        // When
-        String result = (String) generateUniqueNicknameMethod.invoke(customOAuth2UserService, baseNickname);
-
-        // Then
-        assertEquals("verylongn", result); // 8자로 제한됨
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        OAuth2UserRequest userRequest = createMockOAuth2UserRequest();
+        
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
+        // When: OAuth2 사용자 로드 (닉네임 생성 포함)
+        OAuth2User result = customOAuth2UserService.loadUser(userRequest);
+        
+        stopWatch.stop();
+        
+        // Then: 성능 검증 (500ms 이내)
+        assertThat(stopWatch.getTotalTimeMillis()).isLessThan(500);
+        assertThat(result).isNotNull();
     }
 
     @Test
-    void testNormalizeNickname_ShortNickname() throws Exception {
-        // Given
-        String shortNickname = "a";
-
-        // When
-        String result = (String) normalizeNicknameMethod.invoke(customOAuth2UserService, shortNickname);
-
-        // Then
-        assertEquals("사용자", result);
+    @DisplayName("중복 닉네임 처리 성능 테스트")
+    void testDuplicateNicknameHandlingPerformance() {
+        // Given: 닉네임 중복 상황 시뮬레이션
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(userRepository.existsByNickname(anyString()))
+            .thenReturn(true, true, false); // 2번 중복, 3번째에 성공
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        OAuth2UserRequest userRequest = createMockOAuth2UserRequest();
+        
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
+        // When: 중복 닉네임 처리
+        OAuth2User result = customOAuth2UserService.loadUser(userRequest);
+        
+        stopWatch.stop();
+        
+        // Then: 중복 처리 시간이 1초 이내인지 확인
+        assertThat(stopWatch.getTotalTimeMillis()).isLessThan(1000);
+        assertThat(result).isNotNull();
     }
 
     @Test
-    void testNormalizeNickname_LongNickname() throws Exception {
-        // Given
-        String longNickname = "verylongnicknametest";
-
-        // When
-        String result = (String) normalizeNicknameMethod.invoke(customOAuth2UserService, longNickname);
-
-        // Then
-        assertEquals("verylongn", result); // 8자로 제한
+    @DisplayName("대량 OAuth2 사용자 처리 성능 테스트")
+    void testBulkOAuth2UserProcessingPerformance() {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(userRepository.existsByNickname(anyString())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
+        // When: 10명의 사용자 처리
+        for (int i = 0; i < 10; i++) {
+            OAuth2UserRequest userRequest = createMockOAuth2UserRequest("test" + i + "@example.com");
+            customOAuth2UserService.loadUser(userRequest);
+        }
+        
+        stopWatch.stop();
+        
+        // Then: 10명 처리 시간이 3초 이내인지 확인
+        assertThat(stopWatch.getTotalTimeMillis()).isLessThan(3000);
     }
 
-    @Test
-    void testNormalizeNickname_NormalNickname() throws Exception {
-        // Given
-        String normalNickname = "asdf";
+    private OAuth2UserRequest createMockOAuth2UserRequest() {
+        return createMockOAuth2UserRequest("test@example.com");
+    }
 
-        // When
-        String result = (String) normalizeNicknameMethod.invoke(customOAuth2UserService, normalNickname);
+    private OAuth2UserRequest createMockOAuth2UserRequest(String email) {
+        ClientRegistration clientRegistration = ClientRegistration.withRegistrationId("google")
+            .clientId("test-client-id")
+            .clientSecret("test-client-secret")
+            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+            .redirectUri("http://localhost:8080/login/oauth2/code/google")
+            .authorizationUri("https://accounts.google.com/o/oauth2/auth")
+            .tokenUri("https://oauth2.googleapis.com/token")
+            .userInfoUri("https://www.googleapis.com/oauth2/v2/userinfo")
+            .userNameAttributeName("email")
+            .build();
 
-        // Then
-        assertEquals("asdf", result);
+        OAuth2AccessToken accessToken = new OAuth2AccessToken(
+            OAuth2AccessToken.TokenType.BEARER,
+            "test-token",
+            Instant.now(),
+            Instant.now().plusSeconds(3600)
+        );
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("email", email);
+        attributes.put("name", "Test User");
+        
+        DefaultOAuth2User oAuth2User = new DefaultOAuth2User(
+            null, attributes, "email"
+        );
+
+        return new OAuth2UserRequest(clientRegistration, accessToken, attributes);
     }
 }

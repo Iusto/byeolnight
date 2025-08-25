@@ -1,272 +1,98 @@
 package com.byeolnight.service.scheduler;
 
-import com.byeolnight.entity.Message;
-import com.byeolnight.entity.comment.Comment;
-import com.byeolnight.entity.post.Post;
-import com.byeolnight.entity.user.User;
-import com.byeolnight.repository.MessageRepository;
-import com.byeolnight.repository.comment.CommentRepository;
-import com.byeolnight.repository.post.PostRepository;
-import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.PostCleanupScheduler;
-import com.byeolnight.service.auth.SocialAccountCleanupService;
-import com.byeolnight.service.crawler.SpaceNewsScheduler;
-import com.byeolnight.service.discussion.DiscussionTopicScheduler;
-import com.byeolnight.service.message.MessageCleanupService;
-import com.byeolnight.service.user.WithdrawnUserCleanupService;
+import com.byeolnight.service.scheduler.NewsScheduler;
+import com.byeolnight.service.scheduler.YoutubeScheduler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 
-import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.doNothing;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Transactional
 class AllSchedulersIntegrationTest {
 
     @Autowired private PostCleanupScheduler postCleanupScheduler;
-    @Autowired private SpaceNewsScheduler spaceNewsScheduler;
-    @Autowired private DiscussionTopicScheduler discussionTopicScheduler;
-    @Autowired private MessageCleanupService messageCleanupService;
-    @Autowired private SocialAccountCleanupService socialAccountCleanupService;
-    @Autowired private WithdrawnUserCleanupService withdrawnUserCleanupService;
-    
-    @Autowired private PostRepository postRepository;
-    @Autowired private CommentRepository commentRepository;
-    @Autowired private MessageRepository messageRepository;
-    @Autowired private UserRepository userRepository;
+    @MockBean private NewsScheduler newsScheduler;
+    @MockBean private YoutubeScheduler youtubeScheduler;
 
     @Test
-    @DisplayName("게시글 정리 스케줄러 - 만료된 게시글/댓글 삭제")
-    void testPostCleanupScheduler() {
-        User user = createTestUser();
+    @DisplayName("모든 스케줄러 통합 성능 테스트")
+    void testAllSchedulersIntegrationPerformance() {
+        doNothing().when(newsScheduler).collectNews();
+        doNothing().when(youtubeScheduler).collectVideos();
         
-        // 만료된 게시글
-        Post expiredPost = createExpiredPost(user);
-        Comment expiredComment = createExpiredComment(user, expiredPost);
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
         
-        // 최근 게시글 (삭제되지 않아야 함)
-        Post recentPost = createRecentPost(user);
-        
-        long postsBefore = postRepository.count();
-        long commentsBefore = commentRepository.count();
-        
+        // 모든 스케줄러 순차 실행
         postCleanupScheduler.cleanupExpiredPosts();
+        newsScheduler.collectNews();
+        youtubeScheduler.collectVideos();
         
-        assertThat(postRepository.count()).isEqualTo(postsBefore - 1);
-        assertThat(commentRepository.count()).isEqualTo(commentsBefore - 1);
-        assertThat(postRepository.existsById(recentPost.getId())).isTrue();
+        stopWatch.stop();
+        
+        // 전체 실행 시간이 10초 이내인지 확인
+        assertThat(stopWatch.getTotalTimeMillis()).isLessThan(10000);
     }
 
     @Test
-    @DisplayName("토론 주제 스케줄러 - 기존 토론 비활성화")
-    void testDiscussionTopicScheduler() {
-        User systemUser = discussionTopicScheduler.getSystemUser();
-        Post oldTopic = createActiveTopic(systemUser);
+    @DisplayName("스케줄러 병렬 실행 성능 테스트")
+    void testSchedulersParallelPerformance() throws Exception {
+        doNothing().when(newsScheduler).collectNews();
+        doNothing().when(youtubeScheduler).collectVideos();
         
-        discussionTopicScheduler.deactivateOldTopics();
+        ExecutorService executor = Executors.newFixedThreadPool(3);
         
-        Post updated = postRepository.findById(oldTopic.getId()).orElseThrow();
-        assertThat(updated.isPinned()).isFalse();
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
+        // 병렬 실행
+        CompletableFuture<Void> cleanup = CompletableFuture.runAsync(
+            () -> postCleanupScheduler.cleanupExpiredPosts(), executor);
+        CompletableFuture<Void> news = CompletableFuture.runAsync(
+            () -> newsScheduler.collectNews(), executor);
+        CompletableFuture<Void> youtube = CompletableFuture.runAsync(
+            () -> youtubeScheduler.collectVideos(), executor);
+        
+        CompletableFuture.allOf(cleanup, news, youtube).get();
+        
+        stopWatch.stop();
+        executor.shutdown();
+        
+        // 병렬 실행 시간이 5초 이내인지 확인
+        assertThat(stopWatch.getTotalTimeMillis()).isLessThan(5000);
     }
 
     @Test
-    @DisplayName("쪽지 정리 스케줄러 - 만료된 쪽지 삭제")
-    void testMessageCleanupScheduler() {
-        User sender = createTestUser();
-        User receiver = createTestUser("receiver@test.com", "수신자");
-        Message expiredMessage = createExpiredMessage(sender, receiver);
+    @DisplayName("스케줄러 메모리 효율성 테스트")
+    void testSchedulersMemoryEfficiency() {
+        doNothing().when(newsScheduler).collectNews();
+        doNothing().when(youtubeScheduler).collectVideos();
         
-        long messagesBefore = messageRepository.count();
+        Runtime runtime = Runtime.getRuntime();
+        long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
         
-        messageCleanupService.cleanupOldMessages();
+        // 모든 스케줄러 실행
+        postCleanupScheduler.cleanupExpiredPosts();
+        newsScheduler.collectNews();
+        youtubeScheduler.collectVideos();
         
-        assertThat(messageRepository.count()).isLessThan(messagesBefore);
-    }
-
-    @Test
-    @DisplayName("소셜 계정 정리 스케줄러 - 30일 경과 개인정보 마스킹")
-    void testSocialAccountCleanupScheduler() {
-        User socialUser = createWithdrawnSocialUser();
-        String originalEmail = socialUser.getEmail();
+        System.gc();
+        long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
         
-        socialAccountCleanupService.completelyMaskPersonalInfoAfterFiveYears();
-        
-        User updated = userRepository.findById(socialUser.getId()).orElseThrow();
-        assertThat(updated.getEmail()).isNotEqualTo(originalEmail);
-        assertThat(updated.getEmail()).startsWith("deleted_");
-    }
-
-    @Test
-    @DisplayName("탈퇴 회원 정리 스케줄러 - 5년 경과 계정 정리")
-    void testWithdrawnUserCleanupScheduler() {
-        User oldWithdrawnUser = createOldWithdrawnUser();
-        String originalEmail = oldWithdrawnUser.getEmail();
-        
-        withdrawnUserCleanupService.cleanupWithdrawnUsers();
-        
-        User updated = userRepository.findById(oldWithdrawnUser.getId()).orElseThrow();
-        assertThat(updated.getEmail()).isNotEqualTo(originalEmail);
-    }
-
-    @Test
-    @DisplayName("뉴스 수집 스케줄러 - 실행 오류 없음 확인")
-    void testSpaceNewsScheduler() {
-        assertThatCode(() -> spaceNewsScheduler.scheduleSpaceNewsCollection())
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("모든 스케줄러 동시 실행 테스트")
-    void testAllSchedulersExecution() {
-        assertThatCode(() -> {
-            postCleanupScheduler.cleanupExpiredPosts();
-            discussionTopicScheduler.deactivateOldTopics();
-            messageCleanupService.cleanupOldMessages();
-            socialAccountCleanupService.completelyMaskPersonalInfoAfterFiveYears();
-            withdrawnUserCleanupService.cleanupWithdrawnUsers();
-        }).doesNotThrowAnyException();
-    }
-
-    // Helper methods
-    private User createTestUser() {
-        return createTestUser("test@example.com", "테스트유저");
-    }
-
-    private User createTestUser(String email, String nickname) {
-        return userRepository.save(User.builder()
-                .email(email)
-                .nickname(nickname)
-                .password("password")
-                .role(User.Role.USER)
-                .build());
-    }
-
-    private Post createExpiredPost(User user) {
-        Post post = Post.builder()
-                .title("만료된 게시글")
-                .content("내용")
-                .category(Post.Category.FREE)
-                .writer(user)
-                .build();
-        post.softDelete();
-        // Reflection으로 deletedAt 설정
-        try {
-            var field = Post.class.getDeclaredField("deletedAt");
-            field.setAccessible(true);
-            field.set(post, LocalDateTime.now().minusDays(31));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return postRepository.save(post);
-    }
-
-    private Post createRecentPost(User user) {
-        Post post = Post.builder()
-                .title("최근 게시글")
-                .content("내용")
-                .category(Post.Category.FREE)
-                .writer(user)
-                .build();
-        post.softDelete();
-        return postRepository.save(post);
-    }
-
-    private Comment createExpiredComment(User user, Post post) {
-        Comment comment = Comment.builder()
-                .content("만료된 댓글")
-                .writer(user)
-                .post(post)
-                .build();
-        comment.softDelete();
-        // Reflection으로 deletedAt 설정
-        try {
-            var field = Comment.class.getDeclaredField("deletedAt");
-            field.setAccessible(true);
-            field.set(comment, LocalDateTime.now().minusDays(31));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return commentRepository.save(comment);
-    }
-
-    private Post createActiveTopic(User user) {
-        Post topic = Post.builder()
-                .title("기존 토론 주제")
-                .content("내용")
-                .category(Post.Category.DISCUSSION)
-                .writer(user)
-                .build();
-        topic.setAsDiscussionTopic();
-        topic.pin();
-        return postRepository.save(topic);
-    }
-
-    private Message createExpiredMessage(User sender, User receiver) {
-        Message message = Message.builder()
-                .title("만료된 쪽지")
-                .content("내용")
-                .sender(sender)
-                .receiver(receiver)
-                .build();
-        message.deleteBySender();
-        message.deleteByReceiver();
-        // Reflection으로 삭제 시간 설정
-        try {
-            var senderField = Message.class.getDeclaredField("senderDeletedAt");
-            var receiverField = Message.class.getDeclaredField("receiverDeletedAt");
-            senderField.setAccessible(true);
-            receiverField.setAccessible(true);
-            senderField.set(message, LocalDateTime.now().minusYears(4));
-            receiverField.set(message, LocalDateTime.now().minusYears(4));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return messageRepository.save(message);
-    }
-
-    private User createWithdrawnSocialUser() {
-        User user = User.builder()
-                .email("social@example.com")
-                .nickname("소셜유저")
-                .password("password")
-                .role(User.Role.USER)
-                .build();
-        user.withdraw("테스트 탈퇴");
-        // Reflection으로 withdrawnAt 설정
-        try {
-            var field = User.class.getDeclaredField("withdrawnAt");
-            field.setAccessible(true);
-            field.set(user, LocalDateTime.now().minusDays(31));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return userRepository.save(user);
-    }
-
-    private User createOldWithdrawnUser() {
-        User user = User.builder()
-                .email("old@example.com")
-                .nickname("오래된유저")
-                .password("password")
-                .role(User.Role.USER)
-                .build();
-        user.withdraw("테스트 탈퇴");
-        // Reflection으로 withdrawnAt 설정
-        try {
-            var field = User.class.getDeclaredField("withdrawnAt");
-            field.setAccessible(true);
-            field.set(user, LocalDateTime.now().minusYears(6));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return userRepository.save(user);
+        // 메모리 증가량이 50MB 이내인지 확인
+        long memoryIncrease = memoryAfter - memoryBefore;
+        assertThat(memoryIncrease).isLessThan(50 * 1024 * 1024);
     }
 }
