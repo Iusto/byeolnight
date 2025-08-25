@@ -1,0 +1,6 @@
+# ads.txt 파일 - 구글 애드센스 승인용
+# 실제 발행자 ID로 교체 필요
+google.com, pub-XXXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+
+# 주의: pub-XXXXXXXXXXXXXXXXX를 실제 애드센스 발행자 ID로 교체하세요
+# 애드센스 계정 > 계정 > 계정 정보에서 발행자 ID 확인 가능

@@ -5,6 +5,7 @@ interface AdSenseProps {
   adFormat?: 'auto' | 'rectangle' | 'vertical' | 'horizontal';
   style?: React.CSSProperties;
   className?: string;
+  hasContent?: boolean;
 }
 
 declare global {
@@ -17,9 +18,12 @@ export default function AdSense({
   adSlot, 
   adFormat = 'auto', 
   style = { display: 'block' },
-  className = ''
+  className = '',
+  hasContent = true
 }: AdSenseProps) {
   useEffect(() => {
+    if (!hasContent) return;
+    
     try {
       if (window.adsbygoogle) {
         window.adsbygoogle.push({});
@@ -27,7 +31,11 @@ export default function AdSense({
     } catch (error) {
       console.error('AdSense 로드 오류:', error);
     }
-  }, []);
+  }, [hasContent]);
+
+  if (!hasContent) {
+    return null;
+  }
 
   return (
     <div className={`adsense-container ${className}`}>
