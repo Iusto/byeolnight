@@ -17,12 +17,26 @@ export default function PasswordReset() {
   const [step, setStep] = useState<'request' | 'reset'>('request');
   const [loading, setLoading] = useState(false); // 로딩 상태 추가
 
-  // 토큰이 있으면 재설정 단계로
+  // 토큰이 있으면 토큰 검증 후 재설정 단계로
   useEffect(() => {
     if (token) {
-      setStep('reset');
+      validateToken();
     }
   }, [token]);
+
+  const validateToken = async () => {
+    setLoading(true);
+    try {
+      await axios.get(`/auth/password/validate-token?token=${token}`);
+      setStep('reset');
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || '토큰 검증에 실패했습니다.';
+      setError(errorMessage);
+      setStep('request');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -69,6 +83,32 @@ export default function PasswordReset() {
       setLoading(false); // 로딩 종료
     }
   };
+
+  // 로딩 상태일 때 표시
+  if (loading && token) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold mb-6">🔑 비밀번호 재설정</h2>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>토큰 검증 중...</span>
+          </div>
+          {error && (
+            <div className="mt-4 space-y-4">
+              <p className="text-red-400">{error}</p>
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded"
+              >
+                로그인 페이지로
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (step === 'request') {
     return (

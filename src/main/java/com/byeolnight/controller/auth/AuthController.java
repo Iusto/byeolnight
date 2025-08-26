@@ -389,6 +389,34 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/password/validate-token")
+    @Operation(summary = "비밀번호 재설정 토큰 검증")
+    public ResponseEntity<CommonResponse<String>> validatePasswordResetToken(
+            @RequestParam String token) {
+        try {
+            PasswordResetToken resetToken = passwordResetService.validateToken(token);
+            User user = userService.findByEmail(resetToken.getEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+            
+            if (user.isSocialUser()) {
+                String providerName = user.getSocialProviderName();
+                return ResponseEntity.badRequest()
+                        .body(CommonResponse.fail(
+                            String.format("소셜 로그인(%s) 계정입니다. %s에서 비밀번호를 변경해주세요.", 
+                                providerName, providerName)
+                        ));
+            }
+            
+            return ResponseEntity.ok(CommonResponse.success("유효한 토큰입니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(CommonResponse.fail(e.getMessage()));
+        } catch (Exception e) {
+            log.error("토큰 검증 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("토큰 검증에 실패했습니다."));
+        }
+    }
+
     @PostMapping("/password/reset-confirm")
     @Operation(summary = "비밀번호 재설정 확인")
     public ResponseEntity<CommonResponse<String>> confirmPasswordReset(

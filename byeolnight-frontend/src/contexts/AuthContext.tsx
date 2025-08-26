@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from '../lib/axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -33,6 +33,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 인증이 필요하지 않은 페이지들
+  const noAuthPages = [
+    '/login',
+    '/signup', 
+    '/password-reset',
+    '/oauth/callback',
+    '/oauth/setup-nickname',
+    '/oauth/recover'
+  ];
 
 
 
@@ -121,15 +132,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
 
-  // 초기 로딩 시 로그인 상태 확인 (페이지 새로고침 시에만)
+  // 초기 로딩 시 로그인 상태 확인 (인증이 필요한 페이지에서만)
   useEffect(() => {
     const initializeAuth = async () => {
+      // 인증이 필요하지 않은 페이지에서는 API 호출 생략
+      if (noAuthPages.includes(location.pathname)) {
+        setLoading(false);
+        return;
+      }
+      
       await fetchMyInfo();
       setLoading(false);
     };
 
     initializeAuth();
-  }, []);
+  }, [location.pathname]);
 
   // 주기적으로 토큰 갱신 (HttpOnly 쿠키 방식에서는 항상 실행)
   useEffect(() => {

@@ -49,6 +49,17 @@ public class PasswordResetService {
         }
     }
 
+    public PasswordResetToken validateToken(String token) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
+
+        if (!resetToken.isValid()) {
+            throw new IllegalArgumentException("만료되었거나 이미 사용된 토큰입니다.");
+        }
+
+        return resetToken;
+    }
+
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
@@ -58,7 +69,16 @@ public class PasswordResetService {
         }
 
         User user = userService.findByEmail(resetToken.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+
+        // 소셜 로그인 사용자 체크
+        if (user.isSocialUser()) {
+            String providerName = user.getSocialProviderName();
+            throw new IllegalArgumentException(
+                String.format("소셜 로그인(%s) 계정입니다. %s에서 비밀번호를 변경해주세요.", 
+                    providerName, providerName)
+            );
+        }
 
         user.changePassword(passwordEncoder.encode(newPassword));
         resetToken.markAsUsed();
