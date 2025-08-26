@@ -4,6 +4,7 @@ import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.dto.user.TokenResponseDto;
 
 import com.byeolnight.entity.log.AuditRefreshTokenLog;
+import com.byeolnight.entity.token.PasswordResetToken;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.log.AuditRefreshTokenLogRepository;
 import com.byeolnight.dto.user.UserSignUpRequestDto;
