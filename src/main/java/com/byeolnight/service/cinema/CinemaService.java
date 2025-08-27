@@ -6,8 +6,8 @@ import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.CinemaRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
-
 import com.byeolnight.infrastructure.config.CinemaCollectionProperties;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.Optional;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,66 +33,55 @@ public class CinemaService {
     private final CinemaCollectionProperties cinemaConfig;
     private final RestTemplate restTemplate;
     
-    // 키워드 상수
-    private static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "태양", "지구", "목성", "토성", "천왕성", "해왕성", "수성", "금성", "명왕성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사", "우주발사", "우주탐사", "성운", "퀘이사", "중성자별", "백색왜성", "적색거성", "초신성", "성단", "성간물질", "암흑물질", "암흑에너지", "빅뱅", "우주론", "외계행성", "외계생명", "SETI", "우주망원경", "허블", "제임스웹", "케플러", "스피처", "찬드라", "컴프턴", "국제우주정거장", "ISS", "아르테미스", "아폴로", "보이저", "카시니", "갈릴레오", "뉴호라이즌스", "파커", "주노", "화성탐사", "달탐사", "목성탐사", "토성탐사", "태양탐사", "소행성탐사", "혜성탐사", "우주쓰레기", "우주날씨", "태양풍", "자기권", "오로라", "일식", "월식", "유성우", "운석", "크레이터", "화산", "대기", "중력", "궤도", "공전", "자전", "조석", "라그랑주점", "중력파", "상대성이론", "양자역학", "끈이론", "다중우주", "우주배경복사", "적색편이", "도플러효과", "허블상수", "우주나이", "우주크기", "관측가능우주", "사건지평선", "특이점", "웜홀"};
-    private static final String[] ENGLISH_KEYWORDS = {"space", "rocket", "satellite", "Mars", "Moon", "Sun", "Earth", "Jupiter", "Saturn", "Uranus", "Neptune", "Mercury", "Venus", "Pluto", "blackhole", "galaxy", "star", "stellar", "comet", "asteroid", "telescope", "astronomy", "aerospace", "spacecraft", "space station", "astronaut", "space launch", "space exploration", "nebula", "quasar", "neutron star", "white dwarf", "red giant", "supernova", "cluster", "interstellar", "dark matter", "dark energy", "big bang", "cosmology", "exoplanet", "extraterrestrial", "SETI", "space telescope", "Hubble", "James Webb", "Kepler", "Spitzer", "Chandra", "Compton", "ISS", "International Space Station", "Artemis", "Apollo", "Voyager", "Cassini", "Galileo", "New Horizons", "Parker", "Juno", "Mars exploration", "lunar exploration", "Jupiter mission", "Saturn mission", "solar mission", "asteroid mission", "comet mission", "space debris", "space weather", "solar wind", "magnetosphere", "aurora", "eclipse", "lunar eclipse", "meteor shower", "meteorite", "crater", "volcano", "atmosphere", "gravity", "orbit", "revolution", "rotation", "tidal", "Lagrange point", "gravitational wave", "relativity", "quantum mechanics", "string theory", "multiverse", "cosmic background", "redshift", "Doppler effect", "Hubble constant", "universe age", "universe size", "observable universe", "event horizon", "singularity", "wormhole"};
-    private static final String[] ALL_KEYWORDS = java.util.stream.Stream.concat(java.util.Arrays.stream(KOREAN_KEYWORDS), java.util.Arrays.stream(ENGLISH_KEYWORDS)).map(String::toLowerCase).toArray(String[]::new);
-    private static final String[] MUSIC_KEYWORDS = {"원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans", "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd", "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion", "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core", "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video", "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무", "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu", "가사", "lyrics", "노래", "song", "음악", "music", "앨범", "album", "미발매", "unreleased", "콘서트", "concert", "페스티벌", "festival", "칸타빌레", "cantabile", "더 시즌즈", "the seasons", "박보검", "샘 킴", "sam kim", "오현우", "ohHyunwoo", "일식", "eclipse", "[가사]", "[lyrics]", "kbs", "방송"};
-    private static final String[] COMMERCIAL_KEYWORDS = {"쇼핑", "shopping", "구매", "buy", "판매", "sale", "할인", "discount", "특가", "세일", "광고", "ad", "advertisement", "홍보", "promotion", "캠페인", "campaign", "브랜드", "brand", "제품", "product", "상품", "item", "리뷰", "review", "언박싱", "unboxing", "추천", "recommend", "후기", "testimonial", "체험", "experience", "협찬", "sponsored", "파트너십", "partnership", "마케팅", "marketing", "커머스", "commerce", "온라인쇼핑", "온라인몰", "쇼핑몰", "mall", "스토어", "store", "마트", "mart", "백화점", "department", "아울렛", "outlet", "혼수", "혼수용품", "웨딩", "wedding", "신혼", "newlywed", "인테리어", "interior", "가구", "furniture", "침구", "bedding", "러그", "rug", "카펫", "carpet", "커버", "cover", "세트", "set", "패키지", "package", "번들", "bundle", "딜", "deal", "오픈", "open", "런칭", "launch", "신제품", "new product", "출시", "release", "론칭", "launching", "이벤트", "event", "기획전", "exhibition", "페어", "fair", "박람회", "expo", "전시회", "show", "데모", "demo", "시연", "demonstration", "테스트", "test", "비교", "comparison", "vs", "대결", "battle", "순위", "ranking", "베스트", "best", "top", "추천템", "must have", "필수템", "essential", "아이템", "goods", "굿즈", "merchandise", "md", "콜라보", "collaboration", "한정", "limited", "독점", "exclusive", "프리미엄", "premium", "럭셔리", "luxury", "브랜딩", "branding", "로고", "logo", "디자인", "design", "스타일", "style", "패션", "fashion", "뷰티", "beauty", "코스메틱", "cosmetic", "메이크업", "makeup", "스킨케어", "skincare", "헤어", "hair", "네일", "nail", "향수", "perfume", "액세서리", "accessory", "주얼리", "jewelry", "시계", "watch", "가방", "bag", "신발", "shoes", "의류", "clothing", "옷", "clothes", "패션아이템", "fashion item", "트렌드", "trend", "유행", "popular", "인기", "hot", "핫템", "hot item", "대박", "jackpot", "완판", "sold out", "품절", "out of stock", "재입고", "restock", "예약", "reservation", "선주문", "pre-order", "주문", "order", "배송", "delivery", "택배", "parcel", "무료배송", "free shipping", "당일배송", "same day", "빠른배송", "fast delivery", "쿠폰", "coupon", "적립", "point", "포인트", "마일리지", "mileage", "혜택", "benefit", "서비스", "service", "멤버십", "membership", "회원", "member", "가입", "join", "등록", "register", "신규", "new", "첫구매", "first purchase", "재구매", "repurchase", "단골", "regular", "vip", "프리미어", "premier", "플래티넘", "platinum", "골드", "gold", "실버", "silver", "등급", "grade", "레벨", "level", "티어", "tier", "클래스", "class", "카테고리", "category", "분류", "classification", "종류", "type", "모델", "model", "버전", "version", "에디션", "edition", "시리즈", "series", "라인", "line", "컬렉션", "collection"};
-
     @Value("${app.security.external-api.ai.google-api-key:}")
     private String googleApiKey;
     
     @Value("${app.security.external-api.ai.openai-api-key:}")
     private String openaiApiKey;
 
+    // ================================ 스케줄링 ================================
+    
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
     @Transactional
     public void createDailyCinemaPost() {
-        createDailyCinemaPostWithRetry();
+        executeWithRetry("일일 자동 포스팅");
     }
     
-    // 5분 후 재시도
     @Scheduled(cron = "0 5 20 * * *", zone = "Asia/Seoul")
     @Transactional
     public void retryDailyCinemaPost() {
         if (shouldRetryToday()) {
-            log.info("별빛 시네마 재시도 시작");
-            createDailyCinemaPostWithRetry();
+            executeWithRetry("재시도 포스팅");
         }
     }
     
-    // 10분 후 마지막 재시도
     @Scheduled(cron = "0 10 20 * * *", zone = "Asia/Seoul")
     @Transactional
     public void finalRetryDailyCinemaPost() {
         if (shouldRetryToday()) {
-            log.info("별빛 시네마 마지막 재시도 시작");
-            createDailyCinemaPostWithRetry();
+            executeWithRetry("최종 재시도 포스팅");
         }
     }
     
-    private void createDailyCinemaPostWithRetry() {
+    private void executeWithRetry(String type) {
         try {
-            log.info("별빛 시네마 자동 포스팅 시작");
+            log.info("별빛 시네마 {} 시작", type);
             collectAndSaveSpaceVideo(getSystemUser());
         } catch (Exception e) {
-            log.error("별빛 시네마 자동 포스팅 실패", e);
+            log.error("별빛 시네마 {} 실패", type, e);
         }
     }
     
     private boolean shouldRetryToday() {
-        // 오늘 이미 성공한 게시글이 있는지 확인
         LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-        
-        // 오늘 작성된 STARLIGHT_CINEMA 게시글 개수 조회
         long todayPosts = cinemaRepository.countByCreatedAtAfter(todayStart);
-            
         boolean shouldRetry = todayPosts == 0;
         log.info("오늘 별빛시네마 게시글 수: {}, 재시도 필요: {}", todayPosts, shouldRetry);
         return shouldRetry;
     }
 
+    // ================================ 공개 API ================================
+    
     public void createCinemaPostManually(User admin) {
         try {
             log.info("수동 별빛 시네마 포스팅 시작 - 관리자: {}", admin.getNickname());
@@ -131,14 +119,15 @@ public class CinemaService {
         
         log.info("새 별빛시네마 게시글 저장: {}", savedPost.getTitle());
     }
+
+    // ================================ YouTube 검색 ================================
     
     private Map<String, Object> fetchSpaceVideo() {
         if (googleApiKey == null || googleApiKey.isEmpty()) {
             return createMockVideoData();
         }
 
-        // 한국어 → 영어 순서로 시도
-        String[][] keywordSets = {KOREAN_KEYWORDS, ENGLISH_KEYWORDS};
+        String[][] keywordSets = {KeywordConstants.KOREAN_KEYWORDS, KeywordConstants.ENGLISH_KEYWORDS};
         
         for (String[] keywords : keywordSets) {
             for (int attempt = 0; attempt < cinemaConfig.getCollection().getRetryCount(); attempt++) {
@@ -160,93 +149,71 @@ public class CinemaService {
     private Map<String, Object> searchYouTube(String[] keywords) {
         String query = getRandomKeywords(keywords, cinemaConfig.getCollection().getKeywordCount());
         
-        // 1차: 조회수 순으로 검색
-        String url = String.format(
-            "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=viewCount&publishedAfter=%s&videoDuration=%s&videoDefinition=%s&key=%s",
-            query, cinemaConfig.getQuality().getMaxResults(), getPublishedAfterDate(), 
-            cinemaConfig.getQuality().getVideoDuration(), cinemaConfig.getQuality().getVideoDefinition(), googleApiKey
-        );
-        
+        String url = buildYouTubeSearchUrl(query, "viewCount");
         log.info("YouTube API 호출 (조회수 순): {}", query);
         
-        @SuppressWarnings("unchecked")
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        List<Map<String, Object>> qualityVideos = getQualityVideos(url);
         
-        if (response == null) return null;
-        
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
-        
-        if (items == null || items.isEmpty()) return null;
-        
-        // 품질 필터링 및 통계 검증
-        List<Map<String, Object>> qualityVideos = items.stream()
-            .filter(this::isQualityVideo)
-            .map(this::enrichWithVideoStats)
-            .filter(Objects::nonNull)
-            .filter(this::hasMinimumEngagement)
-            .sorted(this::compareVideoQuality)
-            .collect(java.util.stream.Collectors.toList());
-            
         if (qualityVideos.isEmpty()) {
             log.warn("고품질 영상을 찾지 못함, 관련도 순으로 재검색");
             return searchYouTubeByRelevance(query);
         }
         
-        // 상위 30% 중에서 랜덤 선택 (품질과 다양성 균형)
-        int topCount = Math.max(1, qualityVideos.size() / 3);
-        List<Map<String, Object>> topVideos = qualityVideos.subList(0, topCount);
-        Map<String, Object> selectedVideo = topVideos.get(new Random().nextInt(topVideos.size()));
+        Map<String, Object> selectedVideo = selectRandomFromTopVideos(qualityVideos);
+        logSelectedVideo(selectedVideo);
         
-        log.info("선택된 영상: {} (조회수: {}, 좋아요: {})", 
-                getVideoTitle(selectedVideo), 
-                getVideoViewCount(selectedVideo),
-                getVideoLikeCount(selectedVideo));
-                
         return parseVideoData(selectedVideo);
     }
     
     private Map<String, Object> searchYouTubeByRelevance(String query) {
-        String url = String.format(
-            "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=relevance&publishedAfter=%s&videoDuration=%s&key=%s",
-            query, cinemaConfig.getQuality().getMaxResults(), getPublishedAfterDate(), 
-            cinemaConfig.getQuality().getVideoDuration(), googleApiKey
-        );
+        String url = buildYouTubeSearchUrl(query, "relevance");
+        List<Map<String, Object>> qualityVideos = getQualityVideos(url);
         
-        @SuppressWarnings("unchecked")
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        
-        if (response == null) return null;
-        
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
-        
-        if (items == null || items.isEmpty()) return null;
-        
-        List<Map<String, Object>> qualityVideos = items.stream()
-            .filter(this::isQualityVideo)
-            .collect(java.util.stream.Collectors.toList());
-            
         if (qualityVideos.isEmpty()) return null;
         
         Map<String, Object> selectedVideo = qualityVideos.get(new Random().nextInt(qualityVideos.size()));
         return parseVideoData(selectedVideo);
     }
     
-    private Map<String, Object> parseVideoData(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> videoId = (Map<String, Object>) video.get("id");
-        
-        return formatVideoData(
-            (String) snippet.get("title"),
-            (String) snippet.get("description"),
-            (String) videoId.get("videoId"),
-            (String) snippet.get("channelTitle"),
-            parsePublishedDateTime((String) snippet.get("publishedAt"))
+    private String buildYouTubeSearchUrl(String query, String order) {
+        return String.format(
+            "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=%s&publishedAfter=%s&videoDuration=%s&videoDefinition=%s&key=%s",
+            query, cinemaConfig.getQuality().getMaxResults(), order, getPublishedAfterDate(), 
+            cinemaConfig.getQuality().getVideoDuration(), cinemaConfig.getQuality().getVideoDefinition(), googleApiKey
         );
     }
+    
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> getQualityVideos(String url) {
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        if (response == null) return List.of();
+        
+        List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
+        if (items == null || items.isEmpty()) return List.of();
+        
+        return items.stream()
+            .filter(this::isQualityVideo)
+            .map(this::enrichWithVideoStats)
+            .filter(Objects::nonNull)
+            .filter(this::hasMinimumEngagement)
+            .sorted(this::compareVideoQuality)
+            .collect(Collectors.toList());
+    }
+    
+    private Map<String, Object> selectRandomFromTopVideos(List<Map<String, Object>> qualityVideos) {
+        int topCount = Math.max(1, qualityVideos.size() / 3);
+        List<Map<String, Object>> topVideos = qualityVideos.subList(0, topCount);
+        return topVideos.get(new Random().nextInt(topVideos.size()));
+    }
+    
+    private void logSelectedVideo(Map<String, Object> selectedVideo) {
+        log.info("선택된 영상: {} (조회수: {}, 좋아요: {})", 
+                getVideoTitle(selectedVideo), 
+                getVideoViewCount(selectedVideo),
+                getVideoLikeCount(selectedVideo));
+    }
+
+    // ================================ 영상 품질 검증 ================================
     
     private boolean isQualityVideo(Map<String, Object> video) {
         @SuppressWarnings("unchecked")
@@ -261,40 +228,32 @@ public class CinemaService {
         String descLower = description.toLowerCase();
         
         // 기본 품질 체크
-        if (titleLower.contains("shorts") || titleLower.contains("#shorts") ||
-            title.length() < cinemaConfig.getQuality().getMinTitleLength() ||
-            description.length() < cinemaConfig.getQuality().getMinDescriptionLength()) {
+        if (!passesBasicQualityCheck(titleLower, title, description)) {
             return false;
         }
         
-        // K-POP 및 음악 관련 키워드 필터링
-        if (isKPopOrMusicContent(titleLower, descLower)) {
-            log.debug("음악 콘텐츠로 제외: {}", title);
+        // 음악/상업적 콘텐츠 필터링
+        if (ContentFilter.isKPopOrMusicContent(titleLower, descLower) || 
+            ContentFilter.isCommercialContent(titleLower, descLower)) {
+            log.debug("음악/상업적 콘텐츠로 제외: {}", title);
             return false;
         }
         
-        // 상업적 콘텐츠 필터링
-        if (isCommercialContent(titleLower, descLower)) {
-            log.info("상업적 콘텐츠로 제외: {}", title);
-            return false;
-        }
-        
-        // 고품질 채널 우선순위 체크
+        // 전문 채널 우선순위
         if (channelTitle != null && isProfessionalChannel(channelTitle)) {
             log.info("고품질 채널 발견: {}", channelTitle);
-            return true; // 전문 채널은 우주 키워드 체크 완화
+            return true;
         }
         
-        // 우주 키워드 체크 (최소 2개 이상 필요)
-        int spaceKeywordCount = 0;
-        for (String keyword : ALL_KEYWORDS) {
-            if (titleLower.contains(keyword) || descLower.contains(keyword)) {
-                spaceKeywordCount++;
-            }
-        }
-        
-        // 우주 키워드가 2개 이상 있어야 함
-        return spaceKeywordCount >= 2;
+        // 우주 콘텐츠 검증
+        return ContentValidator.hasValidSpaceContent(titleLower, descLower);
+    }
+    
+    private boolean passesBasicQualityCheck(String titleLower, String title, String description) {
+        return !titleLower.contains("shorts") && 
+               !titleLower.contains("#shorts") &&
+               title.length() >= cinemaConfig.getQuality().getMinTitleLength() &&
+               description.length() >= cinemaConfig.getQuality().getMinDescriptionLength();
     }
     
     private boolean isProfessionalChannel(String channelTitle) {
@@ -307,23 +266,14 @@ public class CinemaService {
             }
         }
         
-        // 추가 전문 채널 패턴
         return channelLower.contains("science") || 
                channelLower.contains("space") || 
                channelLower.contains("astronomy") ||
                channelLower.contains("documentary") ||
                channelLower.contains("education");
     }
-    
-    private boolean isKPopOrMusicContent(String titleLower, String descLower) {
-        return java.util.Arrays.stream(MUSIC_KEYWORDS)
-                .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
-    }
-    
-    private boolean isCommercialContent(String titleLower, String descLower) {
-        return java.util.Arrays.stream(COMMERCIAL_KEYWORDS)
-                .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
-    }
+
+    // ================================ 영상 통계 및 품질 평가 ================================
     
     private Map<String, Object> enrichWithVideoStats(Map<String, Object> video) {
         try {
@@ -333,7 +283,6 @@ public class CinemaService {
             
             if (id == null) return null;
             
-            // YouTube Data API v3로 영상 통계 조회
             String statsUrl = String.format(
                 "https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=%s&key=%s",
                 id, googleApiKey
@@ -356,7 +305,7 @@ public class CinemaService {
             return video;
         } catch (Exception e) {
             log.warn("영상 통계 조회 실패: {}", e.getMessage());
-            return video; // 통계 조회 실패해도 영상은 유지
+            return video;
         }
     }
     
@@ -364,38 +313,43 @@ public class CinemaService {
         @SuppressWarnings("unchecked")
         Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
         
-        if (statistics == null) return true; // 통계가 없으면 통과
+        if (statistics == null) return true;
         
         try {
-            String viewCountStr = (String) statistics.get("viewCount");
-            String likeCountStr = (String) statistics.get("likeCount");
-            
-            if (viewCountStr != null) {
-                long viewCount = Long.parseLong(viewCountStr);
-                // 최소 1만 조회수 이상
-                if (viewCount < 10000) {
-                    log.debug("조회수 부족으로 제외: {} ({}회)", getVideoTitle(video), viewCount);
-                    return false;
-                }
-            }
-            
-            if (likeCountStr != null) {
-                long likeCount = Long.parseLong(likeCountStr);
-                // 최소 100 좋아요 이상
-                if (likeCount < 100) {
-                    log.debug("좋아요 부족으로 제외: {} ({}개)", getVideoTitle(video), likeCount);
-                    return false;
-                }
-            }
-            
+            if (!hasMinimumViews(statistics, video)) return false;
+            if (!hasMinimumLikes(statistics, video)) return false;
             return true;
         } catch (NumberFormatException e) {
-            return true; // 파싱 실패시 통과
+            return true;
         }
     }
     
+    private boolean hasMinimumViews(Map<String, Object> statistics, Map<String, Object> video) {
+        String viewCountStr = (String) statistics.get("viewCount");
+        if (viewCountStr != null) {
+            long viewCount = Long.parseLong(viewCountStr);
+            if (viewCount < 10000) {
+                log.debug("조회수 부족으로 제외: {} ({}회)", getVideoTitle(video), viewCount);
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    private boolean hasMinimumLikes(Map<String, Object> statistics, Map<String, Object> video) {
+        String likeCountStr = (String) statistics.get("likeCount");
+        if (likeCountStr != null) {
+            long likeCount = Long.parseLong(likeCountStr);
+            if (likeCount < 100) {
+                log.debug("좋아요 부족으로 제외: {} ({}개)", getVideoTitle(video), likeCount);
+                return false;
+            }
+        }
+        return true;
+    }
+    
     private int compareVideoQuality(Map<String, Object> v1, Map<String, Object> v2) {
-        // 1. 전문 채널 우선순위
+        // 전문 채널 우선순위
         boolean v1Professional = isProfessionalChannel(getChannelTitle(v1));
         boolean v2Professional = isProfessionalChannel(getChannelTitle(v2));
         
@@ -403,64 +357,19 @@ public class CinemaService {
             return v1Professional ? -1 : 1;
         }
         
-        // 2. 조회수 비교
+        // 조회수 비교
         long v1Views = getVideoViewCount(v1);
         long v2Views = getVideoViewCount(v2);
         
         if (v1Views != v2Views) {
-            return Long.compare(v2Views, v1Views); // 높은 조회수 우선
+            return Long.compare(v2Views, v1Views);
         }
         
-        // 3. 좋아요 비교
-        long v1Likes = getVideoLikeCount(v1);
-        long v2Likes = getVideoLikeCount(v2);
-        
-        return Long.compare(v2Likes, v1Likes);
+        // 좋아요 비교
+        return Long.compare(getVideoLikeCount(v2), getVideoLikeCount(v1));
     }
-    
-    private String getVideoTitle(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        return snippet != null ? (String) snippet.get("title") : "";
-    }
-    
-    private String getChannelTitle(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        return snippet != null ? (String) snippet.get("channelTitle") : "";
-    }
-    
-    private long getVideoViewCount(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
-        if (statistics != null) {
-            String viewCountStr = (String) statistics.get("viewCount");
-            if (viewCountStr != null) {
-                try {
-                    return Long.parseLong(viewCountStr);
-                } catch (NumberFormatException e) {
-                    return 0;
-                }
-            }
-        }
-        return 0;
-    }
-    
-    private long getVideoLikeCount(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
-        if (statistics != null) {
-            String likeCountStr = (String) statistics.get("likeCount");
-            if (likeCountStr != null) {
-                try {
-                    return Long.parseLong(likeCountStr);
-                } catch (NumberFormatException e) {
-                    return 0;
-                }
-            }
-        }
-        return 0;
-    }
+
+    // ================================ 유틸리티 메서드 ================================
     
     private String getRandomKeywords(String[] keywords, int count) {
         Random random = new Random();
@@ -517,6 +426,22 @@ public class CinemaService {
         
         return (double) commonWords / Math.max(words1.length, words2.length);
     }
+
+    // ================================ 데이터 변환 ================================
+    
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseVideoData(Map<String, Object> video) {
+        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
+        Map<String, Object> videoId = (Map<String, Object>) video.get("id");
+        
+        return formatVideoData(
+            (String) snippet.get("title"),
+            (String) snippet.get("description"),
+            (String) videoId.get("videoId"),
+            (String) snippet.get("channelTitle"),
+            parsePublishedDateTime((String) snippet.get("publishedAt"))
+        );
+    }
     
     private Cinema convertToCinema(Map<String, Object> videoData) {
         return Cinema.builder()
@@ -558,6 +483,8 @@ public class CinemaService {
         
         return data;
     }
+
+    // ================================ 번역 및 콘텐츠 생성 ================================
     
     private String translateIfNeeded(String text) {
         if (text == null || text.trim().isEmpty()) return text;
@@ -688,6 +615,52 @@ public class CinemaService {
         
         return content.toString();
     }
+
+    // ================================ 헬퍼 메서드 ================================
+    
+    private String getVideoTitle(Map<String, Object> video) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
+        return snippet != null ? (String) snippet.get("title") : "";
+    }
+    
+    private String getChannelTitle(Map<String, Object> video) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
+        return snippet != null ? (String) snippet.get("channelTitle") : "";
+    }
+    
+    private long getVideoViewCount(Map<String, Object> video) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
+        if (statistics != null) {
+            String viewCountStr = (String) statistics.get("viewCount");
+            if (viewCountStr != null) {
+                try {
+                    return Long.parseLong(viewCountStr);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        }
+        return 0;
+    }
+    
+    private long getVideoLikeCount(Map<String, Object> video) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
+        if (statistics != null) {
+            String likeCountStr = (String) statistics.get("likeCount");
+            if (likeCountStr != null) {
+                try {
+                    return Long.parseLong(likeCountStr);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        }
+        return 0;
+    }
     
     private Map<String, Object> createMockVideoData() {
         String[] mockTitles = {
@@ -726,8 +699,9 @@ public class CinemaService {
             return LocalDateTime.now();
         }
     }
+
+    // ================================ 공개 API (기존 호환성) ================================
     
-    // YouTubeService에서 이동된 공개 API 메서드들
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> searchSpaceVideos() {
         try {
@@ -781,8 +755,8 @@ public class CinemaService {
     }
     
     public List<Map<String, Object>> getUniqueSpaceVideos() {
-        List<Map<String, Object>> allVideos = new java.util.ArrayList<>();
-        java.util.Set<String> videoIds = new java.util.HashSet<>();
+        List<Map<String, Object>> allVideos = new ArrayList<>();
+        Set<String> videoIds = new HashSet<>();
         
         for (int i = 0; i < 3; i++) {
             List<Map<String, Object>> videos = searchSpaceVideos();
@@ -804,12 +778,12 @@ public class CinemaService {
     }
     
     private String getRandomSpaceQuery() {
-        java.util.Random random = new java.util.Random();
-        java.util.Set<String> selectedKeywords = new java.util.HashSet<>();
+        Random random = new Random();
+        Set<String> selectedKeywords = new HashSet<>();
         
-        while (selectedKeywords.size() < 3 && selectedKeywords.size() < KOREAN_KEYWORDS.length) {
-            int randomIndex = random.nextInt(KOREAN_KEYWORDS.length);
-            selectedKeywords.add(KOREAN_KEYWORDS[randomIndex]);
+        while (selectedKeywords.size() < 3 && selectedKeywords.size() < KeywordConstants.KOREAN_KEYWORDS.length) {
+            int randomIndex = random.nextInt(KeywordConstants.KOREAN_KEYWORDS.length);
+            selectedKeywords.add(KeywordConstants.KOREAN_KEYWORDS[randomIndex]);
         }
         
         String query = String.join(" ", selectedKeywords);
@@ -821,11 +795,9 @@ public class CinemaService {
         Map<String, Object> status = new HashMap<>();
         
         try {
-            // 기본 통계 정보
             long totalCinemaPosts = postRepository.countByCategory(Post.Category.STARLIGHT_CINEMA);
             status.put("totalCinemaPosts", totalCinemaPosts);
             
-            // 최근 게시글 정보
             Optional<Post> latestPost = postRepository.findFirstByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA);
             boolean latestPostExists = latestPost.isPresent();
             status.put("latestPostExists", latestPostExists);
@@ -835,14 +807,12 @@ public class CinemaService {
                 status.put("latestPostTitle", latest.getTitle());
                 status.put("lastUpdated", latest.getCreatedAt());
                 
-                // 마지막 업데이트로부터 경과 시간 계산
                 LocalDateTime now = LocalDateTime.now();
                 LocalDateTime lastUpdate = latest.getCreatedAt();
                 long daysSinceUpdate = java.time.temporal.ChronoUnit.DAYS.between(lastUpdate, now);
                 status.put("daysSinceLastUpdate", daysSinceUpdate);
                 
-                // 시스템 상태 판단
-                boolean isHealthy = daysSinceUpdate < 2; // 2일 이내에 업데이트가 있어야 정상
+                boolean isHealthy = daysSinceUpdate < 2;
                 status.put("systemHealthy", isHealthy);
                 
                 if (!isHealthy) {
@@ -856,28 +826,24 @@ public class CinemaService {
                 status.put("warning", "별빛 시네마 게시글이 없습니다.");
             }
             
-            // 오늘 생성된 게시글 수 확인
             LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
             long todayPosts = postRepository.countByCategoryAndCreatedAtAfter(Post.Category.STARLIGHT_CINEMA, todayStart);
             status.put("todayPosts", todayPosts);
             
-            // API 키 설정 상태
             boolean googleApiConfigured = googleApiKey != null && !googleApiKey.trim().isEmpty();
             boolean openaiApiConfigured = openaiApiKey != null && !openaiApiKey.trim().isEmpty();
             
             status.put("googleApiConfigured", googleApiConfigured);
             status.put("openaiApiConfigured", openaiApiConfigured);
             
-            // 시스템 설정 상태
             Map<String, Object> systemConfig = new HashMap<>();
-            systemConfig.put("schedulerEnabled", true); // 스케줄러는 항상 활성화
+            systemConfig.put("schedulerEnabled", true);
             systemConfig.put("dailyScheduleTime", "20:00 (KST)");
             systemConfig.put("retryTimes", "20:05, 20:10 (KST)");
             systemConfig.put("maxRetryCount", cinemaConfig.getCollection().getRetryCount());
             systemConfig.put("keywordCount", cinemaConfig.getCollection().getKeywordCount());
             status.put("systemConfig", systemConfig);
             
-            // 전체 상태 메시지
             if (totalCinemaPosts == 0) {
                 status.put("statusMessage", "별빛 시네마 시스템이 아직 시작되지 않았습니다.");
             } else if (!latestPostExists) {
@@ -896,5 +862,84 @@ public class CinemaService {
         }
         
         return status;
+    }
+
+    // ================================ 내부 클래스 ================================
+    
+    private static class KeywordConstants {
+        static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "태양", "지구", "목성", "토성", "천왕성", "해왕성", "수성", "금성", "명왕성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사", "우주발사", "우주탐사", "성운", "퀘이사", "중성자별", "백색왜성", "적색거성", "초신성", "성단", "성간물질", "암흑물질", "암흑에너지", "빅뱅", "우주론", "외계행성", "외계생명", "SETI", "우주망원경", "허블", "제임스웹", "케플러", "스피처", "찬드라", "컴프턴", "국제우주정거장", "ISS", "아르테미스", "아폴로", "보이저", "카시니", "갈릴레오", "뉴호라이즌스", "파커", "주노", "화성탐사", "달탐사", "목성탐사", "토성탐사", "태양탐사", "소행성탐사", "혜성탐사", "우주쓰레기", "우주날씨", "태양풍", "자기권", "오로라", "일식", "월식", "유성우", "운석", "크레이터", "화산", "대기", "중력", "궤도", "공전", "자전", "조석", "라그랑주점", "중력파", "상대성이론", "양자역학", "끈이론", "다중우주", "우주배경복사", "적색편이", "도플러효과", "허블상수", "우주나이", "우주크기", "관측가능우주", "사건지평선", "특이점", "웜홀"};
+        static final String[] ENGLISH_KEYWORDS = {"space", "rocket", "satellite", "Mars", "Moon", "Sun", "Earth", "Jupiter", "Saturn", "Uranus", "Neptune", "Mercury", "Venus", "Pluto", "blackhole", "galaxy", "star", "stellar", "comet", "asteroid", "telescope", "astronomy", "aerospace", "spacecraft", "space station", "astronaut", "space launch", "space exploration", "nebula", "quasar", "neutron star", "white dwarf", "red giant", "supernova", "cluster", "interstellar", "dark matter", "dark energy", "big bang", "cosmology", "exoplanet", "extraterrestrial", "SETI", "space telescope", "Hubble", "James Webb", "Kepler", "Spitzer", "Chandra", "Compton", "ISS", "International Space Station", "Artemis", "Apollo", "Voyager", "Cassini", "Galileo", "New Horizons", "Parker", "Juno", "Mars exploration", "lunar exploration", "Jupiter mission", "Saturn mission", "solar mission", "asteroid mission", "comet mission", "space debris", "space weather", "solar wind", "magnetosphere", "aurora", "eclipse", "lunar eclipse", "meteor shower", "meteorite", "crater", "volcano", "atmosphere", "gravity", "orbit", "revolution", "rotation", "tidal", "Lagrange point", "gravitational wave", "relativity", "quantum mechanics", "string theory", "multiverse", "cosmic background", "redshift", "Doppler effect", "Hubble constant", "universe age", "universe size", "observable universe", "event horizon", "singularity", "wormhole"};
+    }
+    
+    private static class ContentFilter {
+        private static final String[] MUSIC_KEYWORDS = {"원위", "onewe", "bts", "blackpink", "twice", "red velvet", "aespa", "itzy", "ive", "newjeans", "stray kids", "seventeen", "nct", "exo", "bigbang", "2ne1", "girls generation", "snsd", "더 쇼", "the show", "music bank", "inkigayo", "m countdown", "show champion", "뮤직뱅크", "인기가요", "엠카운트다운", "쇼챔피언", "음악중심", "music core", "comeback", "컴백", "debut", "데뷔", "mv", "뮤직비디오", "music video", "live stage", "라이브", "performance", "퍼포먼스", "dance practice", "안무", "idol", "아이돌", "kpop", "k-pop", "케이팝", "한류", "hallyu", "가사", "lyrics", "노래", "song", "음악", "music", "앨범", "album", "미발매", "unreleased", "콘서트", "concert", "페스티벌", "festival", "칸타빌레", "cantabile", "더 시즌즈", "the seasons", "박보검", "샘 킴", "sam kim", "오현우", "ohHyunwoo", "일식", "eclipse", "[가사]", "[lyrics]", "kbs", "방송", "태양의 후예", "descendants of the sun", "ost", "사운드트랙", "soundtrack", "드라마", "drama", "영화", "movie", "시네마", "cinema", "배우", "actor", "actress", "여배우", "가수", "singer", "아티스트", "artist", "뮤지션", "musician", "밴드", "band", "그룹", "group", "솔로", "solo", "듀엣", "duet", "트리오", "trio", "보컬", "vocal", "래퍼", "rapper", "댄서", "dancer", "프로듀서", "producer", "작곡가", "composer", "작사가", "lyricist"};
+        
+        private static final String[] COMMERCIAL_KEYWORDS = {"쇼핑", "shopping", "구매", "buy", "판매", "sale", "할인", "discount", "특가", "세일", "광고", "ad", "advertisement", "홍보", "promotion", "캠페인", "campaign", "브랜드", "brand", "제품", "product", "상품", "item", "리뷰", "review", "언박싱", "unboxing", "추천", "recommend", "후기", "testimonial", "체험", "experience", "협찬", "sponsored", "파트너십", "partnership", "마케팅", "marketing"};
+        
+        static boolean isKPopOrMusicContent(String titleLower, String descLower) {
+            return Arrays.stream(MUSIC_KEYWORDS)
+                    .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
+        }
+        
+        static boolean isCommercialContent(String titleLower, String descLower) {
+            return Arrays.stream(COMMERCIAL_KEYWORDS)
+                    .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
+        }
+    }
+    
+    private static class ContentValidator {
+        static boolean hasValidSpaceContent(String titleLower, String descLower) {
+            int spaceKeywordCount = 0;
+            List<String> foundKeywords = new ArrayList<>();
+            
+            for (String keyword : KeywordConstants.KOREAN_KEYWORDS) {
+                if (titleLower.contains(keyword.toLowerCase()) || descLower.contains(keyword.toLowerCase())) {
+                    spaceKeywordCount++;
+                    foundKeywords.add(keyword);
+                }
+            }
+            
+            for (String keyword : KeywordConstants.ENGLISH_KEYWORDS) {
+                if (titleLower.contains(keyword.toLowerCase()) || descLower.contains(keyword.toLowerCase())) {
+                    spaceKeywordCount++;
+                    foundKeywords.add(keyword);
+                }
+            }
+            
+            if (spaceKeywordCount < 2) {
+                return false;
+            }
+            
+            // "태양" 키워드 특별 처리
+            if (foundKeywords.contains("태양") || foundKeywords.contains("sun")) {
+                if (titleLower.contains("태양의") || titleLower.contains("descendants")) {
+                    return false;
+                }
+                
+                boolean hasOtherSpaceKeywords = foundKeywords.stream()
+                        .anyMatch(k -> !k.equals("태양") && !k.equals("sun"));
+                
+                if (!hasOtherSpaceKeywords) {
+                    return false;
+                }
+            }
+            
+            // 전문적인 우주 키워드 우선 체크
+            String[] professionalKeywords = {
+                "블랙홀", "blackhole", "중성자별", "neutron star", 
+                "초신성", "supernova", "우주망원경", "space telescope",
+                "허블", "hubble", "제임스웹", "james webb", "nasa", "spacex",
+                "화성탐사", "mars exploration", "달탐사", "lunar exploration"
+            };
+            
+            boolean hasProfessionalKeyword = Arrays.stream(professionalKeywords)
+                    .anyMatch(k -> titleLower.contains(k) || descLower.contains(k));
+            
+            if (hasProfessionalKeyword) {
+                return true;
+            }
+            
+            return spaceKeywordCount >= 3;
+        }
     }
 }
