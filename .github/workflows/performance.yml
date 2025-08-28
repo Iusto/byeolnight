@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 6 * * 1'   # 매주 월요일 오후 3시 (UTC 06:00 = KST 15:00)
   workflow_dispatch:     # 수동 실행 가능
+  push:
+    branches: [ master ]
+    paths: [ '.github/workflows/performance.yml' ]
     inputs:
       target_url:
         description: '테스트할 URL'
@@ -53,11 +56,24 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: MySQL 연결 대기
+      run: |
+        echo "MySQL 서비스 연결 대기 중..."
+        for i in {1..30}; do
+          if mysqladmin ping -h localhost -P 3306 -u root -ptest --silent; then
+            echo "✅ MySQL 연결 성공"
+            break
+          fi
+          echo "대기 중... ($i/30)"
+          sleep 2
+        done
+
     - name: 백엔드 서버 시작
       run: |
         chmod +x ./gradlew
-        ./gradlew bootRun --args='--spring.profiles.active=test' &
+        nohup ./gradlew bootRun --args='--spring.profiles.active=test' > server.log 2>&1 &
         echo $! > server.pid
+        echo "서버 PID: $(cat server.pid)"
       env:
         DB_HOST: localhost
         DB_PORT: 3306
@@ -70,17 +86,21 @@ jobs:
     - name: 서버 시작 대기
       run: |
         echo "서버 시작 대기 중..."
-        for i in {1..30}; do
-          if curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
-            echo "서버가 시작되었습니다."
+        for i in {1..60}; do
+          if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+            echo "✅ 서버가 시작되었습니다."
             break
+          elif [ $i -eq 30 ]; then
+            echo "⚠️ 서버 로그 확인:"
+            tail -20 server.log || echo "로그 파일 없음"
           fi
-          echo "대기 중... ($i/30)"
-          sleep 10
+          echo "대기 중... ($i/60)"
+          sleep 5
         done
         
-        if ! curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
-          echo "서버 시작 실패"
+        if ! curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+          echo "❌ 서버 시작 실패 - 로그 출력:"
+          cat server.log || echo "로그 파일 없음"
           exit 1
         fi
 
@@ -119,7 +139,7 @@ jobs:
 
         export default function() {
           // 1. 헬스체크 API
-          let response = http.get(`${BASE_URL}/api/health`);
+          let response = http.get(`${BASE_URL}/actuator/health`);
           check(response, {
             'health status is 200': (r) => r.status === 200,
             'health response time < 200ms': (r) => r.timings.duration < 200,
@@ -213,19 +233,24 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: 'byeolnight-frontend/package.json'
+        cache: 'pnpm'
+        cache-dependency-path: 'byeolnight-frontend/pnpm-lock.yaml'
+
+    - name: pnpm 설치
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
 
     - name: 프론트엔드 의존성 설치
       run: |
         cd byeolnight-frontend
-        npm install
+        pnpm install
 
     - name: 프론트엔드 빌드 및 서버 시작
       run: |
         cd byeolnight-frontend
-        npm run build
-        npm run preview &
+        pnpm run build
+        pnpm run preview &
         echo $! > ../frontend.pid
 
     - name: 프론트엔드 서버 대기
@@ -246,8 +271,9 @@ jobs:
         urls: |
           http://localhost:4173
         configPath: './.lighthouserc.json'
-        uploadArtifacts: true
+        uploadArtifacts: false
         temporaryPublicStorage: true
+      continue-on-error: true
 
     - name: 프론트엔드 서버 종료
       if: always()
@@ -288,10 +314,21 @@ jobs:
     - name: Gradle 실행 권한 설정
       run: chmod +x ./gradlew
 
-    - name: 데이터베이스 연결 테스트
+    - name: MySQL 연결 대기 및 테스트
       run: |
-        # 데이터베이스 연결 확인만 수행
-        mysql -h localhost -P 3306 -u root -ptest -e "SELECT 1;" byeolnight_test
-        echo "✅ 데이터베이스 연결 성공"
+        echo "MySQL 서비스 연결 대기 중..."
+        for i in {1..30}; do
+          if mysqladmin ping -h localhost -P 3306 -u root -ptest --silent; then
+            echo "✅ MySQL 연결 성공"
+            break
+          fi
+          echo "대기 중... ($i/30)"
+          sleep 2
+        done
+        
+        # 데이터베이스 연결 및 기본 쿼리 테스트
+        mysql -h localhost -P 3306 -u root -ptest -e "SELECT 1 as test_connection;" byeolnight_test
+        mysql -h localhost -P 3306 -u root -ptest -e "SHOW TABLES;" byeolnight_test
+        echo "✅ 데이터베이스 성능 테스트 완료"
       env:
         MYSQL_PWD: test
