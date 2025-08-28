@@ -99,10 +99,10 @@ public class AdminSchedulerController {
             int postsToDelete = postRepository.findExpiredDeletedPosts(threshold).size();
             status.put("postsToDelete", postsToDelete);
             
-            // 탈퇴 회원 정리 대상 개수
+            // 탈퇴 회원 정리 대상 개수 (탈퇴/밴 계정 모두 포함)
             LocalDateTime fiveYearsAgo = LocalDateTime.now().minusYears(5);
-            int usersToCleanup = userRepository.findByStatusAndWithdrawnAtBefore(
-                User.UserStatus.WITHDRAWN, fiveYearsAgo).size();
+            int usersToCleanup = userRepository.findByWithdrawnAtBeforeAndStatusIn(
+                fiveYearsAgo, java.util.List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)).size();
             status.put("usersToCleanup", usersToCleanup);
             
             return CommonResponse.success(status);
