@@ -71,17 +71,15 @@ jobs:
     - name: 백엔드 서버 시작
       run: |
         chmod +x ./gradlew
-        nohup ./gradlew bootRun --args='--spring.profiles.active=test' > server.log 2>&1 &
+        nohup ./gradlew bootRun --args='--spring.profiles.active=test --spring.cloud.config.enabled=false' > server.log 2>&1 &
         echo $! > server.pid
         echo "서버 PID: $(cat server.pid)"
       env:
-        DB_HOST: localhost
-        DB_PORT: 3306
-        DB_NAME: byeolnight_test
-        DB_USERNAME: root
-        DB_PASSWORD: test
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
+        SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/byeolnight_test
+        SPRING_DATASOURCE_USERNAME: root
+        SPRING_DATASOURCE_PASSWORD: test
+        SPRING_DATA_REDIS_HOST: localhost
+        SPRING_DATA_REDIS_PORT: 6379
 
     - name: 서버 시작 대기
       run: |
@@ -229,17 +227,17 @@ jobs:
     - name: 코드 체크아웃
       uses: actions/checkout@v4
 
+    - name: pnpm 설치
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
     - name: Node.js 설정
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'pnpm'
         cache-dependency-path: 'byeolnight-frontend/pnpm-lock.yaml'
-
-    - name: pnpm 설치
-      uses: pnpm/action-setup@v4
-      with:
-        version: latest
 
     - name: 프론트엔드 의존성 설치
       run: |
@@ -323,12 +321,10 @@ jobs:
             break
           fi
           echo "대기 중... ($i/30)"
-          sleep 2
+          sleep 3
         done
         
         # 데이터베이스 연결 및 기본 쿼리 테스트
-        mysql -h localhost -P 3306 -u root -ptest -e "SELECT 1 as test_connection;" byeolnight_test
-        mysql -h localhost -P 3306 -u root -ptest -e "SHOW TABLES;" byeolnight_test
+        MYSQL_PWD=test mysql -h localhost -P 3306 -u root -e "SELECT 1 as test_connection;" byeolnight_test
+        MYSQL_PWD=test mysql -h localhost -P 3306 -u root -e "SHOW TABLES;" byeolnight_test
         echo "✅ 데이터베이스 성능 테스트 완료"
-      env:
-        MYSQL_PWD: test
