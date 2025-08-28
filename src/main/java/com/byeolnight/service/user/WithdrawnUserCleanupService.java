@@ -44,12 +44,14 @@ public class WithdrawnUserCleanupService {
             try {
                 // 개인정보 완전 삭제
                 user.completelyRemovePersonalInfo();
+                userRepository.save(user); // 즉시 저장로 개별 처리
                 cleanedCount++;
                 log.info("계정 개인정보 완전 삭제 완료: ID={}, 상태={}, 처리일={}", 
                     user.getId(), user.getStatus(), user.getWithdrawnAt());
             } catch (Exception e) {
                 log.error("탈퇴 회원 정리 중 오류 발생: ID={}, 오류={}", 
                     user.getId(), e.getMessage(), e);
+                // 개별 오류는 전체 작업을 중단시키지 않음
             }
         }
         

@@ -260,7 +260,7 @@ public class User implements UserDetails {
     
     /** 개인정보 완전 삭제 (5년 경과 후) */
     public void completelyRemovePersonalInfo() {
-        this.nickname = "DELETED_" + this.id;
+        this.nickname = "삭제됨" + (this.id % 1000); // 2-8자 제약조건 준수
         this.email = "deleted_" + this.id + "@removed.local";
         this.withdrawalReason = "5년 경과로 인한 자동 삭제";
     }
