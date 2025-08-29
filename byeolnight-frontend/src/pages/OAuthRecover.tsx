@@ -31,7 +31,7 @@ export default function OAuthRecover() {
     setError('')
 
     try {
-      const response = await axios.post('/api/auth/oauth/recover', {
+      const response = await axios.post('/auth/oauth/recover', {
         email,
         provider,
         recover: true
@@ -52,7 +52,7 @@ export default function OAuthRecover() {
     setError('')
 
     try {
-      const response = await axios.post('/api/auth/oauth/recover', {
+      const response = await axios.post('/auth/oauth/recover', {
         email,
         provider,
         recover: false

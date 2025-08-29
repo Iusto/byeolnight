@@ -61,8 +61,9 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // 탈퇴 API 호출 후 401 에러는 토큰 재발급 시도하지 않음
-    if (originalRequest.url?.includes('/auth/withdraw')) {
+    // 공개 API들은 토큰 재발급 시도하지 않음
+    const publicApis = ['/auth/withdraw', '/auth/password/', '/auth/oauth/recover'];
+    if (publicApis.some(api => originalRequest.url?.includes(api))) {
       return Promise.reject(error);
     }
 
@@ -91,7 +92,7 @@ instance.interceptors.response.use(
       processQueue(refreshError);
       
       // 공개 페이지에서는 리다이렉트하지 않음
-      const publicPaths = ['/', '/posts', '/login', '/signup', '/password-reset'];
+      const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password', '/oauth-recover'];
       const currentPath = window.location.pathname;
       const isPublicPath = publicPaths.some(path => 
         currentPath === path || currentPath.startsWith('/posts/')
