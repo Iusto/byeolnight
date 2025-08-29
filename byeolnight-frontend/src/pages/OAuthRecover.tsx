@@ -47,26 +47,7 @@ export default function OAuthRecover() {
     }
   }
 
-  const handleCreateNew = async () => {
-    setLoading(true)
-    setError('')
 
-    try {
-      const response = await axios.post('/auth/oauth/recover', {
-        email,
-        provider,
-        recover: false
-      })
-
-      alert(response.data.message || '새 계정으로 진행합니다.')
-      // 새 계정 생성을 위해 해당 소셜 로그인으로 리다이렉트
-      window.location.href = `/oauth2/authorization/${provider}`
-    } catch (err: any) {
-      setError(err.response?.data?.message || '처리 중 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (!email || !provider) {
     return null
@@ -100,15 +81,7 @@ export default function OAuthRecover() {
             disabled={loading}
             className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '처리 중...' : '기존 계정 복구하기'}
-          </button>
-
-          <button
-            onClick={handleCreateNew}
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? '처리 중...' : '새 계정으로 가입하기'}
+            {loading ? '처리 중...' : '계정 복구하기'}
           </button>
 
           <button
@@ -121,8 +94,8 @@ export default function OAuthRecover() {
         </div>
 
         <div className="mt-6 text-xs text-gray-400 text-center">
-          <p>• 기존 계정 복구: 이전 활동 내역과 포인트가 유지됩니다</p>
-          <p>• 새 계정 가입: 처음부터 새로 시작합니다</p>
+          <p>• 30일 이내에만 복구 가능합니다</p>
+          <p>• 복구 시 이전 활동 내역과 포인트가 유지됩니다</p>
         </div>
       </div>
     </div>

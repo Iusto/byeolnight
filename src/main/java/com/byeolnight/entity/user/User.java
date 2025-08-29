@@ -262,10 +262,12 @@ public class User implements UserDetails {
         this.withdrawnAt = LocalDateTime.now();
         this.status = UserStatus.WITHDRAWN;
         
-        // 모든 사용자는 탈퇴 시 즉시 닉네임만 마스킹 (이메일은 30일 후 마스킹)
-        this.nickname = "탈퇴회원_" + this.id;
-        
-        // socialProvider 유지 (소셜 사용자 구분용)
+        // 일반 회원: 즉시 마스킹 처리
+        if (!isSocialUser()) {
+            this.nickname = "탈퇴회원_" + this.id;
+            this.email = "withdrawn_" + this.id + "@byeolnight.local";
+        }
+        // 소셜 회원: 30일 유예 기간 (원본 유지)
     }
 
     /** 탈퇴 정보 초기화 (복구 시 사용) */
@@ -273,7 +275,7 @@ public class User implements UserDetails {
         this.withdrawalReason = null;
         this.withdrawnAt = null;
         this.status = UserStatus.ACTIVE; // 복구 시 상태를 ACTIVE로 변경
-        // 탈퇴 시 변경된 이메일과 닉네임은 복구 시 수동으로 변경
+        // 30일 내 복구이므로 닉네임/이메일은 이미 원본 상태
     }
 
     /** 30일 경과 후 이메일 마스킹 처리 */

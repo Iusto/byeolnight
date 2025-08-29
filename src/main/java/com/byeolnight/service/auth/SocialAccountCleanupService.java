@@ -57,9 +57,11 @@ public class SocialAccountCleanupService {
     public void maskEmailAfterThirtyDays() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         
-        // 탈퇴 후 30일 경과한 모든 사용자 조회 (이메일이 아직 마스킹되지 않은 경우)
+        // 탈퇴 후 30일 경과한 소셜 사용자만 조회 (이메일이 아직 마스킹되지 않은 경우)
         List<User> expiredUsers = userRepository.findByStatusAndWithdrawnAtBefore(
-            User.UserStatus.WITHDRAWN, thirtyDaysAgo);
+            User.UserStatus.WITHDRAWN, thirtyDaysAgo).stream()
+            .filter(User::isSocialUser) // 소셜 사용자만 대상
+            .toList();
         
         if (expiredUsers.isEmpty()) {
             log.info("30일 경과 탈퇴 사용자가 없습니다.");
@@ -69,7 +71,7 @@ public class SocialAccountCleanupService {
         int processedCount = 0;
         for (User user : expiredUsers) {
             try {
-                // 이미 마스킹된 이메일은 건너뛰기
+                // 이미 마스킹된 이메일은 건너뛰기 (소셜 사용자만 대상이므로 일반 회원은 이미 마스킹됨)
                 if (user.getEmail().startsWith("withdrawn_") || user.getEmail().startsWith("deleted_")) {
                     continue;
                 }
@@ -201,24 +203,15 @@ public class SocialAccountCleanupService {
             return false;
         }
         
-        // 복구 처리
+        // 복구 처리 - 상태만 ACTIVE로 변경
         try {
-            // 탈퇴 정보 초기화 (상태를 ACTIVE로 변경)
             user.clearWithdrawalInfo();
             
-            // 이메일 기반 고유 닉네임 생성 (복구 시에는 제한 무시)
-            String newNickname = generateUniqueNicknameFromEmail(email);
-            user.forceUpdateNickname(newNickname);
-            
-            log.info("소셜 계정 복구 완료: 이메일={}, 새 닉네임={}, 제공자={}", 
-                email, newNickname, user.getSocialProvider());
+            log.info("소셜 계정 복구 완료: 이메일={}, 닉네임={}, 제공자={}", 
+                email, user.getNickname(), user.getSocialProvider());
             
             return true;
             
-        } catch (IllegalStateException e) {
-            // 닉네임 변경 제한 오류는 이미 forceUpdateNickname으로 해결됨
-            log.error("소셜 계정 복구 중 예상치 못한 오류: 이메일={}, 오류={}", email, e.getMessage());
-            return false;
         } catch (Exception e) {
             log.error("소셜 계정 복구 중 오류 발생: 이메일={}, 오류={}", email, e.getMessage(), e);
             return false;

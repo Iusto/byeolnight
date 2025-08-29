@@ -248,7 +248,7 @@ export default function Login() {
           </button>
           
           <button
-            onClick={() => navigate('/reset-password')}
+            onClick={() => navigate('/password-reset')}
             className="w-full py-2 px-4 bg-transparent border border-gray-500 text-gray-400 rounded hover:bg-gray-500 hover:text-white transition-colors"
           >
             {t.resetPassword}

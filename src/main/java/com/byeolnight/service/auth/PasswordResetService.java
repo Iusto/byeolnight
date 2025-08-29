@@ -81,9 +81,11 @@ public class PasswordResetService {
         }
 
         user.changePassword(passwordEncoder.encode(newPassword));
+        // 비밀번호 재설정 시 계정 잠금 해제
+        user.unlockAccount();
         resetToken.markAsUsed();
 
-        log.info("비밀번호 재설정 완료: {}", user.getEmail());
+        log.info("비밀번호 재설정 완료 (계정 잠금 해제): {}", user.getEmail());
     }
 
     private void sendResetEmail(String email, String token) throws MessagingException {
