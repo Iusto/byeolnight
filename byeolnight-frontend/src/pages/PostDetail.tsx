@@ -58,6 +58,7 @@ const categoryLabels: Record<string, string> = {
   REVIEW: '후기',
   FREE: '자유',
   NOTICE: '공지',
+  STARLIGHT_CINEMA: '별빛시네마',
 };
 
 export default function PostDetail() {

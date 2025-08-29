@@ -13,8 +13,7 @@ import java.util.List;
 
 /**
  * 탈퇴 회원 정리 서비스
- * - 탈퇴 후 1년 경과한 회원의 개인정보 마스킹 처리
- * - 외래키 제약조건으로 인해 완전 삭제 대신 마스킹 처리
+ * - 탈퇴 후 1년 경과한 회원 완전 삭제
  */
 @Slf4j
 @Service
@@ -24,7 +23,7 @@ public class WithdrawnUserCleanupService {
     private final UserRepository userRepository;
 
     /**
-     * 매일 오전 10시에 탈퇴 후 1년 경과한 회원 마스킹 처리
+     * 매일 오전 10시에 탈퇴 후 1년 경과한 회원 완전 삭제
      */
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional
@@ -36,26 +35,23 @@ public class WithdrawnUserCleanupService {
             oneYearAgo, List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED));
         
         if (expiredUsers.isEmpty()) {
-            log.info("마스킹 처리할 탈퇴 회원이 없습니다.");
+            log.info("완전 삭제할 탈퇴 회원이 없습니다.");
             return;
         }
         
-        int cleanedCount = 0;
+        int deletedCount = 0;
         for (User user : expiredUsers) {
             try {
-                // 개인정보 마스킹 처리 (외래키 제약조건으로 인해 완전 삭제 불가)
-                user.completelyRemovePersonalInfo();
-                userRepository.save(user);
-                cleanedCount++;
-                log.info("계정 개인정보 마스킹 완료: ID={}, 상태={}, 처리일={}", 
-                    user.getId(), user.getStatus(), user.getWithdrawnAt());
+                userRepository.delete(user);
+                deletedCount++;
+                log.info("계정 완전 삭제: ID={}, 이메일={}, 탈퇴일={}", 
+                    user.getId(), user.getEmail(), user.getWithdrawnAt());
             } catch (Exception e) {
-                log.error("탈퇴 회원 정리 중 오류 발생: ID={}, 오류={}", 
+                log.error("탈퇴 회원 삭제 중 오류 발생: ID={}, 오류={}", 
                     user.getId(), e.getMessage(), e);
-                // 개별 오류는 전체 작업을 중단시키지 않음
             }
         }
         
-        log.info("만료 계정 마스킹 완료: {}명 처리 (탈퇴/밴 계정 1년 경과)", cleanedCount);
+        log.info("탈퇴 계정 완전 삭제 완료: {}명 처리", deletedCount);
     }
 }

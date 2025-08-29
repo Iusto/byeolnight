@@ -169,7 +169,7 @@ public class User implements UserDetails {
     public void ban(String reason) {
         this.status = UserStatus.BANNED;
         this.banReason = reason;
-        this.withdrawnAt = LocalDateTime.now(); // 밴 시점 기록 (5년 후 삭제용)
+        this.withdrawnAt = LocalDateTime.now(); // 밴 시점 기록 (1년 후 삭제용)
     }
 
     /** 계정 밴 해제 */
@@ -262,10 +262,12 @@ public class User implements UserDetails {
         this.withdrawnAt = LocalDateTime.now();
         this.status = UserStatus.WITHDRAWN;
         
-        // 모든 사용자는 탈퇴 시 즉시 닉네임만 마스킹 (이메일은 30일 후 마스킹)
-        this.nickname = "탈퇴회원_" + this.id;
-        
-        // socialProvider 유지 (소셜 사용자 구분용)
+        // 일반 사용자: 즉시 마스킹 처리 (복구 불가능)
+        if (!isSocialUser()) {
+            this.email = "withdrawn_" + this.id + "@byeolnight.local";
+            this.nickname = "탈퇴회원_" + this.id;
+        }
+        // 소셜 사용자: 30일 유예기간 (복구 가능)
     }
 
     /** 탈퇴 정보 초기화 (복구 시 사용) */
@@ -276,22 +278,13 @@ public class User implements UserDetails {
         // 탈퇴 시 변경된 이메일과 닉네임은 복구 시 수동으로 변경
     }
 
-    /** 30일 경과 후 이메일 마스킹 처리 */
-    public void maskEmailAfterThirtyDays() {
+    /** 소셜 사용자 30일 경과 후 마스킹 처리 (복구 불가능) */
+    public void maskAfterThirtyDays() {
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
+        this.nickname = "탈퇴회원_" + this.id;
     }
     
-    private static final int NICKNAME_SUFFIX_MODULO = 1000;
-    private static final String DELETED_EMAIL_DOMAIN = "@removed.local";
-    private static final String DELETED_NICKNAME_PREFIX = "삭제됨";
-    private static final String AUTO_DELETE_REASON = "1년 경과로 인한 자동 마스킹";
 
-    /** 개인정보 마스킹 처리 (1년 경과 후) - 외래키 제약조건으로 인해 완전 삭제 불가 */
-    public void completelyRemovePersonalInfo() {
-        this.nickname = DELETED_NICKNAME_PREFIX + (this.id % NICKNAME_SUFFIX_MODULO);
-        this.email = "deleted_" + this.id + DELETED_EMAIL_DOMAIN;
-        this.withdrawalReason = AUTO_DELETE_REASON;
-    }
 
     /** 소셜 로그인 사용자인지 확인 */
     public boolean isSocialUser() {

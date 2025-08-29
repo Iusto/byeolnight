@@ -159,9 +159,8 @@ export default function ProfilePage() {
       await refreshToken();
       
       setTimeout(() => {
-        setActiveTab('info');
-        setProfileSuccess(false);
-      }, 2000);
+        navigate('/');
+      }, 1500);
       
     } catch (err: any) {
       const msg = err?.response?.data?.message || '프로필 수정에 실패했습니다.';

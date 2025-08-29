@@ -125,14 +125,12 @@ export default function AdminUserPage() {
     messagesToDelete: number;
     postsToDelete: number;
     usersToCleanup: number;
-    socialUsersToCleanup: number;
-  }>({ messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0, socialUsersToCleanup: 0 });
+  }>({ messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 });
   const [isRunningScheduler, setIsRunningScheduler] = useState<{
     message: boolean;
     post: boolean;
     user: boolean;
-    socialUser: boolean;
-  }>({ message: false, post: false, user: false, socialUser: false });
+  }>({ message: false, post: false, user: false });
   const { user: currentUser } = useAuth(); // 현재 로그인한 사용자
 
   // 공통 API 호출 함수
@@ -488,19 +486,18 @@ export default function AdminUserPage() {
   const fetchSchedulerStatus = async () => {
     try {
       const res = await axios.get('/admin/scheduler/status');
-      const status = res.data?.data || { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0, socialUsersToCleanup: 0 };
+      const status = res.data?.data || { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 };
       setSchedulerStatus(status);
     } catch (err) {
       console.error('스케줄러 상태 조회 실패:', err);
     }
   };
 
-  const handleManualScheduler = async (type: 'message' | 'post' | 'user' | 'socialUser') => {
+  const handleManualScheduler = async (type: 'message' | 'post' | 'user') => {
     const confirmMessages = {
       message: `정말 ${schedulerStatus.messagesToDelete || 0}개의 오래된 쪽지를 영구 삭제하시겠습니까?`,
       post: `정말 ${schedulerStatus.postsToDelete || 0}개의 만료된 게시글을 정리하시겠습니까?`,
-      user: `정말 ${schedulerStatus.usersToCleanup || 0}명의 탈퇴 회원 정보를 정리하시겠습니까?`,
-      socialUser: `정말 ${schedulerStatus.socialUsersToCleanup || 0}명의 소셜 탈퇴 회원을 정리하시겠습니까?`
+      user: `정말 ${schedulerStatus.usersToCleanup || 0}명의 탈퇴 회원 데이터를 완전 삭제하시겠습니까?`
     };
     
     if (!confirm(confirmMessages[type] + '\n\n이 작업은 되돌릴 수 없습니다.')) return;
@@ -511,8 +508,7 @@ export default function AdminUserPage() {
       const endpoints = {
         message: '/admin/scheduler/message-cleanup/manual',
         post: '/admin/scheduler/post-cleanup/manual',
-        user: '/admin/scheduler/user-cleanup/manual',
-        socialUser: '/admin/scheduler/social-user-cleanup/manual'
+        user: '/admin/scheduler/user-cleanup/manual'
       };
       
       const res = await axios.post(endpoints[type]);
@@ -541,10 +537,7 @@ export default function AdminUserPage() {
 
   // 스케줄러 총 카운트
   const totalSchedulerCount = useMemo(() => {
-    return schedulerStatus.messagesToDelete + 
-           schedulerStatus.postsToDelete + 
-           schedulerStatus.usersToCleanup + 
-           schedulerStatus.socialUsersToCleanup;
+    return schedulerStatus.messagesToDelete + schedulerStatus.postsToDelete + schedulerStatus.usersToCleanup;
   }, [schedulerStatus]);
 
   // 필터링된 사용자 목록
@@ -1472,10 +1465,10 @@ export default function AdminUserPage() {
                   <div>
                     <h4 className="text-lg font-semibold text-white mb-2">👤 탈퇴 회원 정리 스케줄러</h4>
                     <p className="text-gray-400 text-sm">
-                      매일 아침 8시 - 탈퇴 후 5년 경과한 회원의 개인정보를 완전 삭제합니다.
+                      매일 오전 10시 - 탈퇴 후 1년 경과한 회원 데이터를 완전 삭제합니다.
                     </p>
                   </div>
-                  <div className="text-2xl">🕒</div>
+                  <div className="text-2xl">🕙</div>
                 </div>
                 
                 <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
@@ -1519,68 +1512,16 @@ export default function AdminUserPage() {
                 )}
               </div>
               
-              {/* 소셜 탈퇴 회원 정리 스케줄러 */}
-              <div className="bg-[#2a2e45] p-6 rounded-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-2">🔗 소셜 계정 정리 스케줄러</h4>
-                    <p className="text-gray-400 text-sm">
-                      매일 오전 9시 - 30일 경과 계정 개인정보 마스킹 (복구 불가능)<br/>
-                      매일 오전 10시 - 5년 경과 소셜 계정 완전 삭제
-                    </p>
-                  </div>
-                  <div className="text-2xl">🕘</div>
-                </div>
-                
-                <div className="flex items-center justify-between bg-[#1f2336] p-4 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="text-3xl">📊</div>
-                    <div>
-                      <div className="text-2xl font-bold text-white">
-                        {(schedulerStatus.socialUsersToCleanup || 0).toLocaleString()}명
-                      </div>
-                      <div className="text-sm text-gray-400">정리 대상 소셜 회원</div>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={() => handleManualScheduler('socialUser')}
-                    disabled={(schedulerStatus.socialUsersToCleanup || 0) === 0 || isRunningScheduler.socialUser}
-                    className={`px-6 py-3 rounded-lg font-medium transition ${
-                      schedulerStatus.socialUsersToCleanup === 0 || isRunningScheduler.socialUser
-                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                        : 'bg-cyan-600 hover:bg-cyan-700 text-white hover:scale-105 shadow-lg'
-                    }`}
-                  >
-                    {isRunningScheduler.socialUser ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        실행 중...
-                      </div>
-                    ) : (
-                      '🧹 수동 실행'
-                    )}
-                  </button>
-                </div>
-                
-                {(schedulerStatus.socialUsersToCleanup || 0) === 0 && (
-                  <div className="mt-4 p-3 bg-green-600/20 border border-green-600/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-green-400">
-                      <span>✅</span>
-                      <span className="text-sm">정리할 소셜 회원이 없습니다.</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+
               
               {/* 스케줄러 정보 카드 */}
               <div className="bg-[#2a2e45] p-6 rounded-lg">
                 <h4 className="text-lg font-semibold text-white mb-4">📋 스케줄러 정보</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="bg-[#1f2336] p-4 rounded-lg">
                     <div className="text-blue-400 font-medium mb-2 flex items-center gap-2">
-                      <span className="text-xl">🕙</span>
-                      <span>아침 10시</span>
+                      <span className="text-xl">🕐</span>
+                      <span>새벽 2시</span>
                     </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 쪽지 자동 정리</li>
@@ -1601,24 +1542,13 @@ export default function AdminUserPage() {
                   </div>
                   <div className="bg-[#1f2336] p-4 rounded-lg">
                     <div className="text-red-400 font-medium mb-2 flex items-center gap-2">
-                      <span className="text-xl">🕗</span>
-                      <span>아침 8시</span>
+                      <span className="text-xl">🕙</span>
+                      <span>오전 10시</span>
                     </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 탈퇴 회원 정리</li>
-                      <li>• 5년 경과 탈퇴 회원</li>
+                      <li>• 1년 경과 탈퇴 회원</li>
                       <li>• 개인정보 완전 삭제</li>
-                    </ul>
-                  </div>
-                  <div className="bg-[#1f2336] p-4 rounded-lg">
-                    <div className="text-cyan-400 font-medium mb-2 flex items-center gap-2">
-                      <span className="text-xl">🕘</span>
-                      <span>오전 9시 & 10시</span>
-                    </div>
-                    <ul className="text-gray-300 space-y-1">
-                      <li>• 30일 경과: 개인정보 마스킹</li>
-                      <li>• 5년 경과: 소셜 계정 완전 삭제</li>
-                      <li>• 3단계 계정 정리 시스템</li>
                     </ul>
                   </div>
                 </div>

@@ -100,9 +100,9 @@ public class AdminSchedulerController {
             status.put("postsToDelete", postsToDelete);
             
             // 탈퇴 회원 정리 대상 개수 (탈퇴/밴 계정 모두 포함)
-            LocalDateTime fiveYearsAgo = LocalDateTime.now().minusYears(5);
+            LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
             int usersToCleanup = userRepository.findByWithdrawnAtBeforeAndStatusIn(
-                fiveYearsAgo, java.util.List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)).size();
+                oneYearAgo, java.util.List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)).size();
             status.put("usersToCleanup", usersToCleanup);
             
             return CommonResponse.success(status);
@@ -155,7 +155,7 @@ public class AdminSchedulerController {
     @PostMapping("/user-cleanup/manual")
     @Operation(
         summary = "수동 탈퇴 회원 정리",
-        description = "관리자가 수동으로 탈퇴한 지 5년 지난 회원 데이터를 완전 삭제합니다."
+        description = "관리자가 수동으로 탈퇴한 지 1년 지난 회원 데이터를 완전 삭제합니다."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "탈퇴 회원 정리 성공"),
