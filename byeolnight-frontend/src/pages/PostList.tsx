@@ -26,6 +26,7 @@ interface Post {
   createdAt: string;
   updatedAt: string;
   dDay?: string;
+  thumbnailUrl?: string;
 }
 
 // CATEGORY_LABELS를 다국어로 처리하기 위해 함수로 변경
@@ -484,7 +485,8 @@ export default function PostList() {
       return null;
     };
     
-    const imgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    // Home.tsx와 동일하게 thumbnailUrl 우선 사용
+    const imgSrc = post.blinded ? null : (post.thumbnailUrl || extractFirstImageUrl(post.content));
     const hasImageFailed = failedImages.has(post.id);
     
     return (
@@ -681,7 +683,8 @@ export default function PostList() {
       return null;
     };
     
-    const rawImgSrc = post.blinded ? null : extractFirstImageUrl(post.content);
+    // Home.tsx와 동일하게 thumbnailUrl 우선 사용
+    const rawImgSrc = post.blinded ? null : (post.thumbnailUrl || extractFirstImageUrl(post.content));
     // placeholder URL 완전 차단
     const imgSrc = rawImgSrc && !rawImgSrc.includes('placeholder') && !rawImgSrc.includes('via.placeholder') ? rawImgSrc : null;
     const hasImageFailed = failedImages.has(post.id);

@@ -70,9 +70,12 @@ export default function ImageUploader({
       // 검열 통과한 이미지만 목록에 추가 (중복 방지)
       setUploadedImages(prev => {
         const exists = prev.some(img => img.url === imageData.url);
-        return exists ? prev : [...prev, imageData];
+        if (!exists) {
+          console.log('검열 통과된 클립보드 이미지 추가:', imageData.originalName);
+          return [...prev, imageData];
+        }
+        return prev;
       });
-      console.log('검열 통과된 클립보드 이미지 추가');
       
       return imageData;
     } catch (error: any) {
@@ -153,8 +156,19 @@ export default function ImageUploader({
               throw new Error('유효하지 않은 이미지 URL입니다.');
             }
             
-            // 검열 통과한 이미지만 에디터에 삽입
+            // 검열 통과한 이미지를 에디터에 삽입
             onImageInsert(imageData, '클립보드 이미지');
+            
+            // 성공 알림 표시
+            setValidationAlert({
+              message: '클립보드 이미지가 성공적으로 업로드되었습니다.',
+              type: 'success'
+            });
+            
+            // 3초 후 알림 자동 제거
+            setTimeout(() => {
+              setValidationAlert(null);
+            }, 3000);
           } catch (error: any) {
             console.error('클립보드 이미지 업로드 실패:', {
               message: error.message,
@@ -251,6 +265,17 @@ export default function ImageUploader({
 
       // 이미지를 에디터에 삽입
       onImageInsert(imageData, imageData.originalName || '검열 통과된 이미지');
+      
+      // 성공 알림 표시
+      setValidationAlert({
+        message: '이미지가 성공적으로 업로드되었습니다.',
+        type: 'success'
+      });
+      
+      // 3초 후 알림 자동 제거
+      setTimeout(() => {
+        setValidationAlert(null);
+      }, 3000);
       
     } catch (error: any) {
       console.error('이미지 업로드 오류:', {

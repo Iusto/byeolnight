@@ -7,7 +7,7 @@ import WithdrawModal from '../components/WithdrawModal';
 type TabType = 'info' | 'edit' | 'password';
 
 export default function ProfilePage() {
-  const { user, refreshToken, logout } = useAuth();
+  const { user, refreshUserInfo, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [loading, setLoading] = useState(false);
@@ -156,7 +156,7 @@ export default function ProfilePage() {
       
       await axios.put('/member/users/profile', requestData);
       setProfileSuccess(true);
-      await refreshToken();
+      await refreshUserInfo();
       
       setTimeout(() => {
         navigate('/');

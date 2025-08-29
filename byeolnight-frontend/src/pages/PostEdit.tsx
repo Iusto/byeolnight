@@ -68,6 +68,19 @@ export default function PostEdit() {
       } else {
         setContent(prev => prev + `![${altText}](${imageUrl})\n`);
       }
+      
+      // 성공 알림 표시 (새로 업로드된 이미지인 경우만)
+      if (typeof imageData === 'object' && imageData.url) {
+        setValidationAlert({
+          message: '이미지가 성공적으로 업로드되었습니다.',
+          type: 'success'
+        });
+        
+        // 3초 후 알림 자동 제거
+        setTimeout(() => {
+          setValidationAlert(null);
+        }, 3000);
+      }
     } catch (error) {
       console.error('이미지 삽입 중 오류:', error);
       setContent(prev => prev + `![${altText}](${imageUrl})\n`);
