@@ -366,9 +366,13 @@ public class AuthController {
                 }
             } else {
                 // 새 계정 생성을 위해 복구 체크 건너뛰기 플래그 설정
-                request.getSession().setAttribute("skip_recovery_check", "true");
+                request.getSession().setAttribute("skip_recovery_check_" + dto.getEmail(), "true");
                 return ResponseEntity.ok(CommonResponse.success("새 계정으로 진행합니다. 다시 로그인해주세요."));
             }
+        } catch (IllegalStateException e) {
+            log.error("계정 복구 처리 오류 - 비즈니스 로직 오류: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(CommonResponse.fail(e.getMessage()));
         } catch (Exception e) {
             log.error("계정 복구 처리 오류", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

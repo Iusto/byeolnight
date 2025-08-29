@@ -473,9 +473,9 @@ export default function Profile() {
                       {profile.role === 'ADMIN' ? '관리자' : '일반 사용자'}
                       {user?.socialProvider && (
                         <span className="ml-2 text-xs px-2 py-1 rounded-full bg-blue-600/20 text-blue-300">
-                          {user.socialProvider === 'GOOGLE' && '구글'}
-                          {user.socialProvider === 'KAKAO' && '카카오'}
-                          {user.socialProvider === 'NAVER' && '네이버'}
+                          {user.socialProvider === 'google' ? '구글' : 
+                           user.socialProvider === 'naver' ? '네이버' : 
+                           user.socialProvider === 'kakao' ? '카카오' : user.socialProvider}
                         </span>
                       )}
                     </div>

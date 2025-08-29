@@ -109,7 +109,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         boolean skipRecoveryCheck = false;
         if (attributes != null) {
             HttpServletRequest request = attributes.getRequest();
-            skipRecoveryCheck = "true".equals(request.getSession().getAttribute("skip_recovery_check"));
+            skipRecoveryCheck = "true".equals(request.getSession().getAttribute("skip_recovery_check_" + userInfo.getEmail()));
         }
         
         if (!skipRecoveryCheck && socialAccountCleanupService.hasRecoverableAccount(userInfo.getEmail())) {

@@ -78,8 +78,7 @@ public class User implements UserDetails {
 
     /** 마지막 닉네임 변경 시각 */
     @Column(nullable = false)
-    @Builder.Default
-    private LocalDateTime nicknameUpdatedAt = LocalDateTime.now();
+    private LocalDateTime nicknameUpdatedAt;
 
     /** 마지막 로그인 시각 */
     @Column
@@ -133,8 +132,17 @@ public class User implements UserDetails {
 
     /** 계정 생성 시각 */
     @Column(nullable = false)
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (nicknameUpdatedAt == null) {
+            nicknameUpdatedAt = LocalDateTime.now();
+        }
+    }
 
 
 
@@ -168,6 +176,7 @@ public class User implements UserDetails {
     public void unban() {
         this.status = UserStatus.ACTIVE;
         this.banReason = null;
+        this.withdrawnAt = null; // 밴 해제 시 삭제 스케줄 초기화
     }
 
     // ======================== 사용자 기능 ========================
@@ -191,11 +200,20 @@ public class User implements UserDetails {
 
     /** 포인트 증가 */
     public void increasePoints(int value) {
+        if (value < 0) {
+            throw new IllegalArgumentException("증가할 포인트는 0 이상이어야 합니다.");
+        }
+        if (this.points > Integer.MAX_VALUE - value) {
+            throw new IllegalArgumentException("포인트 오버플로우가 발생할 수 있습니다.");
+        }
         this.points += value;
     }
 
     /** 포인트 차감 (구매 시) */
     public void decreasePoints(int value) {
+        if (value < 0) {
+            throw new IllegalArgumentException("차감할 포인트는 0 이상이어야 합니다.");
+        }
         if (this.points < value) {
             throw new IllegalArgumentException("포인트가 부족합니다.");
         }
@@ -231,6 +249,11 @@ public class User implements UserDetails {
     public void loginFail() {
         this.loginFailCount++;
         this.lastFailedLogin = LocalDateTime.now();
+        
+        // 5회 실패 시 계정 잠금
+        if (this.loginFailCount >= 5) {
+            this.accountLocked = true;
+        }
     }
 
     /** 회원 탈퇴 처리 */
@@ -258,11 +281,16 @@ public class User implements UserDetails {
         this.email = "withdrawn_" + this.id + "@byeolnight.local";
     }
     
+    private static final int NICKNAME_SUFFIX_MODULO = 1000;
+    private static final String DELETED_EMAIL_DOMAIN = "@removed.local";
+    private static final String DELETED_NICKNAME_PREFIX = "삭제됨";
+    private static final String AUTO_DELETE_REASON = "5년 경과로 인한 자동 삭제";
+
     /** 개인정보 완전 삭제 (5년 경과 후) */
     public void completelyRemovePersonalInfo() {
-        this.nickname = "삭제됨" + (this.id % 1000); // 2-8자 제약조건 준수
-        this.email = "deleted_" + this.id + "@removed.local";
-        this.withdrawalReason = "5년 경과로 인한 자동 삭제";
+        this.nickname = DELETED_NICKNAME_PREFIX + (this.id % NICKNAME_SUFFIX_MODULO);
+        this.email = "deleted_" + this.id + DELETED_EMAIL_DOMAIN;
+        this.withdrawalReason = AUTO_DELETE_REASON;
     }
 
     /** 소셜 로그인 사용자인지 확인 */
@@ -272,13 +300,16 @@ public class User implements UserDetails {
     
     /** 소셜 로그인 제공자 설정 */
     public void setSocialProvider(String provider) {
+        if (provider == null || provider.trim().isEmpty()) {
+            throw new IllegalArgumentException("소셜 프로바이더는 null이거나 빈 문자열일 수 없습니다.");
+        }
         this.socialProvider = provider;
     }
     
     /** 소셜 로그인 제공자 이름 반환 */
     public String getSocialProviderName() {
         if (socialProvider == null) return null;
-        return switch (socialProvider.toLowerCase()) {
+        return switch (socialProvider.toLowerCase(java.util.Locale.ROOT)) {
             case "google" -> "구글";
             case "naver" -> "네이버";
             case "kakao" -> "카카오";
@@ -290,6 +321,19 @@ public class User implements UserDetails {
     public void resetNicknameChangeRestriction() {
         this.nicknameChanged = false;
         this.nicknameUpdatedAt = LocalDateTime.now().minusMonths(7);
+    }
+
+    /** 복구 시 닉네임 강제 변경 (제한 무시) */
+    public void forceUpdateNickname(String newNickname) {
+        if (newNickname == null || newNickname.trim().isEmpty()) {
+            throw new IllegalArgumentException("닉네임은 null이거나 빈 문자열일 수 없습니다.");
+        }
+        if (newNickname.length() < 2 || newNickname.length() > 8) {
+            throw new IllegalArgumentException("닉네임은 2-8자로 입력해주세요.");
+        }
+        this.nickname = newNickname;
+        this.nicknameChanged = true;
+        this.nicknameUpdatedAt = LocalDateTime.now();
     }
 
     // ======================== Spring Security 구현부 ========================
@@ -311,7 +355,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return status != UserStatus.BANNED && status != UserStatus.SUSPENDED;
+        return !accountLocked && status != UserStatus.BANNED && status != UserStatus.SUSPENDED;
     }
 
     @Override
@@ -330,11 +374,16 @@ public class User implements UserDetails {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof User user)) return false;
+        // ID가 null인 경우 이메일로 비교 (영속화 전 엔티티 처리)
+        if (id == null || user.id == null) {
+            return Objects.equals(email, user.email);
+        }
         return Objects.equals(id, user.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        // ID가 null인 경우 이메일 해시코드 사용
+        return id != null ? Objects.hash(id) : Objects.hash(email);
     }
 }

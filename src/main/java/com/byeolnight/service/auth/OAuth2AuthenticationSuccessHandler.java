@@ -54,8 +54,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             // OAuth2 인증 완료 후 세션 정리
             HttpSession session = request.getSession(false);
             if (session != null) {
-                // 복구 체크 건너뛰기 플래그 제거
-                session.removeAttribute("skip_recovery_check");
+                // 복구 체크 건너뛰기 플래그 제거 (이메일별)
+                session.removeAttribute("skip_recovery_check_" + user.getEmail());
                 session.invalidate();
                 log.info("OAuth2 로그인 완료 후 세션 무효화: {}", user.getEmail());
             }
