@@ -57,11 +57,9 @@ public class SocialAccountCleanupService {
     public void maskEmailAfterThirtyDays() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         
-        // 탈퇴 후 30일 경과한 소셜 사용자만 조회 (이메일이 아직 마스킹되지 않은 경우)
+        // 탈퇴 후 30일 경과한 모든 사용자 조회 (이메일이 아직 마스킹되지 않은 경우)
         List<User> expiredUsers = userRepository.findByStatusAndWithdrawnAtBefore(
-            User.UserStatus.WITHDRAWN, thirtyDaysAgo).stream()
-            .filter(User::isSocialUser) // 소셜 사용자만 대상
-            .toList();
+            User.UserStatus.WITHDRAWN, thirtyDaysAgo);
         
         if (expiredUsers.isEmpty()) {
             log.info("30일 경과 탈퇴 사용자가 없습니다.");
@@ -71,7 +69,7 @@ public class SocialAccountCleanupService {
         int processedCount = 0;
         for (User user : expiredUsers) {
             try {
-                // 이미 마스킹된 이메일은 건너뛰기 (소셜 사용자만 대상이므로 일반 회원은 이미 마스킹됨)
+                // 이미 마스킹된 이메일은 건너뛰기
                 if (user.getEmail().startsWith("withdrawn_") || user.getEmail().startsWith("deleted_")) {
                     continue;
                 }
@@ -203,8 +201,9 @@ public class SocialAccountCleanupService {
             return false;
         }
         
-        // 복구 처리 - 상태만 ACTIVE로 변경
+        // 복구 처리
         try {
+            // 탈퇴 정보 초기화 (상태를 ACTIVE로 변경)
             user.clearWithdrawalInfo();
             
             log.info("소셜 계정 복구 완료: 이메일={}, 닉네임={}, 제공자={}", 
