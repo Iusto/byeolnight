@@ -129,11 +129,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
     
     private void handleAuthenticationFailure(OAuth2AuthenticationException e, String registrationId) {
-        try {
-            socialAccountCleanupService.handleFailedSocialLogin(null, registrationId);
-        } catch (Exception cleanupError) {
-            log.error("소셜 계정 정리 중 오류 발생", cleanupError);
-        }
+        log.warn("소셜 로그인 실패: {}, 제공자: {}", e.getMessage(), registrationId);
     }
 
     private User createUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
