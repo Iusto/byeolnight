@@ -117,6 +117,8 @@ const WeatherWidget: React.FC = () => {
       case 'METEOR_SHOWER': return '☄️';
       case 'ECLIPSE': return '🌙';
       case 'PLANET_CONJUNCTION': return '🪐';
+      case 'COMET': return '✨';
+      case 'SUPERMOON': return '🌕';
       default: return '⭐';
     }
   };
