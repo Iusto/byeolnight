@@ -19,8 +19,13 @@ public class NewsContentValidator {
     private final NewsRepository newsRepository;
     private final NewsCollectionProperties newsConfig;
     
-    private static final String[] SPACE_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "태양", "지구", "목성", "토성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사", "nasa", "spacex", "space", "mars", "moon", "astronomy", "telescope", "satellite", "rocket"};
-    private static final String[] EXCLUDE_KEYWORDS = {"trump", "obama", "정치", "선거", "경제", "주식", "코인", "기상", "weather", "날씨", "예보", "팬데믹", "바이러스", "질병"};
+    private static final String[] SPACE_KEYWORDS = {
+        // 한국어 키워드
+        "우주", "로켓", "위성", "화성", "달", "태양", "지구", "목성", "토성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사", "우주탐사", "화성탐사", "달탐사",
+        // 영어 키워드 (소문자)
+        "nasa", "spacex", "space", "mars", "moon", "astronomy", "telescope", "satellite", "rocket", "planet", "solar", "lunar", "jupiter", "saturn", "venus", "mercury", "neptune", "uranus", "pluto", "galaxy", "nebula", "star", "comet", "asteroid", "meteor", "orbit", "spacecraft", "astronaut", "cosmology", "astrophysics", "observatory", "constellation", "eclipse", "aurora", "supernova", "quasar", "pulsar", "exoplanet", "milky way", "andromeda", "hubble", "webb", "iss", "international space station", "falcon", "dragon", "starship", "artemis", "apollo", "voyager", "cassini", "juno", "perseverance", "curiosity", "ingenuity", "parker solar probe", "james webb", "kepler", "spitzer", "chandra", "esa", "roscosmos", "jaxa", "isro", "cnsa"
+    };
+    private static final String[] EXCLUDE_KEYWORDS = {"trump", "biden", "정치", "선거", "경제", "주식", "코인", "bitcoin", "cryptocurrency", "sports", "football", "basketball", "soccer", "entertainment", "celebrity", "fashion", "food", "recipe", "cooking"};
     private static final String[] TRUSTED_SOURCES = {"nasa", "esa", "spacex", "science", "nature", "space", "astronomy", "reuters", "ap", "bbc", "cnn", "연합뉴스", "ytn", "kbs", "mbc", "sbs", "한국항공우주연구원", "kari", "과학기술정보통신부"};
     
     public boolean isHighQualityNews(NewsApiResponseDto.Result result) {

@@ -43,8 +43,8 @@ public class SpaceNewsService {
     
     private boolean usingBackupKey = false;
     private static final String NEWS_API_URL = "https://newsdata.io/api/1/news";
-    private static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "NASA", "SpaceX", "우주탐사", "화성탐사", "달탐사"};
-    private static final String[] ENGLISH_KEYWORDS = {"NASA", "SpaceX", "Mars", "Moon", "space exploration", "astronomy", "telescope", "satellite", "rocket", "space"};
+    private static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "NASA", "SpaceX", "우주탐사", "화성탐사", "달탐사", "태양", "지구", "목성", "토성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사"};
+    private static final String[] ENGLISH_KEYWORDS = {"NASA", "SpaceX", "Mars", "Moon", "space exploration", "astronomy", "telescope", "satellite", "rocket", "space", "planet", "solar", "lunar", "jupiter", "saturn", "galaxy", "nebula", "star", "comet", "asteroid", "orbit", "spacecraft", "astronaut", "eclipse", "aurora", "supernova", "exoplanet", "hubble", "webb", "iss", "falcon", "dragon", "starship", "artemis", "apollo", "voyager", "perseverance", "curiosity"};
     
     @Transactional
     public void collectAndSaveSpaceNews() {
@@ -295,6 +295,17 @@ public class SpaceNewsService {
     private String getRandomSpaceKeywords(String[] keywords, int count) {
         java.util.Random random = new java.util.Random();
         java.util.Set<String> selectedKeywords = new java.util.HashSet<>();
+        
+        // 필수 키워드 추가 (NASA, SpaceX, 우주 등)
+        if (keywords == KOREAN_KEYWORDS) {
+            selectedKeywords.add("NASA");
+            selectedKeywords.add("SpaceX");
+            selectedKeywords.add("우주");
+        } else {
+            selectedKeywords.add("NASA");
+            selectedKeywords.add("SpaceX");
+            selectedKeywords.add("space");
+        }
         
         while (selectedKeywords.size() < count && selectedKeywords.size() < keywords.length) {
             int randomIndex = random.nextInt(keywords.length);

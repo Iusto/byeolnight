@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ChatSidebar from '../components/ChatSidebar';
 import { useAuth } from '../contexts/AuthContext';
 import AdSense from '../components/AdSense';
+import WeatherWidget from '../components/WeatherWidget';
 
 interface Post {
   id: number;
@@ -636,7 +637,11 @@ export default function Home() {
 
             {/* 채팅 사이드바 */}
             <div className="lg:col-span-2 order-first lg:order-last">
-              <div className="sticky top-4">
+              <div className="sticky top-4 space-y-6">
+                {/* 날씨 위젯 */}
+                <WeatherWidget />
+                
+                {/* 채팅 사이드바 */}
                 <ChatSidebar />
               </div>
             </div>

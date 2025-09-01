@@ -240,6 +240,20 @@ public class NotificationService {
         }
     }
     
+    // 모든 사용자에게 알림 전송 (천체 이벤트용)
+    @Transactional
+    public void sendToAll(Notification.NotificationType type, String message) {
+        createNotificationForAllUsers(type, getDefaultTitle(type), message, null, null);
+    }
+    
+    private String getDefaultTitle(Notification.NotificationType type) {
+        return switch (type) {
+            case CELESTIAL_EVENT -> "천체 이벤트 알림";
+            case WEATHER_ALERT -> "관측 조건 알림";
+            default -> "알림";
+        };
+    }
+    
     // 알림 삭제
     @Transactional
     public void deleteNotification(Long notificationId, Long userId) {
