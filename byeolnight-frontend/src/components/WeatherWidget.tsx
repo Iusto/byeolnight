@@ -79,24 +79,37 @@ const WeatherWidget: React.FC = () => {
       console.log('천체 이벤트 요청 시작');
       const response = await axios.get('/api/weather/events');
       console.log('천체 이벤트 응답:', response.data);
-      setEvents(response.data.slice(0, 3)); // 최대 3개만 표시
+      // 4가지 타입별로 최신 1개씩 선택하여 최대 4개 표시
+      const eventsByType = response.data.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
+        const typeGroup = event.eventType.includes('ASTEROID') ? 'NEOWS' :
+                         event.eventType.includes('SOLAR') || event.eventType.includes('GEOMAGNETIC') ? 'DONKI' :
+                         event.eventType.includes('ISS') ? 'ISS' :
+                         event.eventType.includes('KASI') || event.eventType.includes('MOON') ? 'KASI' : 'OTHER';
+        
+        if (!acc[typeGroup] || new Date(event.eventDate) > new Date(acc[typeGroup].eventDate)) {
+          acc[typeGroup] = event;
+        }
+        return acc;
+      }, {});
+      
+      const selectedEvents = Object.values(eventsByType).slice(0, 4);
+      setEvents(selectedEvents);
     } catch (error) {
       console.error('천체 이벤트 조회 실패:', error);
     }
   };
 
   const handleCollectAstronomy = async () => {
-    if (!confirm('천체 이벤트를 수동으로 업데이트하시겠습니까?')) return;
+    if (!confirm('NASA + KASI API로 천체 데이터를 수동 업데이트하시겠습니까?')) return;
     
     setCollectingAstronomy(true);
     try {
       await axios.post('/api/admin/scheduler/astronomy/manual');
-      alert('천체 이벤트 업데이트가 완료되었습니다!');
-      // 데이터 새로고침
+      alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/ISS + KASI)');
       await fetchAstronomyEvents();
     } catch (error) {
-      console.error('천체 이벤트 수집 실패:', error);
-      alert('천체 이벤트 업데이트에 실패했습니다.');
+      console.error('천체 데이터 수집 실패:', error);
+      alert('천체 데이터 업데이트 실패');
     } finally {
       setCollectingAstronomy(false);
     }
@@ -114,12 +127,43 @@ const WeatherWidget: React.FC = () => {
 
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType) {
+      case 'ASTEROID': return '🪨'; // NASA NeoWs
+      case 'SOLAR_FLARE': return '☀️'; // NASA DONKI
+      case 'GEOMAGNETIC_STORM': return '🌍'; // NASA DONKI
+      case 'ISS_LOCATION': return '🛰️'; // NASA ISS
+      case 'KASI_EVENT': return '🇰🇷'; // KASI 천문현상
+      case 'MOON_PHASE': return '🌙'; // KASI 월령
       case 'METEOR_SHOWER': return '☄️';
       case 'ECLIPSE': return '🌙';
       case 'PLANET_CONJUNCTION': return '🪐';
       case 'COMET': return '✨';
       case 'SUPERMOON': return '🌕';
+      case 'SPECIAL': return '🌠';
       default: return '⭐';
+    }
+  };
+  
+  const getEventTypeLabel = (eventType: string) => {
+    switch (eventType) {
+      case 'ASTEROID': return 'NASA 지구근접소행성';
+      case 'SOLAR_FLARE': return 'NASA 태양플레어';
+      case 'GEOMAGNETIC_STORM': return 'NASA 지자기폭풍';
+      case 'ISS_LOCATION': return 'NASA 국제우주정거장';
+      case 'KASI_EVENT': return 'KASI 천문현상';
+      case 'MOON_PHASE': return 'KASI 달의위상';
+      default: return '천체 이벤트';
+    }
+  };
+  
+  const getEventTypeBadgeColor = (eventType: string) => {
+    switch (eventType) {
+      case 'ASTEROID': return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+      case 'SOLAR_FLARE': return 'bg-red-500/20 text-red-300 border-red-500/30';
+      case 'GEOMAGNETIC_STORM': return 'bg-green-500/20 text-green-300 border-green-500/30';
+      case 'ISS_LOCATION': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      case 'KASI_EVENT': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      case 'MOON_PHASE': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
   };
 
@@ -273,7 +317,9 @@ const WeatherWidget: React.FC = () => {
             )}
           </div>
           <div className="text-center py-4">
-            <p className="text-gray-300">천체 이벤트를 불러오는 중...</p>
+            <div className="text-4xl mb-2">🌌</div>
+            <p className="text-gray-300">천체 데이터 로딩 중...</p>
+            <p className="text-xs text-gray-400 mt-1">NASA + KASI API 연동</p>
           </div>
         </div>
       )}

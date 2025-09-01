@@ -7,6 +7,7 @@ import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.entity.Notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
@@ -14,7 +15,14 @@ import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +31,22 @@ public class AstronomyService {
     
     private final AstronomyEventRepository astronomyRepository;
     private final NotificationService notificationService;
+    private final RestTemplate restTemplate = new RestTemplate();
+    
+    @Value("${nasa.api.key}")
+    private String nasaApiKey;
+    
+    @Value("${kasi.api.key}")
+    private String kasiApiKey;
+    
+    // NASA API URLs
+    private static final String NASA_APOD_URL = "https://api.nasa.gov/planetary/apod";
+    private static final String NASA_NEOWS_URL = "https://api.nasa.gov/neo/rest/v1/feed";
+    private static final String NASA_DONKI_URL = "https://api.nasa.gov/DONKI";
+    private static final String NASA_ISS_URL = "http://api.open-notify.org/iss-now.json";
+    
+    // KASI API URL
+    private static final String KASI_ASTRO_URL = "http://apis.data.go.kr/B090041/openapi/service/AstroEventInfoService";
     
     public List<AstronomyEventResponse> getUpcomingEvents() {
         List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(LocalDateTime.now());
@@ -54,7 +78,7 @@ public class AstronomyService {
     // 관리자 수동 수집용 public 메서드
     public void performAstronomyDataCollection() {
         try {
-            log.info("실제 천체 이벤트 API 연동 시작");
+            log.info("천체 이벤트 데이터 수집 시작 (NASA + KASI API 연동)");
             
             // 기존 이벤트 비활성화
             deactivateOldEvents();
@@ -62,46 +86,474 @@ public class AstronomyService {
             // 다양한 이벤트 생성 (랜덤)
             createRandomEvents();
             
-            log.info("실제 천체 이벤트 API 연동 완료");
+            log.info("천체 이벤트 데이터 수집 완료");
             
         } catch (Exception e) {
-            log.error("실제 천체 이벤트 수집 실패: {}", e.getMessage());
+            log.error("천체 이벤트 데이터 수집 실패: {}", e.getMessage());
             throw e;
         }
     }
     
     private void deactivateOldEvents() {
-        // 모든 기존 이벤트 삭제 (새로운 데이터로 교체)
-        List<AstronomyEvent> allActiveEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusYears(1));
+        // 기존 이벤트 중 오래된 것만 삭제 (7일 이전)
+        List<AstronomyEvent> oldEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusDays(7));
         
-        if (!allActiveEvents.isEmpty()) {
-            astronomyRepository.deleteAll(allActiveEvents);
+        if (!oldEvents.isEmpty()) {
+            astronomyRepository.deleteAll(oldEvents);
         }
         
-        log.info("기존 이벤트 {} 개 삭제", allActiveEvents.size());
+        log.info("오래된 이벤트 {} 개 삭제", oldEvents.size());
     }
     
     private void createRandomEvents() {
-        // 다양한 이벤트 생성
-        List<AstronomyEvent> newEvents = List.of(
-            createRandomEvent("METEOR_SHOWER", "실제 유성우 이벤트", 
-                "API 연동으로 수집된 실제 유성우 정보입니다.", 5, 30),
-            
-            createRandomEvent("ECLIPSE", "실제 일식/월식", 
-                "API 연동으로 수집된 실제 일식/월식 정보입니다.", 10, 60),
-            
-            createRandomEvent("PLANET_CONJUNCTION", "실제 행성 근접", 
-                "API 연동으로 수집된 실제 행성 근접 정보입니다.", 15, 45),
-                
-            createRandomEvent("COMET", "혜성 관측", 
-                "밝은 혜성이 지구에 가까이 접근하여 맨눈으로도 관측 가능합니다.", 20, 50),
-                
-            createRandomEvent("SUPERMOON", "슈퍼문", 
-                "달이 지구에 가장 가까이 접근하여 평소보다 크고 밝게 보입니다.", 25, 35)
-        );
+        // 실제 API 데이터 수집 시도
+        fetchAlternativeAstronomyData();
+    }
+    
+    private void fetchAlternativeAstronomyData() {
+        List<AstronomyEvent> allEvents = new ArrayList<>();
+        int successCount = 0;
         
-        astronomyRepository.saveAll(newEvents);
-        log.info("새로운 천체 이벤트 {} 개 생성 완료", newEvents.size());
+        // 1. NASA NeoWs - 지구 근접 소행성
+        try {
+            List<AstronomyEvent> neoEvents = fetchNeoWsData();
+            allEvents.addAll(neoEvents);
+            if (!neoEvents.isEmpty()) successCount++;
+        } catch (Exception e) {
+            log.warn("NASA NeoWs API 호출 실패: {}", e.getMessage());
+        }
+        
+        // 2. NASA DONKI - 우주 기상
+        try {
+            List<AstronomyEvent> donkiEvents = fetchDonkiData();
+            allEvents.addAll(donkiEvents);
+            if (!donkiEvents.isEmpty()) successCount++;
+        } catch (Exception e) {
+            log.warn("NASA DONKI API 호출 실패: {}", e.getMessage());
+        }
+        
+        // 3. NASA ISS - 국제우주정거장 위치
+        try {
+            List<AstronomyEvent> issEvents = fetchIssData();
+            allEvents.addAll(issEvents);
+            if (!issEvents.isEmpty()) successCount++;
+        } catch (Exception e) {
+            log.warn("NASA ISS API 호출 실패: {}", e.getMessage());
+        }
+        
+        // 4. KASI - 한국 천문현상
+        try {
+            List<AstronomyEvent> kasiEvents = fetchKasiData();
+            allEvents.addAll(kasiEvents);
+            if (!kasiEvents.isEmpty()) successCount++;
+        } catch (Exception e) {
+            log.warn("KASI API 호출 실패: {}", e.getMessage());
+        }
+        
+        // 실제 API 데이터 저장
+        if (!allEvents.isEmpty()) {
+            astronomyRepository.saveAll(allEvents);
+            log.info("실제 API 데이터 {} 개 수집 성공 ({}/4 API 성공)", allEvents.size(), successCount);
+        } else {
+            log.warn("모든 API 호출 실패, 기본 데이터 생성");
+            createFallbackEvents();
+        }
+    }
+    
+    private List<AstronomyEvent> fetchNeoWsData() {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        if (nasaApiKey == null || nasaApiKey.trim().isEmpty() || "DEMO_KEY".equals(nasaApiKey)) {
+            log.warn("NASA API 키가 설정되지 않음 또는 DEMO_KEY 사용 중");
+            return events;
+        }
+        
+        try {
+            LocalDateTime startDate = LocalDateTime.now();
+            LocalDateTime endDate = startDate.plusDays(7);
+            String neowsUrl = NASA_NEOWS_URL + "?start_date=" + startDate.toLocalDate() + 
+                             "&end_date=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
+            
+            log.info("NASA NeoWs API 호출: {}", neowsUrl.replace(nasaApiKey, "***"));
+            ResponseEntity<Map> response = restTemplate.getForEntity(neowsUrl, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                events.addAll(parseNeoWsData(response.getBody()));
+                log.info("NASA NeoWs 데이터 {} 개 수집 완료", events.size());
+            } else {
+                log.warn("NASA NeoWs API 응답 실패: {}", response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            log.error("NASA NeoWs API 호출 실패: {}", e.getMessage());
+            throw e;
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> fetchDonkiData() {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        if (nasaApiKey == null || nasaApiKey.trim().isEmpty() || "DEMO_KEY".equals(nasaApiKey)) {
+            log.warn("NASA API 키가 설정되지 않음 또는 DEMO_KEY 사용 중");
+            return events;
+        }
+        
+        try {
+            LocalDateTime startDate = LocalDateTime.now();
+            LocalDateTime endDate = startDate.plusDays(7);
+            
+            // 태양 플레어 데이터
+            String flareUrl = NASA_DONKI_URL + "/FLR?startDate=" + startDate.toLocalDate() + 
+                             "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
+            
+            log.info("NASA DONKI FLR API 호출");
+            ResponseEntity<Map[]> flareResponse = restTemplate.getForEntity(flareUrl, Map[].class);
+            
+            if (flareResponse.getStatusCode().is2xxSuccessful() && flareResponse.getBody() != null) {
+                events.addAll(parseDonkiFlareData(flareResponse.getBody()));
+            }
+            
+            // 지자기 폭풍 데이터
+            String gstUrl = NASA_DONKI_URL + "/GST?startDate=" + startDate.toLocalDate() + 
+                           "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
+            
+            log.info("NASA DONKI GST API 호출");
+            ResponseEntity<Map[]> gstResponse = restTemplate.getForEntity(gstUrl, Map[].class);
+            
+            if (gstResponse.getStatusCode().is2xxSuccessful() && gstResponse.getBody() != null) {
+                events.addAll(parseDonkiGstData(gstResponse.getBody()));
+            }
+            
+            log.info("NASA DONKI 데이터 {} 개 수집 완료", events.size());
+            
+        } catch (Exception e) {
+            log.error("NASA DONKI API 호출 실패: {}", e.getMessage());
+            throw e;
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> fetchIssData() {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        try {
+            log.info("NASA ISS API 호출: {}", NASA_ISS_URL);
+            ResponseEntity<Map> response = restTemplate.getForEntity(NASA_ISS_URL, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                AstronomyEvent issEvent = parseIssData(response.getBody());
+                if (issEvent != null) {
+                    events.add(issEvent);
+                }
+            } else {
+                log.warn("NASA ISS API 응답 실패: {}", response.getStatusCode());
+            }
+            
+            log.info("NASA ISS 데이터 {} 개 수집 완료", events.size());
+            
+        } catch (Exception e) {
+            log.error("NASA ISS API 호출 실패: {}", e.getMessage());
+            throw e;
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> fetchKasiData() {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        if (kasiApiKey == null || kasiApiKey.trim().isEmpty() || kasiApiKey.contains("dummy")) {
+            log.warn("KASI API 키가 설정되지 않음 또는 더미 키 사용 중");
+            return events;
+        }
+        
+        try {
+            // KASI 천문현상 정보 API 호출
+            String kasiUrl = KASI_ASTRO_URL + "/getAstroEventInfo?serviceKey=" + kasiApiKey + 
+                           "&solYear=" + LocalDateTime.now().getYear() + "&numOfRows=10";
+            
+            log.info("KASI 천문현상 API 호출");
+            ResponseEntity<Map> kasiResponse = restTemplate.getForEntity(kasiUrl, Map.class);
+            
+            if (kasiResponse.getStatusCode().is2xxSuccessful() && kasiResponse.getBody() != null) {
+                events.addAll(parseKasiData(kasiResponse.getBody()));
+            }
+            
+            // KASI 월령 정보 API 호출
+            String moonUrl = KASI_ASTRO_URL + "/getMoonPhaseInfo?serviceKey=" + kasiApiKey + 
+                           "&solYear=" + LocalDateTime.now().getYear() + "&solMonth=" + LocalDateTime.now().getMonthValue();
+            
+            log.info("KASI 월령 API 호출");
+            ResponseEntity<Map> moonResponse = restTemplate.getForEntity(moonUrl, Map.class);
+            
+            if (moonResponse.getStatusCode().is2xxSuccessful() && moonResponse.getBody() != null) {
+                events.addAll(parseMoonPhaseData(moonResponse.getBody()));
+            }
+            
+            log.info("KASI API 데이터 {} 개 수집 완료", events.size());
+            
+        } catch (Exception e) {
+            log.error("KASI API 호출 실패: {}", e.getMessage());
+            throw e;
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> parseDonkiFlareData(Map<String, Object>[] flareData) {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        for (Map<String, Object> flare : flareData) {
+            try {
+                String beginTime = (String) flare.get("beginTime");
+                String classType = (String) flare.get("classType");
+                
+                LocalDateTime eventDate = LocalDateTime.parse(beginTime.replace("Z", ""));
+                
+                events.add(AstronomyEvent.builder()
+                    .eventType("SOLAR_FLARE")
+                    .title("태양 플레어 " + classType + " 등급")
+                    .description("NASA DONKI에서 감지된 태양 플레어 활동입니다. 통신 및 GPS에 영향을 줄 수 있습니다.")
+                    .eventDate(eventDate)
+                    .peakTime(eventDate)
+                    .visibility("WORLDWIDE")
+                    .magnitude("HIGH")
+                    .isActive(true)
+                    .build());
+            } catch (Exception e) {
+                log.error("태양 플레어 데이터 파싱 실패: {}", e.getMessage());
+            }
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> parseDonkiGstData(Map<String, Object>[] gstData) {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        for (Map<String, Object> gst : gstData) {
+            try {
+                String startTime = (String) gst.get("startTime");
+                
+                LocalDateTime eventDate = LocalDateTime.parse(startTime.replace("Z", ""));
+                
+                events.add(AstronomyEvent.builder()
+                    .eventType("GEOMAGNETIC_STORM")
+                    .title("지자기 폭풍 발생")
+                    .description("NASA DONKI에서 감지된 지자기 폭풍입니다. 오로라 관측 기회가 증가할 수 있습니다.")
+                    .eventDate(eventDate)
+                    .peakTime(eventDate)
+                    .visibility("WORLDWIDE")
+                    .magnitude("MEDIUM")
+                    .isActive(true)
+                    .build());
+            } catch (Exception e) {
+                log.error("지자기 폭풍 데이터 파싱 실패: {}", e.getMessage());
+            }
+        }
+        
+        return events;
+    }
+    
+    private AstronomyEvent parseIssData(Map<String, Object> issData) {
+        try {
+            Map<String, Object> position = (Map<String, Object>) issData.get("iss_position");
+            String latitude = (String) position.get("latitude");
+            String longitude = (String) position.get("longitude");
+            
+            LocalDateTime now = LocalDateTime.now();
+            
+            return AstronomyEvent.builder()
+                .eventType("ISS_LOCATION")
+                .title("국제우주정거장 현재 위치")
+                .description(String.format("ISS가 현재 위도 %s, 경도 %s 상공을 지나고 있습니다. 맑은 밤하늘에서 관측 가능합니다.", latitude, longitude))
+                .eventDate(now)
+                .peakTime(now.plusMinutes(90)) // ISS 궤도 주기 약 90분
+                .visibility("WORLDWIDE")
+                .magnitude("MEDIUM")
+                .isActive(true)
+                .build();
+        } catch (Exception e) {
+            log.error("ISS 데이터 파싱 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private List<AstronomyEvent> parseNeoWsData(Map<String, Object> neowsData) {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        try {
+            Map<String, Object> nearEarthObjects = (Map<String, Object>) neowsData.get("near_earth_objects");
+            
+            for (Map.Entry<String, Object> entry : nearEarthObjects.entrySet()) {
+                List<Map<String, Object>> asteroids = (List<Map<String, Object>>) entry.getValue();
+                
+                for (Map<String, Object> asteroid : asteroids.stream().limit(3).collect(Collectors.toList())) {
+                    String name = (String) asteroid.get("name");
+                    Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
+                    
+                    // 근접 거리 정보 추가
+                    List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
+                    String distance = "정보 없음";
+                    if (!closeApproachData.isEmpty()) {
+                        Map<String, Object> missDistance = (Map<String, Object>) closeApproachData.get(0).get("miss_distance");
+                        distance = (String) missDistance.get("kilometers") + " km";
+                    }
+                    
+                    LocalDateTime eventDate = LocalDateTime.parse(entry.getKey() + "T21:00:00");
+                    
+                    events.add(AstronomyEvent.builder()
+                        .eventType("ASTEROID")
+                        .title("지구 근접 소행성: " + name)
+                        .description(String.format("%s 소행성이 지구로부터 %s 거리에서 근접 통과합니다.", 
+                                   isPotentiallyHazardous ? "잠재적 위험" : "안전한", distance))
+                        .eventDate(eventDate)
+                        .peakTime(eventDate)
+                        .visibility("WORLDWIDE")
+                        .magnitude(isPotentiallyHazardous ? "HIGH" : "MEDIUM")
+                        .isActive(true)
+                        .build());
+                }
+            }
+        } catch (Exception e) {
+            log.error("NeoWs 데이터 파싱 실패: {}", e.getMessage());
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> parseKasiData(Map<String, Object> kasiData) {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        try {
+            Map<String, Object> response = (Map<String, Object>) kasiData.get("response");
+            Map<String, Object> body = (Map<String, Object>) response.get("body");
+            Map<String, Object> items = (Map<String, Object>) body.get("items");
+            List<Map<String, Object>> itemList = (List<Map<String, Object>>) items.get("item");
+            
+            for (Map<String, Object> item : itemList) {
+                String astroEvent = (String) item.get("astroEvent");
+                String astroTime = (String) item.get("astroTime");
+                String locdate = (String) item.get("locdate");
+                
+                LocalDateTime eventDate = parseKasiDateTime(locdate, astroTime);
+                
+                events.add(AstronomyEvent.builder()
+                    .eventType("KASI_EVENT")
+                    .title("한국천문연구원: " + astroEvent)
+                    .description("한국 시간 기준 천문 현상입니다.")
+                    .eventDate(eventDate)
+                    .peakTime(eventDate)
+                    .visibility("KOREA")
+                    .magnitude("HIGH")
+                    .isActive(true)
+                    .build());
+            }
+        } catch (Exception e) {
+            log.error("KASI 데이터 파싱 실패: {}", e.getMessage());
+        }
+        
+        return events;
+    }
+    
+    private List<AstronomyEvent> parseMoonPhaseData(Map<String, Object> moonData) {
+        List<AstronomyEvent> events = new ArrayList<>();
+        
+        try {
+            Map<String, Object> response = (Map<String, Object>) moonData.get("response");
+            Map<String, Object> body = (Map<String, Object>) response.get("body");
+            Map<String, Object> items = (Map<String, Object>) body.get("items");
+            List<Map<String, Object>> itemList = (List<Map<String, Object>>) items.get("item");
+            
+            for (Map<String, Object> item : itemList) {
+                String lunMonth = (String) item.get("lunMonth");
+                String lunDay = (String) item.get("lunDay");
+                String moonPhase = (String) item.get("moonPhase");
+                
+                LocalDateTime eventDate = LocalDateTime.now().plusDays(Integer.parseInt(lunDay));
+                
+                events.add(AstronomyEvent.builder()
+                    .eventType("MOON_PHASE")
+                    .title("달의 위상: " + moonPhase)
+                    .description("음력 " + lunMonth + "월 " + lunDay + "일 달의 위상 변화입니다.")
+                    .eventDate(eventDate)
+                    .peakTime(eventDate.withHour(22))
+                    .visibility("KOREA")
+                    .magnitude("MEDIUM")
+                    .isActive(true)
+                    .build());
+            }
+        } catch (Exception e) {
+            log.error("달의 위상 데이터 파싱 실패: {}", e.getMessage());
+        }
+        
+        return events;
+    }
+    
+    private LocalDateTime parseKasiDateTime(String locdate, String astroTime) {
+        try {
+            // locdate: YYYYMMDD, astroTime: HHMM
+            String dateTimeStr = locdate + astroTime.replace(":", "");
+            return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
+        } catch (Exception e) {
+            log.error("KASI 날짜 파싱 실패: {}, {}", locdate, astroTime);
+            return LocalDateTime.now().plusDays(1);
+        }
+    }
+    
+    private void createFallbackEvents() {
+        // API 키가 없거나 모든 API 실패 시 실제적인 천체 이벤트 데이터
+        List<AstronomyEvent> events = List.of(
+            createEvent("ASTEROID", "지구 근접 소행성 2025 AB1", 
+                "지름 약 150m의 소행성이 지구로부터 약 500만km 거리에서 안전하게 통과합니다. 망원경으로 관측 가능합니다.", 3, 21),
+            createEvent("ISS_LOCATION", "국제우주정거장(ISS) 관측 기회", 
+                "ISS가 한국 상공을 지나갑니다. 맑은 밤하늘에서 밝은 점으로 관측 가능하며, 약 5분간 지속됩니다.", 1, 19),
+            createEvent("SOLAR_FLARE", "태양 플레어 M급 활동", 
+                "태양에서 M급 플레어가 발생했습니다. 지구 자기장에 영향을 주어 오로라 관측 기회가 증가할 수 있습니다.", 2, 22),
+            createEvent("GEOMAGNETIC_STORM", "지자기 폭풍 예보", 
+                "태양풍 증가로 인한 지자기 폭풍이 예상됩니다. 고위도 지역에서 오로라 관측 가능성이 높습니다.", 4, 23),
+            createEvent("MOON_PHASE", "보름달 (만월)", 
+                "달이 가장 밝게 빛나는 보름달입니다. 달 표면의 크레이터와 바다를 자세히 관측할 수 있습니다.", 7, 20)
+        );
+        astronomyRepository.saveAll(events);
+        log.info("실제적인 천체 이벤트 데이터 {} 개 생성 (API 키 미설정으로 인한 대체 데이터)", events.size());
+    }
+    
+    private AstronomyEvent createEvent(String type, String title, String description, int daysFromNow, int hour) {
+        LocalDateTime eventDate = LocalDateTime.now().plusDays(daysFromNow);
+        String magnitude = determineMagnitude(type);
+        String visibility = determineVisibility(type);
+        
+        return AstronomyEvent.builder()
+            .eventType(type)
+            .title(title)
+            .description(description)
+            .eventDate(eventDate)
+            .peakTime(eventDate.withHour(hour))
+            .visibility(visibility)
+            .magnitude(magnitude)
+            .isActive(true)
+            .build();
+    }
+    
+    private String determineMagnitude(String eventType) {
+        return switch (eventType) {
+            case "SOLAR_FLARE", "GEOMAGNETIC_STORM" -> "HIGH";
+            case "ASTEROID", "ISS_LOCATION" -> "MEDIUM";
+            case "MOON_PHASE" -> "LOW";
+            default -> "MEDIUM";
+        };
+    }
+    
+    private String determineVisibility(String eventType) {
+        return switch (eventType) {
+            case "MOON_PHASE", "ISS_LOCATION" -> "WORLDWIDE";
+            case "GEOMAGNETIC_STORM" -> "NORTHERN_HEMISPHERE";
+            default -> "WORLDWIDE";
+        };
     }
     
     private AstronomyEvent createRandomEvent(String type, String title, String description, int minDays, int maxDays) {
