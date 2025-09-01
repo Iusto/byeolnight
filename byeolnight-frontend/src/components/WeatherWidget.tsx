@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 interface WeatherData {
   location: string;
@@ -30,6 +31,8 @@ const WeatherWidget: React.FC = () => {
   const [events, setEvents] = useState<AstronomyEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [collectingAstronomy, setCollectingAstronomy] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     getCurrentLocation();
@@ -79,6 +82,23 @@ const WeatherWidget: React.FC = () => {
       setEvents(response.data.slice(0, 3)); // 최대 3개만 표시
     } catch (error) {
       console.error('천체 이벤트 조회 실패:', error);
+    }
+  };
+
+  const handleCollectAstronomy = async () => {
+    if (!confirm('천체 이벤트를 수동으로 업데이트하시겠습니까?')) return;
+    
+    setCollectingAstronomy(true);
+    try {
+      await axios.post('/api/admin/scheduler/astronomy/manual');
+      alert('천체 이벤트 업데이트가 완료되었습니다!');
+      // 데이터 새로고침
+      await fetchAstronomyEvents();
+    } catch (error) {
+      console.error('천체 이벤트 수집 실패:', error);
+      alert('천체 이벤트 업데이트에 실패했습니다.');
+    } finally {
+      setCollectingAstronomy(false);
     }
   };
 
@@ -174,9 +194,29 @@ const WeatherWidget: React.FC = () => {
       {/* 천체 이벤트 */}
       {events.length > 0 ? (
         <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
-          <h3 className="text-xl font-bold mb-4 flex items-center">
-            🌌 예정된 천체 이벤트
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold flex items-center">
+              🌌 예정된 천체 이벤트
+            </h3>
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={handleCollectAstronomy}
+                disabled={collectingAstronomy}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1"
+              >
+                {collectingAstronomy ? (
+                  <>
+                    <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
+                    업데이트 중...
+                  </>
+                ) : (
+                  <>
+                    🔄 업데이트
+                  </>
+                )}
+              </button>
+            )}
+          </div>
           
           <div className="space-y-3">
             {events.map((event) => (
@@ -207,9 +247,29 @@ const WeatherWidget: React.FC = () => {
         </div>
       ) : (
         <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
-          <h3 className="text-xl font-bold mb-4 flex items-center">
-            🌌 예정된 천체 이벤트
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold flex items-center">
+              🌌 예정된 천체 이벤트
+            </h3>
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={handleCollectAstronomy}
+                disabled={collectingAstronomy}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1"
+              >
+                {collectingAstronomy ? (
+                  <>
+                    <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
+                    업데이트 중...
+                  </>
+                ) : (
+                  <>
+                    🔄 업데이트
+                  </>
+                )}
+              </button>
+            )}
+          </div>
           <div className="text-center py-4">
             <p className="text-gray-300">천체 이벤트를 불러오는 중...</p>
           </div>
