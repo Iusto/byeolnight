@@ -58,9 +58,11 @@ const WeatherWidget: React.FC = () => {
 
   const fetchWeatherData = async (latitude: number, longitude: number) => {
     try {
+      console.log('날씨 데이터 요청:', { latitude, longitude });
       const response = await axios.get(`/api/weather/observation`, {
         params: { latitude, longitude }
       });
+      console.log('날씨 데이터 응답:', response.data);
       setWeather(response.data);
     } catch (error) {
       console.error('날씨 데이터 조회 실패:', error);
@@ -71,7 +73,9 @@ const WeatherWidget: React.FC = () => {
 
   const fetchAstronomyEvents = async () => {
     try {
+      console.log('천체 이벤트 요청 시작');
       const response = await axios.get('/api/weather/events');
+      console.log('천체 이벤트 응답:', response.data);
       setEvents(response.data.slice(0, 3)); // 최대 3개만 표시
     } catch (error) {
       console.error('천체 이벤트 조회 실패:', error);
@@ -130,7 +134,7 @@ const WeatherWidget: React.FC = () => {
           </div>
         )}
 
-        {weather && (
+        {weather ? (
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-300">위치</span>
@@ -160,11 +164,15 @@ const WeatherWidget: React.FC = () => {
               업데이트: {weather.observationTime}
             </div>
           </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-gray-300">날씨 데이터를 불러오는 중...</p>
+          </div>
         )}
       </div>
 
       {/* 천체 이벤트 */}
-      {events.length > 0 && (
+      {events.length > 0 ? (
         <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
           <h3 className="text-xl font-bold mb-4 flex items-center">
             🌌 예정된 천체 이벤트
@@ -195,6 +203,15 @@ const WeatherWidget: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
+          <h3 className="text-xl font-bold mb-4 flex items-center">
+            🌌 예정된 천체 이벤트
+          </h3>
+          <div className="text-center py-4">
+            <p className="text-gray-300">천체 이벤트를 불러오는 중...</p>
           </div>
         </div>
       )}

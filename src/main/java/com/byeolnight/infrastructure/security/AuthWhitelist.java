@@ -33,6 +33,9 @@ public class AuthWhitelist {
             "/api/suggestions",
             "/api/suggestions/*",
             
+            // 날씨 및 천체 정보 (공개 접근)
+            "/api/weather/**",
+            
             // 헬스체크
             "/actuator/health",
             "/health",
