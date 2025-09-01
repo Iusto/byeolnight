@@ -433,77 +433,45 @@ export default function PostList() {
     );
   };
 
-  // 이미지 게시글 카드 렌더링 (개선된 버전)
-  const renderImagePostCard = (post: Post) => {
-    const extractFirstImageUrl = (content: string) => {
-      if (!content) return null;
-      
-      const isPlaceholderUrl = (url: string) => {
-        return url.includes('via.placeholder') || 
-               url.includes('placeholder.com') || 
-               url.includes('placeholder') ||
-               url.includes('%EC%9A%B0%EC%A3%BC') ||
-               url.includes('text=');
-      };
-      
-      const imgRegexes = [
-        /<img[^>]+src="([^"]+)"/i,
-        /<img[^>]+src='([^']+)'/i,
-        /<img[^>]+src=([^\s>]+)/i
-      ];
-      
-      for (const regex of imgRegexes) {
-        const match = content.match(regex);
-        if (match && match[1]) {
-          let url = match[1];
-          if (url.startsWith('"') && url.endsWith('"')) {
-            url = url.substring(1, url.length - 1);
-          }
-          if (isPlaceholderUrl(url)) continue;
-          return url;
-        }
-      }
-      
-      const urlRegexes = [
-        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp))/i,
-        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)[^\s]*)/i
-      ];
-      
-      for (const regex of urlRegexes) {
-        const match = content.match(regex);
-        if (match && match[1] && !isPlaceholderUrl(match[1])) {
-          return match[1];
-        }
-      }
-      
-      const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
-      const s3Match = content.match(s3Regex);
-      if (s3Match && !isPlaceholderUrl(s3Match[0])) {
-        return s3Match[0];
-      }
-      
-      return null;
-    };
+  // 이미지 추출 함수 (Home.tsx와 동일)
+  const extractFirstImage = (content: string): string | null => {
+    if (!content) return null;
+    const imgMatches = [
+      content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i),
+      content.match(/!\[.*?\]\(([^)]+)\)/),
+      content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i)
+    ];
     
-    // Home.tsx와 동일하게 thumbnailUrl 우선 사용
-    const imgSrc = post.blinded ? null : (post.thumbnailUrl || extractFirstImageUrl(post.content));
+    for (const match of imgMatches) {
+      if (match?.[1] && !match[1].includes('placeholder')) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  };
+
+  // 이미지 게시글 카드 렌더링 (Home.tsx와 동일한 로직)
+  const renderImagePostCard = (post: Post) => {
+    const imageUrl = post.thumbnailUrl || extractFirstImage(post.content);
     const hasImageFailed = failedImages.has(post.id);
     
     return (
       <div key={post.id} className="bg-slate-800/50 rounded-xl overflow-hidden border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
         <Link to={`/posts/${post.id}`} className="block">
           <div className="relative aspect-square bg-slate-700/50">
-            {imgSrc && !hasImageFailed ? (
-              <img 
-                src={imgSrc} 
-                alt={post.title} 
+            {imageUrl && !hasImageFailed ? (
+              <img
+                src={imageUrl}
+                alt="별 사진"
                 className="w-full h-full object-cover"
-                onError={() => setFailedImages(prev => new Set(prev).add(post.id))}
-                onLoad={() => setFailedImages(prev => {
-                  const newSet = new Set(prev);
-                  newSet.delete(post.id);
-                  return newSet;
-                })}
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center"><span class="text-3xl">🌌</span></div>';
+                  }
+                }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700/50 to-purple-900/30">
@@ -622,77 +590,10 @@ export default function PostList() {
   // 이미지 로드 실패 상태 관리
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
 
-  // 이미지 게시글 아이템 렌더링
+  // 이미지 게시글 아이템 렌더링 (Home.tsx와 동일한 로직)
   const renderImagePostItem = (post: Post) => {
-    // 게시글 내용에서 첫 번째 이미지 URL 추출
-    const extractFirstImageUrl = (content: string) => {
-      if (!content) return null;
-      
-      // placeholder URL 차단 함수
-      const isPlaceholderUrl = (url: string) => {
-        return url.includes('via.placeholder') || 
-               url.includes('placeholder.com') || 
-               url.includes('placeholder') ||
-               url.includes('%EC%9A%B0%EC%A3%BC') || // '우주' 인코딩
-               url.includes('text=');
-      };
-      
-      // 다양한 형태의 이미지 태그 처리
-      const imgRegexes = [
-        /<img[^>]+src="([^"]+)"/i,
-        /<img[^>]+src='([^']+)'/i,
-        /<img[^>]+src=([^\s>]+)/i
-      ];
-      
-      for (const regex of imgRegexes) {
-        const match = content.match(regex);
-        if (match && match[1]) {
-          let url = match[1];
-          if (url.startsWith('"') && url.endsWith('"')) {
-            url = url.substring(1, url.length - 1);
-          }
-          // placeholder URL 완전 차단
-          if (isPlaceholderUrl(url)) {
-            console.log('Placeholder URL 차단됨:', url);
-            continue;
-          }
-          return url;
-        }
-      }
-      
-      // 이미지 URL 직접 처리
-      const urlRegexes = [
-        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp))/i,
-        /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)[^\s]*)/i
-      ];
-      
-      for (const regex of urlRegexes) {
-        const match = content.match(regex);
-        if (match && match[1] && !isPlaceholderUrl(match[1])) {
-          return match[1];
-        }
-      }
-      
-      // S3 URL 처리
-      const s3Regex = /https?:\/\/[\w.-]+\.s3\.[\w.-]+\.amazonaws\.com\/[^\s"'<>]+/i;
-      const s3Match = content.match(s3Regex);
-      if (s3Match && !isPlaceholderUrl(s3Match[0])) {
-        return s3Match[0];
-      }
-      
-      return null;
-    };
-    
-    // Home.tsx와 동일하게 thumbnailUrl 우선 사용
-    const rawImgSrc = post.blinded ? null : (post.thumbnailUrl || extractFirstImageUrl(post.content));
-    // placeholder URL 완전 차단
-    const imgSrc = rawImgSrc && !rawImgSrc.includes('placeholder') && !rawImgSrc.includes('via.placeholder') ? rawImgSrc : null;
+    const imageUrl = post.blinded ? null : (post.thumbnailUrl || extractFirstImage(post.content));
     const hasImageFailed = failedImages.has(post.id);
-    
-    // 디버그: placeholder URL 감지 시 로그 출력
-    if (rawImgSrc && rawImgSrc !== imgSrc) {
-      console.log('Placeholder URL 감지되어 차단됨:', rawImgSrc);
-    }
     
     return (
       <div 
@@ -701,23 +602,18 @@ export default function PostList() {
       >
         <Link to={`/posts/${post.id}`} className="block h-full">
           <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
-            {imgSrc && !hasImageFailed && !imgSrc.includes('placeholder') && !imgSrc.includes('via.placeholder') ? (
-              <img 
-                src={imgSrc} 
-                alt={post.title} 
+            {imageUrl && !hasImageFailed ? (
+              <img
+                src={imageUrl}
+                alt={post.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
                 onError={(e) => {
-                  console.log('이미지 로드 실패:', imgSrc);
-                  setFailedImages(prev => new Set(prev).add(post.id));
-                  // 이미지 src를 빈 문자열로 설정하여 추가 요청 방지
-                  e.currentTarget.src = '';
-                }}
-                onLoad={() => {
-                  setFailedImages(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(post.id);
-                    return newSet;
-                  });
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center"><span class="text-4xl">🌌</span></div>';
+                  }
                 }}
               />
             ) : (
@@ -738,12 +634,7 @@ export default function PostList() {
               </div>
             )}
             
-            {/* 이미지 로드 실패 표시 */}
-            {imgSrc && hasImageFailed && (
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center">
-                <span className="text-4xl">🌌</span>
-              </div>
-            )}
+
             
             {/* 블라인드 표시 */}
             {post.blinded && (

@@ -45,32 +45,33 @@ public class NewsContentValidator {
             if (content.contains(exclude)) return false;
         }
         
-        // 우주 키워드 체크
+        // 우주 키워드 체크 (기준 완화: 3개 → 1개)
         int keywordCount = 0;
         for (String keyword : SPACE_KEYWORDS) {
             if (content.contains(keyword.toLowerCase())) keywordCount++;
         }
         
-        return keywordCount >= 3;
+        return keywordCount >= 1;
     }
     
     private boolean isReliableSource(NewsApiResponseDto.Result result) {
         String sourceName = result.getSourceName();
-        if (sourceName == null) return false;
+        if (sourceName == null) return true; // null인 경우 통과 (다른 조건으로 필터링)
         
         String sourceNameLower = sourceName.toLowerCase();
         
+        // 신뢰할 수 있는 출처 체크
         for (String trusted : TRUSTED_SOURCES) {
             if (sourceNameLower.contains(trusted)) return true;
         }
         
-        // 의심스러운 출처 제외
+        // 의심스러운 출처만 제외 (나머지는 통과)
         String[] untrusted = {"blog", "personal", "unknown", "anonymous", "fake", "rumor"};
         for (String pattern : untrusted) {
             if (sourceNameLower.contains(pattern)) return false;
         }
         
-        return true;
+        return true; // 기본적으로 통과
     }
     
     private boolean isSimilarToExisting(NewsApiResponseDto.Result result) {
