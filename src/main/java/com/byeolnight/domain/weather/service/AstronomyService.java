@@ -71,15 +71,14 @@ public class AstronomyService {
     }
     
     private void deactivateOldEvents() {
-        // 모든 기존 이벤트 비활성화 (새로운 데이터로 교체)
+        // 모든 기존 이벤트 삭제 (새로운 데이터로 교체)
         List<AstronomyEvent> allActiveEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusYears(1));
         
-        allActiveEvents.forEach(event -> {
-            event.setIsActive(false); // 기존 엔티티의 상태만 변경
-            astronomyRepository.save(event);
-        });
+        if (!allActiveEvents.isEmpty()) {
+            astronomyRepository.deleteAll(allActiveEvents);
+        }
         
-        log.info("기존 이벤트 {} 개 비활성화", allActiveEvents.size());
+        log.info("기존 이벤트 {} 개 삭제", allActiveEvents.size());
     }
     
     private void createRandomEvents() {
