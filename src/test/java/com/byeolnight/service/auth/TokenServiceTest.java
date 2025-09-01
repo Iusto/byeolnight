@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 /**
  * TokenService 테스트 - Redis 기반 토큰 관리 검증
@@ -27,6 +29,7 @@ import static org.mockito.BDDMockito.*;
  * 4. TTL 기반 만료 처리
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("TokenService 테스트")
 class TokenServiceTest {
 

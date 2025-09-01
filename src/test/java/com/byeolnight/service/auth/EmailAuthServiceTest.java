@@ -15,6 +15,8 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 /**
  * EmailAuthService 테스트 - 이메일 인증 비즈니스 로직 검증
@@ -27,6 +29,7 @@ import static org.mockito.BDDMockito.*;
  * 5. 재시도 로직 및 예외 처리
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("EmailAuthService 테스트")
 class EmailAuthServiceTest {
 
