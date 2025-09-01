@@ -391,25 +391,26 @@ public class AstronomyService {
             for (Map.Entry<String, Object> entry : nearEarthObjects.entrySet()) {
                 List<Map<String, Object>> asteroids = (List<Map<String, Object>>) entry.getValue();
                 
-                for (Map<String, Object> asteroid : asteroids.stream().limit(3).collect(Collectors.toList())) {
+                for (Map<String, Object> asteroid : asteroids.stream().limit(2).collect(Collectors.toList())) {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
                     
-                    // 근접 거리 정보 추가
+                    // 근접 거리 정보 추가 및 가독성 개선
                     List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
-                    String distance = "정보 없음";
+                    String distanceText = "정보 없음";
                     if (!closeApproachData.isEmpty()) {
                         Map<String, Object> missDistance = (Map<String, Object>) closeApproachData.get(0).get("miss_distance");
-                        distance = (String) missDistance.get("kilometers") + " km";
+                        String kmDistance = (String) missDistance.get("kilometers");
+                        distanceText = formatDistance(Double.parseDouble(kmDistance));
                     }
                     
                     LocalDateTime eventDate = LocalDateTime.parse(entry.getKey() + "T21:00:00");
                     
                     events.add(AstronomyEvent.builder()
                         .eventType("ASTEROID")
-                        .title("지구 근접 소행성: " + name)
-                        .description(String.format("%s 소행성이 지구로부터 %s 거리에서 근접 통과합니다.", 
-                                   isPotentiallyHazardous ? "잠재적 위험" : "안전한", distance))
+                        .title("지구 근접 소행성 " + name.replace("(", "").replace(")", ""))
+                        .description(String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과합니다. 망원경으로 관측 가능합니다.", 
+                                   isPotentiallyHazardous ? "잠재적 위험" : "안전한", distanceText))
                         .eventDate(eventDate)
                         .peakTime(eventDate)
                         .visibility("WORLDWIDE")
@@ -423,6 +424,16 @@ public class AstronomyService {
         }
         
         return events;
+    }
+    
+    private String formatDistance(double kilometers) {
+        if (kilometers >= 1000000) {
+            return String.format("%.1f백만 km", kilometers / 1000000);
+        } else if (kilometers >= 10000) {
+            return String.format("%.0f만 km", kilometers / 10000);
+        } else {
+            return String.format("%.0f km", kilometers);
+        }
     }
     
     private List<AstronomyEvent> parseKasiData(Map<String, Object> kasiData) {
@@ -505,21 +516,23 @@ public class AstronomyService {
     }
     
     private void createFallbackEvents() {
-        // API 키가 없거나 모든 API 실패 시 실제적인 천체 이벤트 데이터
+        // API 키가 없거나 모든 API 실패 시 다양한 천체 이벤트 데이터
         List<AstronomyEvent> events = List.of(
             createEvent("ASTEROID", "지구 근접 소행성 2025 AB1", 
-                "지름 약 150m의 소행성이 지구로부터 약 500만km 거리에서 안전하게 통과합니다. 망원경으로 관측 가능합니다.", 3, 21),
-            createEvent("ISS_LOCATION", "국제우주정거장(ISS) 관측 기회", 
-                "ISS가 한국 상공을 지나갑니다. 맑은 밤하늘에서 밝은 점으로 관측 가능하며, 약 5분간 지속됩니다.", 1, 19),
-            createEvent("SOLAR_FLARE", "태양 플레어 M급 활동", 
-                "태양에서 M급 플레어가 발생했습니다. 지구 자기장에 영향을 주어 오로라 관측 기회가 증가할 수 있습니다.", 2, 22),
-            createEvent("GEOMAGNETIC_STORM", "지자기 폭풍 예보", 
-                "태양풍 증가로 인한 지자기 폭풍이 예상됩니다. 고위도 지역에서 오로라 관측 가능성이 높습니다.", 4, 23),
-            createEvent("MOON_PHASE", "보름달 (만월)", 
-                "달이 가장 밝게 빛나는 보름달입니다. 달 표면의 크레이터와 바다를 자세히 관측할 수 있습니다.", 7, 20)
+                "지름 150m의 소행성이 지구에서 50백만 km 거리를 안전하게 통과합니다. 망원경으로 관측 가능합니다.", 3, 21),
+            createEvent("ISS_LOCATION", "ISS 관측 기회", 
+                "국제우주정거장이 한국 상공을 통과합니다. 맑은 점으로 5분간 관측 가능합니다.", 1, 19),
+            createEvent("SOLAR_FLARE", "태양 플레어 M급 활돔", 
+                "M급 태양 플레어가 발생했습니다. 오로라 관측 기회가 증가할 수 있습니다.", 2, 22),
+            createEvent("METEOR_SHOWER", "페르세우스 유성우", 
+                "시간당 최대 60개의 유성을 관측할 수 있는 연중 최대 유성우입니다.", 5, 2),
+            createEvent("PLANET_CONJUNCTION", "목성-토성 근접", 
+                "목성과 토성이 하늘에서 가까이 보이는 희귀한 현상입니다.", 8, 20),
+            createEvent("ECLIPSE", "부분 월식", 
+                "달의 일부가 지구 그림자에 가려지는 부분 월식을 관측할 수 있습니다.", 12, 22)
         );
         astronomyRepository.saveAll(events);
-        log.info("실제적인 천체 이벤트 데이터 {} 개 생성 (API 키 미설정으로 인한 대체 데이터)", events.size());
+        log.info("다양한 천체 이벤트 데이터 {} 개 생성 (API 키 미설정으로 인한 대체 데이터)", events.size());
     }
     
     private AstronomyEvent createEvent(String type, String title, String description, int daysFromNow, int hour) {
@@ -541,7 +554,8 @@ public class AstronomyService {
     
     private String determineMagnitude(String eventType) {
         return switch (eventType) {
-            case "SOLAR_FLARE", "GEOMAGNETIC_STORM" -> "HIGH";
+            case "SOLAR_FLARE", "GEOMAGNETIC_STORM", "ECLIPSE" -> "HIGH";
+            case "METEOR_SHOWER", "PLANET_CONJUNCTION" -> "HIGH";
             case "ASTEROID", "ISS_LOCATION" -> "MEDIUM";
             case "MOON_PHASE" -> "LOW";
             default -> "MEDIUM";
@@ -550,8 +564,9 @@ public class AstronomyService {
     
     private String determineVisibility(String eventType) {
         return switch (eventType) {
-            case "MOON_PHASE", "ISS_LOCATION" -> "WORLDWIDE";
+            case "MOON_PHASE", "ISS_LOCATION", "METEOR_SHOWER" -> "WORLDWIDE";
             case "GEOMAGNETIC_STORM" -> "NORTHERN_HEMISPHERE";
+            case "ECLIPSE" -> "NORTHERN_HEMISPHERE";
             default -> "WORLDWIDE";
         };
     }
