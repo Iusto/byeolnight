@@ -75,18 +75,8 @@ public class AstronomyService {
         List<AstronomyEvent> allActiveEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusYears(1));
         
         allActiveEvents.forEach(event -> {
-            AstronomyEvent updatedEvent = AstronomyEvent.builder()
-                .id(event.getId())
-                .eventType(event.getEventType())
-                .title(event.getTitle())
-                .description(event.getDescription())
-                .eventDate(event.getEventDate())
-                .peakTime(event.getPeakTime())
-                .visibility(event.getVisibility())
-                .magnitude(event.getMagnitude())
-                .isActive(false)
-                .build();
-            astronomyRepository.save(updatedEvent);
+            event.setIsActive(false); // 기존 엔티티의 상태만 변경
+            astronomyRepository.save(event);
         });
         
         log.info("기존 이벤트 {} 개 비활성화", allActiveEvents.size());
