@@ -71,12 +71,10 @@ public class AstronomyService {
     }
     
     private void deactivateOldEvents() {
-        // 7일 이전 이벤트들 비활성화
-        LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-        List<AstronomyEvent> oldEvents = astronomyRepository.findActiveEventsBetween(
-            LocalDateTime.now().minusYears(1), weekAgo);
+        // 모든 기존 이벤트 비활성화 (새로운 데이터로 교체)
+        List<AstronomyEvent> allActiveEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusYears(1));
         
-        oldEvents.forEach(event -> {
+        allActiveEvents.forEach(event -> {
             AstronomyEvent updatedEvent = AstronomyEvent.builder()
                 .id(event.getId())
                 .eventType(event.getEventType())
@@ -91,7 +89,7 @@ public class AstronomyService {
             astronomyRepository.save(updatedEvent);
         });
         
-        log.info("오래된 이벤트 {} 개 비활성화", oldEvents.size());
+        log.info("기존 이벤트 {} 개 비활성화", allActiveEvents.size());
     }
     
     private void createRandomEvents() {
