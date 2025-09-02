@@ -14,13 +14,8 @@ import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -270,82 +265,76 @@ public class AstronomyService {
     private List<AstronomyEvent> fetchKasiData() {
         List<AstronomyEvent> events = new ArrayList<>();
         
-        if (kasiApiKey == null || kasiApiKey.trim().isEmpty() || kasiApiKey.contains("dummy")) {
-            log.warn("KASI API 키가 설정되지 않음, 대체 데이터 생성");
-            // KASI API 오류 시 대체 데이터 생성
-            events.add(createEvent("MOON_PHASE", "보름달", 
-                "달이 가장 밝게 빛나는 보름달입니다. 달 표면의 크레이터를 자세히 관측할 수 있습니다.", 3, 22));
-            return events;
-        }
-        
         try {
-            log.info("KASI API 대체 데이터 생성 (서비스 오류로 인한)");
-            // KASI API 오류가 지속되므로 대체 데이터 생성
-            events.add(createEvent("MOON_PHASE", "보름달", 
-                "달이 가장 밝게 빛나는 보름달입니다. 달 표면의 크레이터를 자세히 관측할 수 있습니다.", 3, 22));
+            // NASA APOD API 사용
+            String apodUrl = NASA_APOD_URL + "?api_key=" + nasaApiKey;
+            log.info("NASA APOD API 호출");
             
-            log.info("KASI 대체 데이터 {} 개 생성 완료", events.size());
+            ResponseEntity<Map> response = restTemplate.getForEntity(apodUrl, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<String, Object> apodData = response.getBody();
+                String title = (String) apodData.get("title");
+                String explanation = (String) apodData.get("explanation");
+                
+                if (title != null && explanation != null) {
+                    events.add(AstronomyEvent.builder()
+                        .eventType("APOD")
+                        .title("오늘의 천체사진: " + title)
+                        .description(explanation.length() > 100 ? explanation.substring(0, 100) + "..." : explanation)
+                        .eventDate(LocalDateTime.now().plusDays(1))
+                        .peakTime(LocalDateTime.now().plusDays(1).withHour(20))
+                        .visibility("WORLDWIDE")
+                        .magnitude("HIGH")
+                        .isActive(true)
+                        .build());
+                }
+            }
+            
+            // 계절별 행성 관측 정보 추가
+            LocalDateTime now = LocalDateTime.now();
+            int month = now.getMonthValue();
+            
+            if (month >= 9 && month <= 11) {
+                events.add(AstronomyEvent.builder()
+                    .eventType("PLANET_OBSERVATION")
+                    .title("목성 최적 관측 시기")
+                    .description("가을철 목성이 밤하늘에서 가장 밝게 빛납니다. 망원경으로 목성의 대적반과 위성들을 관측할 수 있습니다.")
+                    .eventDate(now.plusDays(3))
+                    .peakTime(now.plusDays(3).withHour(21))
+                    .visibility("WORLDWIDE")
+                    .magnitude("HIGH")
+                    .isActive(true)
+                    .build());
+            }
+            
+            log.info("대체 천체 API 데이터 {} 개 생성 완료", events.size());
             
         } catch (Exception e) {
-            log.error("KASI 대체 데이터 생성 실패: {}", e.getMessage());
+            log.error("대체 천체 API 호출 실패: {}", e.getMessage());
         }
         
         return events;
     }
     
     private List<AstronomyEvent> parseDonkiFlareData(Map<String, Object>[] flareData) {
-        List<AstronomyEvent> events = new ArrayList<>();
-        
-        for (Map<String, Object> flare : flareData) {
-            try {
-                String beginTime = (String) flare.get("beginTime");
-                String classType = (String) flare.get("classType");
-                
-                LocalDateTime eventDate = LocalDateTime.parse(beginTime.replace("Z", ""));
-                
-                events.add(AstronomyEvent.builder()
-                    .eventType("SOLAR_FLARE")
-                    .title("태양 플레어 " + classType + " 등급")
-                    .description("NASA DONKI에서 감지된 태양 플레어 활동입니다. 통신 및 GPS에 영향을 줄 수 있습니다.")
-                    .eventDate(eventDate)
-                    .peakTime(eventDate)
-                    .visibility("WORLDWIDE")
-                    .magnitude("HIGH")
-                    .isActive(true)
-                    .build());
-            } catch (Exception e) {
-                log.error("태양 플레어 데이터 파싱 실패: {}", e.getMessage());
-            }
-        }
-        
-        return events;
+        return Arrays.stream(flareData)
+            .map(flare -> createAstronomyEvent("SOLAR_FLARE", 
+                "태양 플레어 " + flare.get("classType") + " 등급",
+                "NASA DONKI에서 감지된 태양 플레어 활동입니다. 통신 및 GPS에 영향을 줄 수 있습니다.",
+                LocalDateTime.parse(((String) flare.get("beginTime")).replace("Z", "")), "HIGH"))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
     
     private List<AstronomyEvent> parseDonkiGstData(Map<String, Object>[] gstData) {
-        List<AstronomyEvent> events = new ArrayList<>();
-        
-        for (Map<String, Object> gst : gstData) {
-            try {
-                String startTime = (String) gst.get("startTime");
-                
-                LocalDateTime eventDate = LocalDateTime.parse(startTime.replace("Z", ""));
-                
-                events.add(AstronomyEvent.builder()
-                    .eventType("GEOMAGNETIC_STORM")
-                    .title("지자기 폭풍 발생")
-                    .description("NASA DONKI에서 감지된 지자기 폭풍입니다. 오로라 관측 기회가 증가할 수 있습니다.")
-                    .eventDate(eventDate)
-                    .peakTime(eventDate)
-                    .visibility("WORLDWIDE")
-                    .magnitude("MEDIUM")
-                    .isActive(true)
-                    .build());
-            } catch (Exception e) {
-                log.error("지자기 폭풍 데이터 파싱 실패: {}", e.getMessage());
-            }
-        }
-        
-        return events;
+        return Arrays.stream(gstData)
+            .map(gst -> createAstronomyEvent("GEOMAGNETIC_STORM",
+                "지자기 폭풍 발생",
+                "NASA DONKI에서 감지된 지자기 폭풍입니다. 오로라 관측 기회가 증가할 수 있습니다.",
+                LocalDateTime.parse(((String) gst.get("startTime")).replace("Z", "")), "MEDIUM"))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
     
     private AstronomyEvent parseIssData(Map<String, Object> issData) {
@@ -388,9 +377,18 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
                     
-                    // 이름에서 연도 추출 및 필터링
-                    if (name.contains("2016") || name.contains("2017") || name.contains("2018") || name.contains("2019") || name.contains("2020")) {
-                        continue; // 오래된 데이터 제외
+                    // 2010년 이전 오래된 데이터 필터링
+                    if (name.matches(".*(19|20[0-9][0-9]).*")) {
+                        String yearMatch = name.replaceAll(".*(19|20[0-9][0-9]).*", "$1$2");
+                        try {
+                            int year = Integer.parseInt(yearMatch);
+                            if (year < 2010) {
+                                log.info("오래된 소행성 데이터 제외: {} ({})", name, year);
+                                continue;
+                            }
+                        } catch (NumberFormatException e) {
+                            // 연도 파싱 실패 시 계속 진행
+                        }
                     }
                     
                     List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
@@ -433,202 +431,57 @@ public class AstronomyService {
         }
     }
     
-    private List<AstronomyEvent> parseKasiData(Map<String, Object> kasiData) {
-        List<AstronomyEvent> events = new ArrayList<>();
-        
-        try {
-            Map<String, Object> response = (Map<String, Object>) kasiData.get("response");
-            Map<String, Object> body = (Map<String, Object>) response.get("body");
-            Map<String, Object> items = (Map<String, Object>) body.get("items");
-            List<Map<String, Object>> itemList = (List<Map<String, Object>>) items.get("item");
-            
-            for (Map<String, Object> item : itemList) {
-                String astroEvent = (String) item.get("astroEvent");
-                String astroTime = (String) item.get("astroTime");
-                String locdate = (String) item.get("locdate");
-                
-                LocalDateTime eventDate = parseKasiDateTime(locdate, astroTime);
-                
-                events.add(AstronomyEvent.builder()
-                    .eventType("KASI_EVENT")
-                    .title("한국천문연구원: " + astroEvent)
-                    .description("한국 시간 기준 천문 현상입니다.")
-                    .eventDate(eventDate)
-                    .peakTime(eventDate)
-                    .visibility("KOREA")
-                    .magnitude("HIGH")
-                    .isActive(true)
-                    .build());
-            }
-        } catch (Exception e) {
-            log.error("KASI 데이터 파싱 실패: {}", e.getMessage());
-        }
-        
-        return events;
-    }
-    
-    private List<AstronomyEvent> parseMoonPhaseData(Map<String, Object> moonData) {
-        List<AstronomyEvent> events = new ArrayList<>();
-        
-        try {
-            Map<String, Object> response = (Map<String, Object>) moonData.get("response");
-            Map<String, Object> body = (Map<String, Object>) response.get("body");
-            Map<String, Object> items = (Map<String, Object>) body.get("items");
-            List<Map<String, Object>> itemList = (List<Map<String, Object>>) items.get("item");
-            
-            for (Map<String, Object> item : itemList) {
-                String lunMonth = (String) item.get("lunMonth");
-                String lunDay = (String) item.get("lunDay");
-                String moonPhase = (String) item.get("moonPhase");
-                
-                LocalDateTime eventDate = LocalDateTime.now().plusDays(Integer.parseInt(lunDay));
-                
-                events.add(AstronomyEvent.builder()
-                    .eventType("MOON_PHASE")
-                    .title("달의 위상: " + moonPhase)
-                    .description("음력 " + lunMonth + "월 " + lunDay + "일 달의 위상 변화입니다.")
-                    .eventDate(eventDate)
-                    .peakTime(eventDate.withHour(22))
-                    .visibility("KOREA")
-                    .magnitude("MEDIUM")
-                    .isActive(true)
-                    .build());
-            }
-        } catch (Exception e) {
-            log.error("달의 위상 데이터 파싱 실패: {}", e.getMessage());
-        }
-        
-        return events;
-    }
-    
-    private LocalDateTime parseKasiDateTime(String locdate, String astroTime) {
-        try {
-            // locdate: YYYYMMDD, astroTime: HHMM
-            String dateTimeStr = locdate + astroTime.replace(":", "");
-            return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-        } catch (Exception e) {
-            log.error("KASI 날짜 파싱 실패: {}, {}", locdate, astroTime);
-            return LocalDateTime.now().plusDays(1);
-        }
-    }
+
     
     private void createFallbackEvents() {
-        // API 실패 시 다양한 천체 이벤트 데이터 생성
         List<AstronomyEvent> events = List.of(
-            createEvent("ASTEROID", "지구 근접 소행성 2025 AB1", 
-                "지름 150m의 소행성이 지구에서 50백만 km 거리를 안전하게 통과합니다. 망원경으로 관측 가능합니다.", 3, 21),
-            createEvent("ISS_LOCATION", "ISS 관측 기회", 
-                "국제우주정거장이 한국 상공을 통과합니다. 맑은 점으로 5분간 관측 가능합니다.", 1, 19),
-            createEvent("SOLAR_FLARE", "태양 플레어 M급 활동", 
-                "M급 태양 플레어가 발생했습니다. 오로라 관측 기회가 증가할 수 있습니다.", 2, 22),
-            createEvent("METEOR_SHOWER", "페르세우스 유성우", 
-                "시간당 최대 60개의 유성을 관측할 수 있는 연중 최대 유성우입니다.", 5, 2),
-            createEvent("PLANET_CONJUNCTION", "목성-토성 근접", 
-                "목성과 토성이 하늘에서 가까이 보이는 희귀한 현상입니다.", 8, 20)
+            createEvent("ASTEROID", "지구 근접 소행성 2025 AB1", "지름 150m의 소행성이 지구에서 50백만 km 거리를 안전하게 통과합니다.", 3, 21),
+            createEvent("ISS_LOCATION", "ISS 관측 기회", "국제우주정거장이 한국 상공을 통과합니다. 5분간 관측 가능합니다.", 1, 19),
+            createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 최대 60개의 유성을 관측할 수 있는 연중 최대 유성우입니다.", 5, 2)
         );
         astronomyRepository.saveAll(events);
-        log.info("다양한 천체 이벤트 데이터 {} 개 생성 (API 실패로 인한 대체 데이터)", events.size());
+        log.info("대체 천체 이벤트 {} 개 생성", events.size());
     }
     
     private AstronomyEvent createEvent(String type, String title, String description, int daysFromNow, int hour) {
         LocalDateTime eventDate = LocalDateTime.now().plusDays(daysFromNow);
-        String magnitude = determineMagnitude(type);
-        String visibility = determineVisibility(type);
-        
         return AstronomyEvent.builder()
             .eventType(type)
             .title(title)
             .description(description)
             .eventDate(eventDate)
             .peakTime(eventDate.withHour(hour))
-            .visibility(visibility)
-            .magnitude(magnitude)
-            .isActive(true)
-            .build();
-    }
-    
-    private String determineMagnitude(String eventType) {
-        return switch (eventType) {
-            case "SOLAR_FLARE", "GEOMAGNETIC_STORM", "ECLIPSE" -> "HIGH";
-            case "METEOR_SHOWER", "PLANET_CONJUNCTION" -> "HIGH";
-            case "ASTEROID", "ISS_LOCATION" -> "MEDIUM";
-            case "MOON_PHASE" -> "LOW";
-            default -> "MEDIUM";
-        };
-    }
-    
-    private String determineVisibility(String eventType) {
-        return switch (eventType) {
-            case "MOON_PHASE", "ISS_LOCATION", "METEOR_SHOWER" -> "WORLDWIDE";
-            case "GEOMAGNETIC_STORM" -> "NORTHERN_HEMISPHERE";
-            case "ECLIPSE" -> "NORTHERN_HEMISPHERE";
-            default -> "WORLDWIDE";
-        };
-    }
-    
-    private AstronomyEvent createRandomEvent(String type, String title, String description, int minDays, int maxDays) {
-        int randomDays = minDays + (int)(Math.random() * (maxDays - minDays));
-        int randomHour = 18 + (int)(Math.random() * 6); // 18-23시 사이
-        
-        LocalDateTime eventDate = LocalDateTime.now().plusDays(randomDays);
-        return AstronomyEvent.builder()
-            .eventType(type)
-            .title(title)
-            .description(description)
-            .eventDate(eventDate)
-            .peakTime(eventDate.withHour(randomHour))
             .visibility("WORLDWIDE")
-            .magnitude("HIGH")
+            .magnitude(type.contains("METEOR") || type.contains("SOLAR") ? "HIGH" : "MEDIUM")
             .isActive(true)
             .build();
     }
     
-    // 초기 데이터 생성 (애플리케이션 시작 시만)
-    @PostConstruct
-    public void initOnStartup() {
-        if (astronomyRepository.count() == 0) {
-            createDefaultEvents();
+    private AstronomyEvent createAstronomyEvent(String type, String title, String description, LocalDateTime eventDate, String magnitude) {
+        try {
+            return AstronomyEvent.builder()
+                .eventType(type)
+                .title(title)
+                .description(description)
+                .eventDate(eventDate)
+                .peakTime(eventDate)
+                .visibility("WORLDWIDE")
+                .magnitude(magnitude)
+                .isActive(true)
+                .build();
+        } catch (Exception e) {
+            log.error("이벤트 생성 실패: {}", e.getMessage());
+            return null;
         }
     }
     
-    private void createDefaultEvents() {
-        List<AstronomyEvent> defaultEvents = List.of(
-            AstronomyEvent.builder()
-                .eventType("METEOR_SHOWER")
-                .title("페르세우스 유성우")
-                .description("연중 가장 활발한 유성우 중 하나로, 시간당 최대 60개의 유성을 관측할 수 있습니다.")
-                .eventDate(LocalDateTime.now().plusDays(30))
-                .peakTime(LocalDateTime.now().plusDays(30).withHour(2))
-                .visibility("WORLDWIDE")
-                .magnitude("HIGH")
-                .isActive(true)
-                .build(),
-            
-            AstronomyEvent.builder()
-                .eventType("PLANET_CONJUNCTION")
-                .title("목성과 토성 근접")
-                .description("목성과 토성이 하늘에서 가까이 보이는 희귀한 현상입니다.")
-                .eventDate(LocalDateTime.now().plusDays(15))
-                .peakTime(LocalDateTime.now().plusDays(15).withHour(20))
-                .visibility("WORLDWIDE")
-                .magnitude("MEDIUM")
-                .isActive(true)
-                .build(),
-            
-            AstronomyEvent.builder()
-                .eventType("ECLIPSE")
-                .title("부분 월식")
-                .description("달의 일부가 지구의 그림자에 가려지는 부분 월식을 관측할 수 있습니다.")
-                .eventDate(LocalDateTime.now().plusDays(45))
-                .peakTime(LocalDateTime.now().plusDays(45).withHour(22))
-                .visibility("NORTHERN_HEMISPHERE")
-                .magnitude("MEDIUM")
-                .isActive(true)
-                .build()
-        );
-        
-        astronomyRepository.saveAll(defaultEvents);
-        log.info("기본 천체 이벤트 {} 개 생성 완료", defaultEvents.size());
+
+    
+    @PostConstruct
+    public void initOnStartup() {
+        if (astronomyRepository.count() == 0) {
+            createFallbackEvents();
+        }
     }
     
     private boolean shouldNotifyEvent(AstronomyEvent event, LocalDateTime now) {
