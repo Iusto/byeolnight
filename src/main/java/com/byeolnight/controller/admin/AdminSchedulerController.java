@@ -1,5 +1,6 @@
 package com.byeolnight.controller.admin;
 
+import com.byeolnight.domain.weather.service.AstronomyService;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.crawler.SpaceNewsScheduler;
 import com.byeolnight.service.discussion.DiscussionTopicScheduler;
@@ -39,7 +40,7 @@ public class AdminSchedulerController {
     private final MessageRepository messageRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final com.byeolnight.domain.weather.service.AstronomyService astronomyService;
+    private final AstronomyService astronomyService;
 
     @PostMapping("/news/manual")
     @Operation(

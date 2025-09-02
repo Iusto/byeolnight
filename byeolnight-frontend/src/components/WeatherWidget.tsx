@@ -51,6 +51,15 @@ const WeatherWidget: React.FC = () => {
     
     return () => clearInterval(issInterval);
   }, []);
+  
+  // ISS 위치 변경 시 이벤트 목록 업데이트
+  useEffect(() => {
+    setEvents(prevEvents => {
+      if (prevEvents.length === 0) return prevEvents;
+      const astronomyEvents = prevEvents.filter(event => event.eventType !== 'ISS_LOCATION');
+      return updateEventsWithIss(astronomyEvents, issLocation);
+    });
+  }, [issLocation]);
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -78,7 +87,7 @@ const WeatherWidget: React.FC = () => {
       const response = await axios.get(`/api/weather/observation`, {
         params: { latitude, longitude }
       });
-      console.log('날씨 데이터 응답:', response.data);
+      console.log('날씨 데이터 응답 수신 완료');
       setWeather(response.data);
     } catch (error) {
       console.error('날씨 데이터 조회 실패:', error);
@@ -92,7 +101,7 @@ const WeatherWidget: React.FC = () => {
       console.log('ISS 위치 업데이트 시작:', new Date().toLocaleTimeString());
       const response = await axios.get('/api/weather/iss');
       const data = response.data;
-      console.log('ISS 데이터 수신:', data);
+      console.log('ISS 데이터 수신 완료');
       if (data.iss_position) {
         setIssLocation({
           latitude: data.iss_position.latitude,
@@ -106,31 +115,48 @@ const WeatherWidget: React.FC = () => {
     }
   };
 
+  const updateEventsWithIss = (astronomyEvents: AstronomyEvent[], currentIssLocation: IssLocation | null) => {
+    let selectedEvents = astronomyEvents.slice(0, 4);
+    
+    // ISS 실시간 데이터 추가
+    if (currentIssLocation) {
+      const issEvent: AstronomyEvent = {
+        id: 0,
+        eventType: 'ISS_LOCATION',
+        title: 'ISS 실시간 위치',
+        description: `국제우주정거장 현재 위치: ${parseFloat(currentIssLocation.latitude).toFixed(1)}°, ${parseFloat(currentIssLocation.longitude).toFixed(1)}°`,
+        eventDate: new Date().toISOString(),
+        peakTime: new Date().toISOString(),
+        visibility: 'WORLDWIDE',
+        magnitude: 'MEDIUM',
+        isActive: true
+      };
+      selectedEvents = [issEvent, ...selectedEvents].slice(0, 5);
+    }
+    
+    return selectedEvents;
+  };
+
   const fetchAstronomyEvents = async () => {
     try {
       console.log('천체 이벤트 요청 시작');
       const response = await axios.get('/api/weather/events');
-      console.log('천체 이벤트 응답:', response.data);
-      // 미래 이벤트 우선, 과거 이벤트는 최근 3일 내만 표시
-      const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      console.log('천체 이벤트 수신 완료:', response.data.length, '개');
       
-      const filteredEvents = response.data.filter((event: AstronomyEvent) => {
+      // 최근 30일 내 실제 발생한 천체 현상만 표시
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      const recentEvents = response.data.filter((event: AstronomyEvent) => {
         const eventDate = new Date(event.eventDate);
-        return eventDate > now || eventDate > threeDaysAgo;
+        return eventDate >= thirtyDaysAgo;
       });
       
-      // 미래 이벤트 우선 정렬 후 타입별 최대 1개씩 선택
-      const sortedEvents = filteredEvents.sort((a: AstronomyEvent, b: AstronomyEvent) => {
+      // 최신순 정렬 후 타입별 최대 1개씩 선택
+      const sortedEvents = recentEvents.sort((a: AstronomyEvent, b: AstronomyEvent) => {
         const aDate = new Date(a.eventDate);
         const bDate = new Date(b.eventDate);
-        const aFuture = aDate > now;
-        const bFuture = bDate > now;
-        
-        if (aFuture && !bFuture) return -1;
-        if (!aFuture && bFuture) return 1;
-        
-        return aDate.getTime() - bDate.getTime();
+        return bDate.getTime() - aDate.getTime(); // 최신순
       });
       
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
@@ -144,25 +170,9 @@ const WeatherWidget: React.FC = () => {
         return acc;
       }, {});
       
-      let selectedEvents = Object.values(eventsByType).slice(0, 4);
-      
-      // ISS 실시간 데이터 추가
-      if (issLocation) {
-        const issEvent: AstronomyEvent = {
-          id: 0,
-          eventType: 'ISS_LOCATION',
-          title: 'ISS 실시간 위치',
-          description: `국제우주정거장 현재 위치: ${parseFloat(issLocation.latitude).toFixed(1)}°, ${parseFloat(issLocation.longitude).toFixed(1)}°`,
-          eventDate: new Date().toISOString(),
-          peakTime: new Date().toISOString(),
-          visibility: 'WORLDWIDE',
-          magnitude: 'MEDIUM',
-          isActive: true
-        };
-        selectedEvents = [issEvent, ...selectedEvents].slice(0, 5);
-      }
-      
-      setEvents(selectedEvents);
+      const astronomyEvents = Object.values(eventsByType);
+      const finalEvents = updateEventsWithIss(astronomyEvents, issLocation);
+      setEvents(finalEvents);
     } catch (error) {
       console.error('천체 이벤트 조회 실패:', error);
     }
@@ -319,7 +329,7 @@ const WeatherWidget: React.FC = () => {
         <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold flex items-center">
-              🌌 예정된 천체 이벤트
+              🌌 최근 천체 현상
             </h3>
             {user?.role === 'ADMIN' && (
               <button
@@ -372,7 +382,7 @@ const WeatherWidget: React.FC = () => {
         <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold flex items-center">
-              🌌 예정된 천체 이벤트
+              🌌 최근 천체 현상
             </h3>
             {user?.role === 'ADMIN' && (
               <button
@@ -395,7 +405,7 @@ const WeatherWidget: React.FC = () => {
           </div>
           <div className="text-center py-4">
             <div className="text-4xl mb-2">🌌</div>
-            <p className="text-gray-300">천체 데이터 로딩 중...</p>
+            <p className="text-gray-300">최근 천체 데이터 로딩 중...</p>
             <p className="text-xs text-gray-400 mt-1">NASA API 연동</p>
           </div>
         </div>

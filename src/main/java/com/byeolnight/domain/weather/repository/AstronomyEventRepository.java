@@ -19,4 +19,8 @@ public interface AstronomyEventRepository extends JpaRepository<AstronomyEvent, 
     List<AstronomyEvent> findUpcomingEvents(@Param("now") LocalDateTime now);
     
     void deleteByEventType(String eventType);
+    
+    @Query("SELECT a FROM AstronomyEvent a WHERE a.isActive = true " +
+           "AND a.eventDate >= :thirtyDaysAgo ORDER BY a.eventDate DESC")
+    List<AstronomyEvent> findRecentEvents(@Param("thirtyDaysAgo") LocalDateTime thirtyDaysAgo);
 }

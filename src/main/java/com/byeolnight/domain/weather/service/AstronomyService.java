@@ -19,14 +19,14 @@ import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AstronomyService {
 
     private final AstronomyEventRepository astronomyRepository;
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${nasa.api.key}")
     private String nasaApiKey;
@@ -44,7 +44,7 @@ public class AstronomyService {
                 return response.getBody();
             }
         } catch (Exception e) {
-            log.error("ISS API 호출 실패: {}", e.getMessage());
+            log.error("ISS API 호출 실패: {}", e.getMessage(), e);
         }
         return Map.of("error", "ISS 데이터 조회 실패");
     }
@@ -121,7 +121,7 @@ public class AstronomyService {
             allEvents.addAll(neoEvents);
             if (!neoEvents.isEmpty()) successCount++;
         } catch (Exception e) {
-            log.warn("NASA NeoWs API 호출 실패: {}", e.getMessage());
+            log.warn("NASA NeoWs API 호출 실패: {}", e.getMessage(), e);
         }
 
         // 2. NASA DONKI - 우주 기상
@@ -130,7 +130,7 @@ public class AstronomyService {
             allEvents.addAll(donkiEvents);
             if (!donkiEvents.isEmpty()) successCount++;
         } catch (Exception e) {
-            log.warn("NASA DONKI API 호출 실패: {}", e.getMessage());
+            log.warn("NASA DONKI API 호출 실패: {}", e.getMessage(), e);
         }
 
         // ISS 데이터는 프론트엔드에서 직접 호출
@@ -141,7 +141,7 @@ public class AstronomyService {
             allEvents.addAll(marsEvents);
             if (!marsEvents.isEmpty()) successCount++;
         } catch (Exception e) {
-            log.warn("NASA Mars Weather API 호출 실패: {}", e.getMessage());
+            log.warn("NASA Mars Weather API 호출 실패: {}", e.getMessage(), e);
         }
 
 
@@ -173,7 +173,9 @@ public class AstronomyService {
         if (!allEvents.isEmpty()) {
             log.info("저장 전 이벤트 목록:");
             for (AstronomyEvent event : allEvents) {
-                log.info("- {} ({}): {}", event.getTitle(), event.getEventType(), event.getEventDate());
+                String safeTitle = sanitizeForLog(event.getTitle());
+                String safeType = sanitizeForLog(event.getEventType());
+                log.info("- {} ({}): {}", safeTitle, safeType, event.getEventDate());
             }
 
             astronomyRepository.saveAll(allEvents);
@@ -209,7 +211,7 @@ public class AstronomyService {
             }
 
         } catch (Exception e) {
-            log.error("NASA NeoWs API 호출 실패: {}", e.getMessage());
+            log.error("NASA NeoWs API 호출 실패: {}", e.getMessage(), e);
             throw e;
         }
 
@@ -258,7 +260,7 @@ public class AstronomyService {
             log.info("NASA DONKI 데이터 {} 개 수집 완료", events.size());
 
         } catch (Exception e) {
-            log.error("NASA DONKI API 호출 실패: {}", e.getMessage());
+            log.error("NASA DONKI API 호출 실패: {}", e.getMessage(), e);
             throw e;
         }
 
@@ -318,7 +320,7 @@ public class AstronomyService {
             }
 
         } catch (Exception e) {
-            log.error("NASA Mars Weather API 호출 실패: {}", e.getMessage());
+            log.error("NASA Mars Weather API 호출 실패: {}", e.getMessage(), e);
         }
 
         return events;
@@ -414,14 +416,7 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
 
-                    // 2021년 이전 오래된 소행성 데이터 필터링
-                    if (name.contains("2020") || name.contains("2019") || name.contains("2018") || 
-                        name.contains("2017") || name.contains("2016") || name.contains("2015") || 
-                        name.contains("2014") || name.contains("2013") || name.contains("2012") ||
-                        name.contains("2011") || name.contains("2010") || name.contains("200")) {
-                        log.info("오래된 소행성 데이터 제외: {}", name);
-                        continue;
-                    }
+                    // 모든 실제 NASA 데이터 허용 (필터링 제거)
 
                     List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
                     String distanceText = "정보 없음";
@@ -520,6 +515,11 @@ public class AstronomyService {
     }
 
 
+    private String sanitizeForLog(String input) {
+        if (input == null) return "null";
+        return input.replaceAll("[\r\n\t]", "_").substring(0, Math.min(input.length(), 100));
+    }
+    
     private AstronomyEventResponse convertToResponse(AstronomyEvent event) {
         return AstronomyEventResponse.builder()
                 .id(event.getId())
