@@ -32,7 +32,7 @@ public class AstronomyService {
     private String nasaApiKey;
 
 
-    // NASA API URLs
+
     private static final String NASA_NEOWS_URL = "https://api.nasa.gov/neo/rest/v1/feed";
     private static final String NASA_DONKI_URL = "https://api.nasa.gov/DONKI";
     private static final String NASA_ISS_URL = "http://api.open-notify.org/iss-now.json";
@@ -72,14 +72,12 @@ public class AstronomyService {
     }
     
     private boolean isRealNasaData(AstronomyEvent event) {
-        // 실제 발생한 과거 이벤트만 표시 (예측 이벤트 제외)
         LocalDateTime now = LocalDateTime.now();
         boolean isPastEvent = event.getEventDate().isBefore(now);
         boolean isRealType = event.getEventType().equals("ASTEROID") || 
                             event.getEventType().equals("SOLAR_FLARE") || 
                             event.getEventType().equals("GEOMAGNETIC_STORM");
-        
-        // 예측 이벤트 제외 (제목에 "예측" 포함 또는 미래 시간)
+
         boolean isPrediction = event.getTitle().contains("예측") || 
                               event.getDescription().contains("예상") ||
                               event.getEventType().equals("MARS_WEATHER");
@@ -95,15 +93,15 @@ public class AstronomyService {
     
 
 
-    // 관리자 수동 수집용 public 메서드
+
     public void performAstronomyDataCollection() {
         try {
             log.info("천체 이벤트 데이터 수집 시작 (NASA API 연동)");
 
-            // 기존 이벤트 비활성화
+    
             deactivateOldEvents();
 
-            // NASA API 데이터 수집
+    
             fetchNasaAstronomyData();
 
             log.info("천체 이벤트 데이터 수집 완료");
@@ -115,7 +113,7 @@ public class AstronomyService {
     }
 
     private void deactivateOldEvents() {
-        // 30일 이전 이벤트 삭제
+
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         List<AstronomyEvent> oldEvents = astronomyRepository.findRecentEvents(thirtyDaysAgo);
         oldEvents = oldEvents.stream()
@@ -133,7 +131,7 @@ public class AstronomyService {
         List<AstronomyEvent> allEvents = new ArrayList<>();
         int successCount = 0;
 
-        // 1. NASA NeoWs - 지구 근접 소행성
+
         try {
             List<AstronomyEvent> neoEvents = fetchNeoWsData();
             allEvents.addAll(neoEvents);
@@ -142,7 +140,7 @@ public class AstronomyService {
             log.warn("NASA NeoWs API 호출 실패: {}", e.getMessage(), e);
         }
 
-        // 2. NASA DONKI - 우주 기상
+
         try {
             List<AstronomyEvent> donkiEvents = fetchDonkiData();
             allEvents.addAll(donkiEvents);
@@ -151,43 +149,9 @@ public class AstronomyService {
             log.warn("NASA DONKI API 호출 실패: {}", e.getMessage(), e);
         }
 
-        // ISS 데이터는 프론트엔드에서 직접 호출
-
-        // 4. NASA Mars Weather API
-        try {
-            List<AstronomyEvent> marsEvents = fetchMarsWeatherData();
-            allEvents.addAll(marsEvents);
-            if (!marsEvents.isEmpty()) successCount++;
-        } catch (Exception e) {
-            log.warn("NASA Mars Weather API 호출 실패: {}", e.getMessage(), e);
-        }
 
 
-        // 태양 플레어/지자기 폭풍 미래 예측 이벤트 항상 추가
-        boolean hasFutureSolarEvents = allEvents.stream()
-                .anyMatch(event -> event.getEventDate().isAfter(LocalDateTime.now()) && 
-                         (event.getEventType().contains("SOLAR") || event.getEventType().contains("GEOMAGNETIC")));
-        
-        if (!hasFutureSolarEvents) {
-            // 태양 활동 예측 이벤트 추가
-            allEvents.add(createEvent("SOLAR_FLARE", "태양 플레어 M급 예측", 
-                    "태양 활동 증가로 M급 플레어 발생 가능성이 높습니다. 오로라 관측 기회가 있을 수 있습니다.", 0, 14));
-            allEvents.add(createEvent("GEOMAGNETIC_STORM", "지자기 폭풍 예측", 
-                    "태양 플레어로 인한 지자기 폭풍이 예상됩니다. 오로라 관측 기회가 증가할 수 있습니다.", 1, 20));
-            log.info("태양 활동 예측 이벤트 2개 추가");
-        }
-        
-        // 미래 이벤트 부족 시 추가 예측 이벤트
-        long futureEventsCount = allEvents.stream()
-                .filter(event -> event.getEventDate().isAfter(LocalDateTime.now()))
-                .count();
-        
-        if (futureEventsCount < 3) {
-            allEvents.addAll(createPredictedEvents());
-            log.info("미래 이벤트 부족으로 예측 이벤트 {} 개 추가", createPredictedEvents().size());
-        }
 
-        // NASA API 데이터 저장
         if (!allEvents.isEmpty()) {
             log.info("저장 전 이벤트 목록:");
             for (AstronomyEvent event : allEvents) {
@@ -197,10 +161,9 @@ public class AstronomyService {
             }
 
             astronomyRepository.saveAll(allEvents);
-            log.info("NASA API 데이터 {} 개 수집 성공 ({}/4 API 성공)", allEvents.size(), successCount);
+            log.info("NASA API 데이터 {} 개 수집 성공 ({}/2 API 성공)", allEvents.size(), successCount);
         } else {
-            log.warn("모든 NASA API 호출 실패, 기본 데이터 생성");
-            createFallbackEvents();
+            log.warn("모든 NASA API 호출 실패");
         }
     }
 
@@ -214,7 +177,7 @@ public class AstronomyService {
 
         try {
             LocalDateTime startDate = LocalDateTime.now();
-            LocalDateTime endDate = startDate.plusDays(7); // NASA API 제한: 최대 7일
+            LocalDateTime endDate = startDate.plusDays(7);
             String neowsUrl = NASA_NEOWS_URL + "?start_date=" + startDate.toLocalDate() +
                     "&end_date=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
@@ -245,11 +208,11 @@ public class AstronomyService {
         }
 
         try {
-            // DONKI는 과거 30일 데이터 조회 (실제 발생한 이벤트)
+
             LocalDateTime startDate = LocalDateTime.now().minusDays(30);
             LocalDateTime endDate = LocalDateTime.now();
 
-            // 태양 플레어 데이터 (과거 30일)
+
             String flareUrl = NASA_DONKI_URL + "/FLR?startDate=" + startDate.toLocalDate() +
                     "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
@@ -262,7 +225,7 @@ public class AstronomyService {
                 log.info("태양 플레어 데이터 {} 개 수집", flareEvents.size());
             }
 
-            // 지자기 폭풍 데이터 (과거 30일)
+
             String gstUrl = NASA_DONKI_URL + "/GST?startDate=" + startDate.toLocalDate() +
                     "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
@@ -312,7 +275,7 @@ public class AstronomyService {
     }
 
 
-    // NASA Mars Weather API 추가
+
     private List<AstronomyEvent> fetchMarsWeatherData() {
         List<AstronomyEvent> events = new ArrayList<>();
 
@@ -401,7 +364,7 @@ public class AstronomyService {
             String longitude = (String) position.get("longitude");
 
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime nextPass = now.plusHours(2); // 2시간 후 다음 관측 기회
+            LocalDateTime nextPass = now.plusHours(2);
 
             return AstronomyEvent.builder()
                     .eventType("ISS_LOCATION")
@@ -434,7 +397,7 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
 
-                    // 모든 실제 NASA 데이터 허용 (필터링 제거)
+
 
                     List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
                     String distanceText = "정보 없음";
@@ -446,7 +409,7 @@ public class AstronomyService {
 
                     LocalDateTime eventDate = LocalDateTime.parse(entry.getKey() + "T21:00:00");
 
-                    // 과거 이벤트인지 미래 이벤트인지 판단
+
                     boolean isPastEvent = eventDate.isBefore(LocalDateTime.now());
                     String description = isPastEvent ? 
                         String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과했습니다. NASA에서 감지된 실제 이벤트입니다.",
@@ -484,20 +447,7 @@ public class AstronomyService {
     }
 
 
-    private List<AstronomyEvent> createPredictedEvents() {
-        return List.of(
-                createEvent("ASTEROID", "지구 근접 소행성 2025 AB", "지름 200m의 소행성이 지구에서 15백만 km 거리를 안전하게 통과합니다.", 2, 21),
-                createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 60개의 유성 관측 가능. 북동쪽 하늘을 주목하세요.", 4, 2),
-                createEvent("PLANET_CONJUNCTION", "금성-목성 근접", "금성과 목성이 하늘에서 가까이 보이는 아름다운 천체 현상입니다.", 6, 19),
-                createEvent("LUNAR_ECLIPSE", "부분월식", "달의 일부가 지구 그림자에 가려지는 부분월식이 발생합니다.", 8, 21)
-        );
-    }
 
-    private void createFallbackEvents() {
-        List<AstronomyEvent> events = createPredictedEvents();
-        astronomyRepository.saveAll(events);
-        log.info("기본 천체 이벤트 {} 개 생성", events.size());
-    }
 
     private AstronomyEvent createEvent(String type, String title, String description, int daysFromNow, int hour) {
         LocalDateTime eventDate = LocalDateTime.now().plusDays(daysFromNow);
@@ -532,12 +482,7 @@ public class AstronomyService {
     }
 
 
-    @PostConstruct
-    public void initOnStartup() {
-        if (astronomyRepository.count() == 0) {
-            createFallbackEvents();
-        }
-    }
+
 
 
     private String sanitizeForLog(String input) {

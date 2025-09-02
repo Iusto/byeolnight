@@ -128,8 +128,6 @@ const WeatherWidget: React.FC = () => {
       setWeather(response.data);
     } catch (error) {
       console.error('날씨 데이터 조회 실패:', error);
-    } catch (error) {
-      console.error('날씨 데이터 조회 실패:', error);
     }
   };
 
