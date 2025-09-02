@@ -402,8 +402,9 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
 
-                    // 2020년 이전 오래된 소행성 데이터 필터링
-                    if (name.contains("2018") || name.contains("2019") || name.contains("2017") || 
+                    // 2023년 이전 오래된 소행성 데이터 필터링
+                    if (name.contains("2022") || name.contains("2021") || name.contains("2020") ||
+                        name.contains("2019") || name.contains("2018") || name.contains("2017") || 
                         name.contains("2016") || name.contains("2015") || name.contains("2014") ||
                         name.contains("2013") || name.contains("2012") || name.contains("2011") ||
                         name.contains("2010") || name.contains("200")) {

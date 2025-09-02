@@ -90,7 +90,7 @@ const WeatherWidget: React.FC = () => {
   const fetchIssLocation = async () => {
     try {
       console.log('ISS 위치 업데이트 시작:', new Date().toLocaleTimeString());
-      const response = await fetch('http://api.open-notify.org/iss-now.json');
+      const response = await fetch('https://api.open-notify.org/iss-now.json');
       const data = await response.json();
       console.log('ISS 데이터 수신:', data);
       setIssLocation({
