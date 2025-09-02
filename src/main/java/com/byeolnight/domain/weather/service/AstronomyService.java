@@ -37,7 +37,6 @@ public class AstronomyService {
     private static final String NASA_DONKI_URL = "https://api.nasa.gov/DONKI";
     private static final String NASA_ISS_URL = "http://api.open-notify.org/iss-now.json";
 
-
     public List<AstronomyEventResponse> getUpcomingEvents() {
         List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(LocalDateTime.now());
         return events.stream()
@@ -72,14 +71,14 @@ public class AstronomyService {
     }
 
     private void deactivateOldEvents() {
-        // 기존 이벤트 중 오래된 것만 삭제 (7일 이전)
-        List<AstronomyEvent> oldEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusDays(7));
+        // 1년 이전 이벤트 삭제로 변경
+        List<AstronomyEvent> oldEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusYears(1));
 
         if (!oldEvents.isEmpty()) {
             astronomyRepository.deleteAll(oldEvents);
         }
 
-        log.info("오래된 이벤트 {} 개 삭제", oldEvents.size());
+        log.info("1년 이전 이벤트 {} 개 삭제", oldEvents.size());
     }
 
     private void fetchNasaAstronomyData() {
@@ -148,7 +147,7 @@ public class AstronomyService {
 
         try {
             LocalDateTime startDate = LocalDateTime.now();
-            LocalDateTime endDate = startDate.plusDays(7);
+            LocalDateTime endDate = startDate.plusYears(1); // 1년으로 확장
             String neowsUrl = NASA_NEOWS_URL + "?start_date=" + startDate.toLocalDate() +
                     "&end_date=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
@@ -180,28 +179,32 @@ public class AstronomyService {
 
         try {
             LocalDateTime startDate = LocalDateTime.now();
-            LocalDateTime endDate = startDate.plusDays(7);
+            LocalDateTime endDate = startDate.plusYears(1); // 1년으로 확장
 
             // 태양 플레어 데이터
             String flareUrl = NASA_DONKI_URL + "/FLR?startDate=" + startDate.toLocalDate() +
                     "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
-            log.info("NASA DONKI FLR API 호출");
+            log.info("NASA DONKI FLR API 호출 (1년 범위)");
             ResponseEntity<Map[]> flareResponse = restTemplate.getForEntity(flareUrl, Map[].class);
 
             if (flareResponse.getStatusCode().is2xxSuccessful() && flareResponse.getBody() != null) {
-                events.addAll(parseDonkiFlareData(flareResponse.getBody()));
+                List<AstronomyEvent> flareEvents = parseDonkiFlareData(flareResponse.getBody());
+                events.addAll(flareEvents);
+                log.info("태양 플레어 데이터 {} 개 수집", flareEvents.size());
             }
 
             // 지자기 폭풍 데이터
             String gstUrl = NASA_DONKI_URL + "/GST?startDate=" + startDate.toLocalDate() +
                     "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
-            log.info("NASA DONKI GST API 호출");
+            log.info("NASA DONKI GST API 호출 (1년 범위)");
             ResponseEntity<Map[]> gstResponse = restTemplate.getForEntity(gstUrl, Map[].class);
 
             if (gstResponse.getStatusCode().is2xxSuccessful() && gstResponse.getBody() != null) {
-                events.addAll(parseDonkiGstData(gstResponse.getBody()));
+                List<AstronomyEvent> gstEvents = parseDonkiGstData(gstResponse.getBody());
+                events.addAll(gstEvents);
+                log.info("지자기 폭풍 데이터 {} 개 수집", gstEvents.size());
             }
 
             log.info("NASA DONKI 데이터 {} 개 수집 완료", events.size());
@@ -274,21 +277,51 @@ public class AstronomyService {
     }
 
     private List<AstronomyEvent> parseDonkiFlareData(Map<String, Object>[] flareData) {
+        if (flareData == null || flareData.length == 0) {
+            log.info("태양 플레어 데이터 없음");
+            return new ArrayList<>();
+        }
+        
         return Arrays.stream(flareData)
-                .map(flare -> createAstronomyEvent("SOLAR_FLARE",
-                        "태양 플레어 " + flare.get("classType") + " 등급",
-                        "NASA DONKI에서 감지된 태양 플레어 활동입니다. 통신 및 GPS에 영향을 줄 수 있습니다.",
-                        LocalDateTime.parse(((String) flare.get("beginTime")).replace("Z", "")), "HIGH"))
+                .filter(flare -> flare.get("classType") != null && flare.get("beginTime") != null)
+                .map(flare -> {
+                    try {
+                        String beginTime = (String) flare.get("beginTime");
+                        LocalDateTime eventTime = LocalDateTime.parse(beginTime.replace("Z", ""));
+                        return createAstronomyEvent("SOLAR_FLARE",
+                                "태양 플레어 " + flare.get("classType") + " 등급",
+                                "NASA DONKI에서 감지된 태양 플레어 활동입니다. 통신 및 GPS에 영향을 줄 수 있습니다.",
+                                eventTime, "HIGH");
+                    } catch (Exception e) {
+                        log.warn("태양 플레어 데이터 파싱 실패: {}", e.getMessage());
+                        return null;
+                    }
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private List<AstronomyEvent> parseDonkiGstData(Map<String, Object>[] gstData) {
+        if (gstData == null || gstData.length == 0) {
+            log.info("지자기 폭풍 데이터 없음");
+            return new ArrayList<>();
+        }
+        
         return Arrays.stream(gstData)
-                .map(gst -> createAstronomyEvent("GEOMAGNETIC_STORM",
-                        "지자기 폭풍 발생",
-                        "NASA DONKI에서 감지된 지자기 폭풍입니다. 오로라 관측 기회가 증가할 수 있습니다.",
-                        LocalDateTime.parse(((String) gst.get("startTime")).replace("Z", "")), "MEDIUM"))
+                .filter(gst -> gst.get("startTime") != null)
+                .map(gst -> {
+                    try {
+                        String startTime = (String) gst.get("startTime");
+                        LocalDateTime eventTime = LocalDateTime.parse(startTime.replace("Z", ""));
+                        return createAstronomyEvent("GEOMAGNETIC_STORM",
+                                "지자기 폭풍 발생",
+                                "NASA DONKI에서 감지된 지자기 폭풍입니다. 오로라 관측 기회가 증가할 수 있습니다.",
+                                eventTime, "MEDIUM");
+                    } catch (Exception e) {
+                        log.warn("지자기 폭풍 데이터 파싱 실패: {}", e.getMessage());
+                        return null;
+                    }
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
@@ -333,11 +366,8 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
 
-                    // 2005년 이전 오래된 데이터만 필터링
-                    if (name.contains("2000") || name.contains("2001") || name.contains("2002") || name.contains("2003") || name.contains("2004")) {
-                        log.info("오래된 소행성 데이터 제외: {}", name);
-                        continue;
-                    }
+                    // 1년 내 이벤트만 수집하므로 오래된 데이터 필터링 제거
+                    // NASA API에서 이미 날짜 범위로 필터링됨
 
                     List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
                     String distanceText = "정보 없음";
