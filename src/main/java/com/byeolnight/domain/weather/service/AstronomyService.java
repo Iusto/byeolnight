@@ -72,12 +72,19 @@ public class AstronomyService {
     }
     
     private boolean isRealNasaData(AstronomyEvent event) {
-        // 실제 NASA API에서 수집된 데이터인지 판단
-        return event.getEventDate().isBefore(LocalDateTime.now().plusDays(1)) && 
-               (event.getEventType().equals("ASTEROID") || 
-                event.getEventType().equals("SOLAR_FLARE") || 
-                event.getEventType().equals("GEOMAGNETIC_STORM") ||
-                event.getEventType().equals("MARS_WEATHER"));
+        // 실제 발생한 과거 이벤트만 표시 (예측 이벤트 제외)
+        LocalDateTime now = LocalDateTime.now();
+        boolean isPastEvent = event.getEventDate().isBefore(now);
+        boolean isRealType = event.getEventType().equals("ASTEROID") || 
+                            event.getEventType().equals("SOLAR_FLARE") || 
+                            event.getEventType().equals("GEOMAGNETIC_STORM");
+        
+        // 예측 이벤트 제외 (제목에 "예측" 포함 또는 미래 시간)
+        boolean isPrediction = event.getTitle().contains("예측") || 
+                              event.getDescription().contains("예상") ||
+                              event.getEventType().equals("MARS_WEATHER");
+        
+        return isPastEvent && isRealType && !isPrediction;
     }
 
 
@@ -351,7 +358,7 @@ public class AstronomyService {
                         LocalDateTime eventTime = LocalDateTime.parse(beginTime.replace("Z", ""));
                         return createAstronomyEvent("SOLAR_FLARE",
                                 "태양 플레어 " + flare.get("classType") + " 등급",
-                                "NASA DONKI에서 감지된 태양 플레어 활동입니다. 통신 및 GPS에 영향을 줄 수 있습니다.",
+                                "NASA DONKI에서 감지된 태양 플레어 활동입니다. 이 시기에 통신 및 GPS에 영향을 주었을 가능성이 있습니다.",
                                 eventTime, "HIGH");
                     } catch (Exception e) {
                         log.warn("태양 플레어 데이터 파싱 실패: {}", e.getMessage());
@@ -376,7 +383,7 @@ public class AstronomyService {
                         LocalDateTime eventTime = LocalDateTime.parse(startTime.replace("Z", ""));
                         return createAstronomyEvent("GEOMAGNETIC_STORM",
                                 "지자기 폭풍 발생",
-                                "NASA DONKI에서 감지된 지자기 폭풍입니다. 오로라 관측 기회가 증가할 수 있습니다.",
+                                "NASA DONKI에서 감지된 지자기 폭풍입니다. 이 시기에 오로라 관측 기회가 증가했을 가능성이 있습니다.",
                                 eventTime, "MEDIUM");
                     } catch (Exception e) {
                         log.warn("지자기 폭풍 데이터 파싱 실패: {}", e.getMessage());
@@ -439,11 +446,18 @@ public class AstronomyService {
 
                     LocalDateTime eventDate = LocalDateTime.parse(entry.getKey() + "T21:00:00");
 
+                    // 과거 이벤트인지 미래 이벤트인지 판단
+                    boolean isPastEvent = eventDate.isBefore(LocalDateTime.now());
+                    String description = isPastEvent ? 
+                        String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과했습니다. NASA에서 감지된 실제 이벤트입니다.",
+                                isPotentiallyHazardous ? "잠재적 위험" : "안전한", distanceText) :
+                        String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과할 예정입니다. 망원경으로 관측 가능합니다.",
+                                isPotentiallyHazardous ? "잠재적 위험" : "안전한", distanceText);
+
                     events.add(AstronomyEvent.builder()
                             .eventType("ASTEROID")
                             .title("지구 근접 소행성 " + name.replace("(", "").replace(")", ""))
-                            .description(String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과합니다. 망원경으로 관측 가능합니다.",
-                                    isPotentiallyHazardous ? "잠재적 위험" : "안전한", distanceText))
+                            .description(description)
                             .eventDate(eventDate)
                             .peakTime(eventDate)
                             .visibility("WORLDWIDE")

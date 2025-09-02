@@ -39,18 +39,66 @@ const WeatherWidget: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [collectingAstronomy, setCollectingAstronomy] = useState(false);
+  const [requestingLocation, setRequestingLocation] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    getCurrentLocation();
-    fetchAstronomyEvents();
-    fetchIssLocation();
+    // 병렬로 모든 데이터 로드 시작
+    Promise.allSettled([
+      getCurrentLocationWithTimeout(),
+      fetchAstronomyEvents(),
+      fetchIssLocation()
+    ]).finally(() => {
+      setLoading(false);
+    });
     
     // ISS 위치 1분마다 업데이트
     const issInterval = setInterval(fetchIssLocation, 60 * 1000);
     
     return () => clearInterval(issInterval);
   }, []);
+
+  const getCurrentLocationWithTimeout = () => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        setLocationError('브라우저에서 위치 서비스를 지원하지 않습니다.');
+        fetchWeatherData(37.5665, 126.9780);
+        resolve(null);
+        return;
+      }
+
+      const timeoutId = setTimeout(() => {
+        setLocationError('위치 요청 시간 초과. 서울 기준으로 표시합니다.');
+        fetchWeatherData(37.5665, 126.9780);
+        resolve(null);
+      }, 5000); // 5초 타임아웃
+
+      setRequestingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          clearTimeout(timeoutId);
+          const { latitude, longitude } = position.coords;
+          setLocationError(null);
+          fetchWeatherData(latitude, longitude);
+          setRequestingLocation(false);
+          resolve(position);
+        },
+        (error) => {
+          clearTimeout(timeoutId);
+          console.error('위치 정보 오류:', error);
+          setLocationError('위치 정보를 가져올 수 없습니다. 서울 기준으로 표시합니다.');
+          fetchWeatherData(37.5665, 126.9780);
+          setRequestingLocation(false);
+          resolve(null);
+        },
+        {
+          timeout: 5000,
+          enableHighAccuracy: false, // 모바일에서 빠른 응답을 위해
+          maximumAge: 300000 // 5분간 캐시된 위치 사용
+        }
+      );
+    });
+  };
   
   // ISS 위치 변경 시 이벤트 목록 업데이트
   useEffect(() => {
@@ -62,23 +110,12 @@ const WeatherWidget: React.FC = () => {
   }, [issLocation]);
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          fetchWeatherData(latitude, longitude);
-        },
-        (error) => {
-          console.error('위치 정보 오류:', error);
-          setLocationError('위치 정보를 가져올 수 없습니다. 서울 기준으로 표시합니다.');
-          // 서울 좌표로 기본값 설정
-          fetchWeatherData(37.5665, 126.9780);
-        }
-      );
-    } else {
-      setLocationError('브라우저에서 위치 서비스를 지원하지 않습니다.');
-      fetchWeatherData(37.5665, 126.9780);
-    }
+    getCurrentLocationWithTimeout();
+  };
+
+  const handleLocationRequest = () => {
+    setLocationError(null);
+    getCurrentLocation();
   };
 
   const fetchWeatherData = async (latitude: number, longitude: number) => {
@@ -91,8 +128,8 @@ const WeatherWidget: React.FC = () => {
       setWeather(response.data);
     } catch (error) {
       console.error('날씨 데이터 조회 실패:', error);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('날씨 데이터 조회 실패:', error);
     }
   };
 
@@ -283,7 +320,25 @@ const WeatherWidget: React.FC = () => {
 
         {locationError && (
           <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
-            <p className="text-yellow-200 text-sm">{locationError}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-yellow-200 text-sm">{locationError}</p>
+              <button
+                onClick={handleLocationRequest}
+                disabled={requestingLocation}
+                className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ml-2"
+              >
+                {requestingLocation ? (
+                  <>
+                    <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
+                    요청 중...
+                  </>
+                ) : (
+                  <>
+                    📍 내 위치
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
