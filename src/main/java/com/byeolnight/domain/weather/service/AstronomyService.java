@@ -50,27 +50,34 @@ public class AstronomyService {
     }
 
     public List<AstronomyEventResponse> getUpcomingEvents() {
-        List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(LocalDateTime.now());
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(thirtyDaysAgo);
         
-        // 미래 이벤트 우선, 과거 이벤트는 최근 7일 내만
-        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        
+        // 실제 NASA 데이터 우선, 예측 데이터는 후순위
         return events.stream()
-                .filter(event -> event.getEventDate().isAfter(LocalDateTime.now()) || 
-                               event.getEventDate().isAfter(sevenDaysAgo))
                 .sorted((e1, e2) -> {
-                    // 미래 이벤트 우선 정렬
-                    boolean e1Future = e1.getEventDate().isAfter(LocalDateTime.now());
-                    boolean e2Future = e2.getEventDate().isAfter(LocalDateTime.now());
+                    boolean e1IsReal = isRealNasaData(e1);
+                    boolean e2IsReal = isRealNasaData(e2);
                     
-                    if (e1Future && !e2Future) return -1;
-                    if (!e1Future && e2Future) return 1;
+                    // 실제 데이터 우선
+                    if (e1IsReal && !e2IsReal) return -1;
+                    if (!e1IsReal && e2IsReal) return 1;
                     
-                    return e1.getEventDate().compareTo(e2.getEventDate());
+                    // 같은 타입끼리는 최신순
+                    return e2.getEventDate().compareTo(e1.getEventDate());
                 })
                 .limit(10)
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+    
+    private boolean isRealNasaData(AstronomyEvent event) {
+        // 실제 NASA API에서 수집된 데이터인지 판단
+        return event.getEventDate().isBefore(LocalDateTime.now().plusDays(1)) && 
+               (event.getEventType().equals("ASTEROID") || 
+                event.getEventType().equals("SOLAR_FLARE") || 
+                event.getEventType().equals("GEOMAGNETIC_STORM") ||
+                event.getEventType().equals("MARS_WEATHER"));
     }
 
 
@@ -102,7 +109,11 @@ public class AstronomyService {
 
     private void deactivateOldEvents() {
         // 30일 이전 이벤트 삭제
-        List<AstronomyEvent> oldEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusDays(30));
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        List<AstronomyEvent> oldEvents = astronomyRepository.findRecentEvents(thirtyDaysAgo);
+        oldEvents = oldEvents.stream()
+                .filter(event -> event.getEventDate().isBefore(thirtyDaysAgo))
+                .collect(Collectors.toList());
 
         if (!oldEvents.isEmpty()) {
             astronomyRepository.deleteAll(oldEvents);
