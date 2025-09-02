@@ -71,14 +71,14 @@ public class AstronomyService {
     }
 
     private void deactivateOldEvents() {
-        // 1년 이전 이벤트 삭제로 변경
-        List<AstronomyEvent> oldEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusYears(1));
+        // 30일 이전 이벤트 삭제
+        List<AstronomyEvent> oldEvents = astronomyRepository.findUpcomingEvents(LocalDateTime.now().minusDays(30));
 
         if (!oldEvents.isEmpty()) {
             astronomyRepository.deleteAll(oldEvents);
         }
 
-        log.info("1년 이전 이벤트 {} 개 삭제", oldEvents.size());
+        log.info("30일 이전 이벤트 {} 개 삭제", oldEvents.size());
     }
 
     private void fetchNasaAstronomyData() {
@@ -147,7 +147,7 @@ public class AstronomyService {
 
         try {
             LocalDateTime startDate = LocalDateTime.now();
-            LocalDateTime endDate = startDate.plusYears(1); // 1년으로 확장
+            LocalDateTime endDate = startDate.plusDays(7); // NASA API 제한: 최대 7일
             String neowsUrl = NASA_NEOWS_URL + "?start_date=" + startDate.toLocalDate() +
                     "&end_date=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
@@ -178,14 +178,15 @@ public class AstronomyService {
         }
 
         try {
-            LocalDateTime startDate = LocalDateTime.now();
-            LocalDateTime endDate = startDate.plusYears(1); // 1년으로 확장
+            // DONKI는 과거 30일 데이터 조회 (실제 발생한 이벤트)
+            LocalDateTime startDate = LocalDateTime.now().minusDays(30);
+            LocalDateTime endDate = LocalDateTime.now();
 
-            // 태양 플레어 데이터
+            // 태양 플레어 데이터 (과거 30일)
             String flareUrl = NASA_DONKI_URL + "/FLR?startDate=" + startDate.toLocalDate() +
                     "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
-            log.info("NASA DONKI FLR API 호출 (1년 범위)");
+            log.info("NASA DONKI FLR API 호출 (과거 30일)");
             ResponseEntity<Map[]> flareResponse = restTemplate.getForEntity(flareUrl, Map[].class);
 
             if (flareResponse.getStatusCode().is2xxSuccessful() && flareResponse.getBody() != null) {
@@ -194,11 +195,11 @@ public class AstronomyService {
                 log.info("태양 플레어 데이터 {} 개 수집", flareEvents.size());
             }
 
-            // 지자기 폭풍 데이터
+            // 지자기 폭풍 데이터 (과거 30일)
             String gstUrl = NASA_DONKI_URL + "/GST?startDate=" + startDate.toLocalDate() +
                     "&endDate=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;
 
-            log.info("NASA DONKI GST API 호출 (1년 범위)");
+            log.info("NASA DONKI GST API 호출 (과거 30일)");
             ResponseEntity<Map[]> gstResponse = restTemplate.getForEntity(gstUrl, Map[].class);
 
             if (gstResponse.getStatusCode().is2xxSuccessful() && gstResponse.getBody() != null) {
