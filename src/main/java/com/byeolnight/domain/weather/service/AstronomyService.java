@@ -414,12 +414,11 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
 
-                    // 2023년 이전 오래된 소행성 데이터 필터링
-                    if (name.contains("2022") || name.contains("2021") || name.contains("2020") ||
-                        name.contains("2019") || name.contains("2018") || name.contains("2017") || 
-                        name.contains("2016") || name.contains("2015") || name.contains("2014") ||
-                        name.contains("2013") || name.contains("2012") || name.contains("2011") ||
-                        name.contains("2010") || name.contains("200")) {
+                    // 2021년 이전 오래된 소행성 데이터 필터링
+                    if (name.contains("2020") || name.contains("2019") || name.contains("2018") || 
+                        name.contains("2017") || name.contains("2016") || name.contains("2015") || 
+                        name.contains("2014") || name.contains("2013") || name.contains("2012") ||
+                        name.contains("2011") || name.contains("2010") || name.contains("200")) {
                         log.info("오래된 소행성 데이터 제외: {}", name);
                         continue;
                     }
@@ -467,10 +466,10 @@ public class AstronomyService {
 
     private List<AstronomyEvent> createPredictedEvents() {
         return List.of(
-                createEvent("SOLAR_FLARE", "태양 플레어 M급 예측", "태양 활동 증가로 M급 플레어 발생 가능성이 높습니다. 오로라 관측 기회가 있을 수 있습니다.", 0, 14),
-                createEvent("GEOMAGNETIC_STORM", "지자기 폭풍 예측", "태양 플레어로 인한 지자기 폭풍이 예상됩니다. 오로라 관측 기회가 증가할 수 있습니다.", 1, 20),
-                createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 60개의 유성 관측 가능. 북동쪽 하늘을 주목하세요.", 3, 2),
-                createEvent("PLANET_CONJUNCTION", "금성-목성 근접", "금성과 목성이 하늘에서 가까이 보이는 아름다운 천체 현상입니다.", 5, 19)
+                createEvent("ASTEROID", "지구 근접 소행성 2025 AB", "지름 200m의 소행성이 지구에서 15백만 km 거리를 안전하게 통과합니다.", 2, 21),
+                createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 60개의 유성 관측 가능. 북동쪽 하늘을 주목하세요.", 4, 2),
+                createEvent("PLANET_CONJUNCTION", "금성-목성 근접", "금성과 목성이 하늘에서 가까이 보이는 아름다운 천체 현상입니다.", 6, 19),
+                createEvent("LUNAR_ECLIPSE", "부분월식", "달의 일부가 지구 그림자에 가려지는 부분월식이 발생합니다.", 8, 21)
         );
     }
 
