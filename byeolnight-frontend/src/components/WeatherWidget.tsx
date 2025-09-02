@@ -89,13 +89,16 @@ const WeatherWidget: React.FC = () => {
 
   const fetchIssLocation = async () => {
     try {
+      console.log('ISS 위치 업데이트 시작:', new Date().toLocaleTimeString());
       const response = await fetch('http://api.open-notify.org/iss-now.json');
       const data = await response.json();
+      console.log('ISS 데이터 수신:', data);
       setIssLocation({
         latitude: data.iss_position.latitude,
         longitude: data.iss_position.longitude,
         timestamp: data.timestamp
       });
+      console.log('ISS 위치 업데이트 완료');
     } catch (error) {
       console.error('ISS 위치 조회 실패:', error);
     }

@@ -133,7 +133,21 @@ public class AstronomyService {
         }
 
 
-        // 미래 이벤트 부족 시 예측 이벤트 추가
+        // 태양 플레어/지자기 폭풍 미래 예측 이벤트 항상 추가
+        boolean hasFutureSolarEvents = allEvents.stream()
+                .anyMatch(event -> event.getEventDate().isAfter(LocalDateTime.now()) && 
+                         (event.getEventType().contains("SOLAR") || event.getEventType().contains("GEOMAGNETIC")));
+        
+        if (!hasFutureSolarEvents) {
+            // 태양 활동 예측 이벤트 추가
+            allEvents.add(createEvent("SOLAR_FLARE", "태양 플레어 M급 예측", 
+                    "태양 활동 증가로 M급 플레어 발생 가능성이 높습니다. 오로라 관측 기회가 있을 수 있습니다.", 0, 14));
+            allEvents.add(createEvent("GEOMAGNETIC_STORM", "지자기 폭풍 예측", 
+                    "태양 플레어로 인한 지자기 폭풍이 예상됩니다. 오로라 관측 기회가 증가할 수 있습니다.", 1, 20));
+            log.info("태양 활동 예측 이벤트 2개 추가");
+        }
+        
+        // 미래 이벤트 부족 시 추가 예측 이벤트
         long futureEventsCount = allEvents.stream()
                 .filter(event -> event.getEventDate().isAfter(LocalDateTime.now()))
                 .count();
@@ -388,8 +402,14 @@ public class AstronomyService {
                     String name = (String) asteroid.get("name");
                     Boolean isPotentiallyHazardous = (Boolean) asteroid.get("is_potentially_hazardous_asteroid");
 
-                    // 1년 내 이벤트만 수집하므로 오래된 데이터 필터링 제거
-                    // NASA API에서 이미 날짜 범위로 필터링됨
+                    // 2020년 이전 오래된 소행성 데이터 필터링
+                    if (name.contains("2018") || name.contains("2019") || name.contains("2017") || 
+                        name.contains("2016") || name.contains("2015") || name.contains("2014") ||
+                        name.contains("2013") || name.contains("2012") || name.contains("2011") ||
+                        name.contains("2010") || name.contains("200")) {
+                        log.info("오래된 소행성 데이터 제외: {}", name);
+                        continue;
+                    }
 
                     List<Map<String, Object>> closeApproachData = (List<Map<String, Object>>) asteroid.get("close_approach_data");
                     String distanceText = "정보 없음";
@@ -434,10 +454,10 @@ public class AstronomyService {
 
     private List<AstronomyEvent> createPredictedEvents() {
         return List.of(
-                createEvent("SOLAR_FLARE", "태양 플레어 예측", "태양 활동 증가로 인한 플레어 발생 가능성이 높습니다. 오로라 관측 기회가 있을 수 있습니다.", 1, 14),
+                createEvent("SOLAR_FLARE", "태양 플레어 M급 예측", "태양 활동 증가로 M급 플레어 발생 가능성이 높습니다. 오로라 관측 기회가 있을 수 있습니다.", 0, 14),
+                createEvent("GEOMAGNETIC_STORM", "지자기 폭풍 예측", "태양 플레어로 인한 지자기 폭풍이 예상됩니다. 오로라 관측 기회가 증가할 수 있습니다.", 1, 20),
                 createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 60개의 유성 관측 가능. 북동쪽 하늘을 주목하세요.", 3, 2),
-                createEvent("PLANET_CONJUNCTION", "금성-목성 근접", "금성과 목성이 하늘에서 가까이 보이는 아름다운 천체 현상입니다.", 5, 19),
-                createEvent("LUNAR_ECLIPSE", "부분월식", "달의 일부가 지구 그림자에 가려지는 부분월식이 발생합니다.", 7, 21)
+                createEvent("PLANET_CONJUNCTION", "금성-목성 근접", "금성과 목성이 하늘에서 가까이 보이는 아름다운 천체 현상입니다.", 5, 19)
         );
     }
 
