@@ -42,4 +42,16 @@ public class WeatherController {
         List<AstronomyEventResponse> events = astronomyService.getUpcomingEvents();
         return ResponseEntity.ok(events);
     }
+    
+    @GetMapping("/iss")
+    @Operation(summary = "ISS 실시간 위치 조회", 
+               description = "국제우주정거장의 실시간 위치 정보를 조회합니다.")
+    public ResponseEntity<Map<String, Object>> getIssLocation() {
+        try {
+            Map<String, Object> issData = astronomyService.getIssLocation();
+            return ResponseEntity.ok(issData);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "ISS 데이터 조회 실패"));
+        }
+    }
 }

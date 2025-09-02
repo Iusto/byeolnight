@@ -36,6 +36,18 @@ public class AstronomyService {
     private static final String NASA_NEOWS_URL = "https://api.nasa.gov/neo/rest/v1/feed";
     private static final String NASA_DONKI_URL = "https://api.nasa.gov/DONKI";
     private static final String NASA_ISS_URL = "http://api.open-notify.org/iss-now.json";
+    
+    public Map<String, Object> getIssLocation() {
+        try {
+            ResponseEntity<Map> response = restTemplate.getForEntity(NASA_ISS_URL, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("ISS API 호출 실패: {}", e.getMessage());
+        }
+        return Map.of("error", "ISS 데이터 조회 실패");
+    }
 
     public List<AstronomyEventResponse> getUpcomingEvents() {
         List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(LocalDateTime.now());
