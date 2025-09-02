@@ -66,6 +66,8 @@ public class AstronomyService {
     public void fetchDailyAstronomyEvents() {
         performAstronomyDataCollection();
     }
+    
+
 
     // 관리자 수동 수집용 public 메서드
     public void performAstronomyDataCollection() {
@@ -119,14 +121,7 @@ public class AstronomyService {
             log.warn("NASA DONKI API 호출 실패: {}", e.getMessage());
         }
 
-        // 3. NASA ISS - 국제우주정거장 위치
-        try {
-            List<AstronomyEvent> issEvents = fetchIssData();
-            allEvents.addAll(issEvents);
-            if (!issEvents.isEmpty()) successCount++;
-        } catch (Exception e) {
-            log.warn("NASA ISS API 호출 실패: {}", e.getMessage());
-        }
+        // ISS 데이터는 프론트엔드에서 직접 호출
 
         // 4. NASA Mars Weather API
         try {

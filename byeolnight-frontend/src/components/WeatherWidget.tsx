@@ -26,9 +26,16 @@ interface AstronomyEvent {
   isActive: boolean;
 }
 
+interface IssLocation {
+  latitude: string;
+  longitude: string;
+  timestamp: number;
+}
+
 const WeatherWidget: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [events, setEvents] = useState<AstronomyEvent[]>([]);
+  const [issLocation, setIssLocation] = useState<IssLocation | null>(null);
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [collectingAstronomy, setCollectingAstronomy] = useState(false);
@@ -37,6 +44,12 @@ const WeatherWidget: React.FC = () => {
   useEffect(() => {
     getCurrentLocation();
     fetchAstronomyEvents();
+    fetchIssLocation();
+    
+    // ISS 위치 1분마다 업데이트
+    const issInterval = setInterval(fetchIssLocation, 60 * 1000);
+    
+    return () => clearInterval(issInterval);
   }, []);
 
   const getCurrentLocation = () => {
@@ -74,6 +87,20 @@ const WeatherWidget: React.FC = () => {
     }
   };
 
+  const fetchIssLocation = async () => {
+    try {
+      const response = await fetch('http://api.open-notify.org/iss-now.json');
+      const data = await response.json();
+      setIssLocation({
+        latitude: data.iss_position.latitude,
+        longitude: data.iss_position.longitude,
+        timestamp: data.timestamp
+      });
+    } catch (error) {
+      console.error('ISS 위치 조회 실패:', error);
+    }
+  };
+
   const fetchAstronomyEvents = async () => {
     try {
       console.log('천체 이벤트 요청 시작');
@@ -104,7 +131,6 @@ const WeatherWidget: React.FC = () => {
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
         const typeGroup = event.eventType.includes('ASTEROID') ? 'NEOWS' :
                          event.eventType.includes('SOLAR') || event.eventType.includes('GEOMAGNETIC') ? 'DONKI' :
-                         event.eventType.includes('ISS') ? 'ISS' : 
                          event.eventType.includes('METEOR') || event.eventType.includes('LUNAR') || event.eventType.includes('PLANET') ? 'PREDICTED' : 'OTHER';
         
         if (!acc[typeGroup]) {
@@ -113,7 +139,24 @@ const WeatherWidget: React.FC = () => {
         return acc;
       }, {});
       
-      const selectedEvents = Object.values(eventsByType).slice(0, 5);
+      let selectedEvents = Object.values(eventsByType).slice(0, 4);
+      
+      // ISS 실시간 데이터 추가
+      if (issLocation) {
+        const issEvent: AstronomyEvent = {
+          id: 0,
+          eventType: 'ISS_LOCATION',
+          title: 'ISS 실시간 위치',
+          description: `국제우주정거장 현재 위치: ${parseFloat(issLocation.latitude).toFixed(1)}°, ${parseFloat(issLocation.longitude).toFixed(1)}°`,
+          eventDate: new Date().toISOString(),
+          peakTime: new Date().toISOString(),
+          visibility: 'WORLDWIDE',
+          magnitude: 'MEDIUM',
+          isActive: true
+        };
+        selectedEvents = [issEvent, ...selectedEvents].slice(0, 5);
+      }
+      
       setEvents(selectedEvents);
     } catch (error) {
       console.error('천체 이벤트 조회 실패:', error);
@@ -126,7 +169,7 @@ const WeatherWidget: React.FC = () => {
     setCollectingAstronomy(true);
     try {
       await axios.post('/api/admin/scheduler/astronomy/manual');
-      alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/ISS)');
+      alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/Mars)');
       await fetchAstronomyEvents();
     } catch (error) {
       console.error('천체 데이터 수집 실패:', error);
