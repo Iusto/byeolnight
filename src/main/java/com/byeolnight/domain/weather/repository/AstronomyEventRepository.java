@@ -12,10 +12,7 @@ import java.util.List;
 @Repository
 public interface AstronomyEventRepository extends JpaRepository<AstronomyEvent, Long> {
     
-    @Query("SELECT a FROM AstronomyEvent a WHERE a.isActive = true " +
-           "AND a.eventDate BETWEEN :start AND :end ORDER BY a.eventDate ASC")
-    List<AstronomyEvent> findActiveEventsBetween(@Param("start") LocalDateTime start, 
-                                               @Param("end") LocalDateTime end);
+
     
     @Query("SELECT a FROM AstronomyEvent a WHERE a.isActive = true " +
            "AND a.eventDate > :now ORDER BY a.eventDate ASC")

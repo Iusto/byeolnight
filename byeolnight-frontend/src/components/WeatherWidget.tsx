@@ -79,12 +79,11 @@ const WeatherWidget: React.FC = () => {
       console.log('천체 이벤트 요청 시작');
       const response = await axios.get('/api/weather/events');
       console.log('천체 이벤트 응답:', response.data);
-      // 4가지 타입별로 최신 1개씩 선택하여 최대 4개 표시
+      // NASA API 타입별로 최신 1개씩 선택하여 최대 4개 표시
       const eventsByType = response.data.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
         const typeGroup = event.eventType.includes('ASTEROID') ? 'NEOWS' :
                          event.eventType.includes('SOLAR') || event.eventType.includes('GEOMAGNETIC') ? 'DONKI' :
-                         event.eventType.includes('ISS') ? 'ISS' :
-                         event.eventType.includes('KASI') || event.eventType.includes('MOON') ? 'KASI' : 'OTHER';
+                         event.eventType.includes('ISS') ? 'ISS' : 'OTHER';
         
         if (!acc[typeGroup] || new Date(event.eventDate) > new Date(acc[typeGroup].eventDate)) {
           acc[typeGroup] = event;
@@ -100,12 +99,12 @@ const WeatherWidget: React.FC = () => {
   };
 
   const handleCollectAstronomy = async () => {
-    if (!confirm('NASA + KASI API로 천체 데이터를 수동 업데이트하시겠습니까?')) return;
+    if (!confirm('NASA API로 천체 데이터를 수동 업데이트하시겠습니까?')) return;
     
     setCollectingAstronomy(true);
     try {
       await axios.post('/api/admin/scheduler/astronomy/manual');
-      alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/ISS + KASI)');
+      alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/ISS)');
       await fetchAstronomyEvents();
     } catch (error) {
       console.error('천체 데이터 수집 실패:', error);
@@ -131,8 +130,7 @@ const WeatherWidget: React.FC = () => {
       case 'SOLAR_FLARE': return '☀️'; // NASA DONKI
       case 'GEOMAGNETIC_STORM': return '🌍'; // NASA DONKI
       case 'ISS_LOCATION': return '🛰️'; // NASA ISS
-      case 'KASI_EVENT': return '🇰🇷'; // KASI 천문현상
-      case 'MOON_PHASE': return '🌙'; // KASI 월령
+
       case 'METEOR_SHOWER': return '☄️';
       case 'ECLIPSE': return '🌙';
       case 'PLANET_CONJUNCTION': return '🪐';
@@ -149,8 +147,7 @@ const WeatherWidget: React.FC = () => {
       case 'SOLAR_FLARE': return 'NASA 태양플레어';
       case 'GEOMAGNETIC_STORM': return 'NASA 지자기폭풍';
       case 'ISS_LOCATION': return 'NASA 국제우주정거장';
-      case 'KASI_EVENT': return 'KASI 천문현상';
-      case 'MOON_PHASE': return 'KASI 달의위상';
+
       default: return '천체 이벤트';
     }
   };
@@ -161,8 +158,7 @@ const WeatherWidget: React.FC = () => {
       case 'SOLAR_FLARE': return 'bg-red-500/20 text-red-300 border-red-500/30';
       case 'GEOMAGNETIC_STORM': return 'bg-green-500/20 text-green-300 border-green-500/30';
       case 'ISS_LOCATION': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      case 'KASI_EVENT': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-      case 'MOON_PHASE': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+
       default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
   };
@@ -319,7 +315,7 @@ const WeatherWidget: React.FC = () => {
           <div className="text-center py-4">
             <div className="text-4xl mb-2">🌌</div>
             <p className="text-gray-300">천체 데이터 로딩 중...</p>
-            <p className="text-xs text-gray-400 mt-1">NASA + KASI API 연동</p>
+            <p className="text-xs text-gray-400 mt-1">NASA API 연동</p>
           </div>
         </div>
       )}

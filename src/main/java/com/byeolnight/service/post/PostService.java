@@ -96,13 +96,7 @@ public class PostService {
             
             if (dto.getCategory() == Post.Category.NOTICE) {
                 try {
-                    notificationService.createNotificationForAllUsers(
-                        Notification.NotificationType.NEW_NOTICE,
-                        "새 공지사항이 등록되었습니다",
-                        dto.getTitle(),
-                        "/posts/" + post.getId(),
-                        post.getId()
-                    );
+                    notificationService.notifyNewNotice(post.getId(), dto.getTitle());
                 } catch (Exception e) {
                     System.err.println("공지사항 알림 전송 실패: " + e.getMessage());
                 }

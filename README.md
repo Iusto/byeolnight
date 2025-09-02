@@ -42,8 +42,8 @@
 
 ### 🌟 실시간 천체 정보 시스템 (NEW!)
 - **실시간 관측 조건**: Geolocation API + OpenWeatherMap 연동으로 사용자 위치 기반 별 관측 적합도 실시간 제공
-- **천체 이벤트 알림**: NASA + KASI API 복합 연동으로 유성우, 일식/월식, 행성 근접 등 실제 천체 이벤트 자동 수집 및 24시간 전 알림
-- **다중 API 통합**: NASA APOD/NeoWs API + 한국천문연구원 KASI API로 글로벌 + 한국 특화 천체 데이터 제공
+- **천체 이벤트 알림**: NASA API 연동으로 유성우, 태양 플레어, 지구 근접 소행성 등 실제 천체 이벤트 자동 수집 및 24시간 전 알림
+- **NASA API 통합**: NASA NeoWs/DONKI/ISS API로 글로벌 천체 데이터 제공
 - **스마트 추천**: 구름량, 시정, 달의 위상 분석으로 4단계 관측 품질 등급 (EXCELLENT/GOOD/FAIR/POOR) 제공
 - **위치 기반 서비스**: 위치 권한 거부 시 서울 기준 기본값 제공, 1시간 캐싱으로 API 호출 최적화
 
@@ -141,8 +141,7 @@
 - **Google Vision API** - 이미지 콘텐츠 검증 및 부적절 콘텐츠 차단
 - **Claude/OpenAI API** - AI 기반 콘텐츠 요약 및 토론 주제 생성
 - **OpenWeatherMap API** - 실시간 날씨 데이터 및 별 관측 조건 분석
-- **NASA Open APIs** - APOD(오늘의 천체사진), NeoWs(지구 근접 소행성) 데이터
-- **KASI Open API** - 한국천문연구원 천문현상 정보, 월령 정보 (한국 시간 기준)
+- **NASA Open APIs** - NeoWs(지구 근접 소행성), DONKI(우주 기상), ISS(국제우주정거장) 데이터
 
 ---
 
@@ -263,7 +262,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **이메일 인증 보안**: 단순 6자리 숫자 → 8자리 영숫자 + HTML 템플릿 + 무차별 대입 방지로 보안성 300% 향상
 - **이미지 업로드 컴포넌트화**: PostCreate/PostEdit 코드 중복 → ImageUploader 컴포넌트로 재사용성 향상, 클립보드 붙여넣기 지원
 - **에디터 기능 개선**: Toast UI Editor 커스텀 툴바 → 색상 변경, 텍스트 정렬 기능 추가로 사용자 경험 향상
-- **실시간 천체 정보 시스템**: 정적 데이터 → NASA + KASI API 복합 연동으로 글로벌 + 한국 특화 천체 데이터 제공, 실시간 이벤트 자동 알림
+- **실시간 천체 정보 시스템**: 정적 데이터 → NASA API 연동으로 글로벌 천체 데이터 제공, 실시간 이벤트 자동 알림
 
 ### 성능 최적화 성과
 - **중앙화된 설정 관리**: Config Server 도입으로 설정 관리 복잡도 80% 감소, 보안 강화
@@ -276,7 +275,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **API 문서화**: Swagger UI 기반 완전한 API 문서화, 개발자 경험 향상 및 API 사용성 개선
 - **컴포넌트 재사용성**: ImageUploader 컴포넌트 도입으로 코드 중복 80% 감소, 유지보수성 향상
 - **에디터 UX 개선**: 색상 변경 및 텍스트 정렬 기능 추가로 콘텐츠 작성 자유도 50% 향상
-- **실시간 천체 정보**: NASA + KASI API 복합 연동으로 글로벌 + 한국 특화 천체 데이터 제공, WeatherWidget 컴포넌트로 사용자 위치 기반 별 관측 조건 실시간 제공, 천체 이벤트 자동 알림으로 사용자 참여도 40% 향상
+- **실시간 천체 정보**: NASA API 연동으로 글로벌 천체 데이터 제공, WeatherWidget 컴포넌트로 사용자 위치 기반 별 관측 조건 실시간 제공, 천체 이벤트 자동 알림으로 사용자 참여도 40% 향상
 - **테스트 코드 최적화**: 공통 Mock 설정으로 테스트 코드 93% 감소, Lenient 모드 적용으로 테스트 안정성 100% 향상
 
 ---
@@ -309,7 +308,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **실시간 기능**: WebSocket 연결 안정성 99%
 
 ### 외부 연동 및 자동화
-- **외부 API**: 9개 서비스 (Gmail SMTP, AWS S3, Google Vision, NewsData, OpenAI, Claude, OpenWeatherMap, NASA APIs, KASI API)
+- **외부 API**: 8개 서비스 (Gmail SMTP, AWS S3, Google Vision, NewsData, OpenAI, Claude, OpenWeatherMap, NASA APIs)
 - **소셜 플랫폼**: Google, Kakao, Naver OAuth2 + 연동 해제 API
 - **CI/CD 워크플로우**: 5개 자동화 파이프라인
 - **스케줄링 작업**: 뉴스 수집, 데이터 정리, 토론 주제 생성, 소셜 연동 검증, 계정 정리, 천체 이벤트 수집
