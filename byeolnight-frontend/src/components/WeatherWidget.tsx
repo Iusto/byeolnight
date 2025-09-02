@@ -79,19 +79,41 @@ const WeatherWidget: React.FC = () => {
       console.log('천체 이벤트 요청 시작');
       const response = await axios.get('/api/weather/events');
       console.log('천체 이벤트 응답:', response.data);
-      // NASA API 타입별로 최신 1개씩 선택하여 최대 4개 표시
-      const eventsByType = response.data.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
+      // 미래 이벤트 우선, 과거 이벤트는 최근 3일 내만 표시
+      const now = new Date();
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      
+      const filteredEvents = response.data.filter((event: AstronomyEvent) => {
+        const eventDate = new Date(event.eventDate);
+        return eventDate > now || eventDate > threeDaysAgo;
+      });
+      
+      // 미래 이벤트 우선 정렬 후 타입별 최대 1개씩 선택
+      const sortedEvents = filteredEvents.sort((a: AstronomyEvent, b: AstronomyEvent) => {
+        const aDate = new Date(a.eventDate);
+        const bDate = new Date(b.eventDate);
+        const aFuture = aDate > now;
+        const bFuture = bDate > now;
+        
+        if (aFuture && !bFuture) return -1;
+        if (!aFuture && bFuture) return 1;
+        
+        return aDate.getTime() - bDate.getTime();
+      });
+      
+      const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
         const typeGroup = event.eventType.includes('ASTEROID') ? 'NEOWS' :
                          event.eventType.includes('SOLAR') || event.eventType.includes('GEOMAGNETIC') ? 'DONKI' :
-                         event.eventType.includes('ISS') ? 'ISS' : 'OTHER';
+                         event.eventType.includes('ISS') ? 'ISS' : 
+                         event.eventType.includes('METEOR') || event.eventType.includes('LUNAR') || event.eventType.includes('PLANET') ? 'PREDICTED' : 'OTHER';
         
-        if (!acc[typeGroup] || new Date(event.eventDate) > new Date(acc[typeGroup].eventDate)) {
+        if (!acc[typeGroup]) {
           acc[typeGroup] = event;
         }
         return acc;
       }, {});
       
-      const selectedEvents = Object.values(eventsByType).slice(0, 4);
+      const selectedEvents = Object.values(eventsByType).slice(0, 5);
       setEvents(selectedEvents);
     } catch (error) {
       console.error('천체 이벤트 조회 실패:', error);
@@ -130,11 +152,12 @@ const WeatherWidget: React.FC = () => {
       case 'SOLAR_FLARE': return '☀️'; // NASA DONKI
       case 'GEOMAGNETIC_STORM': return '🌍'; // NASA DONKI
       case 'ISS_LOCATION': return '🛰️'; // NASA ISS
+      case 'MARS_WEATHER': return '🔴'; // NASA Mars
 
       case 'METEOR_SHOWER': return '☄️';
-      case 'ECLIPSE': return '🌙';
+      case 'LUNAR_ECLIPSE': return '🌙';
       case 'PLANET_CONJUNCTION': return '🪐';
-      case 'COMET': return '✨';
+      case 'COMET_OBSERVATION': return '✨';
       case 'SUPERMOON': return '🌕';
       case 'SPECIAL': return '🌠';
       default: return '⭐';
@@ -147,6 +170,11 @@ const WeatherWidget: React.FC = () => {
       case 'SOLAR_FLARE': return 'NASA 태양플레어';
       case 'GEOMAGNETIC_STORM': return 'NASA 지자기폭풍';
       case 'ISS_LOCATION': return 'NASA 국제우주정거장';
+      case 'MARS_WEATHER': return 'NASA 화성날씨';
+      case 'METEOR_SHOWER': return '유성우';
+      case 'LUNAR_ECLIPSE': return '월식';
+      case 'PLANET_CONJUNCTION': return '행성근접';
+      case 'COMET_OBSERVATION': return '혜성관측';
 
       default: return '천체 이벤트';
     }
@@ -158,6 +186,11 @@ const WeatherWidget: React.FC = () => {
       case 'SOLAR_FLARE': return 'bg-red-500/20 text-red-300 border-red-500/30';
       case 'GEOMAGNETIC_STORM': return 'bg-green-500/20 text-green-300 border-green-500/30';
       case 'ISS_LOCATION': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      case 'MARS_WEATHER': return 'bg-red-500/20 text-red-300 border-red-500/30';
+      case 'METEOR_SHOWER': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      case 'LUNAR_ECLIPSE': return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
+      case 'PLANET_CONJUNCTION': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'COMET_OBSERVATION': return 'bg-pink-500/20 text-pink-300 border-pink-500/30';
 
       default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }

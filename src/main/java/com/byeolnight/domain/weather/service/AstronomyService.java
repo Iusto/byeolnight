@@ -39,8 +39,24 @@ public class AstronomyService {
 
     public List<AstronomyEventResponse> getUpcomingEvents() {
         List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(LocalDateTime.now());
+        
+        // 미래 이벤트 우선, 과거 이벤트는 최근 7일 내만
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        
         return events.stream()
-                .limit(10) // 최대 10개
+                .filter(event -> event.getEventDate().isAfter(LocalDateTime.now()) || 
+                               event.getEventDate().isAfter(sevenDaysAgo))
+                .sorted((e1, e2) -> {
+                    // 미래 이벤트 우선 정렬
+                    boolean e1Future = e1.getEventDate().isAfter(LocalDateTime.now());
+                    boolean e2Future = e2.getEventDate().isAfter(LocalDateTime.now());
+                    
+                    if (e1Future && !e2Future) return -1;
+                    if (!e1Future && e2Future) return 1;
+                    
+                    return e1.getEventDate().compareTo(e2.getEventDate());
+                })
+                .limit(10)
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
@@ -121,6 +137,16 @@ public class AstronomyService {
             log.warn("NASA Mars Weather API 호출 실패: {}", e.getMessage());
         }
 
+
+        // 미래 이벤트 부족 시 예측 이벤트 추가
+        long futureEventsCount = allEvents.stream()
+                .filter(event -> event.getEventDate().isAfter(LocalDateTime.now()))
+                .count();
+        
+        if (futureEventsCount < 3) {
+            allEvents.addAll(createPredictedEvents());
+            log.info("미래 이벤트 부족으로 예측 이벤트 {} 개 추가", createPredictedEvents().size());
+        }
 
         // NASA API 데이터 저장
         if (!allEvents.isEmpty()) {
@@ -411,13 +437,17 @@ public class AstronomyService {
     }
 
 
-    private void createFallbackEvents() {
-        List<AstronomyEvent> events = List.of(
-                createEvent("ASTEROID", "지구 근접 소행성 2025 AB1", "지름 150m의 소행성이 지구에서 50백만 km 거리를 안전하게 통과합니다.", 3, 21),
-                createEvent("ISS_LOCATION", "ISS 관측 기회", "국제우주정거장이 한국 상공을 통과합니다. 5분간 관측 가능합니다.", 1, 19),
-                createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 최대 60개의 유성을 관측할 수 있는 연중 최대 유성우입니다.", 5, 2),
-                createEvent("SOLAR_FLARE", "태양 플레어 활동", "태양에서 강력한 플레어가 발생했습니다. 오로라 관측 기회가 증가할 수 있습니다.", 2, 20)
+    private List<AstronomyEvent> createPredictedEvents() {
+        return List.of(
+                createEvent("SOLAR_FLARE", "태양 플레어 예측", "태양 활동 증가로 인한 플레어 발생 가능성이 높습니다. 오로라 관측 기회가 있을 수 있습니다.", 1, 14),
+                createEvent("METEOR_SHOWER", "페르세우스 유성우", "시간당 60개의 유성 관측 가능. 북동쪽 하늘을 주목하세요.", 3, 2),
+                createEvent("PLANET_CONJUNCTION", "금성-목성 근접", "금성과 목성이 하늘에서 가까이 보이는 아름다운 천체 현상입니다.", 5, 19),
+                createEvent("LUNAR_ECLIPSE", "부분월식", "달의 일부가 지구 그림자에 가려지는 부분월식이 발생합니다.", 7, 21)
         );
+    }
+
+    private void createFallbackEvents() {
+        List<AstronomyEvent> events = createPredictedEvents();
         astronomyRepository.saveAll(events);
         log.info("기본 천체 이벤트 {} 개 생성", events.size());
     }
