@@ -113,18 +113,8 @@ public class AstronomyService {
     }
 
     private void deactivateOldEvents() {
-
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-        List<AstronomyEvent> oldEvents = astronomyRepository.findRecentEvents(thirtyDaysAgo);
-        oldEvents = oldEvents.stream()
-                .filter(event -> event.getEventDate().isBefore(thirtyDaysAgo))
-                .collect(Collectors.toList());
-
-        if (!oldEvents.isEmpty()) {
-            astronomyRepository.deleteAll(oldEvents);
-        }
-
-        log.info("30일 이전 이벤트 {} 개 삭제", oldEvents.size());
+        astronomyRepository.deleteAll();
+        log.info("기존 모든 이벤트 삭제 (중복 방지)");
     }
 
     private void fetchNasaAstronomyData() {
@@ -319,9 +309,16 @@ public class AstronomyService {
                     try {
                         String beginTime = (String) flare.get("beginTime");
                         LocalDateTime eventTime = LocalDateTime.parse(beginTime.replace("Z", ""));
+                        String classType = flare.get("classType").toString();
+                        String peakTime = flare.get("peakTime") != null ? 
+                            LocalDateTime.parse(((String) flare.get("peakTime")).replace("Z", "")).toLocalTime().toString() : "미상";
+                        
+                        String description = String.format("%s에 태양에서 %s 등급 플레어가 발생했습니다. 최대 강도 시간: %s (UTC). 전파 및 GPS 신호에 일시적 영향을 주었을 수 있습니다.",
+                                eventTime.toLocalDate(), classType, peakTime);
+                        
                         return createAstronomyEvent("SOLAR_FLARE",
-                                "태양 플레어 " + flare.get("classType") + " 등급",
-                                "NASA DONKI에서 감지된 태양 플레어 활동입니다. 이 시기에 통신 및 GPS에 영향을 주었을 가능성이 있습니다.",
+                                "태양 플레어 " + classType + " 등급",
+                                description,
                                 eventTime, "HIGH");
                     } catch (Exception e) {
                         log.warn("태양 플레어 데이터 파싱 실패: {}", e.getMessage());
@@ -344,9 +341,13 @@ public class AstronomyService {
                     try {
                         String startTime = (String) gst.get("startTime");
                         LocalDateTime eventTime = LocalDateTime.parse(startTime.replace("Z", ""));
+                        String kpIndex = gst.get("kpIndex") != null ? gst.get("kpIndex").toString() : "미상";
+                        String description = String.format("%s에 지자기 폭풍이 발생했습니다. Kp 지수: %s. 극지방에서 오로라 관측이 가능했을 것입니다.",
+                                eventTime.toLocalDate(), kpIndex);
+                        
                         return createAstronomyEvent("GEOMAGNETIC_STORM",
                                 "지자기 폭풍 발생",
-                                "NASA DONKI에서 감지된 지자기 폭풍입니다. 이 시기에 오로라 관측 기회가 증가했을 가능성이 있습니다.",
+                                description,
                                 eventTime, "MEDIUM");
                     } catch (Exception e) {
                         log.warn("지자기 폭풍 데이터 파싱 실패: {}", e.getMessage());
@@ -411,11 +412,10 @@ public class AstronomyService {
 
 
                     boolean isPastEvent = eventDate.isBefore(LocalDateTime.now());
+                    String sizeInfo = getAsteroidSize(asteroid);
                     String description = isPastEvent ? 
-                        String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과했습니다. NASA에서 감지된 실제 이벤트입니다.",
-                                isPotentiallyHazardous ? "잠재적 위험" : "안전한", distanceText) :
-                        String.format("%s 소행성이 지구에서 %s 거리를 안전하게 통과할 예정입니다. 망원경으로 관측 가능합니다.",
-                                isPotentiallyHazardous ? "잠재적 위험" : "안전한", distanceText);
+                        String.format("지름 %s의 소행성이 지구에서 %s 거리를 안전하게 통과했습니다.", sizeInfo, distanceText) :
+                        String.format("지름 %s의 소행성이 지구에서 %s 거리를 안전하게 통과할 예정입니다.", sizeInfo, distanceText);
 
                     events.add(AstronomyEvent.builder()
                             .eventType("ASTEROID")
@@ -484,6 +484,28 @@ public class AstronomyService {
 
 
 
+
+    private String getAsteroidSize(Map<String, Object> asteroid) {
+        try {
+            Map<String, Object> estimatedDiameter = (Map<String, Object>) asteroid.get("estimated_diameter");
+            if (estimatedDiameter != null) {
+                Map<String, Object> meters = (Map<String, Object>) estimatedDiameter.get("meters");
+                if (meters != null) {
+                    Double maxDiameter = (Double) meters.get("estimated_diameter_max");
+                    if (maxDiameter != null) {
+                        if (maxDiameter >= 1000) {
+                            return String.format("%.1fkm", maxDiameter / 1000);
+                        } else {
+                            return String.format("%.0fm", maxDiameter);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("소행성 크기 정보 파싱 실패: {}", e.getMessage());
+        }
+        return "미상";
+    }
 
     private String sanitizeForLog(String input) {
         if (input == null) return "null";

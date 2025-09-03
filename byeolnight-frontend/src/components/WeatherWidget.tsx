@@ -316,29 +316,29 @@ const WeatherWidget: React.FC = () => {
           )}
         </div>
 
-        {locationError && (
-          <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
-            <div className="flex items-center justify-between">
-              <p className="text-yellow-200 text-sm">{locationError}</p>
-              <button
-                onClick={handleLocationRequest}
-                disabled={requestingLocation}
-                className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ml-2"
-              >
-                {requestingLocation ? (
-                  <>
-                    <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
-                    요청 중...
-                  </>
-                ) : (
-                  <>
-                    📍 내 위치
-                  </>
-                )}
-              </button>
-            </div>
+        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <p className="text-blue-200 text-sm">
+              {locationError || '위치 기반 별 관측 조건을 확인하세요'}
+            </p>
+            <button
+              onClick={handleLocationRequest}
+              disabled={requestingLocation}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ml-2"
+            >
+              {requestingLocation ? (
+                <>
+                  <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
+                  요청 중...
+                </>
+              ) : (
+                <>
+                  📍 내 위치
+                </>
+              )}
+            </button>
           </div>
-        )}
+        </div>
 
         {weather ? (
           <div className="space-y-3">
