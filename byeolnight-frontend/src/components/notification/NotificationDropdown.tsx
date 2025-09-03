@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getNotifications, markAsRead, markAllAsRead, getUnreadCount, deleteNotification } from '../../lib/api/notification';
-// import { useWebSocket } from '../../hooks/useWebSocket'; // 임시 비활성화
+import { useWebSocket } from '../../hooks/useWebSocket';
 import type { Notification } from '../../types/notification';
 import { NOTIFICATION_ICONS } from '../../types/notification';
 
@@ -14,12 +14,14 @@ export default function NotificationDropdown() {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // WebSocket 연결 임시 비활성화 (배포 후 수정 예정)
-  // useWebSocket((notification) => {
-  //   console.log('실시간 알림 수신됨:', notification);
-  //   setUnreadCount(prev => prev + 1);
-  //   setNotifications(prev => [notification, ...prev.slice(0, 4)]);
-  // });
+  // WebSocket 실시간 알림
+  useWebSocket((notification) => {
+    if (import.meta.env.DEV) {
+      console.log('실시간 알림 수신됨:', notification);
+    }
+    setUnreadCount(prev => prev + 1);
+    setNotifications(prev => [notification, ...prev.slice(0, 9)]);
+  });
 
   useEffect(() => {
     if (user) {
