@@ -195,8 +195,9 @@ const WeatherWidget: React.FC = () => {
       });
       
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
-        const typeGroup = event.eventType.includes('ASTEROID') ? 'NEOWS' :
-                         event.eventType.includes('SOLAR') || event.eventType.includes('GEOMAGNETIC') ? 'DONKI' :
+        const typeGroup = event.eventType.includes('ASTEROID') ? 'ASTEROID' :
+                         event.eventType.includes('SOLAR') ? 'SOLAR_FLARE' :
+                         event.eventType.includes('GEOMAGNETIC') ? 'GEOMAGNETIC_STORM' :
                          event.eventType.includes('METEOR') || event.eventType.includes('LUNAR') || event.eventType.includes('PLANET') ? 'PREDICTED' : 'OTHER';
         
         if (!acc[typeGroup]) {
