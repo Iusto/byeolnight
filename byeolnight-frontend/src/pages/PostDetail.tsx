@@ -577,18 +577,75 @@ export default function PostDetail() {
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                  img: ({ node, ...props }) => (
-                    <img
-                      {...props}
-                      loading="lazy"
-                      onError={(e) => {
-                        console.error('마크다운 이미지 로드 실패:', props.src);
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
-                        e.currentTarget.onerror = null;
-                      }}
-                      onClick={() => props.src && window.open(props.src, '_blank')}
-                    />
-                  )
+                  img: ({ node, ...props }) => {
+                    // S3 URL이나 유효한 이미지 URL인지 확인
+                    const isValidImageUrl = props.src && (
+                      props.src.includes('byeolnight-bucket.s3') ||
+                      /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(props.src)
+                    );
+                    
+                    if (!isValidImageUrl) {
+                      console.warn('유효하지 않은 이미지 URL:', props.src);
+                      return null;
+                    }
+                    
+                    return (
+                      <img
+                        {...props}
+                        loading="lazy"
+                        style={{
+                          maxWidth: '100%',
+                          height: 'auto',
+                          margin: '16px 0',
+                          borderRadius: '8px',
+                          display: 'block',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                          cursor: 'pointer'
+                        }}
+                        onError={(e) => {
+                          console.error('마크다운 이미지 로드 실패:', props.src);
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
+                          e.currentTarget.onerror = null;
+                        }}
+                        onClick={() => props.src && window.open(props.src, '_blank')}
+                      />
+                    );
+                  },
+                  // 일반 텍스트에서 이미지 URL을 감지하여 이미지로 변환
+                  p: ({ node, children, ...props }) => {
+                    // 텍스트 노드에서 이미지 URL 패턴 찾기
+                    const textContent = node?.children?.[0]?.value || '';
+                    const imageUrlMatch = textContent.match(/^https:\/\/byeolnight-bucket\.s3\.[^\s]+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i);
+                    
+                    if (imageUrlMatch) {
+                      const imageUrl = imageUrlMatch[0];
+                      return (
+                        <div style={{ margin: '16px 0' }}>
+                          <img
+                            src={imageUrl}
+                            alt="업로드된 이미지"
+                            loading="lazy"
+                            style={{
+                              maxWidth: '100%',
+                              height: 'auto',
+                              borderRadius: '8px',
+                              display: 'block',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                              cursor: 'pointer'
+                            }}
+                            onError={(e) => {
+                              console.error('이미지 로드 실패:', imageUrl);
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
+                              e.currentTarget.onerror = null;
+                            }}
+                            onClick={() => window.open(imageUrl, '_blank')}
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    return <p {...props}>{children}</p>;
+                  }
                 }}
               />
             </div>
