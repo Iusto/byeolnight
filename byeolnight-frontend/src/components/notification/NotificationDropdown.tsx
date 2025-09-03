@@ -156,7 +156,7 @@ export default function NotificationDropdown() {
 
       {/* 드롭다운 */}
       {isOpen && (
-        <div className="absolute right-0 sm:right-0 top-full mt-2 w-80 sm:w-80 max-w-[calc(100vw-2rem)] bg-[#1f2336]/95 backdrop-blur-md rounded-xl shadow-xl border border-purple-500/20 z-50 transform -translate-x-full sm:translate-x-0">
+        <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] bg-[#1f2336]/95 backdrop-blur-md rounded-xl shadow-xl border border-purple-500/20 z-50 transform translate-x-[-calc(100%-2rem)] sm:translate-x-0">
           {/* 헤더 */}
           <div className="flex items-center justify-between p-4 border-b border-purple-500/20">
             <h3 className="text-white font-semibold">알림</h3>
