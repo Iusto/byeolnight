@@ -298,11 +298,91 @@ const WeatherWidget: React.FC = () => {
   // 로딩 상태
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl">
-        <div className="animate-pulse">
-          <div className="h-6 bg-white/20 rounded mb-4 w-3/4"></div>
-          <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
-          <div className="h-4 bg-white/20 rounded w-2/3"></div>
+      <div className="space-y-6">
+        {/* 날씨 관측 조건 로딩 */}
+        <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl border border-purple-500/20">
+          <div className="animate-pulse">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                <div className="h-6 bg-white/20 rounded w-32"></div>
+              </div>
+              <div className="w-20 h-6 bg-white/20 rounded-full"></div>
+            </div>
+            
+            {/* 날씨 정보 그리드 */}
+            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <div className="h-4 bg-white/20 rounded w-16"></div>
+                    <div className="h-4 bg-white/20 rounded w-12"></div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <div className="space-y-2">
+                  <div className="h-3 bg-white/20 rounded w-full"></div>
+                  <div className="h-3 bg-white/20 rounded w-3/4"></div>
+                </div>
+              </div>
+              
+              <div className="text-right mt-2">
+                <div className="h-3 bg-white/20 rounded w-24 ml-auto"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 천체 이벤트 로딩 */}
+        <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl p-6 text-white shadow-2xl border border-blue-500/20">
+          <div className="animate-pulse">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                <div className="h-6 bg-white/20 rounded w-40"></div>
+              </div>
+              <div className="w-24 h-8 bg-white/20 rounded-lg"></div>
+            </div>
+            
+            {/* 이벤트 목록 */}
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-4 bg-white/20 rounded w-32"></div>
+                          <div className="h-4 bg-white/20 rounded-full w-16"></div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="h-3 bg-white/20 rounded w-full"></div>
+                          <div className="h-3 bg-white/20 rounded w-2/3"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right ml-4">
+                      <div className="h-4 bg-white/20 rounded w-16 mb-1"></div>
+                      <div className="h-3 bg-white/20 rounded w-12"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* 로딩 메시지 */}
+            <div className="text-center py-4 mt-6">
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                <span className="text-gray-300">NASA API에서 천체 데이터를 불러오는 중...</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
