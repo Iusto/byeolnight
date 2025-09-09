@@ -265,12 +265,11 @@ const WeatherWidget: React.FC = () => {
 
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType) {
-      case 'ASTEROID': return '🪨'; // NASA NeoWs
-      case 'SOLAR_FLARE': return '☀️'; // NASA DONKI
-      case 'GEOMAGNETIC_STORM': return '🌍'; // NASA DONKI
-      case 'ISS_LOCATION': return '🛰️'; // NASA ISS
-      case 'MARS_WEATHER': return '🔴'; // NASA Mars
-
+      case 'ASTEROID': return '🪨';
+      case 'SOLAR_FLARE': return '☀️';
+      case 'GEOMAGNETIC_STORM': return '🌍';
+      case 'ISS_LOCATION': return '🛰️';
+      case 'MARS_WEATHER': return '🔴';
       case 'METEOR_SHOWER': return '☄️';
       case 'LUNAR_ECLIPSE': return '🌙';
       case 'PLANET_CONJUNCTION': return '🪐';
@@ -292,130 +291,195 @@ const WeatherWidget: React.FC = () => {
       case 'LUNAR_ECLIPSE': return '월식';
       case 'PLANET_CONJUNCTION': return '행성근접';
       case 'COMET_OBSERVATION': return '혜성관측';
-
       default: return '천체 이벤트';
     }
   };
   
-  // 컴포넌트 렌더링 부분 (오류 상태 표시 포함)
+  // 로딩 상태
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          <div className="h-6 bg-white/20 rounded mb-4 w-3/4"></div>
+          <div className="h-4 bg-white/20 rounded mb-2 w-1/2"></div>
+          <div className="h-4 bg-white/20 rounded w-2/3"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-semibold mb-4 flex items-center">
-        🌟 실시간 별 관측 정보
-        {requestingLocation && (
-          <span className="ml-2 text-sm text-blue-600">위치 확인 중...</span>
-        )}
-      </h3>
-
-      {/* 위치 오류 표시 */}
-      {locationError && (
-        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded">
-          <p className="text-yellow-700 text-sm">{locationError}</p>
-          <button
-            onClick={handleLocationRequest}
-            className="mt-2 px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
-          >
-            위치 재요청
-          </button>
-        </div>
-      )}
-
-      {/* 날씨 정보 */}
-      {weatherError ? (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 rounded">
-          <p className="text-red-700 text-sm">{weatherError}</p>
-          <button
-            onClick={() => weather && fetchWeatherData(weather.latitude, weather.longitude)}
-            className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-          >
-            재시도
-          </button>
-        </div>
-      ) : weather && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">{weather.location}</span>
-            <span className={`px-2 py-1 rounded text-xs font-medium ${getQualityColor(weather.observationQuality)}`}>
+    <div className="space-y-6">
+      {/* 날씨 관측 조건 */}
+      <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl border border-purple-500/20">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold flex items-center gap-2">
+            🌟 별 관측 조건
+            {requestingLocation && (
+              <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+            )}
+          </h3>
+          {weather && (
+            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getQualityColor(weather.observationQuality)} shadow-lg`}>
               {weather.observationQuality}
             </span>
-          </div>
-          <p className="text-sm text-gray-700">{weather.recommendation}</p>
+          )}
         </div>
-      )}
+
+        {/* 위치 오류 표시 */}
+        {locationError && (
+          <div className="mb-4 p-4 bg-yellow-500/20 border border-yellow-400/30 rounded-lg backdrop-blur-sm">
+            <p className="text-yellow-200 text-sm mb-2">{locationError}</p>
+            <button
+              onClick={handleLocationRequest}
+              className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              📍 위치 재요청
+            </button>
+          </div>
+        )}
+
+        {/* 날씨 정보 */}
+        {weatherError ? (
+          <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
+            <p className="text-red-200 text-sm mb-2">{weatherError}</p>
+            <button
+              onClick={() => weather && fetchWeatherData(weather.latitude, weather.longitude)}
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              🔄 재시도
+            </button>
+          </div>
+        ) : weather ? (
+          <div className="space-y-4">
+            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300 text-sm">📍 위치</span>
+                  <span className="font-semibold text-white">{weather.location}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300 text-sm">☁️ 구름량</span>
+                  <span className="font-semibold text-white">{weather.cloudCover.toFixed(0)}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300 text-sm">👁️ 시정</span>
+                  <span className="font-semibold text-white">{weather.visibility.toFixed(1)}km</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300 text-sm">🌙 달의 위상</span>
+                  <span className="font-semibold text-white">{weather.moonPhase}</span>
+                </div>
+              </div>
+              
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-sm text-gray-200 leading-relaxed">{weather.recommendation}</p>
+              </div>
+              
+              <div className="text-xs text-gray-400 text-right mt-2">
+                ⏰ 업데이트: {weather.observationTime}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="animate-pulse">
+              <div className="text-4xl mb-2">🌌</div>
+              <p className="text-gray-300">날씨 데이터를 불러오는 중...</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 천체 이벤트 */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-medium">천체 이벤트</h4>
+      <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl p-6 text-white shadow-2xl border border-blue-500/20">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold flex items-center gap-2">
+            🌌 최근 천체 현상
+          </h3>
           {user?.role === 'ADMIN' && (
             <button
               onClick={handleCollectAstronomy}
               disabled={collectingAstronomy}
-              className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+              className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
             >
-              {collectingAstronomy ? '수집 중...' : 'NASA 수동 수집'}
+              {collectingAstronomy ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  업데이트 중...
+                </>
+              ) : (
+                <>
+                  🔄 NASA 업데이트
+                </>
+              )}
             </button>
           )}
         </div>
 
         {eventsError ? (
-          <div className="p-3 bg-red-100 border border-red-400 rounded">
-            <p className="text-red-700 text-sm">{eventsError}</p>
+          <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
+            <p className="text-red-200 text-sm mb-2">{eventsError}</p>
             <button
               onClick={fetchAstronomyEvents}
-              className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              재시도
+              🔄 재시도
             </button>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {events.length > 0 ? (
-              events.map((event, index) => (
-                <div key={`${event.eventType}-${index}`} className="p-2 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{getEventTypeIcon(event.eventType)}</span>
+        ) : events.length > 0 ? (
+          <div className="space-y-3">
+            {events.map((event, index) => (
+              <div key={`${event.eventType}-${index}`} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-200">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getEventTypeIcon(event.eventType)}</span>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{event.title}</span>
-                        <span className="text-xs text-gray-500">{getEventTypeLabel(event.eventType)}</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-white">{event.title}</h4>
+                        <span className="text-xs px-2 py-1 bg-blue-500/30 text-blue-200 rounded-full border border-blue-400/30">
+                          {getEventTypeLabel(event.eventType)}
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-600 mt-1">{event.description}</p>
+                      <p className="text-sm text-gray-300 leading-relaxed">{event.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-right text-sm ml-4">
+                    <div className="text-gray-300 font-medium">
+                      {new Date(event.eventDate).toLocaleDateString('ko-KR')}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(event.peakTime).toLocaleTimeString('ko-KR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">현재 활성 천체 이벤트가 없습니다.</p>
-            )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">🌌</div>
+            <p className="text-gray-300 mb-1">최근 천체 이벤트가 없습니다</p>
+            <p className="text-xs text-gray-400">NASA API 연동 대기 중</p>
+          </div>
+        )}
+
+        {/* ISS 오류 표시 */}
+        {issError && (
+          <div className="mt-4 p-4 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
+            <p className="text-red-200 text-sm mb-2">{issError}</p>
+            <button
+              onClick={fetchIssLocation}
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              🛰️ ISS 위치 재시도
+            </button>
           </div>
         )}
       </div>
-
-      {/* ISS 오류 표시 */}
-      {issError && (
-        <div className="p-3 bg-red-100 border border-red-400 rounded">
-          <p className="text-red-700 text-sm">{issError}</p>
-          <button
-            onClick={fetchIssLocation}
-            className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-          >
-            ISS 위치 재시도
-          </button>
-        </div>
-      )}
     </div>
   );
 };
