@@ -583,9 +583,9 @@ public class AstronomyService {
         List<AstronomyEvent> events = new ArrayList<>();
         
         try {
-            // NASA NeoWs API로 미래 30일 내 소행성 이벤트 수집
+            // NASA NeoWs API로 미래 7일 내 소행성 이벤트 수집 (API 제한)
             LocalDateTime startDate = LocalDateTime.now().plusDays(1);
-            LocalDateTime endDate = startDate.plusDays(30);
+            LocalDateTime endDate = startDate.plusDays(7);
             
             String neowsUrl = NASA_NEOWS_URL + "?start_date=" + startDate.toLocalDate() +
                     "&end_date=" + endDate.toLocalDate() + "&api_key=" + nasaApiKey;

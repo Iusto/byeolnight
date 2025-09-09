@@ -317,24 +317,25 @@ const WeatherWidget: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between">
-            <p className="text-blue-200 text-sm">
+        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-blue-200 text-sm flex-1">
               {locationError || '위치 기반 별 관측 조건을 확인하세요'}
             </p>
             <button
               onClick={handleLocationRequest}
               disabled={requestingLocation}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ml-2"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:scale-100 min-w-[120px]"
             >
               {requestingLocation ? (
                 <>
-                  <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
-                  요청 중...
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>요청 중...</span>
                 </>
               ) : (
                 <>
-                  📍 내 위치
+                  <span className="text-lg">📍</span>
+                  <span>내 위치</span>
                 </>
               )}
             </button>
