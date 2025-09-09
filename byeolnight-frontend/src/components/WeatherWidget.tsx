@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -32,15 +32,31 @@ interface IssLocation {
   timestamp: number;
 }
 
+// 로그 새니타이징 함수
+const sanitizeForLog = (input: any): string => {
+  if (typeof input === 'object') {
+    return JSON.stringify(input).replace(/[\r\n]/g, ' ');
+  }
+  return String(input).replace(/[\r\n]/g, ' ');
+};
+
 const WeatherWidget: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [events, setEvents] = useState<AstronomyEvent[]>([]);
   const [issLocation, setIssLocation] = useState<IssLocation | null>(null);
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [issError, setIssError] = useState<string | null>(null);
   const [collectingAstronomy, setCollectingAstronomy] = useState(false);
   const [requestingLocation, setRequestingLocation] = useState(false);
   const { user } = useAuth();
+
+  // 30일 전 날짜 메모이제이션
+  const thirtyDaysAgo = useMemo(() => {
+    return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  }, []);
 
   useEffect(() => {
     // 병렬로 모든 데이터 로드 시작
@@ -52,8 +68,8 @@ const WeatherWidget: React.FC = () => {
       setLoading(false);
     });
     
-    // ISS 위치 1분마다 업데이트
-    const issInterval = setInterval(fetchIssLocation, 60 * 1000);
+    // ISS 위치 5분마다 업데이트 (성능 최적화)
+    const issInterval = setInterval(fetchIssLocation, 5 * 60 * 1000);
     
     return () => clearInterval(issInterval);
   }, []);
@@ -85,7 +101,7 @@ const WeatherWidget: React.FC = () => {
         },
         (error) => {
           clearTimeout(timeoutId);
-          console.error('위치 정보 오류:', error);
+          console.error('위치 정보 오류:', sanitizeForLog(error.message || 'Unknown error'));
           setLocationError('위치 정보를 가져올 수 없습니다. 서울 기준으로 표시합니다.');
           fetchWeatherData(37.5665, 126.9780);
           setRequestingLocation(false);
@@ -118,21 +134,25 @@ const WeatherWidget: React.FC = () => {
     getCurrentLocation();
   };
 
-  const fetchWeatherData = async (latitude: number, longitude: number) => {
+  const fetchWeatherData = useCallback(async (latitude: number, longitude: number) => {
     try {
-      console.log('날씨 데이터 요청:', { latitude, longitude });
+      setWeatherError(null);
+      console.log('날씨 데이터 요청:', sanitizeForLog({ latitude, longitude }));
       const response = await axios.get(`/api/weather/observation`, {
         params: { latitude, longitude }
       });
       console.log('날씨 데이터 응답 수신 완료');
       setWeather(response.data);
-    } catch (error) {
-      console.error('날씨 데이터 조회 실패:', error);
+    } catch (error: any) {
+      const errorMessage = '날씨 데이터를 불러올 수 없습니다.';
+      console.error('날씨 데이터 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
+      setWeatherError(errorMessage);
     }
-  };
+  }, []);
 
-  const fetchIssLocation = async () => {
+  const fetchIssLocation = useCallback(async () => {
     try {
+      setIssError(null);
       console.log('ISS 위치 업데이트 시작:', new Date().toLocaleTimeString());
       const response = await axios.get('/api/weather/iss');
       const data = response.data;
@@ -145,10 +165,12 @@ const WeatherWidget: React.FC = () => {
         });
         console.log('ISS 위치 업데이트 완료');
       }
-    } catch (error) {
-      console.error('ISS 위치 조회 실패:', error);
+    } catch (error: any) {
+      const errorMessage = 'ISS 위치 정보를 불러올 수 없습니다.';
+      console.error('ISS 위치 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
+      setIssError(errorMessage);
     }
-  };
+  }, []);
 
   const updateEventsWithIss = (astronomyEvents: AstronomyEvent[], currentIssLocation: IssLocation | null) => {
     let selectedEvents = astronomyEvents.slice(0, 4);
@@ -172,15 +194,14 @@ const WeatherWidget: React.FC = () => {
     return selectedEvents;
   };
 
-  const fetchAstronomyEvents = async () => {
+  const fetchAstronomyEvents = useCallback(async () => {
     try {
+      setEventsError(null);
       console.log('천체 이벤트 요청 시작');
       const response = await axios.get('/api/weather/events');
-      console.log('천체 이벤트 수신 완료:', response.data.length, '개');
+      console.log('천체 이벤트 수신 완료:', sanitizeForLog(response.data.length + '개'));
       
       // 최근 30일 내 실제 발생한 천체 현상만 표시
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       
       const recentEvents = response.data.filter((event: AstronomyEvent) => {
         const eventDate = new Date(event.eventDate);
@@ -209,10 +230,12 @@ const WeatherWidget: React.FC = () => {
       const astronomyEvents = Object.values(eventsByType);
       const finalEvents = updateEventsWithIss(astronomyEvents, issLocation);
       setEvents(finalEvents);
-    } catch (error) {
-      console.error('천체 이벤트 조회 실패:', error);
+    } catch (error: any) {
+      const errorMessage = '천체 이벤트 정보를 불러올 수 없습니다.';
+      console.error('천체 이벤트 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
+      setEventsError(errorMessage);
     }
-  };
+  }, [thirtyDaysAgo, issLocation]);
 
   const handleCollectAstronomy = async () => {
     if (!confirm('NASA API로 천체 데이터를 수동 업데이트하시겠습니까?')) return;
@@ -222,8 +245,8 @@ const WeatherWidget: React.FC = () => {
       await axios.post('/api/admin/scheduler/astronomy/manual');
       alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/Mars)');
       await fetchAstronomyEvents();
-    } catch (error) {
-      console.error('천체 데이터 수집 실패:', error);
+    } catch (error: any) {
+      console.error('천체 데이터 수집 실패:', sanitizeForLog(error.message || 'Unknown error'));
       alert('천체 데이터 업데이트 실패');
     } finally {
       setCollectingAstronomy(false);
@@ -274,195 +297,123 @@ const WeatherWidget: React.FC = () => {
     }
   };
   
-  const getEventTypeBadgeColor = (eventType: string) => {
-    switch (eventType) {
-      case 'ASTEROID': return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
-      case 'SOLAR_FLARE': return 'bg-red-500/20 text-red-300 border-red-500/30';
-      case 'GEOMAGNETIC_STORM': return 'bg-green-500/20 text-green-300 border-green-500/30';
-      case 'ISS_LOCATION': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      case 'MARS_WEATHER': return 'bg-red-500/20 text-red-300 border-red-500/30';
-      case 'METEOR_SHOWER': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-      case 'LUNAR_ECLIPSE': return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
-      case 'PLANET_CONJUNCTION': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-      case 'COMET_OBSERVATION': return 'bg-pink-500/20 text-pink-300 border-pink-500/30';
-
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-    }
-  };
-
+  // 컴포넌트 렌더링 부분 (오류 상태 표시 포함)
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-lg p-6 text-white">
+      <div className="bg-white rounded-lg shadow-md p-6">
         <div className="animate-pulse">
-          <div className="h-4 bg-white/20 rounded mb-4"></div>
-          <div className="h-8 bg-white/20 rounded mb-2"></div>
-          <div className="h-4 bg-white/20 rounded"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* 날씨 관측 조건 */}
-      <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-lg p-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold flex items-center">
-            🌟 별 관측 조건
-          </h3>
-          {weather && (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getQualityColor(weather.observationQuality)}`}>
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h3 className="text-lg font-semibold mb-4 flex items-center">
+        🌟 실시간 별 관측 정보
+        {requestingLocation && (
+          <span className="ml-2 text-sm text-blue-600">위치 확인 중...</span>
+        )}
+      </h3>
+
+      {/* 위치 오류 표시 */}
+      {locationError && (
+        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded">
+          <p className="text-yellow-700 text-sm">{locationError}</p>
+          <button
+            onClick={handleLocationRequest}
+            className="mt-2 px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
+          >
+            위치 재요청
+          </button>
+        </div>
+      )}
+
+      {/* 날씨 정보 */}
+      {weatherError ? (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 rounded">
+          <p className="text-red-700 text-sm">{weatherError}</p>
+          <button
+            onClick={() => weather && fetchWeatherData(weather.latitude, weather.longitude)}
+            className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+          >
+            재시도
+          </button>
+        </div>
+      ) : weather && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-600">{weather.location}</span>
+            <span className={`px-2 py-1 rounded text-xs font-medium ${getQualityColor(weather.observationQuality)}`}>
               {weather.observationQuality}
             </span>
+          </div>
+          <p className="text-sm text-gray-700">{weather.recommendation}</p>
+        </div>
+      )}
+
+      {/* 천체 이벤트 */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-medium">천체 이벤트</h4>
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={handleCollectAstronomy}
+              disabled={collectingAstronomy}
+              className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+            >
+              {collectingAstronomy ? '수집 중...' : 'NASA 수동 수집'}
+            </button>
           )}
         </div>
 
-        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="text-blue-200 text-sm flex-1">
-              {locationError || '위치 기반 별 관측 조건을 확인하세요'}
-            </p>
+        {eventsError ? (
+          <div className="p-3 bg-red-100 border border-red-400 rounded">
+            <p className="text-red-700 text-sm">{eventsError}</p>
             <button
-              onClick={handleLocationRequest}
-              disabled={requestingLocation}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:scale-100 min-w-[120px]"
+              onClick={fetchAstronomyEvents}
+              className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
             >
-              {requestingLocation ? (
-                <>
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  <span>요청 중...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-lg">📍</span>
-                  <span>내 위치</span>
-                </>
-              )}
+              재시도
             </button>
           </div>
-        </div>
-
-        {weather ? (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300">위치</span>
-              <span className="font-medium">{weather.location}</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300">구름량</span>
-              <span className="font-medium">{weather.cloudCover.toFixed(0)}%</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300">시정</span>
-              <span className="font-medium">{weather.visibility.toFixed(1)}km</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300">달의 위상</span>
-              <span className="font-medium">{weather.moonPhase}</span>
-            </div>
-            
-            <div className="mt-4 p-3 bg-white/10 rounded-lg">
-              <p className="text-sm">{weather.recommendation}</p>
-            </div>
-            
-            <div className="text-xs text-gray-400 text-right">
-              업데이트: {weather.observationTime}
-            </div>
-          </div>
         ) : (
-          <div className="text-center py-4">
-            <p className="text-gray-300">날씨 데이터를 불러오는 중...</p>
+          <div className="space-y-2">
+            {events.length > 0 ? (
+              events.map((event, index) => (
+                <div key={`${event.eventType}-${index}`} className="p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getEventTypeIcon(event.eventType)}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{event.title}</span>
+                        <span className="text-xs text-gray-500">{getEventTypeLabel(event.eventType)}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">{event.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">현재 활성 천체 이벤트가 없습니다.</p>
+            )}
           </div>
         )}
       </div>
 
-      {/* 천체 이벤트 */}
-      {events.length > 0 ? (
-        <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold flex items-center">
-              🌌 최근 천체 현상
-            </h3>
-            {user?.role === 'ADMIN' && (
-              <button
-                onClick={handleCollectAstronomy}
-                disabled={collectingAstronomy}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1"
-              >
-                {collectingAstronomy ? (
-                  <>
-                    <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
-                    업데이트 중...
-                  </>
-                ) : (
-                  <>
-                    🔄 업데이트
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-          
-          <div className="space-y-3">
-            {events.map((event) => (
-              <div key={event.id} className="bg-white/10 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-2xl">{getEventTypeIcon(event.eventType)}</span>
-                    <div>
-                      <h4 className="font-semibold">{event.title}</h4>
-                      <p className="text-sm text-gray-300 mt-1">{event.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right text-sm">
-                    <div className="text-gray-300">
-                      {new Date(event.eventDate).toLocaleDateString('ko-KR')}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {new Date(event.peakTime).toLocaleTimeString('ko-KR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold flex items-center">
-              🌌 최근 천체 현상
-            </h3>
-            {user?.role === 'ADMIN' && (
-              <button
-                onClick={handleCollectAstronomy}
-                disabled={collectingAstronomy}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1"
-              >
-                {collectingAstronomy ? (
-                  <>
-                    <div className="animate-spin w-3 h-3 border border-white border-t-transparent rounded-full"></div>
-                    업데이트 중...
-                  </>
-                ) : (
-                  <>
-                    🔄 업데이트
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-          <div className="text-center py-4">
-            <div className="text-4xl mb-2">🌌</div>
-            <p className="text-gray-300">최근 천체 데이터 로딩 중...</p>
-            <p className="text-xs text-gray-400 mt-1">NASA API 연동</p>
-          </div>
+      {/* ISS 오류 표시 */}
+      {issError && (
+        <div className="p-3 bg-red-100 border border-red-400 rounded">
+          <p className="text-red-700 text-sm">{issError}</p>
+          <button
+            onClick={fetchIssLocation}
+            className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+          >
+            ISS 위치 재시도
+          </button>
         </div>
       )}
     </div>

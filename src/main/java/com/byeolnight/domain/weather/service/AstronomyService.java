@@ -15,9 +15,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Locale;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -50,7 +52,8 @@ public class AstronomyService {
     }
 
     public List<AstronomyEventResponse> getUpcomingEvents() {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime thirtyDaysAgo = now.minusDays(30);
         List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(thirtyDaysAgo);
         
         // 실제 NASA 데이터 우선, 예측 데이터는 후순위
@@ -71,12 +74,15 @@ public class AstronomyService {
                 .collect(Collectors.toList());
     }
     
+    // 상수 정의
+    private static final Set<String> REAL_NASA_EVENT_TYPES = Set.of(
+        "ASTEROID", "SOLAR_FLARE", "GEOMAGNETIC_STORM"
+    );
+    
     private boolean isRealNasaData(AstronomyEvent event) {
         LocalDateTime now = LocalDateTime.now();
         boolean isPastEvent = event.getEventDate().isBefore(now);
-        boolean isRealType = event.getEventType().equals("ASTEROID") || 
-                            event.getEventType().equals("SOLAR_FLARE") || 
-                            event.getEventType().equals("GEOMAGNETIC_STORM");
+        boolean isRealType = REAL_NASA_EVENT_TYPES.contains(event.getEventType());
 
         boolean isPrediction = event.getTitle().contains("예측") || 
                               event.getDescription().contains("예상") ||
@@ -94,20 +100,24 @@ public class AstronomyService {
 
 
 
+    @Transactional
     public void performAstronomyDataCollection() {
         try {
             log.info("천체 이벤트 데이터 수집 시작 (NASA API 연동)");
-
-    
-            deactivateOldEvents();
-
-    
-            fetchNasaAstronomyData();
-
-            log.info("천체 이벤트 데이터 수집 완료");
+            
+            // 새 데이터 수집 후 성공 시에만 기존 데이터 삭제
+            List<AstronomyEvent> newEvents = fetchNasaAstronomyData();
+            
+            if (!newEvents.isEmpty()) {
+                deactivateOldEvents();
+                astronomyRepository.saveAll(newEvents);
+                log.info("천체 이벤트 데이터 수집 완료: {} 개", newEvents.size());
+            } else {
+                log.warn("새로운 천체 데이터가 없어 기존 데이터 유지");
+            }
 
         } catch (Exception e) {
-            log.error("천체 이벤트 데이터 수집 실패: {}", e.getMessage());
+            log.error("천체 이벤트 데이터 수집 실패", e);
             throw e;
         }
     }
@@ -117,51 +127,36 @@ public class AstronomyService {
         log.info("기존 모든 이벤트 삭제 (중복 방지)");
     }
 
-    private void fetchNasaAstronomyData() {
+    private List<AstronomyEvent> fetchNasaAstronomyData() {
         List<AstronomyEvent> allEvents = new ArrayList<>();
-        int successCount = 0;
 
-
-        try {
-            List<AstronomyEvent> neoEvents = fetchNeoWsData();
-            allEvents.addAll(neoEvents);
-            if (!neoEvents.isEmpty()) successCount++;
-        } catch (Exception e) {
-            log.warn("NASA NeoWs API 호출 실패: {}", e.getMessage(), e);
-        }
-
-
-        try {
-            List<AstronomyEvent> donkiEvents = fetchDonkiData();
-            allEvents.addAll(donkiEvents);
-            if (!donkiEvents.isEmpty()) successCount++;
-        } catch (Exception e) {
-            log.warn("NASA DONKI API 호출 실패: {}", e.getMessage(), e);
-        }
-
-        try {
-            List<AstronomyEvent> forecastEvents = fetchAstronomyForecast();
-            allEvents.addAll(forecastEvents);
-            if (!forecastEvents.isEmpty()) successCount++;
-        } catch (Exception e) {
-            log.warn("천체 예보 수집 실패: {}", e.getMessage(), e);
-        }
-
-
-
+        // API 호출을 공통 메서드로 처리
+        allEvents.addAll(executeApiCall("NASA NeoWs", this::fetchNeoWsData));
+        allEvents.addAll(executeApiCall("NASA DONKI", this::fetchDonkiData));
+        allEvents.addAll(executeApiCall("천체 예보", this::fetchAstronomyForecast));
 
         if (!allEvents.isEmpty()) {
-            log.info("저장 전 이벤트 목록:");
+            log.info("수집된 이벤트 수: {}", allEvents.size());
             for (AstronomyEvent event : allEvents) {
-                String safeTitle = sanitizeForLog(event.getTitle());
-                String safeType = sanitizeForLog(event.getEventType());
-                log.info("- {} ({}): {}", safeTitle, safeType, event.getEventDate());
+                log.debug("이벤트: {} ({})", sanitizeForLog(event.getTitle()), event.getEventType());
             }
-
-            astronomyRepository.saveAll(allEvents);
-            log.info("NASA API 데이터 {} 개 수집 성공 ({}/3 API 성공)", allEvents.size(), successCount);
         } else {
             log.warn("모든 NASA API 호출 실패");
+        }
+        
+        return allEvents;
+    }
+    
+    private List<AstronomyEvent> executeApiCall(String apiName, java.util.function.Supplier<List<AstronomyEvent>> apiCall) {
+        try {
+            List<AstronomyEvent> events = apiCall.get();
+            if (!events.isEmpty()) {
+                log.info("{} API 성공: {} 개", apiName, events.size());
+            }
+            return events;
+        } catch (Exception e) {
+            log.warn("{} API 호출 실패: {}", apiName, e.getMessage());
+            return new ArrayList<>();
         }
     }
 
@@ -606,7 +601,7 @@ public class AstronomyService {
     }
     
     private boolean isAstronomyEvent(String title, String explanation) {
-        String content = (title + " " + explanation).toLowerCase();
+        String content = (title + " " + explanation).toLowerCase(Locale.ROOT);
         return content.contains("eclipse") || content.contains("meteor") || 
                content.contains("supermoon") || content.contains("conjunction") ||
                content.contains("월식") || content.contains("일식") || 
@@ -614,7 +609,7 @@ public class AstronomyService {
     }
     
     private String determineEventType(String title, String explanation) {
-        String content = (title + " " + explanation).toLowerCase();
+        String content = (title + " " + explanation).toLowerCase(Locale.ROOT);
         if (content.contains("eclipse") && content.contains("lunar")) return "LUNAR_ECLIPSE";
         if (content.contains("eclipse") && content.contains("solar")) return "SOLAR_ECLIPSE";
         if (content.contains("meteor") || content.contains("유성")) return "METEOR_SHOWER";
@@ -688,7 +683,10 @@ public class AstronomyService {
 
     private String sanitizeForLog(String input) {
         if (input == null) return "null";
-        return input.replaceAll("[\r\n\t]", "_").substring(0, Math.min(input.length(), 100));
+        // 로그 인젝션 방지: 개행문자, 제어문자 제거 및 길이 제한
+        return input.replaceAll("[\r\n\t\f\b]", "_")
+                   .replaceAll("[\x00-\x1F\x7F]", "")
+                   .substring(0, Math.min(input.length(), 100));
     }
     
     private AstronomyEventResponse convertToResponse(AstronomyEvent event) {
@@ -697,8 +695,8 @@ public class AstronomyService {
                 .eventType(event.getEventType())
                 .title(event.getTitle())
                 .description(event.getDescription())
-                .eventDate(event.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
-                .peakTime(event.getPeakTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                .eventDate(event.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)))
+                .peakTime(event.getPeakTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)))
                 .visibility(event.getVisibility())
                 .magnitude(event.getMagnitude())
                 .isActive(event.getIsActive())
