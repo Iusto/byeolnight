@@ -685,7 +685,7 @@ public class AstronomyService {
         if (input == null) return "null";
         // 로그 인젝션 방지: 개행문자, 제어문자 제거 및 길이 제한
         return input.replaceAll("[\r\n\t\f\b]", "_")
-                   .replaceAll("[\x00-\x1F\x7F]", "")
+                   .replaceAll("[\u0000-\u001F\u007F]", "")
                    .substring(0, Math.min(input.length(), 100));
     }
     
