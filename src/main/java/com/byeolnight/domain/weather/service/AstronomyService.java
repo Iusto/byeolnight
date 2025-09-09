@@ -605,7 +605,7 @@ public class AstronomyService {
         return content.contains("eclipse") || content.contains("meteor") || 
                content.contains("supermoon") || content.contains("conjunction") ||
                content.contains("월식") || content.contains("일식") || 
-               content.contains("유성우") || content.contains("슬퍼문");
+               content.contains("유성우") || content.contains("슈퍼문");
     }
     
     private String determineEventType(String title, String explanation) {
@@ -613,7 +613,7 @@ public class AstronomyService {
         if (content.contains("eclipse") && content.contains("lunar")) return "LUNAR_ECLIPSE";
         if (content.contains("eclipse") && content.contains("solar")) return "SOLAR_ECLIPSE";
         if (content.contains("meteor") || content.contains("유성")) return "METEOR_SHOWER";
-        if (content.contains("supermoon") || content.contains("슬퍼문")) return "SUPERMOON";
+        if (content.contains("supermoon") || content.contains("슈퍼문")) return "SUPERMOON";
         if (content.contains("conjunction")) return "PLANET_CONJUNCTION";
         return "SPECIAL_EVENT";
     }
