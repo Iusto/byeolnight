@@ -95,10 +95,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         
-        // 쿠키에서 토큰을 찾지 못한 경우, 헤더에서 추출 시도
-        if (token == null) {
-            token = SecurityUtils.resolveToken(request);
-        }
+
 
         if (token == null) {
             // 특정 경로는 로그 레벨 낮춤

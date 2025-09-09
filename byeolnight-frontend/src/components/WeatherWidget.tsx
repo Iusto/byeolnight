@@ -311,27 +311,13 @@ const WeatherWidget: React.FC = () => {
               <div className="w-20 h-6 bg-white/20 rounded-full"></div>
             </div>
             
-            {/* 날씨 정보 그리드 */}
-            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <div className="h-4 bg-white/20 rounded w-16"></div>
-                    <div className="h-4 bg-white/20 rounded w-12"></div>
-                  </div>
-                ))}
+            {/* 로딩 메시지 */}
+            <div className="text-center py-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                <span className="text-blue-200 font-medium">오늘의 날씨 정보를 불러오는 중...</span>
               </div>
-              
-              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                <div className="space-y-2">
-                  <div className="h-3 bg-white/20 rounded w-full"></div>
-                  <div className="h-3 bg-white/20 rounded w-3/4"></div>
-                </div>
-              </div>
-              
-              <div className="text-right mt-2">
-                <div className="h-3 bg-white/20 rounded w-24 ml-auto"></div>
-              </div>
+              <p className="text-gray-300 text-sm">위치 기반 별 관측 조건을 분석하고 있습니다</p>
             </div>
           </div>
         </div>
@@ -348,38 +334,18 @@ const WeatherWidget: React.FC = () => {
               <div className="w-24 h-8 bg-white/20 rounded-lg"></div>
             </div>
             
-            {/* 이벤트 목록 */}
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-8 h-8 bg-white/20 rounded-full"></div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="h-4 bg-white/20 rounded w-32"></div>
-                          <div className="h-4 bg-white/20 rounded-full w-16"></div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="h-3 bg-white/20 rounded w-full"></div>
-                          <div className="h-3 bg-white/20 rounded w-2/3"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right ml-4">
-                      <div className="h-4 bg-white/20 rounded w-16 mb-1"></div>
-                      <div className="h-3 bg-white/20 rounded w-12"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
             {/* 로딩 메시지 */}
-            <div className="text-center py-4 mt-6">
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                <span className="text-gray-300">NASA API에서 천체 데이터를 불러오는 중...</span>
+            <div className="text-center py-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="animate-spin w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full"></div>
+                <span className="text-purple-200 font-medium">NASA에서 천체 데이터를 불러오는 중...</span>
+              </div>
+              <p className="text-gray-300 text-sm mb-2">실시간 우주 정보를 수집하고 있습니다</p>
+              <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+                <span>🪨 소행성</span>
+                <span>☀️ 태양 플레어</span>
+                <span>🛰️ ISS 위치</span>
+                <span>🌍 지자기 폭풍</span>
               </div>
             </div>
           </div>
@@ -464,8 +430,12 @@ const WeatherWidget: React.FC = () => {
         ) : (
           <div className="text-center py-8">
             <div className="animate-pulse">
-              <div className="text-4xl mb-2">🌌</div>
-              <p className="text-gray-300">날씨 데이터를 불러오는 중...</p>
+              <div className="text-4xl mb-4">🌌</div>
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                <p className="text-blue-200 font-medium">날씨 데이터를 불러오는 중...</p>
+              </div>
+              <p className="text-gray-300 text-sm">위치 정보를 분석하여 별 관측 조건을 계산합니다</p>
             </div>
           </div>
         )}
@@ -541,9 +511,17 @@ const WeatherWidget: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <div className="text-4xl mb-3">🌌</div>
-            <p className="text-gray-300 mb-1">최근 천체 이벤트가 없습니다</p>
-            <p className="text-xs text-gray-400">NASA API 연동 대기 중</p>
+            <div className="text-4xl mb-4">🌌</div>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="animate-spin w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full"></div>
+              <p className="text-purple-200 font-medium">천체 이벤트를 불러오는 중...</p>
+            </div>
+            <p className="text-gray-300 text-sm mb-2">NASA API에서 최신 우주 정보를 가져오고 있습니다</p>
+            <div className="flex items-center justify-center gap-3 text-xs text-gray-400">
+              <span>🪨 NeoWs</span>
+              <span>☀️ DONKI</span>
+              <span>🛰️ ISS</span>
+            </div>
           </div>
         )}
 

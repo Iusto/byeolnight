@@ -136,11 +136,11 @@ export default function Home() {
           </div>
         </div>
         <h1 className="text-2xl sm:text-5xl md:text-7xl font-bold mb-2 sm:mb-6 animate-fade-in px-2">
-          <span className="text-white sm:bg-gradient-to-r sm:from-purple-400 sm:via-pink-400 sm:to-indigo-400 sm:bg-clip-text sm:text-transparent mobile-text">
+          <span className="text-white mobile-text">
             {t('home.bigtitle')}
           </span>
         </h1>
-        <p className="text-sm sm:text-xl md:text-2xl text-gray-200 mb-3 sm:mb-8 max-w-5xl mx-auto animate-fade-in-delay px-4">
+        <p className="text-sm sm:text-xl md:text-2xl text-white mobile-text mb-3 sm:mb-8 max-w-5xl mx-auto animate-fade-in-delay px-4">
           {t('home.subtitle')}
         </p>
         <div className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md px-4 py-2 sm:px-8 sm:py-4 rounded-full border border-white/20 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105 touch-target">
@@ -163,11 +163,11 @@ export default function Home() {
           </div>
         </div>
         <h2 className="text-lg sm:text-3xl font-bold mb-1 sm:mb-3">
-          <span className="text-white sm:bg-gradient-to-r sm:from-purple-400 sm:via-pink-400 sm:to-indigo-400 sm:bg-clip-text sm:text-transparent mobile-text">
+          <span className="text-white mobile-text">
             {t('home.explore_boards')}
           </span>
         </h2>
-        <p className="text-gray-300 text-xs sm:text-sm">{t('home.explore_subtitle')}</p>
+        <p className="text-white mobile-text-secondary text-xs sm:text-sm">{t('home.explore_subtitle')}</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-4">
         {BOARD_CONFIGS.map((board, index) => (
@@ -193,7 +193,7 @@ export default function Home() {
               <div className="text-base sm:text-2xl mb-1 sm:mb-2 group-hover:animate-bounce group-hover:scale-110 transition-transform duration-300">
                 {board.icon}
               </div>
-              <div className={`text-xs sm:text-sm font-medium text-white sm:${board.textClass} group-hover:text-white transition-colors leading-tight`}>
+              <div className="text-xs sm:text-sm font-medium text-white mobile-text group-hover:text-white transition-colors leading-tight">
                 {board.key === 'NEWS' ? t('home.space_news') : 
                  board.key === 'IMAGE' ? t('home.star_photo') :
                  board.key === 'STARLIGHT_CINEMA' ? t('home.star_cinema') :
@@ -211,7 +211,7 @@ export default function Home() {
   const PostCard = ({ post, showStats = true }: { post: Post; showStats?: boolean }) => (
     <div className="group bg-gradient-to-br from-white/10 to-white/20 hover:from-white/15 hover:to-white/25 rounded-xl p-3 sm:p-4 transition-all duration-300 border border-white/20 hover:border-purple-400/50 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-1">
       <Link to={`/posts/${post.id}`} className="block">
-        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-xs sm:text-sm">
+        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-xs sm:text-sm text-white mobile-text">
           {post.dDay && (
             <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs mr-1 sm:mr-2 shadow-lg animate-pulse">
               {post.dDay}
@@ -220,10 +220,10 @@ export default function Home() {
           {post.title}
         </h3>
         {showStats && (
-          <div className="flex items-center justify-between text-xs text-gray-400 group-hover:text-gray-300 transition-colors mobile-caption">
+          <div className="flex items-center justify-between text-xs text-white mobile-text-secondary group-hover:text-gray-300 transition-colors mobile-caption">
             <span className="flex items-center gap-1 truncate">
               <span className="text-purple-400">🖊</span> 
-              <span className="truncate">{post.writer}</span>
+              <span className="truncate text-white mobile-text">{post.writer}</span>
             </span>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <span className="flex items-center gap-0.5 hover:text-blue-400 transition-colors">

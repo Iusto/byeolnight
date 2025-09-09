@@ -145,7 +145,6 @@ public class AuthController {
             }
             
             blacklistToken(accessToken);
-            blacklistAuthHeaderToken(request, accessToken);
             
             ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
             ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
@@ -330,15 +329,7 @@ public class AuthController {
         }
     }
 
-    private void blacklistAuthHeaderToken(HttpServletRequest request, String accessToken) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String headerToken = authHeader.substring(7);
-            if (!headerToken.equals(accessToken)) {
-                blacklistToken(headerToken);
-            }
-        }
-    }
+
     
     @GetMapping("/check")
     @Operation(summary = "인증 상태 확인")
@@ -468,9 +459,8 @@ public class AuthController {
             // 토큰 무효화 처리
             tokenService.deleteRefreshToken(user.getEmail());
             
-            // 현재 토큰들을 블랙리스트에 추가
+            // 현재 토큰을 블랙리스트에 추가
             blacklistToken(accessToken);
-            blacklistAuthHeaderToken(request, accessToken);
             
             ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
             ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
