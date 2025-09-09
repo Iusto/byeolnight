@@ -232,10 +232,11 @@ public class CinemaService {
             return false;
         }
         
-        // 음악/상업적 콘텐츠 필터링
+        // 음악/상업적/드라마 콘텐츠 필터링
         if (ContentFilter.isKPopOrMusicContent(titleLower, descLower) || 
-            ContentFilter.isCommercialContent(titleLower, descLower)) {
-            log.debug("음악/상업적 콘텐츠로 제외: {}", title);
+            ContentFilter.isCommercialContent(titleLower, descLower) ||
+            ContentFilter.isDramaOrEntertainmentContent(titleLower, descLower)) {
+            log.debug("음악/상업적/드라마 콘텐츠로 제외: {}", title);
             return false;
         }
         
@@ -876,6 +877,23 @@ public class CinemaService {
         
         private static final String[] COMMERCIAL_KEYWORDS = {"쇼핑", "shopping", "구매", "buy", "판매", "sale", "할인", "discount", "특가", "세일", "광고", "ad", "advertisement", "홍보", "promotion", "캠페인", "campaign", "브랜드", "brand", "제품", "product", "상품", "item", "리뷰", "review", "언박싱", "unboxing", "추천", "recommend", "후기", "testimonial", "체험", "experience", "협찬", "sponsored", "파트너십", "partnership", "마케팅", "marketing"};
         
+        private static final String[] DRAMA_ENTERTAINMENT_KEYWORDS = {
+            // 드라마 관련
+            "이 사랑에 이름을 붙인다면", "iss pyaar ko kya naam doon", "아르나브", "arnav", "쿠시", "khushi", 
+            "키스", "kiss", "로맨스", "romance", "사랑", "love story", "연애", "relationship", 
+            "시즌", "season", "에피소드", "episode", "시리즈", "series", "드라마", "drama", 
+            "생일 서프라이즈", "birthday surprise", "결혼", "wedding", "신혼", "honeymoon",
+            
+            // 인도 드라마/엔터테인먼트
+            "bollywood", "볼리우드", "hindi", "힌디", "indian", "인도", "telugu", "tamil", 
+            "zee tv", "star plus", "colors tv", "sony tv", "hotstar", "voot", 
+            
+            // 일반 엔터테인먼트
+            "예능", "variety", "토크쇼", "talk show", "리얼리티", "reality", "게임쇼", "game show",
+            "인터뷰", "interview", "behind the scenes", "비하인드", "메이킹", "making",
+            "셀럽", "celebrity", "스타", "star", "팬미팅", "fan meeting", "팬사인회", "fan sign"
+        };
+        
         static boolean isKPopOrMusicContent(String titleLower, String descLower) {
             return Arrays.stream(MUSIC_KEYWORDS)
                     .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
@@ -885,6 +903,11 @@ public class CinemaService {
             return Arrays.stream(COMMERCIAL_KEYWORDS)
                     .anyMatch(keyword -> titleLower.contains(keyword) || descLower.contains(keyword));
         }
+        
+        static boolean isDramaOrEntertainmentContent(String titleLower, String descLower) {
+            return Arrays.stream(DRAMA_ENTERTAINMENT_KEYWORDS)
+                    .anyMatch(keyword -> titleLower.contains(keyword.toLowerCase()) || descLower.contains(keyword.toLowerCase()));
+        }
     }
     
     private static class ContentValidator {
@@ -892,27 +915,33 @@ public class CinemaService {
             int spaceKeywordCount = 0;
             List<String> foundKeywords = new ArrayList<>();
             
+            // 정확한 키워드 매칭 (단어 경계 고려)
             for (String keyword : KeywordConstants.KOREAN_KEYWORDS) {
-                if (titleLower.contains(keyword.toLowerCase()) || descLower.contains(keyword.toLowerCase())) {
+                if (containsExactKeyword(titleLower, keyword.toLowerCase()) || 
+                    containsExactKeyword(descLower, keyword.toLowerCase())) {
                     spaceKeywordCount++;
                     foundKeywords.add(keyword);
                 }
             }
             
             for (String keyword : KeywordConstants.ENGLISH_KEYWORDS) {
-                if (titleLower.contains(keyword.toLowerCase()) || descLower.contains(keyword.toLowerCase())) {
+                if (containsExactKeyword(titleLower, keyword.toLowerCase()) || 
+                    containsExactKeyword(descLower, keyword.toLowerCase())) {
                     spaceKeywordCount++;
                     foundKeywords.add(keyword);
                 }
             }
             
-            if (spaceKeywordCount < 2) {
+            // 최소 키워드 개수 증가 (더 엄격하게)
+            if (spaceKeywordCount < 3) {
                 return false;
             }
             
-            // "태양" 키워드 특별 처리
+            // "태양" 키워드 특별 처리 강화
             if (foundKeywords.contains("태양") || foundKeywords.contains("sun")) {
-                if (titleLower.contains("태양의") || titleLower.contains("descendants")) {
+                if (titleLower.contains("태양의") || titleLower.contains("descendants") ||
+                    titleLower.contains("사랑") || titleLower.contains("love") ||
+                    titleLower.contains("드라마") || titleLower.contains("drama")) {
                     return false;
                 }
                 
@@ -929,17 +958,31 @@ public class CinemaService {
                 "블랙홀", "blackhole", "중성자별", "neutron star", 
                 "초신성", "supernova", "우주망원경", "space telescope",
                 "허블", "hubble", "제임스웹", "james webb", "nasa", "spacex",
-                "화성탐사", "mars exploration", "달탐사", "lunar exploration"
+                "화성탐사", "mars exploration", "달탐사", "lunar exploration",
+                "국제우주정거장", "international space station", "iss",
+                "아르테미스", "artemis", "아폴로", "apollo"
             };
             
             boolean hasProfessionalKeyword = Arrays.stream(professionalKeywords)
-                    .anyMatch(k -> titleLower.contains(k) || descLower.contains(k));
+                    .anyMatch(k -> containsExactKeyword(titleLower, k) || containsExactKeyword(descLower, k));
             
             if (hasProfessionalKeyword) {
                 return true;
             }
             
-            return spaceKeywordCount >= 3;
+            // 일반 키워드는 더 많이 필요
+            return spaceKeywordCount >= 4;
+        }
+        
+        // 정확한 키워드 매칭을 위한 헬퍼 메서드
+        private static boolean containsExactKeyword(String text, String keyword) {
+            if (keyword.length() <= 2) {
+                // 짧은 키워드는 단어 경계로 체크
+                return text.matches(".*\\b" + keyword + "\\b.*");
+            } else {
+                // 긴 키워드는 포함 여부만 체크
+                return text.contains(keyword);
+            }
         }
     }
 }

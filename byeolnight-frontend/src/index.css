@@ -459,12 +459,25 @@ svg {
   -webkit-overflow-scrolling: touch;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
   /* iOS Safari 확대 방지 */
   -webkit-text-size-adjust: 100%;
   /* 터치 지연 제거 */
   touch-action: manipulation;
+}
+
+/* 텍스트 선택 허용 - 기본적으로 모든 텍스트는 선택 가능 */
+.inapp-safe {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 특정 UI 요소에서만 선택 비활성화 */
+.inapp-safe .no-select,
+.inapp-safe button,
+.inapp-safe .nav-item,
+.inapp-safe .menu-item {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .inapp-safe input,
