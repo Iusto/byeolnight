@@ -98,6 +98,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
         if (token == null) {
+            // 건의사항 GET 요청은 비로그인 사용자도 허용
+            if ("GET".equals(request.getMethod()) && uri.startsWith("/api/suggestions")) {
+                log.debug("건의사항 공개 조회 요청: {}", uri);
+                filterChain.doFilter(request, response);
+                return;
+            }
+            
             // 특정 경로는 로그 레벨 낮춤
             if (isLowLogLevel(uri)) {
                 log.debug("인증 불필요 또는 예상된 요청: {}", uri);

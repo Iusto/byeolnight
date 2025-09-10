@@ -91,9 +91,16 @@ instance.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError);
       
+      // 건의사항 페이지에서는 알림 후 로그인 페이지로 이동
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/suggestions')) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+      
       // 공개 페이지에서는 리다이렉트하지 않음
       const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password', '/oauth-recover'];
-      const currentPath = window.location.pathname;
       const isPublicPath = publicPaths.some(path => 
         currentPath === path || currentPath.startsWith('/posts/')
       );

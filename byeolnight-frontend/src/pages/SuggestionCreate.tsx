@@ -48,15 +48,32 @@ export default function SuggestionCreate() {
       return;
     }
 
+    // 로그인 상태 재확인
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
     setLoading(true);
     
     try {
+      console.log('건의사항 제출 시도:', formData);
+      console.log('현재 사용자:', user);
+      
       await createSuggestion(formData);
       alert(t('suggestion.submit_success'));
       navigate('/suggestions');
       
     } catch (error: any) {
       console.error('건의사항 제출 실패:', error);
+      
+      if (error?.response?.status === 401) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        navigate('/login');
+        return;
+      }
+      
       const errorMessage = error.response?.data?.message || t('suggestion.submit_failed');
       alert(errorMessage);
     } finally {

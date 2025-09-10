@@ -61,8 +61,11 @@ export default function SuggestionList() {
       });
       console.log('건의사항 API 응답:', response);
       setSuggestions(response?.suggestions || response?.content || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('건의사항 목록 조회 실패:', error);
+      if (error?.response?.status === 401) {
+        console.log('인증 오류 - 로그인 상태 확인 필요');
+      }
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -95,7 +98,7 @@ export default function SuggestionList() {
               to="/suggestions/new"
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 active:from-purple-800 active:to-blue-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[48px] touch-manipulation"
             >
-              ✏️ {t('suggestion.write_suggestion')}
+              {t('suggestion.write_suggestion')}
             </Link>
           )}
         </div>

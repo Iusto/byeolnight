@@ -29,9 +29,8 @@ public class AuthWhitelist {
             // WebSocket
             "/ws/**",
             
-            // 공개 데이터
-            "/api/suggestions",
-            "/api/suggestions/*",
+            // 공개 데이터 (GET만 허용)
+            // 건의사항은 컨트롤러에서 개별 처리
             
             // 날씨 및 천체 정보 (공개 접근)
             "/api/weather/**",

@@ -148,21 +148,40 @@ public class JwtTokenProvider {
 
     public Long getUserIdFromRequest(jakarta.servlet.http.HttpServletRequest request) {
         String token = resolveToken(request);
+        log.debug("getUserIdFromRequest - 토큰: {}, URI: {}", 
+            token != null ? "found" : "null", request.getRequestURI());
+        
         if (token != null && validate(token)) {
-            return getUserIdFromToken(token);
+            Long userId = getUserIdFromToken(token);
+            log.debug("사용자 ID 추출 성공: {}", userId);
+            return userId;
         }
+        
+        log.debug("사용자 ID 추출 실패 - 토큰 유효성: {}", token != null ? validate(token) : "token is null");
         return null;
     }
 
     private String resolveToken(jakarta.servlet.http.HttpServletRequest request) {
+        // 1. 쿠키에서 토큰 확인
         jakarta.servlet.http.Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (jakarta.servlet.http.Cookie cookie : cookies) {
                 if ("accessToken".equals(cookie.getName())) {
+                    log.debug("쿠키에서 accessToken 발견: {}", cookie.getValue().substring(0, Math.min(20, cookie.getValue().length())) + "...");
                     return cookie.getValue();
                 }
             }
         }
+        
+        // 2. Authorization 헤더에서 토큰 확인 (fallback)
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            log.debug("Authorization 헤더에서 토큰 발견");
+            return bearerToken.substring(7);
+        }
+        
+        log.debug("토큰을 찾을 수 없음 - 쿠키: {}, Authorization 헤더: {}", 
+            cookies != null ? cookies.length : 0, bearerToken != null);
         return null;
     }
 
