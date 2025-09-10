@@ -404,32 +404,52 @@ const WeatherWidget: React.FC = () => {
           </div>
         ) : weather ? (
           <div className="space-y-4">
-            <div className="bg-white/10 rounded-lg p-3 sm:p-4 backdrop-blur-sm border border-white/20">
-              <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-xs sm:text-sm">📍 위치</span>
-                  <span className="font-semibold text-white text-xs sm:text-sm truncate ml-2">{weather.location}</span>
+            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
+              {/* 날씨 정보 그리드 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                  <span className="text-gray-300 text-sm flex items-center gap-2">
+                    <span>📍</span>
+                    <span>위치</span>
+                  </span>
+                  <span className="font-semibold text-white text-sm break-words text-right max-w-[120px]">{weather.location}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-xs sm:text-sm">☁️ 구름량</span>
-                  <span className="font-semibold text-white text-xs sm:text-sm">{weather.cloudCover.toFixed(0)}%</span>
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                  <span className="text-gray-300 text-sm flex items-center gap-2">
+                    <span>☁️</span>
+                    <span>구름량</span>
+                  </span>
+                  <span className="font-semibold text-white text-sm">{weather.cloudCover.toFixed(0)}%</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-xs sm:text-sm">👁️ 시정</span>
-                  <span className="font-semibold text-white text-xs sm:text-sm">{weather.visibility.toFixed(1)}km</span>
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                  <span className="text-gray-300 text-sm flex items-center gap-2">
+                    <span>👁️</span>
+                    <span>시정</span>
+                  </span>
+                  <span className="font-semibold text-white text-sm">{weather.visibility.toFixed(1)}km</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-xs sm:text-sm">🌙 달의 위상</span>
-                  <span className="font-semibold text-white text-xs sm:text-sm">{weather.moonPhase}</span>
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                  <span className="text-gray-300 text-sm flex items-center gap-2">
+                    <span>🌙</span>
+                    <span>달의 위상</span>
+                  </span>
+                  <span className="font-semibold text-white text-sm break-words text-right max-w-[80px]">{weather.moonPhase}</span>
                 </div>
               </div>
               
-              <div className="p-2 sm:p-3 bg-white/5 rounded-lg border border-white/10">
-                <p className="text-xs sm:text-sm text-gray-200 leading-relaxed">{weather.recommendation}</p>
+              {/* 추천 사항 */}
+              <div className="p-3 bg-gradient-to-r from-white/5 to-white/10 rounded-lg border border-white/10">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="text-lg">📝</span>
+                  <span className="text-sm font-medium text-white">관측 추천</span>
+                </div>
+                <p className="text-sm text-gray-200 leading-relaxed break-words pl-7">{weather.recommendation}</p>
               </div>
               
-              <div className="text-xs text-gray-400 text-center sm:text-right mt-2">
-                ⏰ {weather.observationTime}
+              {/* 업데이트 시간 */}
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mt-3 p-2 bg-white/5 rounded-lg">
+                <span>⏰</span>
+                <span>업데이트: {weather.observationTime}</span>
               </div>
             </div>
           </div>
@@ -486,30 +506,34 @@ const WeatherWidget: React.FC = () => {
         ) : events.length > 0 ? (
           <div className="space-y-3">
             {events.map((event, index) => (
-              <div key={`${event.eventType}-${index}`} className="bg-white/10 rounded-lg p-3 sm:p-4 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-200">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="flex items-start gap-2 sm:gap-3 flex-1">
-                    <span className="text-lg sm:text-2xl flex-shrink-0">{getEventTypeIcon(event.eventType)}</span>
+              <div key={`${event.eventType}-${index}`} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-200">
+                {/* 모바일: 세로 배치, 데스크톱: 가로 배치 */}
+                <div className="flex flex-col gap-3">
+                  {/* 상단: 아이콘 + 제목 + 라벨 */}
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0 mt-1">{getEventTypeIcon(event.eventType)}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
-                        <h4 className="font-semibold text-white text-sm sm:text-base truncate">{event.title}</h4>
-                        <span className="text-xs px-2 py-1 bg-blue-500/30 text-blue-200 rounded-full border border-blue-400/30 self-start">
+                      <h4 className="font-semibold text-white text-base mb-2 break-words">{event.title}</h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <span className="inline-block text-xs px-3 py-1 bg-blue-500/30 text-blue-200 rounded-full border border-blue-400/30 whitespace-nowrap">
                           {getEventTypeLabel(event.eventType)}
                         </span>
+                        <span className="inline-block text-xs px-3 py-1 bg-gray-500/30 text-gray-300 rounded-full border border-gray-400/30 whitespace-nowrap">
+                          {new Date(event.eventDate).toLocaleDateString('ko-KR')}
+                        </span>
+                        <span className="inline-block text-xs px-3 py-1 bg-purple-500/30 text-purple-200 rounded-full border border-purple-400/30 whitespace-nowrap">
+                          {new Date(event.peakTime).toLocaleTimeString('ko-KR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">{event.description}</p>
                     </div>
                   </div>
-                  <div className="text-left sm:text-right text-xs sm:text-sm flex-shrink-0">
-                    <div className="text-gray-300 font-medium">
-                      {new Date(event.eventDate).toLocaleDateString('ko-KR')}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {new Date(event.peakTime).toLocaleTimeString('ko-KR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </div>
+                  
+                  {/* 하단: 설명 */}
+                  <div className="pl-11">
+                    <p className="text-sm text-gray-300 leading-relaxed break-words">{event.description}</p>
                   </div>
                 </div>
               </div>
