@@ -90,16 +90,15 @@ public class AuthController {
                         .body(CommonResponse.fail("유효하지 않은 Refresh Token"));
             }
 
-            String email = jwtTokenProvider.getEmail(refreshToken);
-            log.debug("토큰 재발급 요청 - 이메일: {}", email);
+            Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+            log.debug("토큰 재발급 요청 - 사용자 ID: {}", userId);
             
-            User user = userService.findByEmail(email)
-                    .orElseThrow(() -> {
-                        log.warn("토큰 재발급 실패 - 사용자 없음: {}", email);
-                        // 토큰을 블랙리스트에 추가하여 재사용 방지
-                        tokenService.deleteRefreshToken(email);
-                        return new IllegalArgumentException("해당 사용자를 찾을 수 없습니다.");
-                    });
+            User user = userService.findById(userId);
+            if (user == null) {
+                log.warn("토큰 재발급 실패 - 사용자 없음: {}", userId);
+                tokenService.deleteRefreshToken(userId.toString());
+                throw new IllegalArgumentException("해당 사용자를 찾을 수 없습니다.");
+            }
 
             auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(email, 
                     IpUtil.getClientIp(request), request.getHeader("User-Agent")));
@@ -108,7 +107,7 @@ public class AuthController {
             String newRefreshToken = jwtTokenProvider.createRefreshToken(user);
             long refreshTokenValidity = jwtTokenProvider.getRefreshTokenValidity();
 
-            tokenService.saveRefreshToken(email, newRefreshToken, refreshTokenValidity);
+            tokenService.saveRefreshToken(user.getEmail(), newRefreshToken, refreshTokenValidity);
 
             ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity);
             ResponseCookie accessCookie = createAccessCookie(newAccessToken);
