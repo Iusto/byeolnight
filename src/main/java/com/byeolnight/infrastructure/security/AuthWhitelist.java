@@ -30,7 +30,7 @@ public class AuthWhitelist {
             "/ws/**",
             
             // 공개 데이터 (GET만 허용)
-            // 건의사항은 컨트롤러에서 개별 처리
+            "/api/suggestions",     // 목록 조회만 공개
             
             // 날씨 및 천체 정보 (공개 접근)
             "/api/weather/**",
