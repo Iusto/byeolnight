@@ -34,7 +34,7 @@ export default function SuggestionEdit() {
 
   const fetchSuggestion = async () => {
     try {
-      const response = await axios.get(`/suggestions/${id}`);
+      const response = await axios.get(`/member/suggestions/${id}`);
       console.log('건의사항 조회 응답:', response.data);
       const suggestion = response.data.data;
       
@@ -69,7 +69,7 @@ export default function SuggestionEdit() {
     }
 
     try {
-      await axios.put(`/suggestions/${id}`, {
+      await axios.put(`/member/suggestions/${id}`, {
         title: title.trim(),
         content: content.trim(),
         category,

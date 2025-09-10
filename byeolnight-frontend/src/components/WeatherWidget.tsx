@@ -272,6 +272,9 @@ const WeatherWidget: React.FC = () => {
       case 'MARS_WEATHER': return '🔴';
       case 'METEOR_SHOWER': return '☄️';
       case 'LUNAR_ECLIPSE': return '🌙';
+      case 'BLOOD_MOON': return '🔴';
+      case 'TOTAL_LUNAR_ECLIPSE': return '🌑';
+      case 'SOLAR_ECLIPSE': return '☀️';
       case 'PLANET_CONJUNCTION': return '🪐';
       case 'COMET_OBSERVATION': return '✨';
       case 'SUPERMOON': return '🌕';
@@ -289,6 +292,9 @@ const WeatherWidget: React.FC = () => {
       case 'MARS_WEATHER': return 'NASA 화성날씨';
       case 'METEOR_SHOWER': return '유성우';
       case 'LUNAR_ECLIPSE': return '월식';
+      case 'BLOOD_MOON': return '블러드문';
+      case 'TOTAL_LUNAR_ECLIPSE': return '개기월식';
+      case 'SOLAR_ECLIPSE': return '일식';
       case 'PLANET_CONJUNCTION': return '행성근접';
       case 'COMET_OBSERVATION': return '혜성관측';
       default: return '천체 이벤트';
@@ -358,11 +364,11 @@ const WeatherWidget: React.FC = () => {
     <div className="space-y-6">
       {/* 날씨 관측 조건 */}
       <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl border border-purple-500/20">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold flex items-center gap-2">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
             🌟 별 관측 조건
             {requestingLocation && (
-              <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+              <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full"></div>
             )}
           </h3>
           {weather && (
@@ -398,32 +404,32 @@ const WeatherWidget: React.FC = () => {
           </div>
         ) : weather ? (
           <div className="space-y-4">
-            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-white/10 rounded-lg p-3 sm:p-4 backdrop-blur-sm border border-white/20">
+              <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4 mb-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-sm">📍 위치</span>
-                  <span className="font-semibold text-white">{weather.location}</span>
+                  <span className="text-gray-300 text-xs sm:text-sm">📍 위치</span>
+                  <span className="font-semibold text-white text-xs sm:text-sm truncate ml-2">{weather.location}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-sm">☁️ 구름량</span>
-                  <span className="font-semibold text-white">{weather.cloudCover.toFixed(0)}%</span>
+                  <span className="text-gray-300 text-xs sm:text-sm">☁️ 구름량</span>
+                  <span className="font-semibold text-white text-xs sm:text-sm">{weather.cloudCover.toFixed(0)}%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-sm">👁️ 시정</span>
-                  <span className="font-semibold text-white">{weather.visibility.toFixed(1)}km</span>
+                  <span className="text-gray-300 text-xs sm:text-sm">👁️ 시정</span>
+                  <span className="font-semibold text-white text-xs sm:text-sm">{weather.visibility.toFixed(1)}km</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300 text-sm">🌙 달의 위상</span>
-                  <span className="font-semibold text-white">{weather.moonPhase}</span>
+                  <span className="text-gray-300 text-xs sm:text-sm">🌙 달의 위상</span>
+                  <span className="font-semibold text-white text-xs sm:text-sm">{weather.moonPhase}</span>
                 </div>
               </div>
               
-              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                <p className="text-sm text-gray-200 leading-relaxed">{weather.recommendation}</p>
+              <div className="p-2 sm:p-3 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-xs sm:text-sm text-gray-200 leading-relaxed">{weather.recommendation}</p>
               </div>
               
-              <div className="text-xs text-gray-400 text-right mt-2">
-                ⏰ 업데이트: {weather.observationTime}
+              <div className="text-xs text-gray-400 text-center sm:text-right mt-2">
+                ⏰ {weather.observationTime}
               </div>
             </div>
           </div>
@@ -443,8 +449,8 @@ const WeatherWidget: React.FC = () => {
 
       {/* 천체 이벤트 */}
       <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl p-6 text-white shadow-2xl border border-blue-500/20">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold flex items-center gap-2">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
             🌌 최근 천체 현상
           </h3>
           {user?.role === 'ADMIN' && (
@@ -480,21 +486,21 @@ const WeatherWidget: React.FC = () => {
         ) : events.length > 0 ? (
           <div className="space-y-3">
             {events.map((event, index) => (
-              <div key={`${event.eventType}-${index}`} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getEventTypeIcon(event.eventType)}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-white">{event.title}</h4>
-                        <span className="text-xs px-2 py-1 bg-blue-500/30 text-blue-200 rounded-full border border-blue-400/30">
+              <div key={`${event.eventType}-${index}`} className="bg-white/10 rounded-lg p-3 sm:p-4 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3 flex-1">
+                    <span className="text-lg sm:text-2xl flex-shrink-0">{getEventTypeIcon(event.eventType)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
+                        <h4 className="font-semibold text-white text-sm sm:text-base truncate">{event.title}</h4>
+                        <span className="text-xs px-2 py-1 bg-blue-500/30 text-blue-200 rounded-full border border-blue-400/30 self-start">
                           {getEventTypeLabel(event.eventType)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-300 leading-relaxed">{event.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">{event.description}</p>
                     </div>
                   </div>
-                  <div className="text-right text-sm ml-4">
+                  <div className="text-left sm:text-right text-xs sm:text-sm flex-shrink-0">
                     <div className="text-gray-300 font-medium">
                       {new Date(event.eventDate).toLocaleDateString('ko-KR')}
                     </div>
@@ -507,7 +513,7 @@ const WeatherWidget: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            ))
           </div>
         ) : (
           <div className="text-center py-8">

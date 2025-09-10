@@ -258,7 +258,7 @@ export default function SuggestionDetail() {
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400 mt-4">
               <div className="flex items-center gap-2">
-                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-sm sm:text-lg" />
+                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-xs sm:text-sm" />
                 <span className="whitespace-nowrap">{suggestion.authorNickname}</span>
               </div>
               <div className="flex items-center gap-2">
