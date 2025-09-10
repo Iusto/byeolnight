@@ -37,41 +37,18 @@ public class SuggestionService {
         return buildListResponse(suggestions);
     }
 
-    // 건의사항 상세 조회 (공개 건의사항만)
-    public SuggestionDto.Response getSuggestionPublicOnly(Long id) {
-        Suggestion suggestion = suggestionRepository.findById(id)
-                .orElseThrow(() -> new SuggestionNotFoundException());
-        
-        // 공개 건의사항만 조회 가능
-        if (!suggestion.getIsPublic()) {
-            throw new SuggestionAccessDeniedException();
-        }
-        
-        return SuggestionDto.Response.from(suggestion);
-    }
 
-    // 건의사항 상세 조회 (모든 건의사항)
-    public SuggestionDto.Response getSuggestion(Long id) {
-        Suggestion suggestion = suggestionRepository.findById(id)
-                .orElseThrow(() -> new SuggestionNotFoundException());
-        
-        return SuggestionDto.Response.from(suggestion);
-    }
 
-    // 건의사항 상세 조회 (접근 권한 체크)
+    // 건의사항 상세 조회 (로그인 필수, 접근 권한 체크)
     public SuggestionDto.Response getSuggestion(Long id, Long userId) {
         Suggestion suggestion = suggestionRepository.findById(id)
                 .orElseThrow(() -> new SuggestionNotFoundException());
         
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        
         // 비공개 건의사항인 경우 작성자 또는 관리자만 접근 가능
         if (!suggestion.getIsPublic()) {
-            if (userId == null) {
-                throw new SuggestionAccessDeniedException();
-            }
-            
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-            
             boolean isAuthor = suggestion.getAuthor().getId().equals(userId);
             boolean isAdmin = user.getRole() == User.Role.ADMIN;
             

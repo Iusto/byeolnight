@@ -93,26 +93,23 @@ public class SuggestionController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "건의사항 상세 조회", description = "특정 건의사항의 상세 정보를 조회합니다. (비공개 건의는 작성자와 관리자만 조회 가능)")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "건의사항 상세 조회", description = "특정 건의사항의 상세 정보를 조회합니다. (로그인 필수, 비공개 건의는 작성자와 관리자만 조회 가능)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "권한 없음 (비공개 건의)"),
             @ApiResponse(responseCode = "404", description = "건의사항 없음")
     })
     public ResponseEntity<CommonResponse<SuggestionDto.Response>> getSuggestion(
             @Parameter(description = "건의사항 ID", example = "1") @PathVariable Long id,
-            HttpServletRequest httpRequest
+            @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        Long userId = null;
-        try {
-            userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-        } catch (Exception e) {
-            // 비로그인 사용자도 공개 건의사항은 볼 수 있음
+        if (user == null) {
+            return ResponseEntity.status(401).body(CommonResponse.error("로그인이 필요합니다."));
         }
         
-        SuggestionDto.Response response = userId != null ? 
-            suggestionService.getSuggestion(id, userId) : 
-            suggestionService.getSuggestionPublicOnly(id);
+        SuggestionDto.Response response = suggestionService.getSuggestion(id, user.getId());
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
