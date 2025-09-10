@@ -6,7 +6,7 @@ import { createSuggestion } from '../lib/api/suggestion';
 import type { SuggestionCategory } from '../types/suggestion';
 
 export default function SuggestionCreate() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   
@@ -24,6 +24,15 @@ export default function SuggestionCreate() {
     category: 'FEATURE' as SuggestionCategory,
     isPublic: true
   });
+
+  // 인증 로딩 중
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+        <div className="text-white text-lg">로딩 중...</div>
+      </div>
+    );
+  }
 
   // 로그인하지 않은 사용자는 리다이렉트
   if (!user) {
