@@ -100,7 +100,7 @@ public class AuthController {
                 throw new IllegalArgumentException("해당 사용자를 찾을 수 없습니다.");
             }
 
-            auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(email, 
+            auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(user.getEmail(), 
                     IpUtil.getClientIp(request), request.getHeader("User-Agent")));
 
             String newAccessToken = jwtTokenProvider.createAccessToken(user);
