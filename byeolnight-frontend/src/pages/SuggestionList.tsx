@@ -59,13 +59,9 @@ export default function SuggestionList() {
         sort: 'createdAt',
         direction: 'desc'
       });
-      console.log('건의사항 API 응답:', response);
       setSuggestions(response?.suggestions || response?.content || []);
     } catch (error: any) {
-      console.error('건의사항 목록 조회 실패:', error);
-      if (error?.response?.status === 401) {
-        console.log('인증 오류 - 로그인 상태 확인 필요');
-      }
+      // 401 에러는 비로그인 사용자도 공개 건의사항을 볼 수 있으므로 무시
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -100,6 +96,11 @@ export default function SuggestionList() {
             >
               {t('suggestion.write_suggestion')}
             </Link>
+          )}
+          {!user && (
+            <div className="text-sm text-gray-400">
+              건의사항 작성은 로그인이 필요합니다.
+            </div>
           )}
         </div>
 
@@ -174,13 +175,17 @@ export default function SuggestionList() {
             <div className="text-center py-12">
               <div className="text-4xl sm:text-6xl mb-4">📝</div>
               <p className="text-gray-400 text-base sm:text-lg mb-4">{t('suggestion.no_suggestions')}</p>
-              {user && (
+              {user ? (
                 <Link
                   to="/suggestions/new"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-lg transition-colors min-h-[48px] touch-manipulation"
                 >
                   ✏️ {t('suggestion.write_first_suggestion')}
                 </Link>
+              ) : (
+                <div className="text-gray-400">
+                  건의사항 작성은 로그인이 필요합니다.
+                </div>
               )}
             </div>
           ) : (
@@ -227,7 +232,7 @@ export default function SuggestionList() {
 
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 mt-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                    <span>{t('suggestion.author')} {suggestion.authorNickname}</span>
+                    <span>{t('suggestion.author')} {suggestion.authorNickname || '익명'}</span>
                     <span className="hidden sm:inline">•</span>
                     <span>{new Date(suggestion.createdAt).toLocaleDateString()}</span>
                   </div>

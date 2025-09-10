@@ -225,12 +225,12 @@ export default function SuggestionDetail() {
     <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* 뒤로가기 버튼 - 모바일 최적화 */}
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-3 sm:mb-6">
           <Link
             to="/suggestions"
-            className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 active:text-purple-100 transition-colors min-h-[44px] touch-manipulation"
+            className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 active:text-purple-100 transition-colors min-h-[44px] px-2 py-2 touch-manipulation"
           >
-            <span>←</span>
+            <span className="text-lg">←</span>
             <span className="text-sm sm:text-base">{t('suggestion.back_to_list')}</span>
           </Link>
         </div>
@@ -238,27 +238,27 @@ export default function SuggestionDetail() {
         {/* 건의사항 상세 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 overflow-hidden">
           {/* 헤더 - 모바일 최적화 */}
-          <div className="p-4 sm:p-8 border-b border-purple-500/20">
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
+          <div className="p-3 sm:p-8 border-b border-purple-500/20">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
                   {getCategories()[suggestion.category]}
                 </span>
-                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${STATUS_COLORS[suggestion.status]}`}>
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[suggestion.status]}`}>
                   {getStatuses()[suggestion.status]}
                 </span>
                 {!suggestion.isPublic && (
-                  <span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
+                  <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
                     {t('suggestion.private')}
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">{suggestion.title}</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-white leading-tight">{suggestion.title}</h1>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400 mt-4">
               <div className="flex items-center gap-2">
-                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-base sm:text-lg" />
+                <UserIconDisplay iconName={suggestion.authorIcon} size="small" className="text-sm sm:text-lg" />
                 <span className="whitespace-nowrap">{suggestion.authorNickname}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ export default function SuggestionDetail() {
           </div>
 
           {/* 내용 - 모바일 최적화 */}
-          <div className="p-4 sm:p-8">
+          <div className="p-3 sm:p-8">
             <div className="prose prose-invert max-w-none">
               <div className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
                 {suggestion.content}
@@ -287,21 +287,21 @@ export default function SuggestionDetail() {
 
           {/* 관리자 답변 - 모바일 최적화 */}
           {suggestion.adminResponse && !editingResponse && (
-            <div className="mx-4 sm:mx-8 mb-6 sm:mb-8 bg-green-500/10 border border-green-500/30 rounded-lg overflow-hidden">
-              <div className="bg-green-500/20 px-4 sm:px-6 py-3 border-b border-green-500/30">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mx-3 sm:mx-8 mb-4 sm:mb-8 bg-green-500/10 border border-green-500/30 rounded-lg overflow-hidden">
+              <div className="bg-green-500/20 px-3 sm:px-6 py-2 sm:py-3 border-b border-green-500/30">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-green-400">✅</span>
-                    <span className="text-green-300 font-medium text-sm sm:text-base">{t('suggestion.admin_response')}</span>
+                    <span className="text-green-400 text-sm">✅</span>
+                    <span className="text-green-300 font-medium text-sm">{t('suggestion.admin_response')}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="text-xs sm:text-sm text-green-400">
+                    <div className="text-xs text-green-400">
                       {suggestion.adminNickname} • {new Date(suggestion.adminResponseAt!).toLocaleDateString()}
                     </div>
                     {user && user.role === 'ADMIN' && (
                       <button
                         onClick={startEditResponse}
-                        className="text-xs sm:text-sm px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 active:bg-blue-600/60 text-blue-300 border border-blue-500/30 rounded transition-all min-h-[32px] touch-manipulation"
+                        className="text-xs px-2 py-1 bg-blue-600/20 hover:bg-blue-600/40 active:bg-blue-600/60 text-blue-300 border border-blue-500/30 rounded transition-all min-h-[36px] touch-manipulation self-start sm:self-auto"
                       >
                         {t('suggestion.modify_response')}
                       </button>
@@ -309,8 +309,8 @@ export default function SuggestionDetail() {
                   </div>
                 </div>
               </div>
-              <div className="p-4 sm:p-6">
-                <div className="text-green-200 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
+              <div className="p-3 sm:p-6">
+                <div className="text-green-200 whitespace-pre-wrap leading-relaxed text-sm">
                   {suggestion.adminResponse}
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function SuggestionDetail() {
 
           {/* 관리자 답변 수정 */}
           {editingResponse && (
-            <div className="mx-8 mb-8 bg-green-500/10 border border-green-500/30 rounded-lg p-6">
+            <div className="mx-3 sm:mx-8 mb-4 sm:mb-8 bg-green-500/10 border border-green-500/30 rounded-lg p-3 sm:p-6">
               <div className="mb-4">
                 <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_status')}</label>
                 <select
@@ -364,14 +364,14 @@ export default function SuggestionDetail() {
 
           {/* 관리자 상태 변경 */}
           {user && user.role === 'ADMIN' && suggestion.adminResponse && (
-            <div className="mx-8 mb-8">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-center gap-4">
-                  <label className="text-blue-300 font-medium">{t('suggestion.change_status')}</label>
+            <div className="mx-3 sm:mx-8 mb-4 sm:mb-8">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <label className="text-blue-300 font-medium text-sm">{t('suggestion.change_status')}</label>
                   <select
                     value={suggestion.status}
                     onChange={(e) => handleStatusChange(e.target.value as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED')}
-                    className="px-3 py-2 bg-[#1f2336] border border-blue-500/30 rounded-lg text-white focus:outline-none focus:border-blue-400"
+                    className="px-3 py-2 bg-[#1f2336] border border-blue-500/30 rounded-lg text-white text-sm focus:outline-none focus:border-blue-400 min-h-[44px]"
                   >
                     <option value="PENDING">{t('suggestion.statuses.PENDING')}</option>
                     <option value="IN_PROGRESS">{t('suggestion.statuses.IN_PROGRESS')}</option>
@@ -385,7 +385,7 @@ export default function SuggestionDetail() {
 
           {/* 관리자 답변 작성 */}
           {user && user.role === 'ADMIN' && !suggestion.adminResponse && (
-            <div className="mx-8 mb-8">
+            <div className="mx-3 sm:mx-8 mb-4 sm:mb-8">
               {!showAdminResponse ? (
                 <button
                   onClick={() => setShowAdminResponse(true)}
@@ -394,7 +394,7 @@ export default function SuggestionDetail() {
                   {t('suggestion.write_admin_response')}
                 </button>
               ) : (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 sm:p-6">
                   <div className="mb-4">
                     <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_status')}</label>
                     <select
@@ -441,19 +441,19 @@ export default function SuggestionDetail() {
 
           {/* 액션 버튼 - 모바일 최적화 */}
           {user && user.id === suggestion.authorId && suggestion.status === 'PENDING' && (
-            <div className="p-4 sm:p-8 border-t border-purple-500/20">
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="p-3 sm:p-8 border-t border-purple-500/20">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <Link 
                   to={`/suggestions/${suggestion.id}/edit`}
-                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-blue-600/20 hover:bg-blue-600/40 active:bg-blue-600/60 text-blue-300 border border-blue-500/30 rounded-lg transition-all text-center min-h-[48px] touch-manipulation"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600/20 hover:bg-blue-600/40 active:bg-blue-600/60 text-blue-300 border border-blue-500/30 rounded-lg transition-all text-center min-h-[48px] touch-manipulation text-sm font-medium"
                 >
-                  ✏️ {t('suggestion.edit')}
+                  <span className="text-sm">✏️</span> {t('suggestion.edit')}
                 </Link>
                 <button 
                   onClick={handleDelete}
-                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-red-600/20 hover:bg-red-600/40 active:bg-red-600/60 text-red-300 border border-red-500/30 rounded-lg transition-all min-h-[48px] touch-manipulation"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600/20 hover:bg-red-600/40 active:bg-red-600/60 text-red-300 border border-red-500/30 rounded-lg transition-all min-h-[48px] touch-manipulation text-sm font-medium"
                 >
-                  🗑 {t('suggestion.delete')}
+                  <span className="text-sm">🗑</span> {t('suggestion.delete')}
                 </button>
               </div>
             </div>

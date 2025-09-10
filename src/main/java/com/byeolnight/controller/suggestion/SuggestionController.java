@@ -75,14 +75,19 @@ public class SuggestionController {
         boolean isAdmin = false;
         try {
             userId = jwtTokenProvider.getUserIdFromRequest(httpRequest);
-            // 관리자 여부 확인
             isAdmin = suggestionService.isAdmin(userId);
         } catch (Exception e) {
-            // 비로그인 사용자도 공개 건의사항은 볼 수 있음
+            // 비로그인 사용자는 공개 건의사항만 조회
         }
         
-        // 모든 사용자가 모든 건의사항을 볼 수 있도록 수정 (비공개는 제목만 마스킹)
-        SuggestionDto.ListResponse response = suggestionService.getAllSuggestionsForAdmin(category, status, pageable);
+        SuggestionDto.ListResponse response;
+        if (isAdmin) {
+            // 관리자는 모든 건의사항 조회
+            response = suggestionService.getAllSuggestionsForAdmin(category, status, pageable);
+        } else {
+            // 일반 사용자(비로그인 포함)는 공개 건의사항만 조회
+            response = suggestionService.getSuggestions(category, status, pageable);
+        }
         
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -107,7 +112,7 @@ public class SuggestionController {
         
         SuggestionDto.Response response = userId != null ? 
             suggestionService.getSuggestion(id, userId) : 
-            suggestionService.getSuggestion(id);
+            suggestionService.getSuggestionPublicOnly(id);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

@@ -33,31 +33,24 @@ public class SuggestionService {
             Suggestion.SuggestionStatus status,
             Pageable pageable
     ) {
-        Page<Suggestion> suggestions;
-
-        if (category != null && status != null) {
-            suggestions = suggestionRepository.findByCategoryAndStatusAndIsPublicTrue(category, status, pageable);
-        } else if (category != null) {
-            suggestions = suggestionRepository.findByCategoryAndIsPublicTrue(category, pageable);
-        } else if (status != null) {
-            suggestions = suggestionRepository.findByStatusAndIsPublicTrue(status, pageable);
-        } else {
-            suggestions = suggestionRepository.findByIsPublicTrue(pageable);
-        }
-
-        return SuggestionDto.ListResponse.builder()
-                .suggestions(suggestions.getContent().stream()
-                        .map(SuggestionDto.Response::from)
-                        .toList())
-                .totalCount(suggestions.getTotalElements())
-                .currentPage(suggestions.getNumber())
-                .totalPages(suggestions.getTotalPages())
-                .hasNext(suggestions.hasNext())
-                .hasPrevious(suggestions.hasPrevious())
-                .build();
+        Page<Suggestion> suggestions = findSuggestionsByFilter(category, status, pageable, true);
+        return buildListResponse(suggestions);
     }
 
-    // 건의사항 상세 조회
+    // 건의사항 상세 조회 (공개 건의사항만)
+    public SuggestionDto.Response getSuggestionPublicOnly(Long id) {
+        Suggestion suggestion = suggestionRepository.findById(id)
+                .orElseThrow(() -> new SuggestionNotFoundException());
+        
+        // 공개 건의사항만 조회 가능
+        if (!suggestion.getIsPublic()) {
+            throw new SuggestionAccessDeniedException();
+        }
+        
+        return SuggestionDto.Response.from(suggestion);
+    }
+
+    // 건의사항 상세 조회 (모든 건의사항)
     public SuggestionDto.Response getSuggestion(Long id) {
         Suggestion suggestion = suggestionRepository.findById(id)
                 .orElseThrow(() -> new SuggestionNotFoundException());
@@ -110,7 +103,7 @@ public class SuggestionService {
         try {
             certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.SUGGESTION_WRITE);
         } catch (Exception e) {
-            System.err.println("건의사항 인증서 발급 실패: " + e.getMessage());
+            // 인증서 발급 실패는 비즈니스 로직에 영향을 주지 않으므로 조용히 무시
         }
         
         return SuggestionDto.Response.from(savedSuggestion);
@@ -204,7 +197,7 @@ public class SuggestionService {
                 suggestion.getId()
             );
         } catch (Exception e) {
-            System.err.println("건의사항 답변 알림 전송 실패: " + e.getMessage());
+            // 알림 전송 실패는 비즈니스 로직에 영향을 주지 않으므로 조용히 무시
         }
 
         return SuggestionDto.Response.from(suggestion);
@@ -229,17 +222,7 @@ public class SuggestionService {
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
         Page<Suggestion> suggestions = suggestionRepository.findByAuthor(user, pageable);
-
-        return SuggestionDto.ListResponse.builder()
-                .suggestions(suggestions.getContent().stream()
-                        .map(SuggestionDto.Response::from)
-                        .toList())
-                .totalCount(suggestions.getTotalElements())
-                .currentPage(suggestions.getNumber())
-                .totalPages(suggestions.getTotalPages())
-                .hasNext(suggestions.hasNext())
-                .hasPrevious(suggestions.hasPrevious())
-                .build();
+        return buildListResponse(suggestions);
     }
 
     // 관리자용 전체 건의사항 조회 (공개/비공개 모두 포함)
@@ -248,18 +231,42 @@ public class SuggestionService {
             Suggestion.SuggestionStatus status,
             Pageable pageable
     ) {
-        Page<Suggestion> suggestions;
+        Page<Suggestion> suggestions = findSuggestionsByFilter(category, status, pageable, false);
+        return buildListResponse(suggestions);
+    }
 
-        if (category != null && status != null) {
-            suggestions = suggestionRepository.findByCategoryAndStatus(category, status, pageable);
-        } else if (category != null) {
-            suggestions = suggestionRepository.findByCategory(category, pageable);
-        } else if (status != null) {
-            suggestions = suggestionRepository.findByStatus(status, pageable);
+    // 공통 쿼리 메서드
+    private Page<Suggestion> findSuggestionsByFilter(
+            Suggestion.SuggestionCategory category,
+            Suggestion.SuggestionStatus status,
+            Pageable pageable,
+            boolean publicOnly
+    ) {
+        if (publicOnly) {
+            if (category != null && status != null) {
+                return suggestionRepository.findByCategoryAndStatusAndIsPublicTrue(category, status, pageable);
+            } else if (category != null) {
+                return suggestionRepository.findByCategoryAndIsPublicTrue(category, pageable);
+            } else if (status != null) {
+                return suggestionRepository.findByStatusAndIsPublicTrue(status, pageable);
+            } else {
+                return suggestionRepository.findByIsPublicTrue(pageable);
+            }
         } else {
-            suggestions = suggestionRepository.findAll(pageable);
+            if (category != null && status != null) {
+                return suggestionRepository.findByCategoryAndStatus(category, status, pageable);
+            } else if (category != null) {
+                return suggestionRepository.findByCategory(category, pageable);
+            } else if (status != null) {
+                return suggestionRepository.findByStatus(status, pageable);
+            } else {
+                return suggestionRepository.findAll(pageable);
+            }
         }
+    }
 
+    // 공통 응답 빌더
+    private SuggestionDto.ListResponse buildListResponse(Page<Suggestion> suggestions) {
         return SuggestionDto.ListResponse.builder()
                 .suggestions(suggestions.getContent().stream()
                         .map(SuggestionDto.Response::from)

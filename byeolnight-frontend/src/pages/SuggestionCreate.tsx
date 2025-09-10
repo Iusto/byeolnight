@@ -36,7 +36,7 @@ export default function SuggestionCreate() {
 
   // 로그인하지 않은 사용자는 리다이렉트
   if (!user) {
-    navigate('/login');
+    navigate('/login', { replace: true });
     return null;
   }
 
@@ -58,19 +58,14 @@ export default function SuggestionCreate() {
     setLoading(true);
     
     try {
-      console.log('건의사항 제출 시도:', formData);
-      console.log('현재 사용자:', user);
-      
       await createSuggestion(formData);
       alert(t('suggestion.submit_success'));
       navigate('/suggestions');
       
     } catch (error: any) {
-      console.error('건의사항 제출 실패:', error);
       
       if (error?.response?.status === 401) {
-        // axios 인터셉터에서 이미 처리하므로 중복 알림 제거
-        navigate('/login');
+        // 토큰 만료 시 axios 인터셉터가 자동으로 갱신을 시도하고 실패하면 로그인 페이지로 이동
         return;
       }
       
