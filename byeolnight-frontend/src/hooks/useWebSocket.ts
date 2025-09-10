@@ -4,9 +4,26 @@ import { Client } from '@stomp/stompjs';
 export const useWebSocket = (onNotification?: (notification: any) => void) => {
   const clientRef = useRef<Client | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const onNotificationRef = useRef(onNotification);
+  
+  // onNotification 참조 업데이트 (재연결 없이)
+  useEffect(() => {
+    onNotificationRef.current = onNotification;
+  }, [onNotification]);
 
   useEffect(() => {
-    if (!onNotification) return;
+    if (!onNotification) {
+      // 연결이 있다면 정리
+      if (clientRef.current) {
+        try {
+          clientRef.current.deactivate();
+        } catch (error) {
+          // 연결 끊기 오류는 무시
+        }
+        clientRef.current = null;
+      }
+      return;
+    }
 
     const connect = () => {
       try {
@@ -26,7 +43,10 @@ export const useWebSocket = (onNotification?: (notification: any) => void) => {
             client.subscribe('/user/queue/notifications', (message) => {
               try {
                 const notification = JSON.parse(message.body);
-                onNotification(notification);
+                // 최신 콜백 함수 사용
+                if (onNotificationRef.current) {
+                  onNotificationRef.current(notification);
+                }
               } catch (error) {
                 if (import.meta.env.DEV) {
                   console.error('알림 파싱 오류:', error);
@@ -86,7 +106,7 @@ export const useWebSocket = (onNotification?: (notification: any) => void) => {
         }
       }
     };
-  }, [onNotification]);
+  }, [!!onNotification]); // boolean으로 변환하여 함수 참조 변경 시 재연결 방지
 
   return clientRef.current;
 };
