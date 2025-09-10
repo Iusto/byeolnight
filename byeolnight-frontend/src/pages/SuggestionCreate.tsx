@@ -63,9 +63,11 @@ export default function SuggestionCreate() {
       navigate('/suggestions');
       
     } catch (error: any) {
+      console.error('건의사항 작성 오류:', error);
       
       if (error?.response?.status === 401) {
-        // 토큰 만료 시 axios 인터셉터가 자동으로 갱신을 시도하고 실패하면 로그인 페이지로 이동
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        navigate('/login');
         return;
       }
       
