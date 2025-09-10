@@ -193,7 +193,7 @@ export default function Home() {
               <div className="text-base sm:text-2xl mb-1 sm:mb-2 group-hover:animate-bounce group-hover:scale-110 transition-transform duration-300">
                 {board.icon}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-white mobile-text group-hover:text-white transition-colors leading-tight">
+              <div className="text-xs sm:text-sm font-medium text-white mobile-text group-hover:text-white transition-colors leading-tight" style={{textShadow: '0 1px 2px rgba(0,0,0,0.8)', color: '#ffffff'}}>
                 {board.key === 'NEWS' ? t('home.space_news') : 
                  board.key === 'IMAGE' ? t('home.star_photo') :
                  board.key === 'STARLIGHT_CINEMA' ? t('home.star_cinema') :
