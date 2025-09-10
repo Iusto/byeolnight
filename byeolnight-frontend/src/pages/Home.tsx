@@ -193,7 +193,7 @@ export default function Home() {
               <div className="text-base sm:text-2xl mb-1 sm:mb-2 group-hover:animate-bounce group-hover:scale-110 transition-transform duration-300">
                 {board.icon}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-white mobile-text group-hover:text-white transition-colors leading-tight" style={{textShadow: '0 1px 2px rgba(0,0,0,0.8)', color: '#ffffff'}}>
+              <div className="text-xs sm:text-sm font-bold text-white mobile-text group-hover:text-white transition-colors leading-tight" style={{textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.8)', color: '#ffffff', filter: 'brightness(1.1)'}}>
                 {board.key === 'NEWS' ? t('home.space_news') : 
                  board.key === 'IMAGE' ? t('home.star_photo') :
                  board.key === 'STARLIGHT_CINEMA' ? t('home.star_cinema') :
@@ -211,7 +211,7 @@ export default function Home() {
   const PostCard = ({ post, showStats = true }: { post: Post; showStats?: boolean }) => (
     <div className="group bg-gradient-to-br from-white/10 to-white/20 hover:from-white/15 hover:to-white/25 rounded-xl p-3 sm:p-4 transition-all duration-300 border border-white/20 hover:border-purple-400/50 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-1">
       <Link to={`/posts/${post.id}`} className="block">
-        <h3 className="font-semibold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-xs sm:text-sm text-white mobile-text">
+        <h3 className="font-bold mb-2 group-hover:text-purple-300 transition-colors line-clamp-2 text-xs sm:text-sm text-white mobile-text" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>
           {post.dDay && (
             <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs mr-1 sm:mr-2 shadow-lg animate-pulse">
               {post.dDay}
@@ -223,7 +223,7 @@ export default function Home() {
           <div className="flex items-center justify-between text-xs text-white mobile-text-secondary group-hover:text-gray-300 transition-colors mobile-caption">
             <span className="flex items-center gap-1 truncate">
               <span className="text-purple-400">🖊</span> 
-              <span className="truncate text-white mobile-text">{post.writer}</span>
+              <span className="truncate text-white mobile-text" style={{textShadow: '0 1px 2px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.writer}</span>
             </span>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <span className="flex items-center gap-0.5 hover:text-blue-400 transition-colors">
@@ -262,7 +262,7 @@ export default function Home() {
             </div>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur opacity-30 animate-pulse"></div>
           </div>
-          <h3 className="text-base sm:text-2xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+          <h3 className="text-base sm:text-2xl font-bold text-white" style={{textShadow: '0 2px 4px rgba(0,0,0,0.9)', filter: 'brightness(1.2)'}}>
             {title}
           </h3>
         </div>
@@ -345,7 +345,7 @@ export default function Home() {
                             <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex-shrink-0">
                               {t('home.notice')}
                             </span>
-                            <span className="font-semibold text-emerald-100 group-hover:text-white transition-colors text-sm sm:text-base line-clamp-1 min-w-0">
+                            <span className="font-bold text-white group-hover:text-emerald-100 transition-colors text-sm sm:text-base line-clamp-1 min-w-0" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>
                               {post.title}
                             </span>
                           </div>
@@ -487,7 +487,7 @@ export default function Home() {
                     <div key={post.id} className="bg-blue-900/20 rounded-lg p-4 hover:bg-blue-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-blue-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
+                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
                           <div className="flex items-center gap-2 text-blue-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -516,7 +516,7 @@ export default function Home() {
                     <div key={post.id} className="bg-purple-900/20 rounded-lg p-4 hover:bg-purple-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-purple-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
+                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
                           <div className="flex items-center gap-2 text-purple-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -551,7 +551,7 @@ export default function Home() {
                     <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-green-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
+                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
                           <div className="flex items-center gap-2 text-green-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -580,7 +580,7 @@ export default function Home() {
                     <div key={post.id} className="bg-pink-900/20 rounded-lg p-4 hover:bg-pink-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-pink-100 text-sm sm:text-base line-clamp-1 flex-1 mr-3">{post.title}</span>
+                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
                           <div className="flex items-center gap-2 text-pink-300 text-sm">
                             <span>❤️ {post.likeCount}</span>
                             <span>💬 {post.commentCount || 0}</span>
@@ -617,7 +617,7 @@ export default function Home() {
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-purple-100 flex items-center gap-2 flex-1 mr-3">
                             <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded text-xs font-bold flex-shrink-0">🎬 AI</span>
-                            <span className="text-sm sm:text-base line-clamp-1">{post.title}</span>
+                            <span className="text-sm sm:text-base line-clamp-1 font-bold text-white" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
                           </span>
                           <div className="flex items-center gap-2 text-purple-300 text-sm">
                             <span>❤️ {post.likeCount}</span>

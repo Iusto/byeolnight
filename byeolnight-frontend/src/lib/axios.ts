@@ -94,7 +94,12 @@ instance.interceptors.response.use(
       // 건의사항 페이지에서는 알림 후 로그인 페이지로 이동
       const currentPath = window.location.pathname;
       if (currentPath.includes('/suggestions')) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        // 중복 알림 방지를 위해 세션스토리지 체크
+        const alertShown = sessionStorage.getItem('auth-alert-shown');
+        if (!alertShown) {
+          sessionStorage.setItem('auth-alert-shown', 'true');
+          alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        }
         window.location.href = '/login';
         return Promise.reject(error);
       }

@@ -101,6 +101,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
+      // 로그인 시 알림 플래그 초기화
+      sessionStorage.removeItem('auth-alert-shown');
+      
       const loginData = { email, password };
       const res = await axios.post('/auth/login', loginData);
 

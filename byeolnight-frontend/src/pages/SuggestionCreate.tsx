@@ -69,7 +69,7 @@ export default function SuggestionCreate() {
       console.error('건의사항 제출 실패:', error);
       
       if (error?.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        // axios 인터셉터에서 이미 처리하므로 중복 알림 제거
         navigate('/login');
         return;
       }
