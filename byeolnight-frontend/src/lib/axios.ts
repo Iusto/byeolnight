@@ -63,13 +63,11 @@ instance.interceptors.response.use(
 
     // 공개 API들은 토큰 재발급 시도하지 않음
     const publicApis = ['/auth/withdraw', '/auth/password/', '/auth/oauth/recover'];
-    // 건의사항 목록 조회는 비로그인도 가능하므로 토큰 재발급 시도하지 않음 (상세 조회 제외)
-    const suggestionListApi = originalRequest.url?.includes('/suggestions') && 
-      originalRequest.method?.toLowerCase() === 'get' && 
-      !originalRequest.url?.includes('/my') &&
-      !originalRequest.url?.match(/\/suggestions\/\d+$/);
+    // 건의사항 목록 조회만 비로그인 허용 (GET /suggestions만, 상세조회/작성/수정/삭제는 인증 필요)
+    const isPublicSuggestionApi = originalRequest.url === '/suggestions' && 
+      originalRequest.method?.toLowerCase() === 'get';
     
-    if (publicApis.some(api => originalRequest.url?.includes(api)) || suggestionListApi) {
+    if (publicApis.some(api => originalRequest.url?.includes(api)) || isPublicSuggestionApi) {
       return Promise.reject(error);
     }
 
@@ -100,9 +98,7 @@ instance.interceptors.response.use(
       // 건의사항 작성/수정/삭제/상세조회 등 인증이 필요한 API에서만 알림 후 로그인 페이지로 이동
       const currentPath = window.location.pathname;
       const isAuthRequiredSuggestionApi = originalRequest.url?.includes('/suggestions') && 
-        (originalRequest.method?.toLowerCase() !== 'get' || 
-         originalRequest.url?.includes('/my') ||
-         originalRequest.url?.match(/\/suggestions\/\d+$/));
+        !(originalRequest.url === '/suggestions' && originalRequest.method?.toLowerCase() === 'get');
       
       if (currentPath.includes('/suggestions') && isAuthRequiredSuggestionApi) {
         // 중복 알림 방지를 위해 세션스토리지 체크
@@ -116,10 +112,10 @@ instance.interceptors.response.use(
       }
       
       // 공개 페이지에서는 리다이렉트하지 않음
-      const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password', '/oauth-recover', '/suggestions'];
+      const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password', '/oauth-recover'];
       const isPublicPath = publicPaths.some(path => 
         currentPath === path || currentPath.startsWith('/posts/') || 
-        (currentPath === '/suggestions')
+        currentPath === '/suggestions'
       );
       
       // 비공개 페이지에서만 로그인 페이지로 리다이렉트
