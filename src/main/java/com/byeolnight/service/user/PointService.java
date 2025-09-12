@@ -112,26 +112,30 @@ public class PointService {
     }
 
     /**
-     * 댓글 작성 포인트 지급
+     * 댓글 작성 포인트 지급 (분산락 적용)
      */
     @Transactional
     public void awardCommentWritePoints(User user, Long commentId) {
-        log.info("=== 댓글 작성 포인트 지급 시작 - 사용자: {}, 댓글ID: {} ===", user.getNickname(), commentId);
+        String lockKey = "comment_points:" + user.getId() + ":" + LocalDate.now();
         
-        // 어뷔징 방지: 하루 최대 20개 댓글만 포인트 지급
-        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-        long todayCommentCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
-            user, PointHistory.PointType.COMMENT_WRITE, todayStart);
-        
-        log.info("오늘 댓글 작성 횟수: {}/20", todayCommentCount);
+        distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
+            log.info("=== 댓글 작성 포인트 지급 시작 - 사용자: {}, 댓글ID: {} ===", user.getNickname(), commentId);
             
-        if (todayCommentCount >= 20) {
-            log.warn("사용자 {}의 일일 댓글 작성 제한 초과 ({}회)", user.getNickname(), todayCommentCount);
-            return; // 일일 제한 초과
-        }
-        
-        awardPoints(user, PointHistory.PointType.COMMENT_WRITE, COMMENT_WRITE_POINTS, "댓글 작성 보상", commentId.toString());
-        log.info("사용자 {}에게 댓글 작성 포인트 {}점 지급 완료", user.getNickname(), COMMENT_WRITE_POINTS);
+            // 어뷔징 방지: 하루 최대 20개 댓글만 포인트 지급
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            long todayCommentCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
+                user, PointHistory.PointType.COMMENT_WRITE, todayStart);
+            
+            log.info("오늘 댓글 작성 횟수: {}/20", todayCommentCount);
+                
+            if (todayCommentCount >= 20) {
+                log.warn("사용자 {}의 일일 댓글 작성 제한 초과 ({}회)", user.getNickname(), todayCommentCount);
+                return; // 일일 제한 초과
+            }
+            
+            awardPoints(user, PointHistory.PointType.COMMENT_WRITE, COMMENT_WRITE_POINTS, "댓글 작성 보상", commentId.toString());
+            log.info("사용자 {}에게 댓글 작성 포인트 {}점 지급 완료", user.getNickname(), COMMENT_WRITE_POINTS);
+        });
     }
 
     /**
@@ -144,21 +148,25 @@ public class PointService {
     }
 
     /**
-     * 추천하기 포인트 지급 (일일 제한)
+     * 추천하기 포인트 지급 (일일 제한, 분산락 적용)
      */
     @Transactional
     public boolean awardGiveLikePoints(User user, String referenceId) {
-        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-        long todayLikeCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
-            user, PointHistory.PointType.GIVE_LIKE, todayStart);
+        String lockKey = "like_points:" + user.getId() + ":" + LocalDate.now();
+        
+        return distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            long todayLikeCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
+                user, PointHistory.PointType.GIVE_LIKE, todayStart);
 
-        if (todayLikeCount >= 10) {
-            return false; // 일일 제한 초과
-        }
+            if (todayLikeCount >= 10) {
+                return false; // 일일 제한 초과
+            }
 
-        awardPoints(user, PointHistory.PointType.GIVE_LIKE, 1, "추천하기 보상", referenceId);
-        log.info("사용자 {}에게 추천하기 포인트 1점 지급", user.getNickname());
-        return true;
+            awardPoints(user, PointHistory.PointType.GIVE_LIKE, 1, "추천하기 보상", referenceId);
+            log.info("사용자 {}에게 추천하기 포인트 1점 지급", user.getNickname());
+            return true;
+        });
     }
 
     /**
@@ -315,13 +323,25 @@ public class PointService {
     }
     
     /**
-     * 아이콘 구매 기록
+     * 아이콘 구매 기록 (분산락 적용)
      */
     @Transactional
     public void recordIconPurchase(User user, Long iconId, String iconName, int price) {
-        String description = String.format("스텔라 아이콘 구매: %s", iconName);
-        awardPoints(user, PointHistory.PointType.ICON_PURCHASE, -price, description, iconId.toString());
-        log.info("사용자 {}의 아이콘 구매 기록 완료 - 아이콘: {}, 가격: {}", user.getNickname(), iconName, price);
+        String lockKey = "icon_purchase:" + user.getId() + ":" + iconId;
+        
+        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
+            // 포인트 부족 검증
+            User managedUser = userRepository.findById(user.getId())
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            
+            if (managedUser.getPoints() < price) {
+                throw new IllegalArgumentException("포인트가 부족합니다. 필요: " + price + ", 보유: " + managedUser.getPoints());
+            }
+            
+            String description = String.format("스텔라 아이콘 구매: %s", iconName);
+            awardPoints(managedUser, PointHistory.PointType.ICON_PURCHASE, -price, description, iconId.toString());
+            log.info("사용자 {}의 아이콘 구매 기록 완료 - 아이콘: {}, 가격: {}", managedUser.getNickname(), iconName, price);
+        });
     }
 
     /**

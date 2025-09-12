@@ -42,7 +42,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     '/password-reset',
     '/oauth/callback',
     '/oauth/setup-nickname',
-    '/oauth/recover'
+    '/oauth/recover',
+    '/shop',
+    '/suggestions'
   ];
 
 

@@ -285,8 +285,8 @@ public class AstronomyService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> marsData = response.getBody();
                 if (marsData.containsKey("sol_keys") && marsData.get("sol_keys") != null) {
-                    events.add(createEvent("MARS_WEATHER", "화성 날씨 리포트",
-                            "NASA InSight 탐사선이 전송한 화성의 최신 날씨 정보입니다. 화성의 온도, 바람, 기압 데이터를 확인할 수 있습니다.", 0, 15));
+                    events.add(createEvent("MARS_WEATHER", "Mars Weather Report",
+                            "Latest Mars weather data transmitted by NASA InSight rover. Temperature, wind, and atmospheric pressure data from Mars.", 0, 15));
                     log.info("NASA Mars Weather 데이터 수집 성공");
                 } else {
                     log.warn("NASA Mars Weather API: 데이터 없음 (InSight 미션 종료)");
@@ -314,13 +314,13 @@ public class AstronomyService {
                         LocalDateTime eventTime = LocalDateTime.parse(beginTime.replace("Z", ""));
                         String classType = flare.get("classType").toString();
                         String peakTime = flare.get("peakTime") != null ? 
-                            LocalDateTime.parse(((String) flare.get("peakTime")).replace("Z", "")).toLocalTime().toString() : "미상";
+                            LocalDateTime.parse(((String) flare.get("peakTime")).replace("Z", "")).toLocalTime().toString() : "Unknown";
                         
-                        String description = String.format("%s에 태양에서 %s 등급 플레어가 발생했습니다. 최대 강도 시간: %s (UTC). 전파 및 GPS 신호에 일시적 영향을 주었을 수 있습니다.",
-                                eventTime.toLocalDate(), classType, peakTime);
+                        String description = String.format("Solar flare class %s occurred on %s. Peak time: %s (UTC). May have temporarily affected radio and GPS signals.",
+                                classType, eventTime.toLocalDate(), peakTime);
                         
                         return createAstronomyEvent("SOLAR_FLARE",
-                                "태양 플레어 " + classType + " 등급",
+                                "Solar Flare Class " + classType,
                                 description,
                                 eventTime, "HIGH");
                     } catch (Exception e) {
@@ -344,12 +344,12 @@ public class AstronomyService {
                     try {
                         String startTime = (String) gst.get("startTime");
                         LocalDateTime eventTime = LocalDateTime.parse(startTime.replace("Z", ""));
-                        String kpIndex = gst.get("kpIndex") != null ? gst.get("kpIndex").toString() : "미상";
-                        String description = String.format("%s에 지자기 폭풍이 발생했습니다. Kp 지수: %s. 극지방에서 오로라 관측이 가능했을 것입니다.",
+                        String kpIndex = gst.get("kpIndex") != null ? gst.get("kpIndex").toString() : "Unknown";
+                        String description = String.format("Geomagnetic storm occurred on %s. Kp index: %s. Aurora observation may have been possible in polar regions.",
                                 eventTime.toLocalDate(), kpIndex);
                         
                         return createAstronomyEvent("GEOMAGNETIC_STORM",
-                                "지자기 폭풍 발생",
+                                "Geomagnetic Storm",
                                 description,
                                 eventTime, "MEDIUM");
                     } catch (Exception e) {
@@ -372,8 +372,8 @@ public class AstronomyService {
 
             return AstronomyEvent.builder()
                     .eventType("ISS_LOCATION")
-                    .title("ISS 관측 기회")
-                    .description(String.format("국제우주정거장이 한국 상공을 통과합니다. 맑은 점으로 5분간 관측 가능합니다. (현재 위치: %.1f°, %.1f°)",
+                    .title("ISS Observation Opportunity")
+                    .description(String.format("International Space Station passes over Korea. Observable as bright dot for 5 minutes. (Current position: %.1f°, %.1f°)",
                             Double.parseDouble(latitude), Double.parseDouble(longitude)))
                     .eventDate(nextPass)
                     .peakTime(nextPass.plusMinutes(2))
@@ -417,12 +417,12 @@ public class AstronomyService {
                     boolean isPastEvent = eventDate.isBefore(LocalDateTime.now());
                     String sizeInfo = getAsteroidSize(asteroid);
                     String description = isPastEvent ? 
-                        String.format("지름 %s의 소행성이 지구에서 %s 거리를 안전하게 통과했습니다.", sizeInfo, distanceText) :
-                        String.format("지름 %s의 소행성이 지구에서 %s 거리를 안전하게 통과할 예정입니다.", sizeInfo, distanceText);
+                        String.format("Asteroid with diameter %s safely passed Earth at distance %s.", sizeInfo, distanceText) :
+                        String.format("Asteroid with diameter %s will safely pass Earth at distance %s.", sizeInfo, distanceText);
 
                     events.add(AstronomyEvent.builder()
                             .eventType("ASTEROID")
-                            .title("지구 근접 소행성 " + name.replace("(", "").replace(")", ""))
+                            .title("Near-Earth Asteroid " + name.replace("(", "").replace(")", ""))
                             .description(description)
                             .eventDate(eventDate)
                             .peakTime(eventDate)
@@ -441,9 +441,9 @@ public class AstronomyService {
 
     private String formatDistance(double kilometers) {
         if (kilometers >= 1000000) {
-            return String.format("%.1f백만 km", kilometers / 1000000);
+            return String.format("%.1f million km", kilometers / 1000000);
         } else if (kilometers >= 10000) {
-            return String.format("%.0f만 km", kilometers / 10000);
+            return String.format("%.0f thousand km", kilometers / 1000);
         } else {
             return String.format("%.0f km", kilometers);
         }
@@ -507,7 +507,7 @@ public class AstronomyService {
         } catch (Exception e) {
             log.debug("소행성 크기 정보 파싱 실패: {}", e.getMessage());
         }
-        return "미상";
+        return "Unknown";
     }
 
     private List<AstronomyEvent> fetchAstronomyForecast() {
@@ -624,7 +624,7 @@ public class AstronomyService {
     
     private String createEventDescription(String title, String explanation) {
         String desc = explanation.length() > 200 ? explanation.substring(0, 197) + "..." : explanation;
-        return "NASA에서 예보한 천체 이벤트입니다. " + desc;
+        return "Astronomical event forecasted by NASA. " + desc;
     }
     
     private List<AstronomyEvent> parseUpcomingNeoWsData(Map<String, Object> neowsData) {
@@ -651,11 +651,11 @@ public class AstronomyService {
                         distanceText = formatDistance(Double.parseDouble(kmDistance));
                     }
                     
-                    String description = String.format("지름 %s의 소행성이 지구에서 %s 거리를 안전하게 통과할 예정입니다. NASA에서 예보한 실제 이벤트입니다.", sizeInfo, distanceText);
+                    String description = String.format("Asteroid with diameter %s will safely pass Earth at distance %s. Real event forecasted by NASA.", sizeInfo, distanceText);
                     
                     events.add(createForecastEvent(
                         "ASTEROID_FORECAST",
-                        "예정된 소행성 근접 " + name.replace("(", "").replace(")", ""),
+                        "Scheduled Asteroid Approach " + name.replace("(", "").replace(")", ""),
                         description,
                         eventDate
                     ));

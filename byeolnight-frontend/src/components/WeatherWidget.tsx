@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface WeatherData {
   location: string;
@@ -41,6 +42,7 @@ const sanitizeForLog = (input: any): string => {
 };
 
 const WeatherWidget: React.FC = () => {
+  const { t } = useTranslation();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [events, setEvents] = useState<AstronomyEvent[]>([]);
   const [issLocation, setIssLocation] = useState<IssLocation | null>(null);
@@ -77,14 +79,14 @@ const WeatherWidget: React.FC = () => {
   const getCurrentLocationWithTimeout = () => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
-        setLocationError('브라우저에서 위치 서비스를 지원하지 않습니다.');
+        setLocationError(t('weather.location_not_supported'));
         fetchWeatherData(37.5665, 126.9780);
         resolve(null);
         return;
       }
 
       const timeoutId = setTimeout(() => {
-        setLocationError('위치 요청 시간 초과. 서울 기준으로 표시합니다.');
+        setLocationError(t('weather.location_timeout'));
         fetchWeatherData(37.5665, 126.9780);
         resolve(null);
       }, 5000); // 5초 타임아웃
@@ -102,7 +104,7 @@ const WeatherWidget: React.FC = () => {
         (error) => {
           clearTimeout(timeoutId);
           console.error('위치 정보 오류:', sanitizeForLog(error.message || 'Unknown error'));
-          setLocationError('위치 정보를 가져올 수 없습니다. 서울 기준으로 표시합니다.');
+          setLocationError(t('weather.location_error'));
           fetchWeatherData(37.5665, 126.9780);
           setRequestingLocation(false);
           resolve(null);
@@ -144,7 +146,7 @@ const WeatherWidget: React.FC = () => {
       console.log('날씨 데이터 응답 수신 완료');
       setWeather(response.data);
     } catch (error: any) {
-      const errorMessage = '날씨 데이터를 불러올 수 없습니다.';
+      const errorMessage = t('weather.weather_error');
       console.error('날씨 데이터 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
       setWeatherError(errorMessage);
     }
@@ -166,7 +168,7 @@ const WeatherWidget: React.FC = () => {
         console.log('ISS 위치 업데이트 완료');
       }
     } catch (error: any) {
-      const errorMessage = 'ISS 위치 정보를 불러올 수 없습니다.';
+      const errorMessage = t('weather.events_error');
       console.error('ISS 위치 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
       setIssError(errorMessage);
     }
@@ -180,8 +182,8 @@ const WeatherWidget: React.FC = () => {
       const issEvent: AstronomyEvent = {
         id: 0,
         eventType: 'ISS_LOCATION',
-        title: 'ISS 실시간 위치',
-        description: `국제우주정거장 현재 위치: ${parseFloat(currentIssLocation.latitude).toFixed(1)}°, ${parseFloat(currentIssLocation.longitude).toFixed(1)}°`,
+        title: t('weather.iss_current_location'),
+        description: `${t('weather.iss_position_desc')}: ${parseFloat(currentIssLocation.latitude).toFixed(1)}°, ${parseFloat(currentIssLocation.longitude).toFixed(1)}°`,
         eventDate: new Date().toISOString(),
         peakTime: new Date().toISOString(),
         visibility: 'WORLDWIDE',
@@ -231,7 +233,7 @@ const WeatherWidget: React.FC = () => {
       const finalEvents = updateEventsWithIss(astronomyEvents, issLocation);
       setEvents(finalEvents);
     } catch (error: any) {
-      const errorMessage = '천체 이벤트 정보를 불러올 수 없습니다.';
+      const errorMessage = t('weather.events_error');
       console.error('천체 이벤트 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
       setEventsError(errorMessage);
     }
@@ -284,21 +286,8 @@ const WeatherWidget: React.FC = () => {
   };
   
   const getEventTypeLabel = (eventType: string) => {
-    switch (eventType) {
-      case 'ASTEROID': return 'NASA 지구근접소행성';
-      case 'SOLAR_FLARE': return 'NASA 태양플레어';
-      case 'GEOMAGNETIC_STORM': return 'NASA 지자기폭풍';
-      case 'ISS_LOCATION': return 'NASA 국제우주정거장';
-      case 'MARS_WEATHER': return 'NASA 화성날씨';
-      case 'METEOR_SHOWER': return '유성우';
-      case 'LUNAR_ECLIPSE': return '월식';
-      case 'BLOOD_MOON': return '블러드문';
-      case 'TOTAL_LUNAR_ECLIPSE': return '개기월식';
-      case 'SOLAR_ECLIPSE': return '일식';
-      case 'PLANET_CONJUNCTION': return '행성근접';
-      case 'COMET_OBSERVATION': return '혜성관측';
-      default: return '천체 이벤트';
-    }
+    const eventTypeKey = `weather.event_types.${eventType}` as const;
+    return t(eventTypeKey, { defaultValue: t('weather.event_types.DEFAULT') });
   };
   
   // 로딩 상태
@@ -321,9 +310,9 @@ const WeatherWidget: React.FC = () => {
             <div className="text-center py-8">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full"></div>
-                <span className="text-blue-200 font-medium">오늘의 날씨 정보를 불러오는 중...</span>
+                <span className="text-blue-200 font-medium">{t('weather.loading_weather')}</span>
               </div>
-              <p className="text-gray-300 text-sm">위치 기반 별 관측 조건을 분석하고 있습니다</p>
+              <p className="text-gray-300 text-sm">{t('weather.analyzing_conditions')}</p>
             </div>
           </div>
         </div>
@@ -344,9 +333,9 @@ const WeatherWidget: React.FC = () => {
             <div className="text-center py-8">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="animate-spin w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full"></div>
-                <span className="text-purple-200 font-medium">NASA에서 천체 데이터를 불러오는 중...</span>
+                <span className="text-purple-200 font-medium">{t('weather.loading_events')}</span>
               </div>
-              <p className="text-gray-300 text-sm mb-2">실시간 우주 정보를 수집하고 있습니다</p>
+              <p className="text-gray-300 text-sm mb-2">{t('weather.collecting_space_data')}</p>
               <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
                 <span>🪨 소행성</span>
                 <span>☀️ 태양 플레어</span>
@@ -366,7 +355,7 @@ const WeatherWidget: React.FC = () => {
       <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl border border-purple-500/20">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
-            🌟 별 관측 조건
+            🌟 {t('weather.star_observation')}
             {requestingLocation && (
               <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full"></div>
             )}
@@ -386,7 +375,7 @@ const WeatherWidget: React.FC = () => {
               onClick={handleLocationRequest}
               className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              📍 위치 재요청
+              {t('weather.retry_location')}
             </button>
           </div>
         )}
@@ -399,7 +388,7 @@ const WeatherWidget: React.FC = () => {
               onClick={() => weather && fetchWeatherData(weather.latitude, weather.longitude)}
               className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              🔄 재시도
+              {t('weather.retry')}
             </button>
           </div>
         ) : weather ? (
@@ -410,28 +399,28 @@ const WeatherWidget: React.FC = () => {
                 <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
                   <span className="text-gray-300 text-sm flex items-center gap-2">
                     <span>📍</span>
-                    <span>위치</span>
+                    <span>{t('weather.location')}</span>
                   </span>
                   <span className="font-semibold text-white text-sm break-words text-right max-w-[120px]">{weather.location}</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
                   <span className="text-gray-300 text-sm flex items-center gap-2">
                     <span>☁️</span>
-                    <span>구름량</span>
+                    <span>{t('weather.cloud_cover')}</span>
                   </span>
                   <span className="font-semibold text-white text-sm">{weather.cloudCover.toFixed(0)}%</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
                   <span className="text-gray-300 text-sm flex items-center gap-2">
                     <span>👁️</span>
-                    <span>시정</span>
+                    <span>{t('weather.visibility')}</span>
                   </span>
                   <span className="font-semibold text-white text-sm">{weather.visibility.toFixed(1)}km</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
                   <span className="text-gray-300 text-sm flex items-center gap-2">
                     <span>🌙</span>
-                    <span>달의 위상</span>
+                    <span>{t('weather.moon_phase')}</span>
                   </span>
                   <span className="font-semibold text-white text-sm break-words text-right max-w-[80px]">{weather.moonPhase}</span>
                 </div>
@@ -441,7 +430,7 @@ const WeatherWidget: React.FC = () => {
               <div className="p-3 bg-gradient-to-r from-white/5 to-white/10 rounded-lg border border-white/10">
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-lg">📝</span>
-                  <span className="text-sm font-medium text-white">관측 추천</span>
+                  <span className="text-sm font-medium text-white">{t('weather.observation_recommendation')}</span>
                 </div>
                 <p className="text-sm text-gray-200 leading-relaxed break-words pl-7">{weather.recommendation}</p>
               </div>
@@ -449,7 +438,7 @@ const WeatherWidget: React.FC = () => {
               {/* 업데이트 시간 */}
               <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mt-3 p-2 bg-white/5 rounded-lg">
                 <span>⏰</span>
-                <span>업데이트: {weather.observationTime}</span>
+                <span>{t('weather.updated')}: {weather.observationTime}</span>
               </div>
             </div>
           </div>
@@ -459,9 +448,9 @@ const WeatherWidget: React.FC = () => {
               <div className="text-4xl mb-4">🌌</div>
               <div className="flex items-center justify-center gap-3 mb-2">
                 <div className="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
-                <p className="text-blue-200 font-medium">날씨 데이터를 불러오는 중...</p>
+                <p className="text-blue-200 font-medium">{t('weather.loading_weather_data')}</p>
               </div>
-              <p className="text-gray-300 text-sm">위치 정보를 분석하여 별 관측 조건을 계산합니다</p>
+              <p className="text-gray-300 text-sm">{t('weather.calculating_conditions')}</p>
             </div>
           </div>
         )}
@@ -471,7 +460,7 @@ const WeatherWidget: React.FC = () => {
       <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl p-6 text-white shadow-2xl border border-blue-500/20">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
-            🌌 최근 천체 현상
+            🌌 {t('weather.recent_astronomy_events')}
           </h3>
           {user?.role === 'ADMIN' && (
             <button
@@ -482,11 +471,11 @@ const WeatherWidget: React.FC = () => {
               {collectingAstronomy ? (
                 <>
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  업데이트 중...
+                  {t('weather.updating')}
                 </>
               ) : (
                 <>
-                  🔄 NASA 업데이트
+                  {t('weather.nasa_update')}
                 </>
               )}
             </button>
@@ -500,7 +489,7 @@ const WeatherWidget: React.FC = () => {
               onClick={fetchAstronomyEvents}
               className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              🔄 재시도
+              {t('weather.retry')}
             </button>
           </div>
         ) : events.length > 0 ? (
@@ -544,9 +533,9 @@ const WeatherWidget: React.FC = () => {
             <div className="text-4xl mb-4">🌌</div>
             <div className="flex items-center justify-center gap-3 mb-2">
               <div className="animate-spin w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full"></div>
-              <p className="text-purple-200 font-medium">천체 이벤트를 불러오는 중...</p>
+              <p className="text-purple-200 font-medium">{t('weather.loading_astronomy_events')}</p>
             </div>
-            <p className="text-gray-300 text-sm mb-2">NASA API에서 최신 우주 정보를 가져오고 있습니다</p>
+            <p className="text-gray-300 text-sm mb-2">{t('weather.nasa_api_data')}</p>
             <div className="flex items-center justify-center gap-3 text-xs text-gray-400">
               <span>🪨 NeoWs</span>
               <span>☀️ DONKI</span>
@@ -563,7 +552,7 @@ const WeatherWidget: React.FC = () => {
               onClick={fetchIssLocation}
               className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              🛰️ ISS 위치 재시도
+              {t('weather.iss_retry')}
             </button>
           </div>
         )}
