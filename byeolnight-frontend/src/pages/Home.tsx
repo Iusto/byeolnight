@@ -173,7 +173,7 @@ export default function Home() {
         {BOARD_CONFIGS.map((board, index) => (
           <Link 
             key={board.key} 
-            to={board.path || `/posts?category=${board.key}&sort=recent`} 
+            to={board.path || `/posts?category=${board.key}&sort=recent#posts-section`} 
             className="group"
           >
             <div 
@@ -267,7 +267,7 @@ export default function Home() {
           </h3>
         </div>
         <Link 
-          to={link} 
+          to={`${link}#posts-section`} 
           className="group/btn flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 hover:from-purple-700 hover:via-purple-800 hover:to-pink-700 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/50 hover:scale-105 backdrop-blur-sm border border-purple-400/30"
         >
           <span className="hidden sm:inline">{t('home.view_all')}</span>

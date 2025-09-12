@@ -302,7 +302,31 @@
     "give_like_desc": "하루 최대 10회 추천 (1포인트/회)",
     "valid_report": "유효한 신고",
     "valid_report_desc": "신고가 승인될 때마다",
-    "daily_limits_notice": "일부 활동은 일일 제한이 있어 어뷰징을 방지합니다",
+    "daily_limits_notice": "일부 활동은 일일 제한이 있어 어뷰징을 방지합니다"
+  },
+  "points": {
+    "title": "포인트 내역",
+    "subtitle": "스텔라 포인트 획득 및 사용 내역을 확인하세요",
+    "owned_stella": "보유 스텔라",
+    "attendance_check": "출석 체크",
+    "attendance_completed": "출석 완료",
+    "attendance_success": "출석 체크 완료! +10 포인트",
+    "already_attended": "오늘 이미 출석했습니다",
+    "attendance_failed": "출석 체크에 실패했습니다",
+    "login_required": "로그인이 필요합니다",
+    "tabs": {
+      "all": "전체",
+      "earned": "획득",
+      "spent": "사용"
+    },
+    "loading": "로딩 중...",
+    "no_history": "포인트 내역이 없습니다",
+    "no_earned": "획득한 포인트가 없습니다",
+    "no_spent": "사용한 포인트가 없습니다",
+    "earned_badge": "획득",
+    "spent_badge": "사용",
+    "daily_attendance": "매일 출석",
+    "daily_attendance_reward": "매일 출석보상"
     "icon_names": {
       "수성": "수성",
       "금성": "금성",

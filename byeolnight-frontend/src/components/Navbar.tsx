@@ -61,35 +61,35 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-1">
             <Link 
               to="/posts" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50 min-w-[80px]"
             >
               <span className="group-hover:animate-bounce text-sm">📚</span>
-              <span className="font-medium text-sm">{t('nav.posts')}</span>
+              <span className="font-medium text-sm truncate">{t('nav.posts')}</span>
             </Link>
             
             <Link 
               to="/shop" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50 min-w-[90px]"
             >
               <span className="group-hover:animate-bounce text-sm">✨</span>
-              <span className="font-medium text-sm">{t('nav.shop')}</span>
+              <span className="font-medium text-sm truncate">{t('nav.shop')}</span>
             </Link>
             
             <Link 
               to="/suggestions" 
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50 min-w-[100px]"
             >
               <span className="group-hover:animate-bounce text-sm">💡</span>
-              <span className="font-medium text-sm">{t('nav.suggestions')}</span>
+              <span className="font-medium text-sm truncate">{t('nav.suggestions')}</span>
             </Link>
             
             {user && (
               <Link 
                 to="/certificates" 
-                className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50"
+                className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-purple-600/20 hover:from-purple-600/40 hover:to-purple-600/40 text-purple-200 hover:text-white transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50 min-w-[100px]"
               >
                 <span className="group-hover:animate-bounce text-sm">🏆</span>
-                <span className="font-medium text-sm">{t('nav.certificates')}</span>
+                <span className="font-medium text-sm truncate">{t('nav.certificates')}</span>
               </Link>
             )}
           </div>
@@ -101,13 +101,13 @@ export default function Navbar() {
                 {/* 포인트 (데스크톱만) */}
                 <Link 
                   to="/points" 
-                  className="hidden md:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-300 transform hover:scale-105 group cursor-pointer"
+                  className="hidden md:flex items-center gap-2 bg-gradient-to-r from-yellow-900/40 to-orange-900/40 hover:from-yellow-800/50 hover:to-orange-800/50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-yellow-500/30 hover:border-yellow-400/50 shadow-lg transition-all duration-300 transform hover:scale-105 group cursor-pointer min-w-[90px]"
                   title="출석체크 & 포인트 내역 보기"
                 >
                   <span className="text-yellow-400 text-sm animate-pulse group-hover:animate-bounce">✨</span>
                   <div className="flex flex-col items-center">
                     <span className="text-yellow-200 font-bold text-xs leading-tight">{user.points?.toLocaleString() || 0}</span>
-                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors">{t('nav.points')}</span>
+                    <span className="text-yellow-300/70 text-xs leading-tight group-hover:text-yellow-200 transition-colors truncate max-w-[60px]">{t('nav.points')}</span>
                   </div>
                   <span className="text-yellow-300/50 text-xs group-hover:text-yellow-200 transition-colors">📊</span>
                 </Link>

@@ -300,7 +300,31 @@
     "give_like_desc": "Up to 10 likes per day (1 point each)",
     "valid_report": "Valid Reports",
     "valid_report_desc": "Each time your report is approved",
-    "daily_limits_notice": "Some activities have daily limits to prevent abuse",
+    "daily_limits_notice": "Some activities have daily limits to prevent abuse"
+  },
+  "points": {
+    "title": "Point History",
+    "subtitle": "Check your Stella point earning and spending history",
+    "owned_stella": "Owned Stella",
+    "attendance_check": "Attendance Check",
+    "attendance_completed": "Attendance Completed",
+    "attendance_success": "Attendance check completed! +10 points",
+    "already_attended": "Already attended today",
+    "attendance_failed": "Attendance check failed",
+    "login_required": "Login required",
+    "tabs": {
+      "all": "All",
+      "earned": "Earned",
+      "spent": "Spent"
+    },
+    "loading": "Loading...",
+    "no_history": "No point history",
+    "no_earned": "No earned points",
+    "no_spent": "No spent points",
+    "earned_badge": "Earned",
+    "spent_badge": "Spent",
+    "daily_attendance": "Daily Attendance",
+    "daily_attendance_reward": "Daily Attendance Reward",
     "icon_names": {
       "수성": "Mercury",
       "금성": "Venus",

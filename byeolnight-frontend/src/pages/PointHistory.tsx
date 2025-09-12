@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
-import PointEarningGuide from '../components/PointEarningGuide';
+
 
 interface PointHistory {
   id: number;
@@ -175,7 +175,72 @@ export default function PointHistory() {
         </div>
 
         {/* 포인트 획득 방법 안내 */}
-        <PointEarningGuide className="mb-8 shadow-xl" />
+        <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-4 sm:p-6 mb-8 shadow-xl">
+          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+            ⭐ {t('shop.how_to_earn_points')}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">📅</span>
+                <span className="font-semibold text-sm sm:text-base">{t('shop.daily_attendance')}</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+10 {t('shop.points')}</p>
+              <p className="text-gray-400 text-xs">{t('shop.daily_attendance_desc')}</p>
+            </div>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">✍️</span>
+                <span className="font-semibold text-sm sm:text-base">{t('shop.post_write')}</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+20 {t('shop.points')}</p>
+              <p className="text-gray-400 text-xs">{t('shop.post_write_desc')}</p>
+            </div>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">💬</span>
+                <span className="font-semibold text-sm sm:text-base">{t('shop.comment_write')}</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+5 {t('shop.points')}</p>
+              <p className="text-gray-400 text-xs">{t('shop.comment_write_desc')}</p>
+            </div>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">❤️</span>
+                <span className="font-semibold text-sm sm:text-base">{t('shop.receive_like')}</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+2 {t('shop.points')}</p>
+              <p className="text-gray-400 text-xs">{t('shop.receive_like_desc')}</p>
+            </div>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">👍</span>
+                <span className="font-semibold text-sm sm:text-base">{t('shop.give_like')}</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+1 {t('shop.points')}</p>
+              <p className="text-gray-400 text-xs">{t('shop.give_like_desc')}</p>
+            </div>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🚨</span>
+                <span className="font-semibold text-sm sm:text-base">{t('shop.valid_report')}</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+10 {t('shop.points')}</p>
+              <p className="text-gray-400 text-xs">{t('shop.valid_report_desc')}</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-500 border-opacity-30">
+            <p className="text-blue-300 text-xs sm:text-sm text-center">
+              💡 {t('shop.daily_limits_notice')}
+            </p>
+          </div>
+        </div>
 
         {/* 탭 메뉴 */}
         <div className="flex gap-2 mb-6">
@@ -214,12 +279,12 @@ export default function PointHistory() {
         {/* 포인트 히스토리 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl shadow-xl overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-400">로딩 중...</div>
+            <div className="p-8 text-center text-gray-400">{t('points.loading')}</div>
           ) : histories.length === 0 ? (
             <div className="p-8 text-center text-gray-400">
-              {activeTab === 'all' && '포인트 내역이 없습니다.'}
-              {activeTab === 'earned' && '획득한 포인트가 없습니다.'}
-              {activeTab === 'spent' && '사용한 포인트가 없습니다.'}
+              {activeTab === 'all' && t('points.no_history')}
+              {activeTab === 'earned' && t('points.no_earned')}
+              {activeTab === 'spent' && t('points.no_spent')}
             </div>
           ) : (
             <div className="divide-y divide-gray-600">
@@ -239,17 +304,17 @@ export default function PointHistory() {
                     {activeTab === 'all' && (
                       history.amount > 0 ? (
                         <span className="bg-green-600/20 text-green-300 px-2 py-1 rounded text-xs">
-                          획득
+                          {t('points.earned_badge')}
                         </span>
                       ) : (
                         <span className="bg-red-600/20 text-red-300 px-2 py-1 rounded text-xs">
-                          사용
+                          {t('points.spent_badge')}
                         </span>
                       )
                     )}
                     {activeTab === 'spent' && (
                       <span className="bg-red-600/20 text-red-300 px-2 py-1 rounded text-xs">
-                        사용
+                        {t('points.spent_badge')}
                       </span>
                     )}
                   </div>

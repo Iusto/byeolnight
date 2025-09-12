@@ -300,7 +300,31 @@
     "give_like_desc": "一日最大10回いいね (1ポイント/回)",
     "valid_report": "有効な報告",
     "valid_report_desc": "報告が承認されるたびに",
-    "daily_limits_notice": "一部の活動は一日制限があり、不正を防止します",
+    "daily_limits_notice": "一部の活動は一日制限があり、不正を防止します"
+  },
+  "points": {
+    "title": "ポイント履歴",
+    "subtitle": "ステラポイントの獲得・使用履歴を確認してください",
+    "owned_stella": "保有ステラ",
+    "attendance_check": "出席チェック",
+    "attendance_completed": "出席完了",
+    "attendance_success": "出席チェック完了！+10ポイント",
+    "already_attended": "今日はすでに出席しました",
+    "attendance_failed": "出席チェックに失敗しました",
+    "login_required": "ログインが必要です",
+    "tabs": {
+      "all": "全体",
+      "earned": "獲得",
+      "spent": "使用"
+    },
+    "loading": "読み込み中...",
+    "no_history": "ポイント履歴がありません",
+    "no_earned": "獲得したポイントがありません",
+    "no_spent": "使用したポイントがありません",
+    "earned_badge": "獲得",
+    "spent_badge": "使用",
+    "daily_attendance": "毎日出席",
+    "daily_attendance_reward": "毎日出席報酬",
     "icon_names": {
       "수성": "水星",
       "금성": "金星",
