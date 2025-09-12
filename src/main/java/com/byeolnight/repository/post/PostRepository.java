@@ -179,7 +179,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     @Query("""
     SELECT COUNT(p) FROM Post p 
     WHERE p.writer IS NULL OR p.writer.id NOT IN (
-        SELECT u.id FROM User u WHERE u.deleted = false
+        SELECT u.id FROM User u WHERE u.status != 'WITHDRAWN'
     )
     """)
     long countPostsWithDeletedWriter();
@@ -192,7 +192,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     UPDATE Post p SET p.isDeleted = true, p.deletedAt = CURRENT_TIMESTAMP 
     WHERE p.isDeleted = false AND (
         p.writer IS NULL OR p.writer.id NOT IN (
-            SELECT u.id FROM User u WHERE u.deleted = false
+            SELECT u.id FROM User u WHERE u.status != 'WITHDRAWN'
         )
     )
     """)
