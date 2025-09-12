@@ -70,6 +70,7 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [error, setError] = useState('');
   
   // iframe 렌더링을 위한 전역 CSS 스타일 추가
@@ -227,13 +228,12 @@ export default function PostDetail() {
 
 
   const fetchComments = async () => {
+    if (!id || isNaN(Number(id))) return;
+    
+    setCommentsLoading(true);
     try {
       console.log('댓글 조회 요청:', `/public/comments/post/${id}`);
       const res = await axios.get(`/public/comments/post/${id}`);
-      
-      console.log('전체 응답:', res);
-      console.log('응답 데이터:', res.data);
-      console.log('응답 데이터 타입:', typeof res.data);
       
       let commentsData = [];
       
@@ -241,38 +241,30 @@ export default function PostDetail() {
       if (res.data && typeof res.data === 'object') {
         if (res.data.success === true && res.data.data) {
           commentsData = res.data.data;
-          console.log('CommonResponse success 구조로 파싱:', commentsData);
         } else if (res.data.success === false) {
           console.error('API 오류:', res.data.message);
           commentsData = [];
         } else if (Array.isArray(res.data)) {
-          // 직접 배열인 경우
           commentsData = res.data;
-          console.log('직접 배열로 파싱:', commentsData);
         } else {
           console.warn('예상치 못한 응답 구조:', res.data);
           commentsData = [];
         }
       }
       
-      console.log('최종 댓글 데이터:', commentsData);
-      console.log('댓글 데이터 길이:', Array.isArray(commentsData) ? commentsData.length : 'Not Array');
-      
       // 댓글 작성자 정보 보완 (선택적)
       const enhancedComments = (Array.isArray(commentsData) ? commentsData : []).map(comment => {
-        // 기본 아이콘과 빈 인증서 리스트로 초기화
         if (!comment.writerIcon) comment.writerIcon = null;
         if (!comment.writerCertificates) comment.writerCertificates = [];
         return comment;
       });
       
-      console.log('처리된 댓글:', enhancedComments);
-      
       setComments(enhancedComments);
     } catch (err) {
       console.error('댓글 조회 실패:', err);
-      console.error('에러 상세:', err.response);
       setComments([]);
+    } finally {
+      setCommentsLoading(false);
     }
   };
 
@@ -347,8 +339,12 @@ export default function PostDetail() {
     }
     
     const loadData = async () => {
+      // 게시글 먼저 로드
       await fetchPost();
-      await fetchComments();
+      // 게시글 로드 완료 후 댓글 로드
+      if (post !== null) {
+        await fetchComments();
+      }
     };
     
     loadData();
@@ -358,6 +354,13 @@ export default function PostDetail() {
       checkIframeSupport();
     }
   }, [id]);
+  
+  // 게시글 로드 완료 후 댓글 로드
+  useEffect(() => {
+    if (post && !commentsLoading) {
+      fetchComments();
+    }
+  }, [post?.id]);
   
   // iframe 로딩 보장
   useEffect(() => {
@@ -804,6 +807,9 @@ export default function PostDetail() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                 💬 {t('home.comments')} ({post.commentCount || comments.length})
+                {commentsLoading && (
+                  <span className="ml-2 inline-block animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent"></span>
+                )}
               </h2>
             </div>
 
