@@ -69,17 +69,5 @@ public class PublicSuggestionController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "건의사항 상세 조회", description = """
-    [비회원 접근 가능]
-    공개 건의사항의 상세 정보를 조회합니다.
-    비공개 건의사항은 조회할 수 없습니다.
-    """)
-    @Parameter(name = "id", description = "건의사항 ID", example = "1")
-    public ResponseEntity<CommonResponse<SuggestionDto.Response>> getSuggestion(
-            @PathVariable @Positive Long id
-    ) {
-        SuggestionDto.Response response = suggestionService.getPublicSuggestion(id);
-        return ResponseEntity.ok(CommonResponse.success(response));
-    }
+
 }

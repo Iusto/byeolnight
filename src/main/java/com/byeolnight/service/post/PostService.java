@@ -204,23 +204,29 @@ public class PostService {
 
                 hotPosts.forEach(p -> {
                     try {
+                        // 작성자가 존재하지 않는 게시글 필터링
+                        if (p.getWriter() == null) {
+                            log.warn("작성자가 없는 게시글 건너뜀 (HOT): {}", p.getId());
+                            return;
+                        }
                         long actualLikeCount = postLikeRepository.countByPost(p);
                         long commentCount = commentRepository.countByPostId(p.getId());
                         combined.add(PostResponseDto.of(p, false, actualLikeCount, true, commentCount));
                     } catch (Exception e) {
-                        log.warn("게시글 처리 실패 (HOT): {}", p.getId());
+                        log.warn("게시글 처리 실패 (HOT): {}, 오류: {}", p.getId(), e.getMessage());
                     }
                 });
 
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
+                        .filter(p -> p.getWriter() != null) // 작성자가 존재하는 게시글만 필터링
                         .forEach(p -> {
                             try {
                                 long actualLikeCount = postLikeRepository.countByPost(p);
                                 long commentCount = commentRepository.countByPostId(p.getId());
                                 combined.add(PostResponseDto.of(p, false, actualLikeCount, false, commentCount));
                             } catch (Exception e) {
-                                log.warn("게시글 처리 실패 (RECENT): {}", p.getId());
+                                log.warn("게시글 처리 실패 (RECENT): {}, 오류: {}", p.getId(), e.getMessage());
                             }
                         });
 
@@ -230,6 +236,7 @@ public class PostService {
             case POPULAR -> {
                 Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
                 List<PostResponseDto> dtos = popularPosts.getContent().stream()
+                        .filter(p -> p.getWriter() != null) // 작성자가 존재하는 게시글만 필터링
                         .map(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
@@ -253,12 +260,14 @@ public class PostService {
         Page<Post> searchResults = postRepository.searchPosts(keyword, categoryEnum, searchType, pageable);
         
         List<PostResponseDto> dtos = searchResults.getContent().stream()
+                .filter(p -> p.getWriter() != null) // 작성자가 존재하는 게시글만 필터링
                 .map(p -> {
                     try {
                         long actualLikeCount = postLikeRepository.countByPost(p);
                         long commentCount = commentRepository.countByPostId(p.getId());
                         return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
                     } catch (Exception e) {
+                        log.warn("게시글 처리 실패 (SEARCH): {}, 오류: {}", p.getId(), e.getMessage());
                         return null;
                     }
                 })
@@ -276,6 +285,7 @@ public class PostService {
         List<Post> hotPosts = postRepository.findHotPosts(null, threshold, 5, size);
 
         return hotPosts.stream()
+                .filter(p -> p.getWriter() != null) // 작성자가 존재하는 게시글만 필터링
                 .map(p -> {
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());

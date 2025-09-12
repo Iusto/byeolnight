@@ -6,6 +6,7 @@ import com.byeolnight.entity.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -171,4 +172,29 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
      * 특정 카테고리의 특정 날짜 이후 게시글 개수 조회
      */
     long countByCategoryAndCreatedAtAfter(Category category, LocalDateTime createdAt);
+    
+    /**
+     * 작성자가 삭제된 게시글 개수 조회 (고아 게시글)
+     */
+    @Query("""
+    SELECT COUNT(p) FROM Post p 
+    WHERE p.writer IS NULL OR p.writer.id NOT IN (
+        SELECT u.id FROM User u WHERE u.deleted = false
+    )
+    """)
+    long countPostsWithDeletedWriter();
+    
+    /**
+     * 작성자가 삭제된 게시글을 소프트 삭제 처리
+     */
+    @Modifying
+    @Query("""
+    UPDATE Post p SET p.isDeleted = true, p.deletedAt = CURRENT_TIMESTAMP 
+    WHERE p.isDeleted = false AND (
+        p.writer IS NULL OR p.writer.id NOT IN (
+            SELECT u.id FROM User u WHERE u.deleted = false
+        )
+    )
+    """)
+    int softDeletePostsWithDeletedWriter();
 }

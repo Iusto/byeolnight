@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { getSuggestion, getPublicSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
+import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
 import UserIconDisplay from '../components/UserIconDisplay';
 import type { Suggestion } from '../types/suggestion';
 
@@ -57,14 +57,20 @@ export default function SuggestionDetail() {
       return;
     }
 
+    // 로그인하지 않은 사용자는 접근 불가
+    if (!user) {
+      alert('건의게시판 상세보기는 로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
     fetchSuggestion();
-  }, [id, navigate]);
+  }, [id, navigate, user]);
 
   const fetchSuggestion = async () => {
     try {
       setLoading(true);
-      const apiCall = user ? getSuggestion : getPublicSuggestion;
-      const data = await apiCall(Number(id));
+      const data = await getSuggestion(Number(id));
       setSuggestion(data);
     } catch (error) {
       console.error('건의사항 조회 실패:', error);
@@ -461,19 +467,7 @@ export default function SuggestionDetail() {
           )}
         </div>
 
-        {/* 비로그인 사용자에게 로그인 안내 */}
-        {!user && (
-          <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 sm:p-6 text-center">
-            <div className="text-4xl mb-3">🔑</div>
-            <p className="text-blue-300 font-medium mb-3">건의사항 작성 및 관리 기능을 사용하려면 로그인이 필요합니다.</p>
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-            >
-              로그인하기
-            </Link>
-          </div>
-        )}
+
 
       </div>
     </div>
