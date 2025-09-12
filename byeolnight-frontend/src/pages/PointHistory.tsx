@@ -175,16 +175,7 @@ export default function PointHistory() {
         </div>
 
         {/* 포인트 획득 방법 안내 */}
-        <PointEarningGuide className="mb-8 shadow-xl" />ext-gray-400 text-xs">신고가 승인될 때</p>
-            </div>
-          </div>
-          
-          <div className="mt-4 p-3 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-500 border-opacity-30">
-            <p className="text-blue-300 text-xs sm:text-sm text-center">
-              💡 일일 획득 제한이 있으니 매일 꾸준히 활동해보세요!
-            </p>
-          </div>
-        </div>
+        <PointEarningGuide className="mb-8 shadow-xl" />
 
         {/* 탭 메뉴 */}
         <div className="flex gap-2 mb-6">
