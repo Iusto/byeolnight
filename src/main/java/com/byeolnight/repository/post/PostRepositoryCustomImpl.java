@@ -2,6 +2,7 @@ package com.byeolnight.repository.post;
 
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.post.Post.Category;
+import com.byeolnight.entity.user.User;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -27,7 +28,9 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
     public Page<Post> searchPosts(String keyword, Category category, String searchType, Pageable pageable) {
         BooleanBuilder builder = new BooleanBuilder();
         
-        builder.and(post.isDeleted.eq(false));
+        builder.and(post.isDeleted.eq(false))
+               .and(post.writer.isNotNull())
+               .and(post.writer.status.ne(User.UserStatus.WITHDRAWN));
         
         if (category != null) {
             builder.and(post.category.eq(category));
@@ -45,7 +48,7 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
         
         List<Post> content = queryFactory
                 .selectFrom(post)
-                .leftJoin(post.writer, user).fetchJoin()
+                .join(post.writer, user).fetchJoin()
                 .where(builder)
                 .orderBy(post.createdAt.desc())
                 .offset(pageable.getOffset())
@@ -54,6 +57,7 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
         
         long total = queryFactory
                 .selectFrom(post)
+                .join(post.writer, user)
                 .where(builder)
                 .fetchCount();
         
@@ -66,7 +70,9 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
         
         builder.and(post.isDeleted.eq(false))
                .and(post.blinded.eq(false))
-               .and(post.likeCount.goe(likeThreshold));
+               .and(post.likeCount.goe(likeThreshold))
+               .and(post.writer.isNotNull())
+               .and(post.writer.status.ne(User.UserStatus.WITHDRAWN));
         
         if (category != null) {
             builder.and(post.category.eq(category));
@@ -77,7 +83,7 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
         
         return queryFactory
                 .selectFrom(post)
-                .leftJoin(post.writer, user).fetchJoin()
+                .join(post.writer, user).fetchJoin()
                 .where(builder)
                 .orderBy(post.likeCount.desc(), post.createdAt.desc())
                 .limit(limit)

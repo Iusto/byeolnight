@@ -20,42 +20,36 @@ import java.util.Optional;
 public interface PostRepository extends JpaRepository<Post, Long>, PostRepositoryCustom {
 
     /**
-     * [게시판 화면] 카테고리별 최신순 게시글 조회 (블라인드 포함)
-     * - 조건: 삭제되지 않은 게시글
+     * [게시판 화면] 카테고리별 최신순 게시글 조회 (블라인드 포함, 작성자 존재 확인)
+     * - 조건: 삭제되지 않고 작성자가 존재하는 게시글
      * - 정렬: 작성일 내림차순
-     */
-    Page<Post> findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
-
-    /**
-     * [게시판 - 최신순 정렬 시] HOT 게시글 조회
-     * - 조건:
-     *    1. 삭제되지 않았고
-     *    2. 블라인드되지 않았으며
-     *    3. 특정 카테고리이고
-     *    4. 한 달 이내 생성된 게시글 중
-     *    5. 추천수 5 이상
-     * - 정렬: 추천수 내림차순
-     * - 제한: 상위 4개 (Pageable로 제한)
      */
     @Query("""
     SELECT p FROM Post p
+    JOIN p.writer w
     WHERE p.isDeleted = false
-      AND p.blinded = false
       AND p.category = :category
-      AND p.createdAt >= :threshold
-      AND p.likeCount >= 5
-    ORDER BY p.likeCount DESC
+      AND w.status != 'WITHDRAWN'
+    ORDER BY p.createdAt DESC
     """)
-    List<Post> findTopHotPostsByCategory(@Param("category") Category category,
-                                         @Param("threshold") LocalDateTime threshold,
-                                         Pageable pageable);
+    Page<Post> findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(@Param("category") Category category, Pageable pageable);
+
+
 
     /**
-     * [게시판 - 추천순 정렬 시] 전체 게시글을 추천수 기준으로 정렬 (블라인드 포함)
-     * - 조건: 삭제되지 않은 게시글
+     * [게시판 - 추천순 정렬 시] 전체 게시글을 추천수 기준으로 정렬 (블라인드 포함, 작성자 존재 확인)
+     * - 조건: 삭제되지 않고 작성자가 존재하는 게시글
      * - 정렬: 추천수 내림차순
      */
-    Page<Post> findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(Category category, Pageable pageable);
+    @Query("""
+    SELECT p FROM Post p
+    JOIN p.writer w
+    WHERE p.isDeleted = false
+      AND p.category = :category
+      AND w.status != 'WITHDRAWN'
+    ORDER BY p.likeCount DESC
+    """)
+    Page<Post> findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(@Param("category") Category category, Pageable pageable);
 
     /**
      * [게시글 상세조회] 게시글 + 작성자 정보 즉시 로딩
@@ -80,15 +74,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
      */
     List<Post> findByIsDeletedTrueOrderByCreatedAtDesc();
 
-    @Query("""
-    SELECT p FROM Post p
-    WHERE p.isDeleted = false
-      AND p.blinded = false
-      AND p.createdAt >= :threshold
-      AND p.likeCount >= 5
-    ORDER BY p.likeCount DESC
-    """)
-    List<Post> findTopHotPostsAcrossAllCategories(@Param("threshold") LocalDateTime threshold, Pageable pageable);
+
 
     /**
      * 사용자별 작성 게시글 수 조회 (삭제되지 않은 것만)
@@ -106,15 +92,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     @Query("SELECT COUNT(DISTINCT p.category) FROM Post p WHERE p.writer = :writer AND p.isDeleted = false")
     long countDistinctCategoriesByWriter(@Param("writer") User writer);
     
-    // 검색 기능 (블라인드 포함)
-    Page<Post> findByTitleContainingAndCategoryAndIsDeletedFalse(String title, Post.Category category, Pageable pageable);
-    Page<Post> findByContentContainingAndCategoryAndIsDeletedFalse(String content, Post.Category category, Pageable pageable);
-    
-    @Query("SELECT p FROM Post p WHERE (p.title LIKE %:keyword% OR p.content LIKE %:keyword%) AND p.category = :category AND p.isDeleted = false")
-    Page<Post> findByTitleOrContentContainingAndCategoryAndIsDeletedFalse(@Param("keyword") String keyword, @Param("category") Post.Category category, Pageable pageable);
-    
-    @Query("SELECT p FROM Post p WHERE p.writer.nickname LIKE %:nickname% AND p.category = :category AND p.isDeleted = false")
-    Page<Post> findByWriterNicknameContainingAndCategoryAndIsDeletedFalse(@Param("nickname") String nickname, @Param("category") Post.Category category, Pageable pageable);
+
 
     /**
      * 사용자별 작성 게시글 조회 (삭제되지 않은 것만)
@@ -127,7 +105,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
      */
     List<Post> findByDiscussionTopicTrueAndPinnedTrue();
     
-    List<Post> findByDiscussionTopicTrueAndCreatedAtAfter(java.time.LocalDateTime since);
+    List<Post> findByDiscussionTopicTrueAndCreatedAtAfter(LocalDateTime since);
     
     @Query("SELECT p FROM Post p WHERE p.discussionTopic = true AND p.pinned = true ORDER BY p.createdAt DESC")
     java.util.Optional<Post> findTodayDiscussionTopic();
@@ -197,4 +175,6 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     )
     """)
     int softDeletePostsWithDeletedWriter();
+    
+
 }

@@ -339,7 +339,8 @@ const WeatherWidget: React.FC = () => {
     const solarFlarePatterns = [
       /Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/,
       /Solar Flare Class ([A-Z]\d+\.?\d*)/i,
-      /태양 플레어.*등급.*([A-Z]\d+\.?\d*)/
+      /태양 플레어.*등급.*([A-Z]\d+\.?\d*)/,
+      /태양플레어.*등급.*([A-Z]\d+\.?\d*)/i
     ];
     
     for (const pattern of solarFlarePatterns) {
@@ -360,7 +361,8 @@ const WeatherWidget: React.FC = () => {
     const geomagneticPatterns = [
       /Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/,
       /Geomagnetic Storm/i,
-      /지자기.*폭풍/
+      /지자기.*폭풍/,
+      /지자기폭풍/i
     ];
     
     for (const pattern of geomagneticPatterns) {
@@ -373,6 +375,31 @@ const WeatherWidget: React.FC = () => {
           kp: kp
         });
       }
+    }
+    
+    // 이벤트 타입 기반 번역 (패턴 매칭 실패 시 대안)
+    if (description.toLowerCase().includes('solar flare') || description.includes('태양') || description.includes('플레어')) {
+      // 클래스 정보 추출 시도
+      const classMatch = description.match(/([A-Z]\d+\.?\d*)/i);
+      const dateMatch = description.match(/(\d{4}-\d{2}-\d{2})/);
+      const timeMatch = description.match(/(\d{2}:\d{2})/);
+      
+      return t('weather.event_descriptions.solar_flare', {
+        class: classMatch ? classMatch[1] : 'Unknown',
+        date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
+        time: timeMatch ? timeMatch[1] : '00:00'
+      });
+    }
+    
+    if (description.toLowerCase().includes('geomagnetic') || description.includes('지자기') || description.includes('폭풍')) {
+      // Kp 지수 추출 시도
+      const kpMatch = description.match(/Kp[^\d]*([\d.]+)/i) || description.match(/지수[^\d]*([\d.]+)/);
+      const dateMatch = description.match(/(\d{4}-\d{2}-\d{2})/);
+      
+      return t('weather.event_descriptions.geomagnetic_storm', {
+        date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
+        kp: kpMatch ? kpMatch[1] : 'Unknown'
+      });
     }
     
     // ISS position 패턴 매칭

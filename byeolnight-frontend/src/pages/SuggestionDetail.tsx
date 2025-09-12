@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
 import UserIconDisplay from '../components/UserIconDisplay';
 import type { Suggestion } from '../types/suggestion';
+
+type SuggestionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
 
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
@@ -24,23 +26,23 @@ const CATEGORY_COLORS = {
 export default function SuggestionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
   
-  const getCategories = () => ({
+  const categories = useMemo(() => ({
     FEATURE: t('suggestion.categories.FEATURE'),
     BUG: t('suggestion.categories.BUG'),
     UI_UX: t('suggestion.categories.UI_UX'),
     CONTENT: t('suggestion.categories.CONTENT'),
     OTHER: t('suggestion.categories.OTHER')
-  });
+  }), [t]);
 
-  const getStatuses = () => ({
+  const statuses = useMemo(() => ({
     PENDING: t('suggestion.statuses.PENDING'),
     IN_PROGRESS: t('suggestion.statuses.IN_PROGRESS'),
     COMPLETED: t('suggestion.statuses.COMPLETED'),
     REJECTED: t('suggestion.statuses.REJECTED')
-  });
+  }), [t]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAdminResponse, setShowAdminResponse] = useState(false);
@@ -52,8 +54,20 @@ export default function SuggestionDetail() {
   const [editStatus, setEditStatus] = useState<'IN_PROGRESS' | 'COMPLETED' | 'REJECTED'>('IN_PROGRESS');
 
   useEffect(() => {
+    // ID 유효성 검사
     if (!id) {
       navigate('/suggestions');
+      return;
+    }
+
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      navigate('/suggestions');
+      return;
+    }
+
+    // 인증 로딩이 완료된 후에만 실행
+    if (authLoading) {
       return;
     }
 
@@ -65,7 +79,7 @@ export default function SuggestionDetail() {
     }
 
     fetchSuggestion();
-  }, [id, navigate, user]);
+  }, [id, navigate, user, authLoading]);
 
   const fetchSuggestion = async () => {
     try {
@@ -249,10 +263,10 @@ export default function SuggestionDetail() {
             <div className="space-y-3 sm:space-y-4">
               <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                 <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[suggestion.category]}`}>
-                  {getCategories()[suggestion.category]}
+                  {categories[suggestion.category]}
                 </span>
                 <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[suggestion.status]}`}>
-                  {getStatuses()[suggestion.status]}
+                  {statuses[suggestion.status]}
                 </span>
                 {!suggestion.isPublic && (
                   <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
