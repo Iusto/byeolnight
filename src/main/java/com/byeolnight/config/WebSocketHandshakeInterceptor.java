@@ -38,16 +38,16 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
                 if (auth != null) {
                     attributes.put("authentication", auth);
                     attributes.put("accessToken", token);
-                    log.info("✅ WebSocket Handshake 인증 성공: {}", auth.getName());
+                    log.debug("✅ WebSocket Handshake 인증 성공: {}", auth.getName());
                     return true;
                 }
             } catch (Exception e) {
-                log.warn("❌ WebSocket Handshake 토큰 검증 실패: {}", e.getMessage());
+                log.debug("❌ WebSocket Handshake 토큰 검증 실패: {}", e.getMessage());
             }
         }
         
         // 토큰이 없거나 유효하지 않아도 연결 허용 (비로그인 사용자)
-        log.info("🔓 WebSocket Handshake - 비로그인 사용자 연결 허용");
+        log.debug("🔓 WebSocket Handshake - 비로그인 사용자 연결 허용");
         return true;
     }
 

@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 
+@Slf4j
 @RestController
 @RequestMapping("/api/public/posts")
 @RequiredArgsConstructor
@@ -54,12 +56,12 @@ public class PublicPostController {
             @RequestParam(required = false) String search,
             @Parameter(hidden = true) Pageable pageableRaw
     ) {
-        System.out.println("API 요청 파라미터 - category: " + category + ", sort: " + sort + ", searchType: " + searchType + ", search: " + search);
+        log.debug("API 요청 파라미터 - category: {}, sort: {}, searchType: {}, search: {}", category, sort, searchType, search);
         
         Pageable pageable = PageRequest.of(pageableRaw.getPageNumber(), pageableRaw.getPageSize());
         Page<PostResponseDto> posts = postService.getFilteredPosts(category, sort, searchType, search, pageable);
         
-        System.out.println("반환할 게시글 수: " + posts.getTotalElements());
+        log.debug("반환할 게시글 수: {}", posts.getTotalElements());
         return ResponseEntity.ok(CommonResponse.success(posts));
     }
 
@@ -85,16 +87,12 @@ public class PublicPostController {
     public ResponseEntity<CommonResponse<List<PostResponseDto>>> getTopHotPosts(@RequestParam(defaultValue = "6") int size) {
         List<PostResponseDto> hotPosts = postService.getTopHotPostsAcrossAllCategories(size);
         
-        // 날짜 디버그
+        // 날짜 디버그 (개발환경에서만 출력)
         if (!hotPosts.isEmpty()) {
             PostResponseDto firstPost = hotPosts.get(0);
-            System.out.println("\n=== 인기 게시글 날짜 디버그 ===");
-            System.out.println("ID: " + firstPost.getId());
-            System.out.println("Title: " + firstPost.getTitle());
-            System.out.println("CreatedAt: " + firstPost.getCreatedAt());
-            System.out.println("UpdatedAt: " + firstPost.getUpdatedAt());
-            System.out.println("TimeZone: " + java.util.TimeZone.getDefault().getID());
-            System.out.println("=== 디버그 종료 ===\n");
+            log.debug("\n=== 인기 게시글 날짜 디버그 ===\nID: {}\nTitle: {}\nCreatedAt: {}\nUpdatedAt: {}\nTimeZone: {}\n=== 디버그 종료 ===", 
+                firstPost.getId(), firstPost.getTitle(), firstPost.getCreatedAt(), 
+                firstPost.getUpdatedAt(), java.util.TimeZone.getDefault().getID());
         }
         
         return ResponseEntity.ok(CommonResponse.success(hotPosts));

@@ -1,6 +1,7 @@
 package com.byeolnight.infrastructure.security;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
  * - 클라이언트 IP 주소 추출 및 세션에 저장
  * - 실시간 채팅 및 알림 시스템에서 사용
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
@@ -35,7 +37,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 String clientIp = extractClientIpFromHeaders(accessor);
                 accessor.getSessionAttributes().put("clientIp", clientIp);
             } catch (Exception e) {
-                System.out.println("클라이언트 IP 추출 실패: " + e.getMessage());
+                // IP 추출 실패는 심각한 문제가 아니므로 DEBUG 레벨로 처리
             }
             
             // Handshake에서 설정된 인증 정보 사용 (HttpOnly 쿠키 기반)
@@ -43,15 +45,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             
             if (handshakeAuth != null) {
                 accessor.setUser(handshakeAuth);
-                System.out.println("✅ WebSocket 인증 성공 (Handshake): " + handshakeAuth.getName());
+                log.debug("✅ WebSocket 인증 성공 (Handshake): {}", handshakeAuth.getName());
             } else {
-                System.out.println("🔓 WebSocket 비로그인 사용자 연결");
+                log.debug("🔓 WebSocket 비로그인 사용자 연결");
             }
         }
 
         // 연결 성공 로그
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            System.out.println("WebSocket CONNECT 완료 - User: " + 
+            log.debug("WebSocket CONNECT 완료 - User: {}", 
                 (accessor.getUser() != null ? accessor.getUser().getName() : "비로그인"));
         }
         

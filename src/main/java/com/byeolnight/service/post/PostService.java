@@ -23,6 +23,7 @@ import com.byeolnight.entity.log.DeleteLog;
 import com.byeolnight.infrastructure.lock.DistributedLockService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
@@ -90,14 +92,14 @@ public class PostService {
             try {
                 certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
             } catch (Exception e) {
-                System.err.println("포인트 인증서 발급 실패: " + e.getMessage());
+                log.warn("포인트 인증서 발급 실패: {}", e.getMessage());
             }
             
             if (dto.getCategory() == Post.Category.NOTICE) {
                 try {
                     notificationService.notifyNewNotice(post.getId(), dto.getTitle());
                 } catch (Exception e) {
-                    System.err.println("공지사항 알림 전송 실패: " + e.getMessage());
+                log.warn("공지사항 알림 전송 실패: {}", e.getMessage());
                 }
             }
 
@@ -206,7 +208,7 @@ public class PostService {
                         long commentCount = commentRepository.countByPostId(p.getId());
                         combined.add(PostResponseDto.of(p, false, actualLikeCount, true, commentCount));
                     } catch (Exception e) {
-                        System.err.println("게시글 처리 실패 (HOT): " + p.getId());
+                        log.warn("게시글 처리 실패 (HOT): {}", p.getId());
                     }
                 });
 
@@ -218,7 +220,7 @@ public class PostService {
                                 long commentCount = commentRepository.countByPostId(p.getId());
                                 combined.add(PostResponseDto.of(p, false, actualLikeCount, false, commentCount));
                             } catch (Exception e) {
-                                System.err.println("게시글 처리 실패 (RECENT): " + p.getId());
+                                log.warn("게시글 처리 실패 (RECENT): {}", p.getId());
                             }
                         });
 
@@ -374,7 +376,7 @@ public class PostService {
         
         post.blindByAdmin(adminId);
         postRepository.save(post);
-        System.out.println("관리자 블라인드 처리: postId=" + postId + ", blindType=" + post.getBlindType());
+        log.info("관리자 블라인드 처리: postId={}, blindType={}", postId, post.getBlindType());
         pointService.applyPenalty(post.getWriter(), "관리자 블라인드 처리", postId.toString());
     }
 

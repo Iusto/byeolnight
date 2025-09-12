@@ -135,7 +135,7 @@ const WeatherWidget: React.FC = () => {
         return updateEventsWithIss(astronomyEvents, issLocation);
       });
     }
-  }, [t]);
+  }, [t, issLocation]);
 
   const getCurrentLocation = () => {
     getCurrentLocationWithTimeout();
@@ -296,7 +296,16 @@ const WeatherWidget: React.FC = () => {
   };
   
   const getEventTypeLabel = (eventType: string) => {
-    const eventTypeKey = `weather.event_types.${eventType}` as const;
+    // 이벤트 타입을 정규화하여 번역 키와 매칭
+    let normalizedType = eventType;
+    if (eventType.includes('ASTEROID')) normalizedType = 'ASTEROID';
+    else if (eventType.includes('SOLAR')) normalizedType = 'SOLAR_FLARE';
+    else if (eventType.includes('GEOMAGNETIC')) normalizedType = 'GEOMAGNETIC_STORM';
+    else if (eventType.includes('METEOR')) normalizedType = 'METEOR_SHOWER';
+    else if (eventType.includes('LUNAR')) normalizedType = 'LUNAR_ECLIPSE';
+    else if (eventType.includes('PLANET')) normalizedType = 'PLANET_CONJUNCTION';
+    
+    const eventTypeKey = `weather.event_types.${normalizedType}` as const;
     return t(eventTypeKey, { defaultValue: t('weather.event_types.DEFAULT') });
   };
   
@@ -326,31 +335,71 @@ const WeatherWidget: React.FC = () => {
   
   // 이벤트 설명 번역
   const translateEventDescription = (description: string) => {
-    // Solar flare 패턴 매칭
-    const solarFlareMatch = description.match(/Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/);
-    if (solarFlareMatch) {
-      return t('weather.event_descriptions.solar_flare', {
-        class: solarFlareMatch[1],
-        date: solarFlareMatch[2],
-        time: solarFlareMatch[3]
-      });
+    // Solar flare 패턴 매칭 (다양한 패턴 지원)
+    const solarFlarePatterns = [
+      /Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/,
+      /Solar Flare Class ([A-Z]\d+\.?\d*)/i,
+      /태양 플레어.*등급.*([A-Z]\d+\.?\d*)/
+    ];
+    
+    for (const pattern of solarFlarePatterns) {
+      const match = description.match(pattern);
+      if (match) {
+        const classValue = match[1];
+        const date = match[2] || new Date().toISOString().split('T')[0];
+        const time = match[3] || '00:00';
+        return t('weather.event_descriptions.solar_flare', {
+          class: classValue,
+          date: date,
+          time: time
+        });
+      }
     }
     
-    // Geomagnetic storm 패턴 매칭
-    const geomagneticMatch = description.match(/Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/);
-    if (geomagneticMatch) {
-      return t('weather.event_descriptions.geomagnetic_storm', {
-        date: geomagneticMatch[1],
-        kp: geomagneticMatch[2]
-      });
+    // Geomagnetic storm 패턴 매칭 (다양한 패턴 지원)
+    const geomagneticPatterns = [
+      /Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/,
+      /Geomagnetic Storm/i,
+      /지자기.*폭풍/
+    ];
+    
+    for (const pattern of geomagneticPatterns) {
+      const match = description.match(pattern);
+      if (match) {
+        const date = match[1] || new Date().toISOString().split('T')[0];
+        const kp = match[2] || 'Unknown';
+        return t('weather.event_descriptions.geomagnetic_storm', {
+          date: date,
+          kp: kp
+        });
+      }
     }
     
     // ISS position 패턴 매칭
-    const issMatch = description.match(/International Space Station current position: ([^,]+), ([^°]+)°/);
-    if (issMatch) {
-      return t('weather.event_descriptions.iss_position', {
-        lat: parseFloat(issMatch[1]).toFixed(1),
-        lon: parseFloat(issMatch[2]).toFixed(1)
+    const issPatterns = [
+      /International Space Station current position: ([^,]+), ([^°]+)°/,
+      /국제우주정거장.*위치.*: ([^,]+), ([^°]+)°/,
+      /ISS.*position.*: ([^,]+), ([^°]+)°/i
+    ];
+    
+    for (const pattern of issPatterns) {
+      const match = description.match(pattern);
+      if (match) {
+        return t('weather.event_descriptions.iss_position', {
+          lat: parseFloat(match[1]).toFixed(1),
+          lon: parseFloat(match[2]).toFixed(1)
+        });
+      }
+    }
+    
+    // 소행성 패턴 매칭
+    const asteroidMatch = description.match(/asteroid.*([\d.]+).*km.*([\d.]+).*m/i);
+    if (asteroidMatch) {
+      return t('weather.event_descriptions.asteroid', {
+        name: 'NEO',
+        date: new Date().toISOString().split('T')[0],
+        distance: asteroidMatch[1],
+        size: asteroidMatch[2]
       });
     }
     
