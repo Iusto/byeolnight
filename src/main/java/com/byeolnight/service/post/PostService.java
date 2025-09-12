@@ -312,22 +312,26 @@ public class PostService {
 
     @Transactional
     public void likePost(Long userId, Long postId) {
-        Post post = getPostOrThrow(postId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-
-        if (postLikeRepository.existsByUserAndPost(user, post)) {
-            throw new IllegalArgumentException("이미 추천한 글입니다.");
-        }
-
-        PostLike like = PostLike.of(user, post);
-        postLikeRepository.save(like);
+        String lockKey = "post_like:" + userId + ":" + postId;
         
-        post.increaseLikeCount();
-        postRepository.save(post);
+        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
+            Post post = getPostOrThrow(postId);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
-        pointService.awardGiveLikePoints(user, postId.toString());
-        pointService.awardReceiveLikePoints(post.getWriter(), postId.toString());
+            if (postLikeRepository.existsByUserAndPost(user, post)) {
+                throw new IllegalArgumentException("이미 추천한 글입니다.");
+            }
+
+            PostLike like = PostLike.of(user, post);
+            postLikeRepository.save(like);
+            
+            post.increaseLikeCount();
+            postRepository.save(post);
+
+            pointService.awardGiveLikePoints(user, postId.toString());
+            pointService.awardReceiveLikePoints(post.getWriter(), postId.toString());
+        });
     }
 
     private Post getPostOrThrow(Long postId) {

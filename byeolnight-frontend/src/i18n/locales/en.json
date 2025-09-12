@@ -337,7 +337,7 @@
     "loading_weather_data": "Loading weather data...",
     "calculating_conditions": "Analyzing location information to calculate star observation conditions",
     "recent_astronomy_events": "Recent Astronomy Events",
-    "nasa_update": "🔄 NASA Update",
+    "nasa_update": "🔄 Update",
     "updating": "Updating...",
     "events_error": "Cannot load astronomy event information.",
     "loading_events": "Loading astronomy data from NASA...",
@@ -361,7 +361,29 @@
       "DEFAULT": "Astronomy Event"
     },
     "iss_current_location": "ISS Real-time Location",
-    "iss_position_desc": "International Space Station current position"
+    "iss_position_desc": "International Space Station current position",
+    "moon_phases": {
+      "New Moon": "New Moon",
+      "Waxing Crescent": "Waxing Crescent",
+      "First Quarter": "First Quarter",
+      "Waxing Gibbous": "Waxing Gibbous",
+      "Full Moon": "Full Moon",
+      "Waning Gibbous": "Waning Gibbous",
+      "Last Quarter": "Last Quarter",
+      "Waning Crescent": "Waning Crescent"
+    },
+    "observation_quality": {
+      "EXCELLENT": "Excellent",
+      "GOOD": "Good",
+      "FAIR": "Fair",
+      "POOR": "Poor"
+    },
+    "event_descriptions": {
+      "solar_flare": "Solar flare class {{class}} occurred on {{date}}. Peak time: {{time}} (UTC). May have temporarily affected radio and GPS signals.",
+      "geomagnetic_storm": "Geomagnetic storm occurred on {{date}}. Kp index: {{kp}}. Aurora observation may have been possible in polar regions.",
+      "asteroid": "Near-Earth asteroid {{name}} made closest approach on {{date}}. Distance: {{distance}}km. Size: approximately {{size}}m.",
+      "iss_position": "International Space Station current position: {{lat}}°, {{lon}}°"
+    }
   },
   "suggestion": {
     "title": "💡 Suggestion Board",

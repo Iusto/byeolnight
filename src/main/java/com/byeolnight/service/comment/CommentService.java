@@ -36,6 +36,7 @@ public class CommentService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final CommentLikeRepository commentLikeRepository;
+    private final com.byeolnight.infrastructure.lock.DistributedLockService distributedLockService;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -196,30 +197,34 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
     
-    // 댓글 좋아요/취소
+    // 댓글 좋아요/취소 (분산락 적용)
     @Transactional
     public boolean toggleCommentLike(Long commentId, User user) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+        String lockKey = "comment_like:" + user.getId() + ":" + commentId;
         
-        boolean exists = commentLikeRepository.existsByCommentAndUser(comment, user);
-        
-        if (exists) {
-            // 좋아요 취소
-            commentLikeRepository.deleteByCommentAndUser(comment, user);
-            comment.decreaseLikeCount();
-            return false;
-        } else {
-            // 좋아요 추가
-            CommentLike like =
-                CommentLike.builder()
-                    .comment(comment)
-                    .user(user)
-                    .build();
-            commentLikeRepository.save(like);
-            comment.increaseLikeCount();
-            return true;
-        }
+        return distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
+            Comment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+            
+            boolean exists = commentLikeRepository.existsByCommentAndUser(comment, user);
+            
+            if (exists) {
+                // 좋아요 취소
+                commentLikeRepository.deleteByCommentAndUser(comment, user);
+                comment.decreaseLikeCount();
+                return false;
+            } else {
+                // 좋아요 추가
+                CommentLike like =
+                    CommentLike.builder()
+                        .comment(comment)
+                        .user(user)
+                        .build();
+                commentLikeRepository.save(like);
+                comment.increaseLikeCount();
+                return true;
+            }
+        });
     }
 
     // 관리자 기능: 댓글 블라인드 처리

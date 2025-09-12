@@ -337,7 +337,7 @@
     "loading_weather_data": "天気データを読み込み中...",
     "calculating_conditions": "位置情報を分析して星観測条件を計算します",
     "recent_astronomy_events": "最近の天体現象",
-    "nasa_update": "🔄 NASAアップデート",
+    "nasa_update": "🔄 アップデート",
     "updating": "アップデート中...",
     "events_error": "天体イベント情報を読み込めません。",
     "loading_events": "NASAから天体データを読み込み中...",
@@ -361,7 +361,29 @@
       "DEFAULT": "天体イベント"
     },
     "iss_current_location": "ISSリアルタイム位置",
-    "iss_position_desc": "国際宇宙ステーション現在位置"
+    "iss_position_desc": "国際宇宙ステーション現在位置",
+    "moon_phases": {
+      "New Moon": "新月",
+      "Waxing Crescent": "三日月",
+      "First Quarter": "上弦の月",
+      "Waxing Gibbous": "十三夜月",
+      "Full Moon": "満月",
+      "Waning Gibbous": "十六夜月",
+      "Last Quarter": "下弦の月",
+      "Waning Crescent": "二十六夜月"
+    },
+    "observation_quality": {
+      "EXCELLENT": "最適",
+      "GOOD": "良好",
+      "FAIR": "普通",
+      "POOR": "不良"
+    },
+    "event_descriptions": {
+      "solar_flare": "太陽フレアクラス{{class}}が{{date}}に発生しました。ピーク時刻: {{time}} (UTC)。ラジオやGPS信号に一時的に影響した可能性があります。",
+      "geomagnetic_storm": "地磁気嵐が{{date}}に発生しました。Kp指数: {{kp}}。極地方でオーロラ観測が可能だった可能性があります。",
+      "asteroid": "地球近接小惑星{{name}}が{{date}}に最接近しました。距離: {{distance}}km。サイズ: 約{{size}}m。",
+      "iss_position": "国際宇宙ステーション現在位置: {{lat}}°, {{lon}}°"
+    }
   },
   "suggestion": {
     "title": "💡 提案掲示板",

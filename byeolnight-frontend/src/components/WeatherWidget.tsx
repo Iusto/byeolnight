@@ -290,6 +290,52 @@ const WeatherWidget: React.FC = () => {
     return t(eventTypeKey, { defaultValue: t('weather.event_types.DEFAULT') });
   };
   
+  // 달의 위상 번역
+  const translateMoonPhase = (moonPhase: string) => {
+    const phaseKey = `weather.moon_phases.${moonPhase}` as const;
+    return t(phaseKey, { defaultValue: moonPhase });
+  };
+  
+  // 관측 품질 번역
+  const translateObservationQuality = (quality: string) => {
+    const qualityKey = `weather.observation_quality.${quality}` as const;
+    return t(qualityKey, { defaultValue: quality });
+  };
+  
+  // 이벤트 설명 번역
+  const translateEventDescription = (description: string) => {
+    // Solar flare 패턴 매칭
+    const solarFlareMatch = description.match(/Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/);
+    if (solarFlareMatch) {
+      return t('weather.event_descriptions.solar_flare', {
+        class: solarFlareMatch[1],
+        date: solarFlareMatch[2],
+        time: solarFlareMatch[3]
+      });
+    }
+    
+    // Geomagnetic storm 패턴 매칭
+    const geomagneticMatch = description.match(/Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/);
+    if (geomagneticMatch) {
+      return t('weather.event_descriptions.geomagnetic_storm', {
+        date: geomagneticMatch[1],
+        kp: geomagneticMatch[2]
+      });
+    }
+    
+    // ISS position 패턴 매칭
+    const issMatch = description.match(/International Space Station current position: ([^,]+), ([^°]+)°/);
+    if (issMatch) {
+      return t('weather.event_descriptions.iss_position', {
+        lat: parseFloat(issMatch[1]).toFixed(1),
+        lon: parseFloat(issMatch[2]).toFixed(1)
+      });
+    }
+    
+    // 기본값: 원본 반환
+    return description;
+  };
+  
   // 로딩 상태
   if (loading) {
     return (
@@ -362,7 +408,7 @@ const WeatherWidget: React.FC = () => {
           </h3>
           {weather && (
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getQualityColor(weather.observationQuality)} shadow-lg`}>
-              {weather.observationQuality}
+              {translateObservationQuality(weather.observationQuality)}
             </span>
           )}
         </div>
@@ -422,7 +468,7 @@ const WeatherWidget: React.FC = () => {
                     <span>🌙</span>
                     <span>{t('weather.moon_phase')}</span>
                   </span>
-                  <span className="font-semibold text-white text-sm break-words text-right max-w-[80px]">{weather.moonPhase}</span>
+                  <span className="font-semibold text-white text-sm break-words text-right max-w-[80px]">{translateMoonPhase(weather.moonPhase)}</span>
                 </div>
               </div>
               
@@ -522,7 +568,7 @@ const WeatherWidget: React.FC = () => {
                   
                   {/* 하단: 설명 */}
                   <div className="pl-11">
-                    <p className="text-sm text-gray-300 leading-relaxed break-words">{event.description}</p>
+                    <p className="text-sm text-gray-300 leading-relaxed break-words">{translateEventDescription(event.description)}</p>
                   </div>
                 </div>
               </div>
