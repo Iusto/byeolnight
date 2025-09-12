@@ -173,32 +173,69 @@ export default function PointHistory() {
 
         {/* 포인트 획득 방법 안내 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 mb-8 shadow-xl">
-          <h3 className="text-lg font-semibold mb-4">💡 스텔라 획득 방법</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="flex justify-between">
-              <span>📅 매일 출석</span>
-              <span className="text-green-400">+10</span>
+          <h2 className="text-lg font-bold mb-4 text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+            ⭐ 스텔라 포인트 획득 방법
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">📅</span>
+                <span className="font-semibold text-sm sm:text-base">매일 출석</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+10 포인트</p>
+              <p className="text-gray-400 text-xs">매일 한 번 출석 체크</p>
             </div>
-            <div className="flex justify-between">
-              <span>📝 게시글 작성</span>
-              <span className="text-green-400">+20</span>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">✍️</span>
+                <span className="font-semibold text-sm sm:text-base">게시글 작성</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+20 포인트</p>
+              <p className="text-gray-400 text-xs">하루 최대 3회</p>
             </div>
-            <div className="flex justify-between">
-              <span>💬 댓글 작성</span>
-              <span className="text-green-400">+5</span>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">💬</span>
+                <span className="font-semibold text-sm sm:text-base">댓글 작성</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+5 포인트</p>
+              <p className="text-gray-400 text-xs">하루 최대 10회</p>
             </div>
-            <div className="flex justify-between">
-              <span>❤️ 추천 받기 (1개당)</span>
-              <span className="text-green-400">+2</span>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">❤️</span>
+                <span className="font-semibold text-sm sm:text-base">추천 받기</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+2 포인트</p>
+              <p className="text-gray-400 text-xs">게시글/댓글 추천 받을 때</p>
             </div>
-            <div className="flex justify-between">
-              <span>🚨 유효한 신고</span>
-              <span className="text-green-400">+10</span>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">👍</span>
+                <span className="font-semibold text-sm sm:text-base">추천하기</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+1 포인트</p>
+              <p className="text-gray-400 text-xs">다른 사용자 추천 시</p>
             </div>
-            <div className="flex justify-between">
-              <span>⚠️ 규정 위반 페널티</span>
-              <span className="text-red-400">-10</span>
+            
+            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🚨</span>
+                <span className="font-semibold text-sm sm:text-base">유효한 신고</span>
+              </div>
+              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+10 포인트</p>
+              <p className="text-gray-400 text-xs">신고가 승인될 때</p>
             </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-500 border-opacity-30">
+            <p className="text-blue-300 text-xs sm:text-sm text-center">
+              💡 일일 획득 제한이 있으니 매일 꾸준히 활동해보세요!
+            </p>
           </div>
         </div>
 

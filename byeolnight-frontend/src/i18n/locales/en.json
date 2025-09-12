@@ -383,6 +383,22 @@
       "geomagnetic_storm": "Geomagnetic storm occurred on {{date}}. Kp index: {{kp}}. Aurora observation may have been possible in polar regions.",
       "asteroid": "Near-Earth asteroid {{name}} made closest approach on {{date}}. Distance: {{distance}}km. Size: approximately {{size}}m.",
       "iss_position": "International Space Station current position: {{lat}}°, {{lon}}°"
+    },
+    "recommendations": {
+      "poor": "Observation conditions are difficult. Indoor activities are recommended.",
+      "fair": "Fair observation conditions. Simple stargazing is possible.",
+      "good": "Good observation conditions. Constellation observation is recommended.",
+      "excellent": "Excellent observation conditions. Telescope observation is recommended."
+    },
+    "loading_events_list": {
+      "asteroid": "Asteroids",
+      "solar_flare": "Solar Flares",
+      "iss": "ISS Location",
+      "geomagnetic": "Geomagnetic Storms",
+      "lunar_eclipse": "Lunar Eclipses",
+      "blood_moon": "Blood Moons",
+      "meteor_shower": "Meteor Showers",
+      "supermoon": "Supermoons"
     }
   },
   "suggestion": {

@@ -126,6 +126,16 @@ const WeatherWidget: React.FC = () => {
       return updateEventsWithIss(astronomyEvents, issLocation);
     });
   }, [issLocation]);
+  
+  // 언어 변경 시 이벤트 목록 업데이트 (번역 즉시 반영)
+  useEffect(() => {
+    if (events.length > 0) {
+      setEvents(prevEvents => {
+        const astronomyEvents = prevEvents.filter(event => event.eventType !== 'ISS_LOCATION');
+        return updateEventsWithIss(astronomyEvents, issLocation);
+      });
+    }
+  }, [t]);
 
   const getCurrentLocation = () => {
     getCurrentLocationWithTimeout();
@@ -302,6 +312,17 @@ const WeatherWidget: React.FC = () => {
     return t(qualityKey, { defaultValue: quality });
   };
   
+  // 추천 메시지 번역
+  const translateRecommendation = (recommendation: string) => {
+    const recommendations: Record<string, string> = {
+      '관측이 어려운 조건입니다. 실내 활동을 추천합니다.': t('weather.recommendations.poor'),
+      '보통 관측 조건입니다. 간단한 별 관측이 가능합니다.': t('weather.recommendations.fair'),
+      '좋은 관측 조건입니다. 별자리 관측을 추천합니다.': t('weather.recommendations.good'),
+      '최적의 관측 조건입니다. 망원경 관측을 추천합니다.': t('weather.recommendations.excellent')
+    };
+    return recommendations[recommendation] || recommendation;
+  };
+  
   // 이벤트 설명 번역
   const translateEventDescription = (description: string) => {
     // Solar flare 패턴 매칭
@@ -382,11 +403,15 @@ const WeatherWidget: React.FC = () => {
                 <span className="text-purple-200 font-medium">{t('weather.loading_events')}</span>
               </div>
               <p className="text-gray-300 text-sm mb-2">{t('weather.collecting_space_data')}</p>
-              <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-                <span>🪨 소행성</span>
-                <span>☀️ 태양 플레어</span>
-                <span>🛰️ ISS 위치</span>
-                <span>🌍 지자기 폭풍</span>
+              <div className="flex items-center justify-center gap-3 text-xs text-gray-400 flex-wrap">
+                <span>🪨 {t('weather.loading_events_list.asteroid')}</span>
+                <span>☀️ {t('weather.loading_events_list.solar_flare')}</span>
+                <span>🛰️ {t('weather.loading_events_list.iss')}</span>
+                <span>🌍 {t('weather.loading_events_list.geomagnetic')}</span>
+                <span>🌙 {t('weather.loading_events_list.lunar_eclipse')}</span>
+                <span>🔴 {t('weather.loading_events_list.blood_moon')}</span>
+                <span>☄️ {t('weather.loading_events_list.meteor_shower')}</span>
+                <span>🌕 {t('weather.loading_events_list.supermoon')}</span>
               </div>
             </div>
           </div>
@@ -478,7 +503,7 @@ const WeatherWidget: React.FC = () => {
                   <span className="text-lg">📝</span>
                   <span className="text-sm font-medium text-white">{t('weather.observation_recommendation')}</span>
                 </div>
-                <p className="text-sm text-gray-200 leading-relaxed break-words pl-7">{weather.recommendation}</p>
+                <p className="text-sm text-gray-200 leading-relaxed break-words pl-7">{translateRecommendation(weather.recommendation)}</p>
               </div>
               
               {/* 업데이트 시간 */}
@@ -582,10 +607,12 @@ const WeatherWidget: React.FC = () => {
               <p className="text-purple-200 font-medium">{t('weather.loading_astronomy_events')}</p>
             </div>
             <p className="text-gray-300 text-sm mb-2">{t('weather.nasa_api_data')}</p>
-            <div className="flex items-center justify-center gap-3 text-xs text-gray-400">
+            <div className="flex items-center justify-center gap-3 text-xs text-gray-400 flex-wrap">
               <span>🪨 NeoWs</span>
               <span>☀️ DONKI</span>
               <span>🛰️ ISS</span>
+              <span>🌙 {t('weather.loading_events_list.lunar_eclipse')}</span>
+              <span>☄️ {t('weather.loading_events_list.meteor_shower')}</span>
             </div>
           </div>
         )}

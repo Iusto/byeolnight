@@ -383,6 +383,22 @@
       "geomagnetic_storm": "地磁気嵐が{{date}}に発生しました。Kp指数: {{kp}}。極地方でオーロラ観測が可能だった可能性があります。",
       "asteroid": "地球近接小惑星{{name}}が{{date}}に最接近しました。距離: {{distance}}km。サイズ: 約{{size}}m。",
       "iss_position": "国際宇宙ステーション現在位置: {{lat}}°, {{lon}}°"
+    },
+    "recommendations": {
+      "poor": "観測が困難な条件です。室内活動をお勧めします。",
+      "fair": "普通の観測条件です。簡単な星観測が可能です。",
+      "good": "良好な観測条件です。星座観測をお勧めします。",
+      "excellent": "最適な観測条件です。望遠鏡観測をお勧めします。"
+    },
+    "loading_events_list": {
+      "asteroid": "小惑星",
+      "solar_flare": "太陽フレア",
+      "iss": "ISS位置",
+      "geomagnetic": "地磁気嵐",
+      "lunar_eclipse": "月食",
+      "blood_moon": "ブラッドムーン",
+      "meteor_shower": "流星群",
+      "supermoon": "スーパームーン"
     }
   },
   "suggestion": {
