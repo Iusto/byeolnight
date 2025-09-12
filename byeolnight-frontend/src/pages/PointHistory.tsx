@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
+import PointEarningGuide from '../components/PointEarningGuide';
 
 interface PointHistory {
   id: number;
@@ -15,6 +17,7 @@ interface PointHistory {
 
 export default function PointHistory() {
   const { user, refreshUserInfo } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'all' | 'earned' | 'spent'>('all');
   const [histories, setHistories] = useState<PointHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +97,7 @@ export default function PointHistory() {
       console.log('출석 체크 결과:', isAttendanceSuccess);
       
       if (isAttendanceSuccess) {
-        alert('출석 체크 완료! 10 스텔라를 획득했습니다.');
+        alert(t('points.attendance_success'));
         
         // 상태 업데이트
         setTodayAttended(true);
@@ -105,11 +108,11 @@ export default function PointHistory() {
         
         console.log('출석 체크 완료 및 데이터 새로고침 완료');
       } else {
-        alert('이미 오늘 출석하셨습니다.');
+        alert(t('points.already_attended'));
       }
     } catch (err) {
       console.error('출석 체크 실패:', err);
-      alert('출석 체크에 실패했습니다.');
+      alert(t('points.attendance_failed'));
     }
   };
 
@@ -130,7 +133,7 @@ export default function PointHistory() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg mb-4">로그인이 필요합니다.</p>
+          <p className="text-lg mb-4">{t('points.login_required')}</p>
         </div>
       </div>
     );
@@ -141,15 +144,15 @@ export default function PointHistory() {
       <div className="max-w-4xl mx-auto">
         {/* 헤더 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">✨ 스텔라 포인트</h1>
-          <p className="text-gray-400">커뮤니티 활동으로 스텔라를 모아보세요!</p>
+          <h1 className="text-3xl font-bold mb-2">✨ {t('points.title')}</h1>
+          <p className="text-gray-400">{t('points.subtitle')}</p>
         </div>
 
         {/* 현재 포인트 & 출석 체크 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 mb-8 shadow-xl">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold mb-2">보유 스텔라</h2>
+              <h2 className="text-xl font-semibold mb-2">{t('points.owned_stella')}</h2>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-bold text-yellow-400">{user.points?.toLocaleString() || 0}</span>
                 <span className="text-yellow-400">✨</span>
@@ -165,70 +168,14 @@ export default function PointHistory() {
                     : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
                 }`}
               >
-                {todayAttended ? '✅ 출석 완료' : '📅 출석 체크 (+10)'}
+                {todayAttended ? t('points.attendance_completed') : t('points.attendance_check')}
               </button>
             </div>
           </div>
         </div>
 
         {/* 포인트 획득 방법 안내 */}
-        <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 mb-8 shadow-xl">
-          <h2 className="text-lg font-bold mb-4 text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
-            ⭐ 스텔라 포인트 획득 방법
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">📅</span>
-                <span className="font-semibold text-sm sm:text-base">매일 출석</span>
-              </div>
-              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+10 포인트</p>
-              <p className="text-gray-400 text-xs">매일 한 번 출석 체크</p>
-            </div>
-            
-            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">✍️</span>
-                <span className="font-semibold text-sm sm:text-base">게시글 작성</span>
-              </div>
-              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+20 포인트</p>
-              <p className="text-gray-400 text-xs">하루 최대 3회</p>
-            </div>
-            
-            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">💬</span>
-                <span className="font-semibold text-sm sm:text-base">댓글 작성</span>
-              </div>
-              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+5 포인트</p>
-              <p className="text-gray-400 text-xs">하루 최대 10회</p>
-            </div>
-            
-            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">❤️</span>
-                <span className="font-semibold text-sm sm:text-base">추천 받기</span>
-              </div>
-              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+2 포인트</p>
-              <p className="text-gray-400 text-xs">게시글/댓글 추천 받을 때</p>
-            </div>
-            
-            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">👍</span>
-                <span className="font-semibold text-sm sm:text-base">추천하기</span>
-              </div>
-              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+1 포인트</p>
-              <p className="text-gray-400 text-xs">다른 사용자 추천 시</p>
-            </div>
-            
-            <div className="bg-[#252842] bg-opacity-60 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">🚨</span>
-                <span className="font-semibold text-sm sm:text-base">유효한 신고</span>
-              </div>
-              <p className="text-yellow-400 font-bold text-xs sm:text-sm">+10 포인트</p>
-              <p className="text-gray-400 text-xs">신고가 승인될 때</p>
+        <PointEarningGuide className="mb-8 shadow-xl" />ext-gray-400 text-xs">신고가 승인될 때</p>
             </div>
           </div>
           
@@ -249,7 +196,7 @@ export default function PointHistory() {
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            전체 내역
+            {t('points.tabs.all')}
           </button>
           <button
             onClick={() => setActiveTab('earned')}
@@ -259,7 +206,7 @@ export default function PointHistory() {
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            획득 내역
+            {t('points.tabs.earned')}
           </button>
           <button
             onClick={() => setActiveTab('spent')}
@@ -269,7 +216,7 @@ export default function PointHistory() {
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            사용 내역
+            {t('points.tabs.spent')}
           </button>
         </div>
 

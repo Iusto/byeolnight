@@ -315,10 +315,11 @@ const WeatherWidget: React.FC = () => {
   // 추천 메시지 번역
   const translateRecommendation = (recommendation: string) => {
     const recommendations: Record<string, string> = {
-      '관측이 어려운 조건입니다. 실내 활동을 추천합니다.': t('weather.recommendations.poor'),
-      '보통 관측 조건입니다. 간단한 별 관측이 가능합니다.': t('weather.recommendations.fair'),
-      '좋은 관측 조건입니다. 별자리 관측을 추천합니다.': t('weather.recommendations.good'),
-      '최적의 관측 조건입니다. 망원경 관측을 추천합니다.': t('weather.recommendations.excellent')
+      'Observation conditions are difficult. Indoor activities are recommended.': t('weather.recommendations.poor'),
+      'Fair observation conditions. Simple stargazing is possible.': t('weather.recommendations.fair'),
+      'Good observation conditions. Constellation observation is recommended.': t('weather.recommendations.good'),
+      'Excellent observation conditions. Telescope observation is recommended.': t('weather.recommendations.excellent'),
+      'Unable to check weather information.': t('weather.recommendations.unknown', { defaultValue: recommendation })
     };
     return recommendations[recommendation] || recommendation;
   };

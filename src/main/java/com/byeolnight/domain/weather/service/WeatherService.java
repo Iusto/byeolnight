@@ -110,24 +110,24 @@ public class WeatherService {
         // 간단한 달의 위상 계산 (실제로는 더 복잡한 계산 필요)
         int dayOfMonth = LocalDateTime.now().getDayOfMonth();
         return switch (dayOfMonth % 8) {
-            case 0 -> "신월";
-            case 1, 2 -> "초승달";
-            case 3, 4 -> "상현달";
-            case 5, 6 -> "보름달";
-            default -> "하현달";
+            case 0 -> "New Moon";
+            case 1, 2 -> "Waxing Crescent";
+            case 3, 4 -> "First Quarter";
+            case 5, 6 -> "Full Moon";
+            default -> "Last Quarter";
         };
     }
     
     private WeatherResponse createFallbackResponse(Double latitude, Double longitude) {
         return WeatherResponse.builder()
-            .location("알 수 없음")
+            .location("Unknown")
             .latitude(latitude)
             .longitude(longitude)
             .cloudCover(50.0)
             .visibility(10.0)
-            .moonPhase("알 수 없음")
+            .moonPhase("Unknown")
             .observationQuality("UNKNOWN")
-            .recommendation("날씨 정보를 확인할 수 없습니다.")
+            .recommendation("Unable to check weather information.")
             .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
             .build();
     }
@@ -150,11 +150,11 @@ public class WeatherService {
     
     private String generateRecommendation(String quality) {
         return switch (quality) {
-            case "EXCELLENT" -> "🌟 완벽한 관측 조건입니다! 망원경을 준비하세요.";
-            case "GOOD" -> "⭐ 좋은 관측 조건입니다. 별 관측을 추천합니다.";
-            case "FAIR" -> "🌤️ 보통 조건입니다. 밝은 별들을 관측할 수 있습니다.";
-            case "POOR" -> "☁️ 관측이 어려운 조건입니다. 실내 활동을 추천합니다.";
-            default -> "날씨 정보를 확인 중입니다.";
+            case "EXCELLENT" -> "Excellent observation conditions. Telescope observation is recommended.";
+            case "GOOD" -> "Good observation conditions. Constellation observation is recommended.";
+            case "FAIR" -> "Fair observation conditions. Simple stargazing is possible.";
+            case "POOR" -> "Observation conditions are difficult. Indoor activities are recommended.";
+            default -> "Checking weather information.";
         };
     }
     
