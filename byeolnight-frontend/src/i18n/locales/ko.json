@@ -448,7 +448,7 @@
       "EXCELLENT": "최적",
       "GOOD": "양호",
       "FAIR": "보통",
-      "POOR": "불량"
+      "POOR": "어려움"
     },
     "event_descriptions": {
       "solar_flare": "태양 플레어 등급 {{class}}이(가) {{date}}에 발생했습니다. 최고 시간: {{time}} (UTC). 라디오 및 GPS 신호에 일시적으로 영향을 줄 수 있습니다.",

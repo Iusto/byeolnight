@@ -446,7 +446,7 @@
       "EXCELLENT": "最適",
       "GOOD": "良好",
       "FAIR": "普通",
-      "POOR": "不良"
+      "POOR": "困難"
     },
     "event_descriptions": {
       "solar_flare": "太陽フレアクラス{{class}}が{{date}}に発生しました。ピーク時刻: {{time}} (UTC)。ラジオやGPS信号に一時的に影響した可能性があります。",
