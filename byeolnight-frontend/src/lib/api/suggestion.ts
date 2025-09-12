@@ -20,7 +20,23 @@ export const getSuggestions = async (params: {
   return response.data.data;
 };
 
-// 건의사항 상세 조회 (회원 전용)
+/**
+ * 공개 건의사항 상세 조회
+ * - 비로그인 사용자도 접근 가능
+ * - 공개 건의사항만 조회 가능
+ * - 비공개 건의사항 접근 시 403 에러 발생
+ */
+export const getPublicSuggestion = async (id: number): Promise<Suggestion> => {
+  const response = await axios.get(`/public/suggestions/${id}`);
+  return response.data.data;
+};
+
+/**
+ * 건의사항 상세 조회 (인증 필수)
+ * - 로그인된 사용자만 접근 가능
+ * - 공개/비공개 모두 조회 가능 (권한에 따라)
+ * - 비공개 건의사항은 작성자/관리자만 접근 가능
+ */
 export const getSuggestion = async (id: number): Promise<Suggestion> => {
   const response = await axios.get(`/member/suggestions/${id}`);
   return response.data.data;

@@ -75,8 +75,16 @@ function App() {
         <Route path="/shop" element={<StellaShop />} />
         <Route path="/points" element={<PointHistory />} />
         <Route path="/suggestions" element={<SuggestionList />} />
-        <Route path="/suggestions/new" element={<SuggestionCreate />} />
-        <Route path="/suggestions/:id/edit" element={<SuggestionEdit />} />
+        <Route path="/suggestions/new" element={
+          <ProtectedRoute>
+            <SuggestionCreate />
+          </ProtectedRoute>
+        } />
+        <Route path="/suggestions/:id/edit" element={
+          <ProtectedRoute>
+            <SuggestionEdit />
+          </ProtectedRoute>
+        } />
         <Route path="/suggestions/:id" element={<SuggestionDetail />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />

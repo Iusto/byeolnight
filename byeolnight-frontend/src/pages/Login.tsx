@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -11,6 +12,19 @@ export default function Login() {
   const [error, setError] = useState('')
   const [language, setLanguage] = useState('ko')
   const [rememberMe, setRememberMe] = useState(false)
+  const [loginMessage, setLoginMessage] = useState('')
+
+  useEffect(() => {
+    // URL에서 온 경우 적절한 메시지 표시
+    const from = location.state?.from?.pathname
+    if (from) {
+      if (from.includes('/suggestions/new') || from.includes('/suggestions/') && from.includes('/edit')) {
+        setLoginMessage('건의사항 작성 및 수정은 로그인이 필요합니다.')
+      } else {
+        setLoginMessage('로그인이 필요한 페이지입니다.')
+      }
+    }
+  }, [location])
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,6 +163,12 @@ export default function Login() {
         </div>
 
         <h2 className="text-2xl font-bold mb-6 text-center">{t.title}</h2>
+        
+        {loginMessage && (
+          <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-300 text-sm text-center">
+            {loginMessage}
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <input

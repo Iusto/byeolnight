@@ -12,6 +12,7 @@ import com.byeolnight.infrastructure.exception.SuggestionNotFoundException;
 import com.byeolnight.infrastructure.exception.SuggestionAccessDeniedException;
 import com.byeolnight.infrastructure.exception.SuggestionModificationException;
 import com.byeolnight.infrastructure.exception.NotFoundException;
+import com.byeolnight.service.certificate.CertificateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +26,7 @@ public class SuggestionService {
 
     private final SuggestionRepository suggestionRepository;
     private final UserRepository userRepository;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final CertificateService certificateService;
 
     // 건의사항 목록 조회 (공개 건의사항만)
     public SuggestionDto.ListResponse getSuggestions(
@@ -39,10 +40,21 @@ public class SuggestionService {
 
 
 
+    // 공개 건의사항 상세 조회 (비로그인 사용자도 접근 가능)
+    public SuggestionDto.Response getPublicSuggestion(Long id) {
+        Suggestion suggestion = findSuggestionById(id);
+        
+        // 공개 건의사항만 조회 가능
+        if (!suggestion.getIsPublic()) {
+            throw new SuggestionAccessDeniedException();
+        }
+        
+        return SuggestionDto.Response.from(suggestion);
+    }
+
     // 건의사항 상세 조회 (로그인 필수, 접근 권한 체크)
     public SuggestionDto.Response getSuggestion(Long id, Long userId) {
-        Suggestion suggestion = suggestionRepository.findById(id)
-                .orElseThrow(() -> new SuggestionNotFoundException());
+        Suggestion suggestion = findSuggestionById(id);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
@@ -58,6 +70,12 @@ public class SuggestionService {
         }
         
         return SuggestionDto.Response.from(suggestion);
+    }
+
+    // 공통 건의사항 조회 메서드
+    private Suggestion findSuggestionById(Long id) {
+        return suggestionRepository.findById(id)
+                .orElseThrow(() -> new SuggestionNotFoundException());
     }
 
     // 건의사항 작성

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -65,6 +66,20 @@ public class PublicSuggestionController {
         // 공개 건의사항만 조회
         SuggestionDto.ListResponse response = suggestionService.getSuggestions(category, status, pageable);
         
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "건의사항 상세 조회", description = """
+    [비회원 접근 가능]
+    공개 건의사항의 상세 정보를 조회합니다.
+    비공개 건의사항은 조회할 수 없습니다.
+    """)
+    @Parameter(name = "id", description = "건의사항 ID", example = "1")
+    public ResponseEntity<CommonResponse<SuggestionDto.Response>> getSuggestion(
+            @PathVariable @Positive Long id
+    ) {
+        SuggestionDto.Response response = suggestionService.getPublicSuggestion(id);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 }

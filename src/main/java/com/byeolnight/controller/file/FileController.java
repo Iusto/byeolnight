@@ -2,8 +2,8 @@ package com.byeolnight.controller.file;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.util.IpUtil;
-import com.byeolnight.service.file.FileUploadRateLimitService;
-import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.log.file.FileUploadRateLimitService;
+import com.byeolnight.service.log.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.io.InputStream;
-import java.net.URL;
 
 @RestController
 @RequestMapping("/api/files")

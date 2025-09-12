@@ -5,7 +5,7 @@ import com.byeolnight.entity.comment.Comment;
 import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.file.FileRepository;
-import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.log.file.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

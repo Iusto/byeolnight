@@ -1,7 +1,7 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
-import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.log.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

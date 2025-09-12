@@ -1,4 +1,4 @@
-package com.byeolnight.service.file;
+package com.byeolnight.service.log.file;
 
 import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.infrastructure.config.SecurityProperties;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
+import { getSuggestion, getPublicSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
 import UserIconDisplay from '../components/UserIconDisplay';
 import type { Suggestion } from '../types/suggestion';
 
@@ -63,10 +63,26 @@ export default function SuggestionDetail() {
   const fetchSuggestion = async () => {
     try {
       setLoading(true);
-      const data = await getSuggestion(Number(id));
+      const apiCall = user ? getSuggestion : getPublicSuggestion;
+      const data = await apiCall(Number(id));
       setSuggestion(data);
     } catch (error) {
       console.error('건의사항 조회 실패:', error);
+      
+      const errorResponse = error as { response?: { status: number } };
+      
+      if (errorResponse.response?.status === 401) {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+        return;
+      }
+      
+      if (errorResponse.response?.status === 403) {
+        alert('비공개 건의사항에 접근할 수 없습니다.');
+        navigate('/suggestions');
+        return;
+      }
+      
       setSuggestion(null);
     } finally {
       setLoading(false);
@@ -169,22 +185,7 @@ export default function SuggestionDetail() {
     );
   }
 
-  if (!loading && !user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🔐</div>
-          <p className="text-gray-400 text-lg mb-4">{t('suggestion.login_required')}</p>
-          <Link
-            to="/login"
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-          >
-            {t('suggestion.go_to_login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // 비로그인 사용자도 공개 건의사항은 볼 수 있도록 제거
 
   if (!suggestion) {
     return (
@@ -317,8 +318,8 @@ export default function SuggestionDetail() {
             </div>
           )}
 
-          {/* 관리자 답변 수정 */}
-          {editingResponse && (
+          {/* 관리자 답변 수정 - 로그인 사용자만 */}
+          {user && editingResponse && (
             <div className="mx-3 sm:mx-8 mb-4 sm:mb-8 bg-green-500/10 border border-green-500/30 rounded-lg p-3 sm:p-6">
               <div className="mb-4">
                 <label className="block text-green-300 font-medium mb-2">{t('suggestion.response_status')}</label>
@@ -460,6 +461,19 @@ export default function SuggestionDetail() {
           )}
         </div>
 
+        {/* 비로그인 사용자에게 로그인 안내 */}
+        {!user && (
+          <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 sm:p-6 text-center">
+            <div className="text-4xl mb-3">🔑</div>
+            <p className="text-blue-300 font-medium mb-3">건의사항 작성 및 관리 기능을 사용하려면 로그인이 필요합니다.</p>
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            >
+              로그인하기
+            </Link>
+          </div>
+        )}
 
       </div>
     </div>

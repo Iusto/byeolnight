@@ -1,6 +1,5 @@
 package com.byeolnight.service.post;
 
-import com.byeolnight.entity.Notification;
 import com.byeolnight.entity.file.File;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.post.Post.Category;
@@ -17,7 +16,7 @@ import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.repository.post.PostReportRepository;
-import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.log.file.S3Service;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.log.DeleteLogService;
 import com.byeolnight.entity.log.DeleteLog;
