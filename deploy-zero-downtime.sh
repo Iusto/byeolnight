@@ -47,6 +47,7 @@ if ! docker pull ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}; then
     echo -e "${YELLOW}⚠️  이미지를 찾을 수 없습니다. 기존 방식으로 배포합니다.${NC}"
     echo "이미지: ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}"
     echo "기존 deploy.sh 스크립트를 실행합니다..."
+    chmod +x ./deploy.sh
     exec ./deploy.sh
 fi
 
