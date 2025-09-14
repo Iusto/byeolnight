@@ -16,12 +16,40 @@ NC='\033[0m'
 
 echo -e "${GREEN}🚀 무중단 배포 시작 (이미지 태그: ${IMAGE_TAG})${NC}"
 
-# GitHub Container Registry 로그인
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
+# Config Server에서 GitHub 인증 정보 가져오기
+echo -e "${YELLOW}🔑 Config Server에서 GitHub 인증 정보 가져오는 중...${NC}"
+
+# Config Server 응답 확인
+if ! curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health > /dev/null 2>&1; then
+    echo -e "${RED}❌ Config Server가 실행되지 않았습니다.${NC}"
+    exit 1
+fi
+
+# GitHub 인증 정보 가져오기
+CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod)
+GITHUB_USERNAME=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."github.username" // empty')
+GITHUB_TOKEN=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."github.token" // empty')
+
+if [ -z "$GITHUB_TOKEN" ] || [ "$GITHUB_TOKEN" = "null" ]; then
+    echo -e "${YELLOW}⚠️  Config Server에서 GitHub 토큰을 찾을 수 없습니다. 공개 이미지로 시도합니다.${NC}"
+    # 공개 이미지인 경우 로그인 생략
+else
+    # GitHub Container Registry 로그인
+    echo -e "${YELLOW}🔐 GitHub Container Registry 로그인 중...${NC}"
+    echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
+fi
 
 # 새 이미지 Pull
 echo -e "${YELLOW}📥 새 이미지 다운로드 중...${NC}"
-docker pull ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}
+echo "이미지: ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}"
+
+if ! docker pull ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}; then
+    echo -e "${RED}❌ 이미지를 찾을 수 없습니다.${NC}"
+    echo "1. GitHub Actions에서 이미지가 빌드되었는지 확인하세요."
+    echo "2. 이미지 태그가 올바른지 확인하세요: master-${IMAGE_TAG}"
+    echo "3. GitHub Container Registry 권한을 확인하세요."
+    exit 1
+fi
 
 # 현재 실행 중인 컨테이너 확인
 CURRENT_CONTAINER=$(docker ps --filter "name=${COMPOSE_PROJECT}-app" --format "{{.Names}}" | head -1)
