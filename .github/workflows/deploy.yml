@@ -61,9 +61,9 @@ jobs:
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
         script: |
           cd /home/ubuntu/byeolnight
           export IMAGE_TAG=${{ github.sha }}
