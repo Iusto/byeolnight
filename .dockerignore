@@ -10,13 +10,17 @@
 *.ipr
 *.iws
 
-# 빌드 결과물
-build/
+# 빌드 결과물 (로컬 빌드용 - build/libs/*.jar 포함)
 target/
 out/
 dist/
-*.jar
 *.war
+
+# 로컬 개발 시 불필요한 빌드 파일들
+build/classes/
+build/tmp/
+build/test-results/
+build/reports/
 
 # 의존성 및 캐시
 node_modules/
@@ -72,6 +76,10 @@ src/main/resources/public/
 # Config Server 관련 (메인 앱 빌드 시 불필요)
 config-server/
 config-repo/
+
+# 로컬 전용 파일들 (운영에서 제외)
+deploy-local.sh
+docker-compose.local.yml
 
 # 기타 불필요한 파일
 *.swp
