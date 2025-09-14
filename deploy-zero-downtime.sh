@@ -44,11 +44,10 @@ echo -e "${YELLOW}📥 새 이미지 다운로드 중...${NC}"
 echo "이미지: ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}"
 
 if ! docker pull ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}; then
-    echo -e "${RED}❌ 이미지를 찾을 수 없습니다.${NC}"
-    echo "1. GitHub Actions에서 이미지가 빌드되었는지 확인하세요."
-    echo "2. 이미지 태그가 올바른지 확인하세요: master-${IMAGE_TAG}"
-    echo "3. GitHub Container Registry 권한을 확인하세요."
-    exit 1
+    echo -e "${YELLOW}⚠️  이미지를 찾을 수 없습니다. 기존 방식으로 배포합니다.${NC}"
+    echo "이미지: ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}"
+    echo "기존 deploy.sh 스크립트를 실행합니다..."
+    exec ./deploy.sh
 fi
 
 # 현재 실행 중인 컨테이너 확인
