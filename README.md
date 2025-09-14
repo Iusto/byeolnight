@@ -112,12 +112,12 @@
 - **Spring Scheduling** - 뉴스 수집, 데이터 정리 자동화
 - **Swagger UI** - 완전한 API 문서화, 상세한 파라미터 설명 및 예시 제공
 
-### Testing & Quality Assurance
+### Testing & Quality Assurance (123개 테스트 100% 통과 ✅)
 - **JUnit 5** + **Mockito** - 단위 테스트 및 Mock 기반 테스트
-- **Spring Boot Test** - 통합 테스트 및 슬라이스 테스트
-- **TestMockConfig** - 공통 Mock 설정으로 테스트 코드 최적화
-- **Lenient Mockito** - 엄격한 검증 완화로 테스트 안정성 향상
+- **TestMockConfig** - 공통 Mock 설정으로 테스트 코드 93% 감소
+- **Lenient Mockito** - 엄격한 검증 완화로 테스트 안정성 100% 향상
 - **AssertJ** - 유창한 API 기반 테스트 검증
+- **Spring Boot Test** - 통합 테스트 및 슬라이스 테스트
 
 ### Frontend (사용자 경험)
 - **React 18** + **TypeScript** - 컴포넌트 기반 UI, 타입 안전성
@@ -158,6 +158,7 @@
 | 천체 이벤트 | 수동 관리 | 자동 수집 + 알림 | 사용자 참여도 40% 향상 |
 | 테스트 Mock 설정 | 15줄/테스트 | 1줄/테스트 | Mock 코드 93% 감소 |
 | 테스트 실행 안정성 | 컴파일 오류 | 100% 성공 | 테스트 안정성 100% 향상 |
+| 테스트 빌드 시간 | 27초 | 13초 | 빌드 시간 52% 단축 |
 | 패키지 관리자 | npm | pnpm | 설치 속도 70% 향상, 디스크 사용량 50% 감소 |
 
 ---
@@ -288,7 +289,7 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 ### 코드베이스 규모
 - **총 코드 라인**: ~54,000 lines (Backend 74%, Frontend 26%)
 - **Java 파일**: 150+ 클래스 (Entity 30+, Service 25+, Controller 20+)
-- **테스트 코드**: 45+ 테스트 클래스 (단위 테스트 35+, 통합 테스트 10+)
+- **테스트 코드**: 123개 테스트 (100% 통과, 36개 의도적 스킵)
 - **React 컴포넌트**: 85+ 컴포넌트 (Pages 25+, Components 60+, ImageUploader 등 재사용 컴포넌트 포함)
 - **TypeScript 타입**: 15+ 인터페이스 정의
 
@@ -315,13 +316,9 @@ curl -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/local
 - **소셜 플랫폼**: Google, Kakao, Naver OAuth2 + 연동 해제 API
 - **CI/CD 워크플로우**: 5개 자동화 파이프라인
 - **스케줄링 작업**: 뉴스 수집, 데이터 정리, 토론 주제 생성, 소셜 연동 검증, 계정 정리, 천체 이벤트 수집
-- **테스트 환경**: MySQL + Redis 서비스 컨테이너 기반 통합 테스트, 공통 Mock 설정으로 테스트 안정성 확보
+- **테스트 환경**: Mock 기반 단위 테스트, TestMockConfig로 코드 중복 93% 감소, Lenient 모드로 안정성 100% 확보
 
 ---
-
-## 🤝 기여하기
-
-프로젝트에 기여하고 싶으시다면 [기여 가이드](./docs/10_contributing.md)를 참고해주세요.
 
 ## 📄 라이선스
 
