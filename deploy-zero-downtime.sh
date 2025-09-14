@@ -44,11 +44,11 @@ echo -e "${YELLOW}📥 새 이미지 다운로드 중...${NC}"
 echo "이미지: ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}"
 
 if ! docker pull ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}; then
-    echo -e "${YELLOW}⚠️  이미지를 찾을 수 없습니다. 기존 방식으로 배포합니다.${NC}"
+    echo -e "${RED}❌ 이미지를 찾을 수 없습니다. 배포를 중단합니다.${NC}"
     echo "이미지: ${REGISTRY}/${REPO_NAME}:master-${IMAGE_TAG}"
-    echo "기존 deploy.sh 스크립트를 실행합니다..."
-    chmod +x ./deploy.sh
-    exec ./deploy.sh
+    echo "CI/CD 파이프라인에서 이미지 빌드가 실패했습니다."
+    echo "GitHub Actions 로그를 확인하세요."
+    exit 1
 fi
 
 # 현재 실행 중인 컨테이너 확인
