@@ -57,11 +57,9 @@ echo "현재 환경변수 상태:"
 echo "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:0:3}***"
 echo "REDIS_PASSWORD=${REDIS_PASSWORD:0:3}***"
 
-# .env 파일 생성 (Docker Compose가 자동으로 읽음)
-cat > .env << EOF
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-REDIS_PASSWORD=${REDIS_PASSWORD}
-EOF
+# 환경변수 export (Docker Compose에서 사용)
+export MYSQL_ROOT_PASSWORD
+export REDIS_PASSWORD
 
 docker compose -f docker-compose.local.yml build --no-cache && docker compose -f docker-compose.local.yml up -d
 

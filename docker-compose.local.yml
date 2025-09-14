@@ -54,7 +54,7 @@ services:
   mysql:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-byeolnight9703!@}
       MYSQL_DATABASE: byeolnight
       TZ: Asia/Seoul
     command: >
@@ -64,7 +64,7 @@ services:
       --innodb-flush-log-at-trx-commit=2
       --default-time-zone='+09:00'
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data_local:/var/lib/mysql
     healthcheck:
@@ -80,9 +80,9 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data_local:/data
-    command: sh -c 'redis-server --requirepass "${REDIS_PASSWORD}" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    command: sh -c 'redis-server --requirepass "${REDIS_PASSWORD:-byeolnight_redis_2025!@}" --maxmemory 256mb --maxmemory-policy allkeys-lru'
     ports:
-      - "6379:6379"
+      - "6380:6379"
     restart: unless-stopped
     networks:
       - byeolnight-network

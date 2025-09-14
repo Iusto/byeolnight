@@ -5,7 +5,6 @@ WORKDIR /app
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle .
-COPY settings.gradle .
 COPY src src
 
 # Gradle wrapper에 실행 권한 부여
