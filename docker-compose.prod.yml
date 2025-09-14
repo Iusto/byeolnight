@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/iusto/byeolnight:latest}
+    container_name: byeolnight-app
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    depends_on:
+      - mysql
+      - redis
+      - config-server
+    networks:
+      - byeolnight-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  config-server:
+    image: ghcr.io/iusto/byeolnight-config:latest
+    container_name: byeolnight-config
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - byeolnight-network
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: byeolnight-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-byeolnight9703!@}
+      MYSQL_DATABASE: byeolnight
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - byeolnight-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: byeolnight-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-byeolnight_redis_2025!@}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - byeolnight-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  byeolnight-network:
+    driver: bridge

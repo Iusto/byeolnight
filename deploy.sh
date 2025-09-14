@@ -1,5 +1,6 @@
 #!/bin/bash
-# EC2 서버 원클릭 배포 스크립트
+# EC2 서버 원클릭 배포 스크립트 (기존 방식)
+# 사용 파일: docker-compose.yml
 # 사용법: chmod +x deploy.sh && ./deploy.sh
 
 set -e
@@ -15,11 +16,11 @@ chmod +x ./gradlew && ./gradlew clean bootJar -x test
 
 # 2. 기존 컨테이너 정리
 echo "🧹 기존 컨테이너 정리..."
-docker compose down
+docker compose -f docker-compose.yml down
 
 # 3. Config Server 시작 및 환경변수 설정
 echo "⚙️ Config Server 시작..."
-docker compose up config-server -d
+docker compose -f docker-compose.yml up config-server -d
 echo "⏳ Config Server 준비 대기..."
 sleep 15
 
@@ -69,7 +70,7 @@ MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
 EOF
 
-docker compose build --no-cache && docker compose up -d
+docker compose -f docker-compose.yml build --no-cache && docker compose -f docker-compose.yml up -d
 
 echo "✅ 배포 완료! 로그 확인 중..."
 docker logs -f byeolnight-app-1

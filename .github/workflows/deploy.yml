@@ -1,36 +1,70 @@
-name: 배포 완료 표시
+name: Deploy to Production
 
 on:
-  workflow_dispatch:  # 수동 실행만 가능
-    inputs:
-      deployment_status:
-        description: '배포 상태'
-        required: true
-        default: 'completed'
-        type: choice
-        options:
-        - completed
-        - failed
+  push:
+    branches: [ master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deployment-status:
-    name: 배포 상태 기록
+  build-and-deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-    - name: 배포 완료 표시
-      run: |
-        echo "📋 배포 상태: ${{ github.event.inputs.deployment_status }}"
-        echo "👤 배포자: ${{ github.actor }}"
-        echo "📅 배포 시간: $(date)"
-        echo "🔗 커밋: ${{ github.sha }}"
-        
-        if [ "${{ github.event.inputs.deployment_status }}" = "completed" ]; then
-          echo "✅ 수동 배포가 완료되었습니다!"
-          echo "🚀 서비스가 정상적으로 운영 중입니다."
-        else
-          echo "❌ 배포 중 문제가 발생했습니다."
-          echo "🔍 로그를 확인하여 문제를 해결해주세요."
-        fi
-        
-        echo "💡 실제 배포는 서버에서 './deploy.sh' 스크립트로 수행됩니다."
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+
+    - name: Run tests
+      run: ./gradlew test
+
+    - name: Build application
+      run: ./gradlew build -x test
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        script: |
+          cd /home/ubuntu/byeolnight
+          export IMAGE_TAG=${{ github.sha }}
+          ./deploy-zero-downtime.sh
