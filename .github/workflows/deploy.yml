@@ -66,5 +66,7 @@ jobs:
         key: ${{ secrets.DEPLOY_SSH_KEY }}
         script: |
           cd /home/ubuntu/byeolnight
+          git pull origin master
+          chmod +x deploy-zero-downtime.sh
           export IMAGE_TAG=${{ github.sha }}
           ./deploy-zero-downtime.sh
