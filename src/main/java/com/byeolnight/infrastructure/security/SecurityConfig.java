@@ -28,6 +28,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Spring Security 설정
+ * - JWT 기반 인증 (HttpOnly 쿠키)
+ * - OAuth2 소셜 로그인 (Google, Kakao, Naver)
+ * - CORS 설정 및 보안 필터
+ */
 @Slf4j
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -51,8 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AuthWhitelist.PATHS).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/suggestions", "/api/suggestions/**").permitAll()
-                        .requestMatchers("/api/suggestions/**").authenticated()
-                        .requestMatchers("/api/member/**").authenticated()
+                        .requestMatchers("/api/suggestions/**", "/api/member/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -63,7 +68,6 @@ public class SecurityConfig {
 
                 .addFilterBefore(new ContentTypeValidationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService, tokenService), UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(new NicknameRequiredFilter(), JwtAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler())

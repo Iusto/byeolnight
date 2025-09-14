@@ -2,38 +2,33 @@ package com.byeolnight.infrastructure.security;
 
 /**
  * 인증 없이 접근 가능한 URL 패턴 정의
- * Spring Security에서 permitAll() 처리할 경로들을 중앙 관리
+ * Spring Security permitAll() 경로 중앙 관리
  */
-public class AuthWhitelist {
+public final class AuthWhitelist {
+    
+    private AuthWhitelist() {} // 유틸리티 클래스
+    
     public static final String[] PATHS = {
             // 인증 관련
             "/api/auth/**",
             "/oauth2/**",
             "/login/oauth2/**",
             
-            // 공개 API (읽기 전용)
+            // 공개 API
             "/api/public/**",
             "/public/**",
-            "/api/posts",           // 게시글 목록 조회
-            "/api/posts/*/comments", // 댓글 조회
-            "/api/users/*/profile", // 프로필 조회
+            "/api/posts",
+            "/api/posts/*/comments",
+            "/api/users/*/profile",
+            "/api/weather/**",
             
-            // 로컬 개발용
-            "/member/users/me",
+            // WebSocket
+            "/ws/**",
             
             // API 문서
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            
-            // WebSocket
-            "/ws/**",
-            
-            // 공개 데이터 (GET만 허용)
-            "/api/public/suggestions",     // 공개 건의사항 조회
-            
-            // 날씨 및 천체 정보 (공개 접근)
-            "/api/weather/**",
             
             // 헬스체크
             "/actuator/health",

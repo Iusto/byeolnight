@@ -430,6 +430,9 @@
       "SOLAR_ECLIPSE": "일식",
       "PLANET_CONJUNCTION": "행성근접",
       "COMET_OBSERVATION": "혜성관측",
+      "SUPERMOON": "슈퍼문",
+      "SPECIAL_EVENT": "특별 이벤트",
+      "ASTEROID_FORECAST": "소행성 예보",
       "DEFAULT": "천체 이벤트"
     },
     "iss_current_location": "ISS 실시간 위치",
@@ -472,7 +475,10 @@
       "blood_moon": "블러드문",
       "meteor_shower": "유성우",
       "supermoon": "슈퍼문"
-    }
+    },
+    "confirm_nasa_update": "NASA API로 천체 데이터를 수동 업데이트하시겠습니까?",
+    "nasa_update_success": "천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/Mars)",
+    "nasa_update_failed": "천체 데이터 업데이트 실패"
   },
   "suggestion": {
     "title": "💡 건의게시판",

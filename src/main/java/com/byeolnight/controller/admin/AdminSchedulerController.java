@@ -94,7 +94,7 @@ public class AdminSchedulerController {
     public CommonResponse<String> manualAstronomyCollection() {
         try {
             log.info("관리자 수동 천체 이벤트 수집 시작");
-            astronomyService.performAstronomyDataCollection();
+            astronomyService.fetchDailyAstronomyEvents();
             return CommonResponse.success("천체 이벤트 수집이 완료되었습니다.");
         } catch (Exception e) {
             log.error("수동 천체 이벤트 수집 실패", e);

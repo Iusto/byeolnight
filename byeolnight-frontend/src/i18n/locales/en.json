@@ -428,6 +428,9 @@
       "SOLAR_ECLIPSE": "Solar Eclipse",
       "PLANET_CONJUNCTION": "Planetary Conjunction",
       "COMET_OBSERVATION": "Comet Observation",
+      "SUPERMOON": "Supermoon",
+      "SPECIAL_EVENT": "Special Event",
+      "ASTEROID_FORECAST": "Asteroid Forecast",
       "DEFAULT": "Astronomy Event"
     },
     "iss_current_location": "ISS Real-time Location",
@@ -470,7 +473,10 @@
       "blood_moon": "Blood Moons",
       "meteor_shower": "Meteor Showers",
       "supermoon": "Supermoons"
-    }
+    },
+    "confirm_nasa_update": "Do you want to manually update astronomy data with NASA API?",
+    "nasa_update_success": "Astronomy data update completed! (NASA NeoWs/DONKI/Mars)",
+    "nasa_update_failed": "Astronomy data update failed"
   },
   "suggestion": {
     "title": "💡 Suggestion Board",

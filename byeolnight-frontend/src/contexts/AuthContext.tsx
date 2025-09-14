@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from '../lib/axios';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -22,7 +22,6 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  refreshToken: () => Promise<boolean>;
   refreshUserInfo: () => Promise<void>;
 }
 
@@ -31,39 +30,16 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // 인증이 필요하지 않은 페이지들
-  const noAuthPages = [
-    '/login',
-    '/signup', 
-    '/password-reset',
-    '/oauth/callback',
-    '/oauth/setup-nickname',
-    '/oauth/recover',
-    '/shop',
-    '/suggestions'
-  ];
-
-
-
-  const fetchMyInfo = async () => {
-    if (isFetching) {
-      return false; // 이미 요청 중이면 중단
-    }
-    
-    setIsFetching(true);
+  const fetchMyInfo = async (): Promise<boolean> => {
     try {
       const res = await axios.get('/member/users/me');
       const userData = res.data?.success ? res.data.data : null;
       
-      if (!userData) {
-        throw new Error('사용자 데이터를 받지 못했습니다.');
-      }
+      if (!userData) return false;
       
-      // 대표 인증서 정보도 가져오기
+      // 대표 인증서 정보 가져오기
       try {
         const certRes = await axios.get('/member/certificates/representative');
         if (certRes.data?.data) {
@@ -72,112 +48,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             name: certRes.data.data.name
           };
         }
-      } catch (certErr) {
-        // 대표 인증서 조회 실패는 무시
+      } catch {
+        // 인증서 조회 실패 무시
       }
       
       setUser(userData);
       return true;
-    } catch (err: any) {
-      // 401 에러는 비로그인 상태로 처리 (정상)
+    } catch {
       setUser(null);
-      return false;
-    } finally {
-      setIsFetching(false);
-    }
-  };
-
-  const refreshToken = async (): Promise<boolean> => {
-    try {
-      const res = await axios.post('/auth/token/refresh');
-      
-      if (res.data?.success) {
-        // 토큰 갱신 성공 시 사용자 정보는 필요시에만 로드
-        return true;
-      }
-      return false;
-    } catch (error) {
       return false;
     }
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      // 로그인 시 알림 플래그 초기화
-      sessionStorage.removeItem('auth-alert-shown');
-      
-      const loginData = { email, password };
-      const res = await axios.post('/auth/login', loginData);
-
-      if (res.data?.success) {
-        // HttpOnly 쿠키로 토큰이 자동 저장됨
-        // 로그인 성공 후 사용자 정보 조회
-        await fetchMyInfo();
-      } else {
-        throw new Error(res.data?.message || 'Login failed');
-      }
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err?.message || 'Authentication failed';
-      throw new Error(errorMessage);
+    const res = await axios.post('/auth/login', { email, password });
+    
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'Login failed');
     }
+    
+    await fetchMyInfo();
   };
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout');
-    } catch (error) {
-      // 로그아웃 API 실패는 무시
-    } finally {
-      // HttpOnly 쿠키는 서버에서 자동 삭제됨
-      setUser(null);
-      alert("로그아웃 되었습니다.");
-      navigate('/');
+      if (user) await axios.post('/auth/logout');
+    } catch {
+      // 로그아웃 API 실패 무시
     }
+    
+    setUser(null);
+    alert("로그아웃 되었습니다.");
+    navigate('/');
   };
 
-
-
-  // 초기 로딩 시 로그인 상태 확인 (인증이 필요한 페이지에서만)
+  // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
-    const initializeAuth = async () => {
-      // 인증이 필요하지 않은 페이지에서는 API 호출 생략
-      if (noAuthPages.includes(location.pathname)) {
-        setLoading(false);
-        return;
-      }
-      
+    const initAuth = async () => {
       await fetchMyInfo();
       setLoading(false);
     };
+    
+    initAuth();
+  }, []);
 
-    initializeAuth();
-  }, [location.pathname]);
-
-  // 주기적으로 토큰 갱신 (HttpOnly 쿠키 방식에서는 항상 실행)
+  // 로그인된 사용자만 토큰 갱신
   useEffect(() => {
-    if (user) {
-      const interval = setInterval(async () => {
-        try {
-          const success = await refreshToken();
-          // 토큰 갱신 실패 시에만 사용자 정보 재로드
-          if (!success) {
-            setUser(null);
-          }
-        } catch (refreshError) {
-          // 토큰 갱신 실패 시 무시
-        }
-      }, 25 * 60 * 1000);
+    if (!user) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.post('/auth/token/refresh');
+        if (!res.data?.success) setUser(null);
+      } catch {
+        setUser(null);
+      }
+    }, 25 * 60 * 1000);
 
-      return () => clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, [user]);
 
-  const refreshUserInfo = async () => {
-    await fetchMyInfo();
-  };
+  const refreshUserInfo = () => fetchMyInfo();
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshToken, refreshUserInfo }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUserInfo }}>
       {children}
     </AuthContext.Provider>
   );

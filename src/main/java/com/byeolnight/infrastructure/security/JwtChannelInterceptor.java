@@ -10,20 +10,23 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * WebSocket 연결 시 JWT 인증 처리 인터셉터
- *
- * 역할:
- * - WebSocket CONNECT 시 JWT 토큰 검증
- * - 인증된 사용자는 인증 정보 설정, 비로그인도 연결 허용
- * - 클라이언트 IP 주소 추출 및 세션에 저장
- * - 실시간 채팅 및 알림 시스템에서 사용
+ * HttpOnly 쿠키 기반 인증 및 클라이언트 IP 추출
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private static final String[] IP_HEADERS = {
+        "X-Client-IP", "X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP"
+    };
+    private static final String UNKNOWN_IP = "unknown";
+    private static final String CLIENT_IP_KEY = "clientIp";
+    private static final String AUTH_KEY = "authentication";
 
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -32,54 +35,38 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            // 클라이언트 IP 추출 및 세션에 저장
-            try {
-                String clientIp = extractClientIpFromHeaders(accessor);
-                accessor.getSessionAttributes().put("clientIp", clientIp);
-            } catch (Exception e) {
-                // IP 추출 실패는 심각한 문제가 아니므로 DEBUG 레벨로 처리
-            }
-            
-            // Handshake에서 설정된 인증 정보 사용 (HttpOnly 쿠키 기반)
-            Authentication handshakeAuth = (Authentication) accessor.getSessionAttributes().get("authentication");
-            
-            if (handshakeAuth != null) {
-                accessor.setUser(handshakeAuth);
-                log.debug("✅ WebSocket 인증 성공 (Handshake): {}", handshakeAuth.getName());
-            } else {
-                log.debug("🔓 WebSocket 비로그인 사용자 연결");
-            }
-        }
-
-        // 연결 성공 로그
-        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            log.debug("WebSocket CONNECT 완료 - User: {}", 
-                (accessor.getUser() != null ? accessor.getUser().getName() : "비로그인"));
+            handleWebSocketConnect(accessor);
         }
         
         return message;
     }
     
-
-    
-    private String extractClientIpFromHeaders(StompHeaderAccessor accessor) {
-        // WebSocket 헤더에서 IP 추출 (IpUtil과 동일한 우선순위)
-        String[] headers = {
-            "X-Client-IP",
-            "X-Forwarded-For", 
-            "X-Real-IP", 
-            "Proxy-Client-IP"
-        };
+    private void handleWebSocketConnect(StompHeaderAccessor accessor) {
+        // 클라이언트 IP 추출 및 저장
+        String clientIp = extractClientIp(accessor);
+        accessor.getSessionAttributes().put(CLIENT_IP_KEY, clientIp);
         
-        for (String header : headers) {
+        // Handshake에서 설정된 인증 정보 사용
+        Authentication handshakeAuth = (Authentication) accessor.getSessionAttributes().get(AUTH_KEY);
+        
+        if (handshakeAuth != null) {
+            accessor.setUser(handshakeAuth);
+            log.debug("✅ WebSocket 인증 성공: {}", handshakeAuth.getName());
+        } else {
+            log.debug("🔓 WebSocket 비로그인 연결");
+        }
+        
+        log.debug("WebSocket CONNECT - User: {}, IP: {}", 
+            handshakeAuth != null ? handshakeAuth.getName() : "비로그인", clientIp);
+    }
+    
+    private String extractClientIp(StompHeaderAccessor accessor) {
+        for (String header : IP_HEADERS) {
             String ip = accessor.getFirstNativeHeader(header);
-            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+            if (StringUtils.hasText(ip) && !UNKNOWN_IP.equalsIgnoreCase(ip)) {
                 return ip.contains(",") ? ip.split(",")[0].trim() : ip;
             }
         }
-        
-        return "unknown";
+        return UNKNOWN_IP;
     }
-    
-
 }

@@ -76,35 +76,35 @@ public class JwtTokenProvider {
     }
 
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload();
+        Claims claims = parseToken(token);
         return Long.parseLong(claims.getSubject());
     }
 
     public String getSessionIdFromToken(String token) {
-        Claims claims = Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload();
+        Claims claims = parseToken(token);
         return claims.get("sessionId", String.class);
     }
+    
+    private Claims parseToken(String token) {
+        return Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload();
+    }
 
-    // 기존 메서드들과 호환성을 위한 메서드들
+    // 호환성 메서드들
     public boolean validate(String token) {
         return validateAccessToken(token);
     }
 
     public boolean validateRefreshToken(String token) {
         try {
-            Claims claims = Jwts.parser().verifyWith(key).build()
-                    .parseSignedClaims(token).getPayload();
-            String type = claims.get("type", String.class);
-            return "refresh".equals(type);
+            Claims claims = parseToken(token);
+            return "refresh".equals(claims.get("type", String.class));
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
     public String getEmail(String token) {
-        // 임시로 userId를 반환 (실제로는 User 조회 필요)
         return getUserIdFromToken(token).toString();
     }
 
@@ -121,8 +121,7 @@ public class JwtTokenProvider {
     }
 
     public long getExpiration(String token) {
-        Claims claims = Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload();
+        Claims claims = parseToken(token);
         return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
 

@@ -1,13 +1,28 @@
 package com.byeolnight.common;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
+import org.springframework.web.client.RestTemplate;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 /**
  * 테스트용 공통 Mock 설정 유틸리티
  */
+@TestConfiguration
+@Profile("test")
 public class TestMockConfig {
+
+    @Bean
+    @Primary
+    @Profile("test")
+    public RestTemplate testRestTemplate() {
+        return mock(RestTemplate.class);
+    }
 
     private static final String TEST_IP = "192.168.1.1";
     private static final String TEST_USER_AGENT = "Mozilla/5.0 Test Browser";
@@ -43,5 +58,16 @@ public class TestMockConfig {
 
     public static String getTestUserAgent() {
         return TEST_USER_AGENT;
+    }
+
+    /**
+     * 테스트용 Mock 초기화 메서드
+     */
+    public static void resetAllMocks(Object... mocks) {
+        for (Object mock : mocks) {
+            if (mock != null) {
+                org.mockito.Mockito.reset(mock);
+            }
+        }
     }
 }

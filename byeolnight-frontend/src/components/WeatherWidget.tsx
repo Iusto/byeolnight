@@ -155,35 +155,84 @@ const WeatherWidget: React.FC = () => {
       });
       console.log('날씨 데이터 응답 수신 완료');
       setWeather(response.data);
+      
+      // 날씨 데이터 조회 성공 시 ISS 관측 기회 업데이트
+      fetchIssLocation(latitude, longitude);
     } catch (error: any) {
       const errorMessage = t('weather.weather_error');
       console.error('날씨 데이터 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
       setWeatherError(errorMessage);
     }
-  }, []);
+  }, [t]);
 
-  const fetchIssLocation = useCallback(async () => {
+  const fetchIssLocation = useCallback(async (lat?: number, lon?: number) => {
     try {
       setIssError(null);
-      console.log('ISS 위치 업데이트 시작:', new Date().toLocaleTimeString());
-      const response = await axios.get('/api/weather/iss');
+      const latitude = lat || 37.5665;
+      const longitude = lon || 126.9780;
+      
+      console.log('ISS 관측 기회 업데이트 시작:', new Date().toLocaleTimeString());
+      const response = await axios.get('/api/weather/iss', {
+        params: { latitude, longitude }
+      });
       const data = response.data;
-      console.log('ISS 데이터 수신 완료');
-      if (data.iss_position) {
+      console.log('ISS 관측 데이터 수신 완료');
+      
+      if (data.message_key) {
         setIssLocation({
-          latitude: data.iss_position.latitude,
-          longitude: data.iss_position.longitude,
-          timestamp: data.timestamp
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          timestamp: Date.now(),
+          ...data
         });
-        console.log('ISS 위치 업데이트 완료');
+        console.log('ISS 관측 기회 업데이트 완료');
       }
     } catch (error: any) {
       const errorMessage = t('weather.events_error');
-      console.error('ISS 위치 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
+      console.error('ISS 관측 정보 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
       setIssError(errorMessage);
     }
-  }, []);
+  }, [t]);
 
+  const formatIssObservationMessage = (issData: any) => {
+    if (!issData || issData.error) {
+      return t('weather.iss_no_data');
+    }
+    
+    if (issData.message_key === 'iss.no_passes') {
+      return t('weather.iss_no_passes');
+    }
+    
+    if (issData.message_key === 'iss.detailed_opportunity') {
+      const timeKey = issData.is_today ? 'weather.iss_today' : 
+                     issData.is_tomorrow ? 'weather.iss_tomorrow' : 'weather.iss_future';
+      
+      return t('weather.iss_detailed_message', {
+        time_desc: t(timeKey),
+        time: issData.time,
+        start_direction: t(`weather.compass_${issData.start_direction}`),
+        end_direction: t(`weather.compass_${issData.end_direction}`),
+        max_elevation: issData.max_elevation,
+        duration: issData.duration_minutes,
+        quality: t(`weather.visibility_${issData.visibility_quality}`)
+      });
+    }
+    
+    if (issData.message_key === 'iss.basic_opportunity') {
+      const timeKey = issData.is_today ? 'weather.iss_today' : 
+                     issData.is_tomorrow ? 'weather.iss_tomorrow' : 'weather.iss_future';
+      
+      return t('weather.iss_basic_message', {
+        time_desc: t(timeKey),
+        time: issData.time,
+        direction: t(`weather.compass_${issData.direction}`),
+        duration: issData.duration_minutes
+      });
+    }
+    
+    return t('weather.iss_parse_error');
+  };
+  
   const updateEventsWithIss = (astronomyEvents: AstronomyEvent[], currentIssLocation: IssLocation | null) => {
     let selectedEvents = astronomyEvents.slice(0, 4);
     
@@ -191,9 +240,9 @@ const WeatherWidget: React.FC = () => {
     if (currentIssLocation) {
       const issEvent: AstronomyEvent = {
         id: 0,
-        eventType: 'ISS_LOCATION',
-        title: t('weather.iss_current_location'),
-        description: `${t('weather.iss_position_desc')}: ${parseFloat(currentIssLocation.latitude).toFixed(1)}°, ${parseFloat(currentIssLocation.longitude).toFixed(1)}°`,
+        eventType: 'ISS_OBSERVATION',
+        title: t('weather.iss_observation_opportunity'),
+        description: formatIssObservationMessage(currentIssLocation),
         eventDate: new Date().toISOString(),
         peakTime: new Date().toISOString(),
         visibility: 'WORLDWIDE',
@@ -220,7 +269,7 @@ const WeatherWidget: React.FC = () => {
         return eventDate >= thirtyDaysAgo;
       });
       
-      // 최신순 정렬 후 타입별 최대 1개씩 선택
+      // 최신순 정렬 후 타입별 최대 1개씩 선택 (모든 천체현상 포함)
       const sortedEvents = recentEvents.sort((a: AstronomyEvent, b: AstronomyEvent) => {
         const aDate = new Date(a.eventDate);
         const bDate = new Date(b.eventDate);
@@ -228,10 +277,11 @@ const WeatherWidget: React.FC = () => {
       });
       
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
+        // 모든 천체현상 타입을 개별적으로 처리하여 다양성 확보
         const typeGroup = event.eventType.includes('ASTEROID') ? 'ASTEROID' :
-                         event.eventType.includes('SOLAR') ? 'SOLAR_FLARE' :
+                         event.eventType.includes('SOLAR_FLARE') ? 'SOLAR_FLARE' :
                          event.eventType.includes('GEOMAGNETIC') ? 'GEOMAGNETIC_STORM' :
-                         event.eventType.includes('METEOR') || event.eventType.includes('LUNAR') || event.eventType.includes('PLANET') ? 'PREDICTED' : 'OTHER';
+                         event.eventType.includes('ISS') ? 'ISS_OBSERVATION' : event.eventType;
         
         if (!acc[typeGroup]) {
           acc[typeGroup] = event;
@@ -247,19 +297,19 @@ const WeatherWidget: React.FC = () => {
       console.error('천체 이벤트 조회 실패:', sanitizeForLog(error.message || 'Unknown error'));
       setEventsError(errorMessage);
     }
-  }, [thirtyDaysAgo, issLocation]);
+  }, [thirtyDaysAgo]);
 
   const handleCollectAstronomy = async () => {
-    if (!confirm('NASA API로 천체 데이터를 수동 업데이트하시겠습니까?')) return;
+    if (!confirm(t('weather.confirm_nasa_update'))) return;
     
     setCollectingAstronomy(true);
     try {
       await axios.post('/api/admin/scheduler/astronomy/manual');
-      alert('천체 데이터 업데이트 완료! (NASA NeoWs/DONKI/Mars)');
+      alert(t('weather.nasa_update_success'));
       await fetchAstronomyEvents();
     } catch (error: any) {
       console.error('천체 데이터 수집 실패:', sanitizeForLog(error.message || 'Unknown error'));
-      alert('천체 데이터 업데이트 실패');
+      alert(t('weather.nasa_update_failed'));
     } finally {
       setCollectingAstronomy(false);
     }
@@ -280,17 +330,12 @@ const WeatherWidget: React.FC = () => {
       case 'ASTEROID': return '🪨';
       case 'SOLAR_FLARE': return '☀️';
       case 'GEOMAGNETIC_STORM': return '🌍';
-      case 'ISS_LOCATION': return '🛰️';
-      case 'MARS_WEATHER': return '🔴';
-      case 'METEOR_SHOWER': return '☄️';
+      case 'ISS_OBSERVATION': return '🛰️';
       case 'LUNAR_ECLIPSE': return '🌙';
-      case 'BLOOD_MOON': return '🔴';
-      case 'TOTAL_LUNAR_ECLIPSE': return '🌑';
       case 'SOLAR_ECLIPSE': return '☀️';
-      case 'PLANET_CONJUNCTION': return '🪐';
-      case 'COMET_OBSERVATION': return '✨';
+      case 'BLOOD_MOON': return '🔴';
+      case 'BLUE_MOON': return '🔵';
       case 'SUPERMOON': return '🌕';
-      case 'SPECIAL': return '🌠';
       default: return '⭐';
     }
   };
@@ -333,53 +378,113 @@ const WeatherWidget: React.FC = () => {
     return recommendations[recommendation] || recommendation;
   };
   
-  // 이벤트 설명 번역
+  // 이벤트 설명 번역 (리팩토링된 버전)
   const translateEventDescription = (description: string) => {
-    // Solar flare 패턴 매칭 (다양한 패턴 지원)
-    const solarFlarePatterns = [
-      /Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/,
-      /Solar Flare Class ([A-Z]\d+\.?\d*)/i,
-      /태양 플레어.*등급.*([A-Z]\d+\.?\d*)/,
-      /태양플레어.*등급.*([A-Z]\d+\.?\d*)/i
-    ];
-    
-    for (const pattern of solarFlarePatterns) {
-      const match = description.match(pattern);
-      if (match) {
-        const classValue = match[1];
-        const date = match[2] || new Date().toISOString().split('T')[0];
-        const time = match[3] || '00:00';
-        return t('weather.event_descriptions.solar_flare', {
-          class: classValue,
-          date: date,
-          time: time
-        });
+    // 패턴 매칭 함수들
+    const matchSolarFlare = (desc: string) => {
+      const patterns = [
+        /Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/,
+        /Solar Flare Class ([A-Z]\d+\.?\d*)/i,
+        /태양 플레어.*등급.*([A-Z]\d+\.?\d*)/,
+        /태양플레어.*등급.*([A-Z]\d+\.?\d*)/i
+      ];
+      
+      for (const pattern of patterns) {
+        const match = desc.match(pattern);
+        if (match) {
+          return {
+            class: match[1],
+            date: match[2] || new Date().toISOString().split('T')[0],
+            time: match[3] || '00:00'
+          };
+        }
       }
+      return null;
+    };
+    
+    const matchGeomagneticStorm = (desc: string) => {
+      const patterns = [
+        /Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/,
+        /Geomagnetic Storm/i,
+        /지자기.*폭풍/,
+        /지자기폭풍/i
+      ];
+      
+      for (const pattern of patterns) {
+        const match = desc.match(pattern);
+        if (match) {
+          return {
+            date: match[1] || new Date().toISOString().split('T')[0],
+            kp: match[2] || 'Unknown'
+          };
+        }
+      }
+      return null;
+    };
+    
+    const matchIssPosition = (desc: string) => {
+      const patterns = [
+        /International Space Station current position: ([^,]+), ([^°]+)°/,
+        /국제우주정거장.*위치.*: ([^,]+), ([^°]+)°/,
+        /ISS.*position.*: ([^,]+), ([^°]+)°/i
+      ];
+      
+      for (const pattern of patterns) {
+        const match = desc.match(pattern);
+        if (match) {
+          return {
+            lat: parseFloat(match[1]).toFixed(1),
+            lon: parseFloat(match[2]).toFixed(1)
+          };
+        }
+      }
+      return null;
+    };
+    
+    // 번역 키 매핑 객체
+    const eventTypeKeywords = {
+      solarFlare: ['solar flare', '태양', '플레어'],
+      geomagneticStorm: ['geomagnetic', '지자기', '폭풍'],
+      asteroid: ['asteroid', '소행성'],
+      meteorShower: ['meteor', '유성우', 'shower'],
+      lunarEclipse: ['lunar eclipse', '월식'],
+      solarEclipse: ['solar eclipse', '일식'],
+      supermoon: ['supermoon', '슈퍼문'],
+      planetConjunction: ['conjunction', '합'],
+      comet: ['comet', '혜성']
+    };
+    
+    // 패턴 매칭 시도
+    const solarFlareMatch = matchSolarFlare(description);
+    if (solarFlareMatch) {
+      return t('weather.event_descriptions.solar_flare', solarFlareMatch);
     }
     
-    // Geomagnetic storm 패턴 매칭 (다양한 패턴 지원)
-    const geomagneticPatterns = [
-      /Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/,
-      /Geomagnetic Storm/i,
-      /지자기.*폭풍/,
-      /지자기폭풍/i
-    ];
-    
-    for (const pattern of geomagneticPatterns) {
-      const match = description.match(pattern);
-      if (match) {
-        const date = match[1] || new Date().toISOString().split('T')[0];
-        const kp = match[2] || 'Unknown';
-        return t('weather.event_descriptions.geomagnetic_storm', {
-          date: date,
-          kp: kp
-        });
-      }
+    const geomagneticMatch = matchGeomagneticStorm(description);
+    if (geomagneticMatch) {
+      return t('weather.event_descriptions.geomagnetic_storm', geomagneticMatch);
     }
     
-    // 이벤트 타입 기반 번역 (패턴 매칭 실패 시 대안)
-    if (description.toLowerCase().includes('solar flare') || description.includes('태양') || description.includes('플레어')) {
-      // 클래스 정보 추출 시도
+    const issMatch = matchIssPosition(description);
+    if (issMatch) {
+      return t('weather.event_descriptions.iss_position', issMatch);
+    }
+    
+    // 소행성 패턴 매칭
+    const asteroidMatch = description.match(/asteroid.*([\d.]+).*km.*([\d.]+).*m/i);
+    if (asteroidMatch) {
+      return t('weather.event_descriptions.asteroid', {
+        name: 'NEO',
+        date: new Date().toISOString().split('T')[0],
+        distance: asteroidMatch[1],
+        size: asteroidMatch[2]
+      });
+    }
+    
+    // 키워드 기반 번역 (패턴 매칭 실패 시)
+    const lowerDesc = description.toLowerCase();
+    
+    if (eventTypeKeywords.solarFlare.some(keyword => lowerDesc.includes(keyword))) {
       const classMatch = description.match(/([A-Z]\d+\.?\d*)/i);
       const dateMatch = description.match(/(\d{4}-\d{2}-\d{2})/);
       const timeMatch = description.match(/(\d{2}:\d{2})/);
@@ -391,42 +496,13 @@ const WeatherWidget: React.FC = () => {
       });
     }
     
-    if (description.toLowerCase().includes('geomagnetic') || description.includes('지자기') || description.includes('폭풍')) {
-      // Kp 지수 추출 시도
+    if (eventTypeKeywords.geomagneticStorm.some(keyword => lowerDesc.includes(keyword))) {
       const kpMatch = description.match(/Kp[^\d]*([\d.]+)/i) || description.match(/지수[^\d]*([\d.]+)/);
       const dateMatch = description.match(/(\d{4}-\d{2}-\d{2})/);
       
       return t('weather.event_descriptions.geomagnetic_storm', {
         date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
         kp: kpMatch ? kpMatch[1] : 'Unknown'
-      });
-    }
-    
-    // ISS position 패턴 매칭
-    const issPatterns = [
-      /International Space Station current position: ([^,]+), ([^°]+)°/,
-      /국제우주정거장.*위치.*: ([^,]+), ([^°]+)°/,
-      /ISS.*position.*: ([^,]+), ([^°]+)°/i
-    ];
-    
-    for (const pattern of issPatterns) {
-      const match = description.match(pattern);
-      if (match) {
-        return t('weather.event_descriptions.iss_position', {
-          lat: parseFloat(match[1]).toFixed(1),
-          lon: parseFloat(match[2]).toFixed(1)
-        });
-      }
-    }
-    
-    // 소행성 패턴 매칭
-    const asteroidMatch = description.match(/asteroid.*([\d.]+).*km.*([\d.]+).*m/i);
-    if (asteroidMatch) {
-      return t('weather.event_descriptions.asteroid', {
-        name: 'NEO',
-        date: new Date().toISOString().split('T')[0],
-        distance: asteroidMatch[1],
-        size: asteroidMatch[2]
       });
     }
     
@@ -688,8 +764,6 @@ const WeatherWidget: React.FC = () => {
               <span>🪨 NeoWs</span>
               <span>☀️ DONKI</span>
               <span>🛰️ ISS</span>
-              <span>🌙 {t('weather.loading_events_list.lunar_eclipse')}</span>
-              <span>☄️ {t('weather.loading_events_list.meteor_shower')}</span>
             </div>
           </div>
         )}

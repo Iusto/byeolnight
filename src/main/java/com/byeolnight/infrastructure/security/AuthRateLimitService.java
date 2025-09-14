@@ -9,12 +9,19 @@ import java.time.Duration;
 
 /**
  * 인증 요청 Rate Limiting 서비스
- * 이메일/SMS 인증 스팸 방지
+ * 이메일 인증 스팸 방지 및 IP 기반 제한
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AuthRateLimitService {
+    
+    private static final int EMAIL_HOURLY_LIMIT = 5;
+    private static final int EMAIL_DAILY_LIMIT = 10;
+    private static final int IP_HOURLY_LIMIT = 20;
+    private static final int IP_DAILY_LIMIT = 100;
+    private static final int HOUR_MINUTES = 60;
+    private static final int DAY_MINUTES = 1440;
     
     private final RedisTemplate<String, String> redisTemplate;
     
@@ -23,30 +30,28 @@ public class AuthRateLimitService {
     }
     
     private boolean checkEmailLimit(String email) {
-        return checkRateLimit("email_auth_1h:" + email, 5, 60, 60) &&
-               checkRateLimit("email_auth_1d:" + email, 10, 1440, 1440);
+        return checkRateLimit("email_auth_1h:" + email, EMAIL_HOURLY_LIMIT, HOUR_MINUTES, HOUR_MINUTES) &&
+               checkRateLimit("email_auth_1d:" + email, EMAIL_DAILY_LIMIT, DAY_MINUTES, DAY_MINUTES);
     }
     
     private boolean checkIpAuthLimit(String clientIp) {
-        // IP당 시간당 총 20개 인증 요청 (이메일+SMS 합계)
-        if (!checkRateLimit("auth_total_1h:" + clientIp, 20, 60, 60)) {
-            return false;
-        }
-        // IP당 일일 총 100개 인증 요청
-        return checkRateLimit("auth_total_1d:" + clientIp, 100, 1440, 1440);
+        return checkRateLimit("auth_total_1h:" + clientIp, IP_HOURLY_LIMIT, HOUR_MINUTES, HOUR_MINUTES) &&
+               checkRateLimit("auth_total_1d:" + clientIp, IP_DAILY_LIMIT, DAY_MINUTES, DAY_MINUTES);
     }
     
     private boolean checkRateLimit(String key, int limit, int windowMinutes, int blockMinutes) {
         try {
-            if (redisTemplate.hasKey(key + ":blocked")) return false;
+            String blockedKey = key + ":blocked";
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(blockedKey))) {
+                return false;
+            }
             
             String countStr = redisTemplate.opsForValue().get(key);
             int currentCount = countStr != null ? Integer.parseInt(countStr) : 0;
             
             if (currentCount >= limit) {
-                if (blockMinutes > 0) {
-                    redisTemplate.opsForValue().set(key + ":blocked", "1", Duration.ofMinutes(blockMinutes));
-                }
+                redisTemplate.opsForValue().set(blockedKey, "1", Duration.ofMinutes(blockMinutes));
+                log.warn("Rate limit exceeded for key: {}, count: {}", key, currentCount);
                 return false;
             }
             
@@ -57,7 +62,8 @@ public class AuthRateLimitService {
             }
             return true;
         } catch (Exception e) {
-            return true;
+            log.error("Rate limit check failed for key: {}", key, e);
+            return true; // 실패 시 허용
         }
     }
     
@@ -68,5 +74,6 @@ public class AuthRateLimitService {
             redisTemplate.delete(prefix + target);
             redisTemplate.delete(prefix + target + ":blocked");
         }
+        log.info("Cleared auth limits for target: {}", target);
     }
 }

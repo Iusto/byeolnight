@@ -11,11 +11,7 @@ import java.io.IOException;
 
 /**
  * JWT 인증 실패 시 처리하는 엔트리 포인트
- *
- * 역할:
- * - 인증되지 않은 요청에 대해 401 Unauthorized 응답
- * - 일관된 JSON 에러 메시지 반환
- * - 인증 실패 로그 기록
+ * 인증되지 않은 요청에 대한 401 응답 및 로깅
  */
 @Slf4j
 @Component
@@ -25,11 +21,24 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
         
-        log.warn("인증되지 않은 요청: {} {}", request.getMethod(), request.getRequestURI());
+        String uri = request.getRequestURI();
         
-        // 응답이 이미 커밋된 경우 처리 방지
+        // 헬스체크 및 정적 리소스는 DEBUG 레벨로 로깅
+        if (isLowPriorityPath(uri)) {
+            log.debug("인증 불필요 요청: {} {}", request.getMethod(), uri);
+        } else {
+            log.warn("인증 실패: {} {} - {}", request.getMethod(), uri, authException.getMessage());
+        }
+        
         if (!response.isCommitted()) {
             SecurityUtils.writeAuthErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "인증이 필요합니다.");
         }
+    }
+    
+    private boolean isLowPriorityPath(String uri) {
+        return uri.contains("/health") || 
+               uri.contains("/actuator") || 
+               uri.contains("/favicon.ico") ||
+               uri.contains("/robots.txt");
     }
 }

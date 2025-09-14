@@ -54,23 +54,32 @@ public class WeatherController {
     }
     
     @GetMapping("/events")
-    @Operation(summary = "예정된 천체 이벤트 조회", 
-               description = "유성우, 일식/월식, 행성 근접 등 예정된 천체 이벤트 목록을 조회합니다.")
+    @Operation(summary = "천체 이벤트 조회", 
+               description = "NASA API 기반 천체 이벤트 목록을 조회합니다.")
     public ResponseEntity<List<AstronomyEventResponse>> getUpcomingEvents() {
         List<AstronomyEventResponse> events = astronomyService.getUpcomingEvents();
         return ResponseEntity.ok(events);
     }
     
     @GetMapping("/iss")
-    @Operation(summary = "ISS 실시간 위치 조회", 
-               description = "국제우주정거장의 실시간 위치 정보를 조회합니다.")
-    public ResponseEntity<Map<String, Object>> getIssLocation() {
+    @Operation(summary = "ISS 관측 기회 조회", 
+               description = "사용자 위치 기반 ISS 관측 기회 정보를 조회합니다.")
+    public ResponseEntity<Map<String, Object>> getIssObservationOpportunity(
+            @Parameter(description = "위도 (-90 ~ 90)", example = "37.5665") 
+            @RequestParam Double latitude,
+            @Parameter(description = "경도 (-180 ~ 180)", example = "126.9780") 
+            @RequestParam Double longitude) {
+        
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            return ResponseEntity.badRequest().body(Map.of("error", "잘못된 좌표 값"));
+        }
+        
         try {
-            Map<String, Object> issData = astronomyService.getIssLocation();
+            Map<String, Object> issData = astronomyService.getIssObservationOpportunity(latitude, longitude);
             return ResponseEntity.ok(issData);
         } catch (Exception e) {
-            log.error("ISS 데이터 조회 실패", e);
-            return ResponseEntity.status(500).body(Map.of("error", "ISS 데이터 조회 실패"));
+            log.error("ISS 관측 정보 조회 실패", e);
+            return ResponseEntity.status(500).body(Map.of("error", "ISS 관측 정보 조회 실패"));
         }
     }
 }

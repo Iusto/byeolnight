@@ -47,9 +47,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.tokenService = tokenService;
     }
 
-    /**
-     * 화이트리스트 경로는 인증 없이 통과
-     */
     private boolean isWhitelisted(String uri) {
         for (String pattern : AuthWhitelist.PATHS) {
             if (pathMatcher.match(pattern, uri)) return true;
@@ -57,10 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return false;
     }
     
-    /**
-     * 로그 레벨을 낮춰야 하는 경로인지 확인
-     */
-    private boolean isLowLogLevel(String uri) {
+    private boolean isLowPriorityPath(String uri) {
         return uri.contains("/health") || 
                uri.contains("/actuator") || 
                uri.contains("/favicon.ico") || 
@@ -98,52 +92,55 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
         if (token == null) {
-            // 특정 경로는 로그 레벨 낮춤
-            if (isLowLogLevel(uri)) {
-                log.debug("인증 불필요 또는 예상된 요청: {}", uri);
-            } else {
-                log.warn("❌ 토큰이 없음 (쿠키 및 헤더 모두 부재): {}", uri);
-            }
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            handleMissingToken(uri, response);
             return;
         }
 
         if (!jwtTokenProvider.validate(token)) {
-            log.warn("❌ JWT 유효성 검사 실패");
+            log.warn("❌ JWT 유효성 검사 실패: {}", uri);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
         if (tokenService.isAccessTokenBlacklisted(token)) {
-            log.warn("❌ 블랙리스트 토큰 접근 차단됨");
+            log.warn("❌ 블랙리스트 토큰 차단: {}", uri);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        String userId = jwtTokenProvider.getEmail(token); // 실제로는 userId 반환
+        String userId = jwtTokenProvider.getEmail(token);
         if (userId == null) {
-            log.error("❌ 토큰에서 사용자 ID 추출 실패");
+            log.error("❌ 토큰에서 사용자 ID 추출 실패: {}", uri);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-        
-        log.debug("🔍 토큰에서 추출한 사용자 ID: {}", userId);
 
-        UserDetails userDetails;
         try {
-            userDetails = userDetailsService.loadUserByUsername(userId);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
+            setAuthentication(request, userDetails);
+            log.debug("✅ 인증 성공: {} - {}", userId, uri);
         } catch (UsernameNotFoundException e) {
-            log.error("❌ 사용자 조회 실패: {}", e.getMessage());
+            log.error("❌ 사용자 조회 실패: {} - {}", userId, e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+
+        filterChain.doFilter(request, response);
+    }
+    
+    private void handleMissingToken(String uri, HttpServletResponse response) {
+        if (isLowPriorityPath(uri)) {
+            log.debug("인증 불필요 요청: {}", uri);
+        } else {
+            log.warn("❌ 토큰 부재: {}", uri);
+        }
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    }
+    
+    private void setAuthentication(HttpServletRequest request, UserDetails userDetails) {
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
-
-        filterChain.doFilter(request, response);
     }
-
-
 }
