@@ -249,11 +249,14 @@ const WeatherWidget: React.FC = () => {
   
   const updateEventsWithIss = (astronomyEvents: AstronomyEvent[], currentIssLocation: IssLocation | null) => {
     // ISS 데이터는 별도 섹션으로 표시하므로 천체 이벤트 목록에서 제외
-    const filteredEvents = astronomyEvents.filter(event => 
-      !event.eventType.includes('ISS') && 
-      event.eventType !== 'ISS_OBSERVATION' &&
-      event.eventType !== 'ISS_LOCATION'
-    );
+    const now = new Date();
+    const filteredEvents = astronomyEvents.filter(event => {
+      const eventDate = new Date(event.eventDate);
+      return !event.eventType.includes('ISS') && 
+             event.eventType !== 'ISS_OBSERVATION' &&
+             event.eventType !== 'ISS_LOCATION' &&
+             eventDate <= now; // 미래 이벤트 제외
+    });
     return filteredEvents.slice(0, 5);
   };
 
@@ -264,11 +267,11 @@ const WeatherWidget: React.FC = () => {
       const response = await axios.get('/api/weather/events');
       console.log('천체 이벤트 수신 완료:', sanitizeForLog(response.data.length + '개'));
       
-      // 최근 30일 내 실제 발생한 천체 현상만 표시
-      
+      // 최근 30일 내 실제 발생한 천체 현상만 표시 (미래 이벤트 제외)
+      const now = new Date();
       const recentEvents = response.data.filter((event: AstronomyEvent) => {
         const eventDate = new Date(event.eventDate);
-        return eventDate >= thirtyDaysAgo;
+        return eventDate >= thirtyDaysAgo && eventDate <= now;
       });
       
       // 최신순 정렬 후 타입별 최대 1개씩 선택 (모든 천체현상 포함)
@@ -281,6 +284,12 @@ const WeatherWidget: React.FC = () => {
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
         // ISS 이벤트는 제외하고 다른 천체현상만 처리
         if (event.eventType.includes('ISS') || event.eventType === 'ISS_OBSERVATION' || event.eventType === 'ISS_LOCATION') {
+          return acc;
+        }
+        
+        // 미래 이벤트 제외 (예: 9월 8일 개기일식)
+        const eventDate = new Date(event.eventDate);
+        if (eventDate > now) {
           return acc;
         }
         
@@ -354,10 +363,12 @@ const WeatherWidget: React.FC = () => {
     else if (eventType.includes('GEOMAGNETIC')) normalizedType = 'GEOMAGNETIC_STORM';
     else if (eventType.includes('METEOR')) normalizedType = 'METEOR_SHOWER';
     else if (eventType.includes('LUNAR')) normalizedType = 'LUNAR_ECLIPSE';
+    else if (eventType.includes('BLOOD')) normalizedType = 'BLOOD_MOON';
+    else if (eventType.includes('SOLAR_ECLIPSE')) normalizedType = 'SOLAR_ECLIPSE';
     else if (eventType.includes('PLANET')) normalizedType = 'PLANET_CONJUNCTION';
     
     const eventTypeKey = `weather.event_types.${normalizedType}` as const;
-    return t(eventTypeKey, { defaultValue: t('weather.event_types.DEFAULT') });
+    return t(eventTypeKey, { defaultValue: eventType });
   };
   
   // 달의 위상 번역
@@ -384,135 +395,31 @@ const WeatherWidget: React.FC = () => {
     return recommendations[recommendation] || recommendation;
   };
   
-  // 이벤트 설명 번역 (리팩토링된 버전)
+  // 이벤트 설명 번역
   const translateEventDescription = (description: string) => {
-    // 패턴 매칭 함수들
-    const matchSolarFlare = (desc: string) => {
-      const patterns = [
-        /Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})\. Peak time: (\d{2}:\d{2}) \(UTC\)/,
-        /Solar Flare Class ([A-Z]\d+\.?\d*)/i,
-        /태양 플레어.*등급.*([A-Z]\d+\.?\d*)/,
-        /태양플레어.*등급.*([A-Z]\d+\.?\d*)/i
-      ];
-      
-      for (const pattern of patterns) {
-        const match = desc.match(pattern);
-        if (match) {
-          return {
-            class: match[1],
-            date: match[2] || new Date().toISOString().split('T')[0],
-            time: match[3] || '00:00'
-          };
-        }
-      }
-      return null;
-    };
-    
-    const matchGeomagneticStorm = (desc: string) => {
-      const patterns = [
-        /Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/,
-        /Geomagnetic Storm/i,
-        /지자기.*폭풍/,
-        /지자기폭풍/i
-      ];
-      
-      for (const pattern of patterns) {
-        const match = desc.match(pattern);
-        if (match) {
-          return {
-            date: match[1] || new Date().toISOString().split('T')[0],
-            kp: match[2] || 'Unknown'
-          };
-        }
-      }
-      return null;
-    };
-    
-    const matchIssPosition = (desc: string) => {
-      const patterns = [
-        /International Space Station current position: ([^,]+), ([^°]+)°/,
-        /국제우주정거장.*위치.*: ([^,]+), ([^°]+)°/,
-        /ISS.*position.*: ([^,]+), ([^°]+)°/i
-      ];
-      
-      for (const pattern of patterns) {
-        const match = desc.match(pattern);
-        if (match) {
-          return {
-            lat: parseFloat(match[1]).toFixed(1),
-            lon: parseFloat(match[2]).toFixed(1)
-          };
-        }
-      }
-      return null;
-    };
-    
-    // 번역 키 매핑 객체
-    const eventTypeKeywords = {
-      solarFlare: ['solar flare', '태양', '플레어'],
-      geomagneticStorm: ['geomagnetic', '지자기', '폭풍'],
-      asteroid: ['asteroid', '소행성'],
-      meteorShower: ['meteor', '유성우', 'shower'],
-      lunarEclipse: ['lunar eclipse', '월식'],
-      solarEclipse: ['solar eclipse', '일식'],
-      supermoon: ['supermoon', '슈퍼문'],
-      planetConjunction: ['conjunction', '합'],
-      comet: ['comet', '혜성']
-    };
-    
-    // 패턴 매칭 시도
-    const solarFlareMatch = matchSolarFlare(description);
+    // Solar Flare 패턴 매칭
+    const solarFlareMatch = description.match(/Solar flare class ([A-Z]\d+\.?\d*) occurred on (\d{4}-\d{2}-\d{2})/i) ||
+                           description.match(/Solar Flare Class ([A-Z]\d+\.?\d*)/i);
     if (solarFlareMatch) {
-      return t('weather.event_descriptions.solar_flare', solarFlareMatch);
+      const classType = solarFlareMatch[1];
+      const date = solarFlareMatch[2] || new Date().toISOString().split('T')[0];
+      return t('weather.event_descriptions.solar_flare', { class: classType, date, time: '00:00' });
     }
     
-    const geomagneticMatch = matchGeomagneticStorm(description);
+    // Geomagnetic Storm 패턴 매칭
+    const geomagneticMatch = description.match(/Geomagnetic storm occurred on (\d{4}-\d{2}-\d{2})\. Kp index: ([^.]+)/i) ||
+                            description.match(/Geomagnetic Storm/i);
     if (geomagneticMatch) {
-      return t('weather.event_descriptions.geomagnetic_storm', geomagneticMatch);
+      const date = geomagneticMatch[1] || new Date().toISOString().split('T')[0];
+      const kp = geomagneticMatch[2] || 'Unknown';
+      return t('weather.event_descriptions.geomagnetic_storm', { date, kp });
     }
     
-    const issMatch = matchIssPosition(description);
-    if (issMatch) {
-      return t('weather.event_descriptions.iss_position', issMatch);
+    // 한국천문연구원 데이터 패턴 매칭
+    if (description.includes('한국천문연구원')) {
+      return description; // 이미 한국어이므로 그대로 반환
     }
     
-    // 소행성 패턴 매칭
-    const asteroidMatch = description.match(/asteroid.*([\d.]+).*km.*([\d.]+).*m/i);
-    if (asteroidMatch) {
-      return t('weather.event_descriptions.asteroid', {
-        name: 'NEO',
-        date: new Date().toISOString().split('T')[0],
-        distance: asteroidMatch[1],
-        size: asteroidMatch[2]
-      });
-    }
-    
-    // 키워드 기반 번역 (패턴 매칭 실패 시)
-    const lowerDesc = description.toLowerCase();
-    
-    if (eventTypeKeywords.solarFlare.some(keyword => lowerDesc.includes(keyword))) {
-      const classMatch = description.match(/([A-Z]\d+\.?\d*)/i);
-      const dateMatch = description.match(/(\d{4}-\d{2}-\d{2})/);
-      const timeMatch = description.match(/(\d{2}:\d{2})/);
-      
-      return t('weather.event_descriptions.solar_flare', {
-        class: classMatch ? classMatch[1] : 'Unknown',
-        date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
-        time: timeMatch ? timeMatch[1] : '00:00'
-      });
-    }
-    
-    if (eventTypeKeywords.geomagneticStorm.some(keyword => lowerDesc.includes(keyword))) {
-      const kpMatch = description.match(/Kp[^\d]*([\d.]+)/i) || description.match(/지수[^\d]*([\d.]+)/);
-      const dateMatch = description.match(/(\d{4}-\d{2}-\d{2})/);
-      
-      return t('weather.event_descriptions.geomagnetic_storm', {
-        date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
-        kp: kpMatch ? kpMatch[1] : 'Unknown'
-      });
-    }
-    
-    // 기본값: 원본 반환
     return description;
   };
   

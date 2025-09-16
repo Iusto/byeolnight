@@ -59,6 +59,7 @@ public class AstronomyService {
         List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(thirtyDaysAgo);
         
         return events.stream()
+                .filter(event -> event.getEventDate().isBefore(now) || event.getEventDate().isEqual(now)) // 미래 이벤트 제외
                 .sorted((e1, e2) -> {
                     boolean e1IsReal = isRealNasaData(e1);
                     boolean e2IsReal = isRealNasaData(e2);
