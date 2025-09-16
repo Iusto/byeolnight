@@ -418,8 +418,8 @@
     "nasa_api_data": "NASA API에서 최신 우주 정보를 가져오고 있습니다",
     "iss_retry": "🛰️ ISS 위치 재시도",
     "event_types": {
-      "ASTEROID": "지구 근접 소행성"
-      "SOLAR_FLARE": "태양 플레어"
+      "ASTEROID": "지구 근접 소행성",
+      "SOLAR_FLARE": "태양 플레어",
       "GEOMAGNETIC_STORM": "지자기 폭풍",
       "ISS_LOCATION": "NASA 국제우주정거장",
       "MARS_WEATHER": "NASA 화성날씨",
