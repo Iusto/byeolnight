@@ -199,10 +199,24 @@ const WeatherWidget: React.FC = () => {
       return t('weather.iss_no_data');
     }
     
-    if (issData.message_key === 'iss.no_passes') {
-      return t('weather.iss_no_passes');
+    // 새로운 ISS API 응답 형식 처리
+    if (issData.message_key === 'iss.current_status') {
+      return issData.friendly_message || t('weather.iss_current_status');
     }
     
+    if (issData.message_key === 'iss.fallback') {
+      return issData.friendly_message || t('weather.iss_fallback_info');
+    }
+    
+    if (issData.message_key === 'iss.no_passes') {
+      return issData.friendly_message || t('weather.iss_no_passes');
+    }
+    
+    if (issData.message_key === 'iss.advanced_opportunity') {
+      return issData.friendly_message || t('weather.iss_advanced_opportunity');
+    }
+    
+    // 기존 형식 지원 (하위 호환성)
     if (issData.message_key === 'iss.detailed_opportunity') {
       const timeKey = issData.is_today ? 'weather.iss_today' : 
                      issData.is_tomorrow ? 'weather.iss_tomorrow' : 'weather.iss_future';
@@ -230,29 +244,17 @@ const WeatherWidget: React.FC = () => {
       });
     }
     
-    return t('weather.iss_parse_error');
+    return issData.friendly_message || t('weather.iss_parse_error');
   };
   
   const updateEventsWithIss = (astronomyEvents: AstronomyEvent[], currentIssLocation: IssLocation | null) => {
-    let selectedEvents = astronomyEvents.slice(0, 4);
-    
-    // ISS 실시간 데이터 추가
-    if (currentIssLocation) {
-      const issEvent: AstronomyEvent = {
-        id: 0,
-        eventType: 'ISS_OBSERVATION',
-        title: t('weather.iss_observation_opportunity'),
-        description: formatIssObservationMessage(currentIssLocation),
-        eventDate: new Date().toISOString(),
-        peakTime: new Date().toISOString(),
-        visibility: 'WORLDWIDE',
-        magnitude: 'MEDIUM',
-        isActive: true
-      };
-      selectedEvents = [issEvent, ...selectedEvents].slice(0, 5);
-    }
-    
-    return selectedEvents;
+    // ISS 데이터는 별도 섹션으로 표시하므로 천체 이벤트 목록에서 제외
+    const filteredEvents = astronomyEvents.filter(event => 
+      !event.eventType.includes('ISS') && 
+      event.eventType !== 'ISS_OBSERVATION' &&
+      event.eventType !== 'ISS_LOCATION'
+    );
+    return filteredEvents.slice(0, 5);
   };
 
   const fetchAstronomyEvents = useCallback(async () => {
@@ -277,11 +279,15 @@ const WeatherWidget: React.FC = () => {
       });
       
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
-        // 모든 천체현상 타입을 개별적으로 처리하여 다양성 확보
+        // ISS 이벤트는 제외하고 다른 천체현상만 처리
+        if (event.eventType.includes('ISS') || event.eventType === 'ISS_OBSERVATION' || event.eventType === 'ISS_LOCATION') {
+          return acc;
+        }
+        
         const typeGroup = event.eventType.includes('ASTEROID') ? 'ASTEROID' :
                          event.eventType.includes('SOLAR_FLARE') ? 'SOLAR_FLARE' :
                          event.eventType.includes('GEOMAGNETIC') ? 'GEOMAGNETIC_STORM' :
-                         event.eventType.includes('ISS') ? 'ISS_OBSERVATION' : event.eventType;
+                         event.eventType;
         
         if (!acc[typeGroup]) {
           acc[typeGroup] = event;
@@ -290,7 +296,7 @@ const WeatherWidget: React.FC = () => {
       }, {});
       
       const astronomyEvents = Object.values(eventsByType);
-      const finalEvents = updateEventsWithIss(astronomyEvents, issLocation);
+      const finalEvents = updateEventsWithIss(astronomyEvents, null);
       setEvents(finalEvents);
     } catch (error: any) {
       const errorMessage = t('weather.events_error');
@@ -768,9 +774,18 @@ const WeatherWidget: React.FC = () => {
           </div>
         )}
 
-        {/* ISS 오류 표시 */}
-        {issError && (
-          <div className="mt-4 p-4 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
+      </div>
+
+      {/* ISS 관측 정보 (별도 섹션) */}
+      <div className="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 rounded-xl p-6 text-white shadow-2xl border border-gray-500/20">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
+            🛰️ {t('weather.iss_observation_opportunity')}
+          </h3>
+        </div>
+
+        {issError ? (
+          <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
             <p className="text-red-200 text-sm mb-2">{issError}</p>
             <button
               onClick={fetchIssLocation}
@@ -778,6 +793,84 @@ const WeatherWidget: React.FC = () => {
             >
               {t('weather.iss_retry')}
             </button>
+          </div>
+        ) : issLocation ? (
+          <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0 mt-1">🛰️</span>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-white text-base mb-3">{t('weather.iss_current_status')}</h4>
+                <p className="text-sm text-gray-300 leading-relaxed break-words mb-4">
+                  {formatIssObservationMessage(issLocation)}
+                </p>
+                
+                {/* ISS 상세 정보 */}
+                {issLocation.current_altitude_km && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                      <span className="text-gray-300 text-sm flex items-center gap-2">
+                        <span>🚀</span>
+                        <span>{t('weather.iss_altitude')}</span>
+                      </span>
+                      <span className="font-semibold text-white text-sm">{issLocation.current_altitude_km}km</span>
+                    </div>
+                    {issLocation.current_velocity_kmh && (
+                      <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <span className="text-gray-300 text-sm flex items-center gap-2">
+                          <span>⚡</span>
+                          <span>{t('weather.iss_velocity')}</span>
+                        </span>
+                        <span className="font-semibold text-white text-sm">{issLocation.current_velocity_kmh}km/h</span>
+                      </div>
+                    )}
+                    {issLocation.current_distance_km && (
+                      <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <span className="text-gray-300 text-sm flex items-center gap-2">
+                          <span>📏</span>
+                          <span>{t('weather.iss_distance')}</span>
+                        </span>
+                        <span className="font-semibold text-white text-sm">{issLocation.current_distance_km}km</span>
+                      </div>
+                    )}
+                    {issLocation.is_visible_now !== undefined && (
+                      <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <span className="text-gray-300 text-sm flex items-center gap-2">
+                          <span>👁️</span>
+                          <span>{t('weather.iss_visibility')}</span>
+                        </span>
+                        <span className={`font-semibold text-sm ${
+                          issLocation.is_visible_now ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {issLocation.is_visible_now ? t('weather.iss_visible') : t('weather.iss_not_visible')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* 관측 팁 */}
+                {issLocation.observation_tip && (
+                  <div className="mt-4 p-3 bg-gradient-to-r from-white/5 to-white/10 rounded-lg border border-white/10">
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">💡</span>
+                      <div>
+                        <span className="text-sm font-medium text-white">{t('weather.observation_tip')}</span>
+                        <p className="text-sm text-gray-200 leading-relaxed break-words mt-1">{issLocation.observation_tip}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">🛰️</div>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+              <p className="text-gray-200 font-medium">{t('weather.loading_iss_data')}</p>
+            </div>
+            <p className="text-gray-300 text-sm">{t('weather.fetching_iss_position')}</p>
           </div>
         )}
       </div>

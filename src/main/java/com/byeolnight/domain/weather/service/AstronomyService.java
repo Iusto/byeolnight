@@ -44,7 +44,6 @@ public class AstronomyService {
     private static final String NASA_NEOWS_URL = "https://api.nasa.gov/neo/rest/v1/feed";
     private static final String NASA_DONKI_URL = "https://api.nasa.gov/DONKI";
     private static final String ISS_LOCATION_URL = "https://api.wheretheiss.at/v1/satellites/25544";
-    private static final String ISS_PASSES_URL = "https://api.wheretheiss.at/v1/satellites/25544/passes";
     
     // 실제 NASA 데이터 타입
     private static final Set<String> REAL_NASA_EVENT_TYPES = Set.of(
@@ -79,15 +78,8 @@ public class AstronomyService {
             // ISS 현재 위치 조회
             ResponseEntity<Map> currentResponse = restTemplate.getForEntity(ISS_LOCATION_URL, Map.class);
             
-            // ISS 통과 예측 조회 (다음 5회)
-            String passesUrl = ISS_PASSES_URL + "?lat=" + latitude + "&lon=" + longitude + "&limit=5&days=3";
-            ResponseEntity<Map> passesResponse = restTemplate.getForEntity(passesUrl, Map.class);
-            
-            if (currentResponse.getStatusCode().is2xxSuccessful() && 
-                passesResponse.getStatusCode().is2xxSuccessful() &&
-                currentResponse.getBody() != null && passesResponse.getBody() != null) {
-                
-                return parseAdvancedIssData(currentResponse.getBody(), passesResponse.getBody(), latitude, longitude);
+            if (currentResponse.getStatusCode().is2xxSuccessful() && currentResponse.getBody() != null) {
+                return parseSimpleIssData(currentResponse.getBody(), latitude, longitude);
             }
         } catch (Exception e) {
             log.error("ISS Location API 호출 실패: {}", e.getMessage());
@@ -95,6 +87,42 @@ public class AstronomyService {
         
         // Fallback: 기본 ISS 정보 제공
         return createFallbackIssInfo();
+    }
+    
+    private Map<String, Object> parseSimpleIssData(Map<String, Object> currentData, double userLat, double userLon) {
+        try {
+            double issLat = ((Number) currentData.get("latitude")).doubleValue();
+            double issLon = ((Number) currentData.get("longitude")).doubleValue();
+            double issAlt = ((Number) currentData.get("altitude")).doubleValue();
+            double issVelocity = ((Number) currentData.get("velocity")).doubleValue();
+            
+            // 현재 거리 계산
+            double distanceKm = calculateDistance(userLat, userLon, issLat, issLon);
+            
+            // 간단한 관측 가능성 판단
+            boolean isVisible = distanceKm <= 2000 && issAlt >= 300;
+            String visibilityMsg = isVisible ? 
+                "현재 ISS가 관측 가능한 범위에 있습니다." : 
+                "현재 ISS가 관측하기 어려운 위치에 있습니다.";
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("message_key", "iss.current_status");
+            result.put("friendly_message", String.format(
+                "ISS는 현재 고도 %dkm에서 시속 %d km로 이동 중입니다. %s",
+                Math.round(issAlt), Math.round(issVelocity), visibilityMsg
+            ));
+            result.put("current_altitude_km", Math.round(issAlt));
+            result.put("current_velocity_kmh", Math.round(issVelocity));
+            result.put("current_distance_km", Math.round(distanceKm));
+            result.put("is_visible_now", isVisible);
+            result.put("observation_tip", "ISS는 일출 전이나 일몰 후 1-2시간에 가장 잘 보입니다.");
+            
+            return result;
+            
+        } catch (Exception e) {
+            log.error("ISS 데이터 파싱 실패: {}", e.getMessage());
+            return createFallbackIssInfo();
+        }
     }
 
     @Scheduled(cron = "0 0 9 * * ?")
@@ -640,112 +668,7 @@ public class AstronomyService {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> parseAdvancedIssData(Map<String, Object> currentData, 
-                                                     Map<String, Object> passesData, 
-                                                     double userLat, double userLon) {
-        try {
-            // 현재 ISS 위치
-            double issLat = ((Number) currentData.get("latitude")).doubleValue();
-            double issLon = ((Number) currentData.get("longitude")).doubleValue();
-            double issAlt = ((Number) currentData.get("altitude")).doubleValue();
-            
-            // 다음 통과 정보
-            List<Map<String, Object>> passes = (List<Map<String, Object>>) passesData.get("passes");
-            if (passes == null || passes.isEmpty()) {
-                return createNoPassesInfo(issLat, issLon, issAlt, userLat, userLon);
-            }
-            
-            // 가장 좋은 관측 기회 선택 (최고 고도각 기준)
-            Map<String, Object> bestPass = findBestObservationPass(passes);
-            
-            return createAdvancedIssInfo(bestPass, issLat, issLon, issAlt, userLat, userLon);
-            
-        } catch (Exception e) {
-            log.error("고급 ISS 데이터 파싱 실패: {}", e.getMessage());
-            return createFallbackIssInfo();
-        }
-    }
-    
-    private Map<String, Object> findBestObservationPass(List<Map<String, Object>> passes) {
-        return passes.stream()
-                .filter(pass -> {
-                    double maxElevation = ((Number) pass.get("max_elevation")).doubleValue();
-                    return maxElevation >= 10; // 최소 10도 이상
-                })
-                .max((p1, p2) -> {
-                    double elev1 = ((Number) p1.get("max_elevation")).doubleValue();
-                    double elev2 = ((Number) p2.get("max_elevation")).doubleValue();
-                    return Double.compare(elev1, elev2);
-                })
-                .orElse(passes.get(0)); // 조건에 맞는 것이 없으면 첫 번째
-    }
-    
-    private Map<String, Object> createAdvancedIssInfo(Map<String, Object> bestPass,
-                                                      double issLat, double issLon, double issAlt,
-                                                      double userLat, double userLon) {
-        
-        long riseTime = ((Number) bestPass.get("rise_time")).longValue();
-        long setTime = ((Number) bestPass.get("set_time")).longValue();
-        double maxElevation = ((Number) bestPass.get("max_elevation")).doubleValue();
-        
-        LocalDateTime riseDateTime = LocalDateTime.ofEpochSecond(riseTime, 0, java.time.ZoneOffset.of("+09:00"));
-        LocalDateTime setDateTime = LocalDateTime.ofEpochSecond(setTime, 0, java.time.ZoneOffset.of("+09:00"));
-        LocalDateTime now = LocalDateTime.now();
-        
-        // 관측 시간 계산
-        long durationSeconds = setTime - riseTime;
-        int durationMinutes = (int) (durationSeconds / 60);
-        
-        // 방향 정보 계산
-        String startDirection = calculateDirection(((Number) bestPass.get("rise_azimuth")).doubleValue());
-        String endDirection = calculateDirection(((Number) bestPass.get("set_azimuth")).doubleValue());
-        
-        // 밝기 계산 (고도각 기반)
-        String brightness = calculateBrightness(maxElevation);
-        String brightnessDesc = getBrightnessDescription(brightness);
-        
-        // 관측 품질 평가
-        String observationQuality = evaluateObservationQuality(maxElevation, durationMinutes);
-        
-        // 사용자 친화적 메시지 생성
-        String friendlyMessage = createFriendlyMessage(riseDateTime, startDirection, endDirection, 
-                                                      maxElevation, durationMinutes, brightness);
-        
-        // ISS 현재 거리 계산
-        double distanceKm = calculateDistance(userLat, userLon, issLat, issLon);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("message_key", "iss.advanced_opportunity");
-        result.put("friendly_message", friendlyMessage);
-        result.put("rise_time", riseDateTime.format(DateTimeFormatter.ofPattern("HH:mm")));
-        result.put("rise_date", riseDateTime.format(DateTimeFormatter.ofPattern("MM-dd")));
-        result.put("duration_minutes", durationMinutes);
-        result.put("max_elevation", Math.round(maxElevation));
-        result.put("start_direction", startDirection);
-        result.put("end_direction", endDirection);
-        result.put("brightness", brightness);
-        result.put("brightness_desc", brightnessDesc);
-        result.put("observation_quality", observationQuality);
-        result.put("current_distance_km", Math.round(distanceKm));
-        result.put("current_altitude_km", Math.round(issAlt));
-        result.put("is_today", riseDateTime.toLocalDate().equals(now.toLocalDate()));
-        result.put("is_tomorrow", riseDateTime.toLocalDate().equals(now.toLocalDate().plusDays(1)));
-        result.put("is_visible_now", isCurrentlyVisible(distanceKm, issAlt));
-        return result;
-    }
-    
-    private Map<String, Object> createNoPassesInfo(double issLat, double issLon, double issAlt,
-                                                   double userLat, double userLon) {
-        double distanceKm = calculateDistance(userLat, userLon, issLat, issLon);
-        
-        return Map.of(
-            "message_key", "iss.no_passes",
-            "friendly_message", "현재 ISS가 관측 가능한 경로로 지나가지 않습니다. 며칠 후 다시 확인해보세요.",
-            "current_distance_km", Math.round(distanceKm),
-            "current_altitude_km", Math.round(issAlt),
-            "is_visible_now", isCurrentlyVisible(distanceKm, issAlt)
-        );
-    }
+
     
     private Map<String, Object> createFallbackIssInfo() {
         return Map.of(
@@ -757,53 +680,7 @@ public class AstronomyService {
         );
     }
     
-    private String calculateDirection(double azimuth) {
-        if (azimuth >= 337.5 || azimuth < 22.5) return "북쪽";
-        if (azimuth >= 22.5 && azimuth < 67.5) return "북동쪽";
-        if (azimuth >= 67.5 && azimuth < 112.5) return "동쪽";
-        if (azimuth >= 112.5 && azimuth < 157.5) return "남동쪽";
-        if (azimuth >= 157.5 && azimuth < 202.5) return "남쪽";
-        if (azimuth >= 202.5 && azimuth < 247.5) return "남서쪽";
-        if (azimuth >= 247.5 && azimuth < 292.5) return "서쪽";
-        return "북서쪽";
-    }
-    
-    private String calculateBrightness(double elevation) {
-        if (elevation >= 50) return "-3.5"; // 매우 밝음
-        if (elevation >= 30) return "-2.0"; // 밝음
-        if (elevation >= 20) return "-1.0"; // 보통
-        if (elevation >= 10) return "0.0";  // 어두움
-        return "1.0"; // 매우 어두움
-    }
-    
-    private String getBrightnessDescription(String magnitude) {
-        double mag = Double.parseDouble(magnitude);
-        if (mag <= -3.0) return "금성보다 밝음 (매우 밝음)";
-        if (mag <= -2.0) return "목성 정도 밝기 (밝음)";
-        if (mag <= -1.0) return "1등성 정도 밝기 (보통)";
-        if (mag <= 0.0) return "2등성 정도 밝기 (어두움)";
-        return "3등성 정도 밝기 (매우 어두움)";
-    }
-    
-    private String evaluateObservationQuality(double elevation, int duration) {
-        if (elevation >= 50 && duration >= 4) return "EXCELLENT";
-        if (elevation >= 30 && duration >= 3) return "GOOD";
-        if (elevation >= 20 && duration >= 2) return "FAIR";
-        return "POOR";
-    }
-    
-    private String createFriendlyMessage(LocalDateTime riseTime, String startDir, String endDir,
-                                        double elevation, int duration, String brightness) {
-        String timeStr = riseTime.format(DateTimeFormatter.ofPattern("M월 d일 HH:mm"));
-        String elevationStr = Math.round(elevation) + "도";
-        
-        return String.format("%s에 %s 하늘에서 나타나 %s으로 사라집니다. " +
-                           "최고 높이 %s까지 올라가며 %d분간 관측 가능합니다. " +
-                           "밝기는 %s로 육안 관측이 %s합니다.",
-                           timeStr, startDir, endDir, elevationStr, duration, 
-                           getBrightnessDescription(brightness),
-                           Double.parseDouble(brightness) <= -1.0 ? "쉽" : "어려울 수 있");
-    }
+
     
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         double R = 6371; // 지구 반지름 (km)
