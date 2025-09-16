@@ -697,56 +697,7 @@ button:focus-visible {
   margin-bottom: 4px !important;
 }
 
-/* AdSense 광고 스타일 */
-.adsense-container {
-  margin: 20px 0;
-  padding: 16px;
-  background: rgba(30, 41, 59, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 12px;
-  backdrop-filter: blur(8px);
-  position: relative;
-  overflow: hidden;
-}
 
-.adsense-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
-  pointer-events: none;
-}
-
-.adsense-container .adsbygoogle {
-  position: relative;
-  z-index: 1;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* 모바일 AdSense 최적화 */
-@media (max-width: 768px) {
-  .adsense-container {
-    margin: 16px 0;
-    padding: 12px;
-    border-radius: 8px;
-  }
-}
-
-/* 광고 로딩 상태 */
-.adsense-container:empty::after {
-  content: '광고';
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100px;
-  color: rgba(148, 163, 184, 0.6);
-  font-size: 14px;
-  font-weight: 500;
-}
 
 /* 밝은 테마 대응 */
 @media (prefers-color-scheme: light) {

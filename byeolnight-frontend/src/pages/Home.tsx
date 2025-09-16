@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ChatSidebar from '../components/ChatSidebar';
 import { useAuth } from '../contexts/AuthContext';
-import AdSense from '../components/AdSense';
+
 import WeatherWidget from '../components/WeatherWidget';
 
 interface Post {
@@ -363,18 +363,7 @@ export default function Home() {
                 </div>
               </Section>
 
-              {/* 광고 영역 - 콘텐츠 로딩 완료 후에만 표시 */}
-              {dataLoaded && filteredPosts.length > 0 && (
-                <div className="mb-6">
-                  <AdSense 
-                    adSlot="1234567890" 
-                    adFormat="auto"
-                    className="text-center"
-                    style={{ display: 'block', minHeight: '100px' }}
-                    hasContent={filteredPosts.length > 0}
-                  />
-                </div>
-              )}
+
 
               {/* 인기 게시글 - 모바일 2열 그리드 */}
               <div className="bg-gradient-to-br from-slate-800/60 via-orange-900/40 to-red-900/50 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-orange-500/40 relative overflow-hidden group hover:shadow-2xl hover:shadow-orange-500/20 transition-all duration-500">
@@ -402,18 +391,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 광고 영역 2 - 별 사진이 있을 때만 표시 */}
-              {dataLoaded && filteredStarPhotos.length > 0 && (
-                <div className="mb-6">
-                  <AdSense 
-                    adSlot="0987654321" 
-                    adFormat="rectangle"
-                    className="text-center"
-                    style={{ display: 'block', minHeight: '250px' }}
-                    hasContent={filteredStarPhotos.length > 0}
-                  />
-                </div>
-              )}
+
 
               {/* 별 사진 갤러리 */}
               <Section 
