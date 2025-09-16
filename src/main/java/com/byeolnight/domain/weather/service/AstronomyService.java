@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -496,24 +497,24 @@ public class AstronomyService {
         // ISS 현재 거리 계산
         double distanceKm = calculateDistance(userLat, userLon, issLat, issLon);
         
-        return Map.of(
-            "message_key", "iss.advanced_opportunity",
-            "friendly_message", friendlyMessage,
-            "rise_time", riseDateTime.format(DateTimeFormatter.ofPattern("HH:mm")),
-            "rise_date", riseDateTime.format(DateTimeFormatter.ofPattern("MM-dd")),
-            "duration_minutes", durationMinutes,
-            "max_elevation", Math.round(maxElevation),
-            "start_direction", startDirection,
-            "end_direction", endDirection,
-            "brightness", brightness,
-            "brightness_desc", brightnessDesc,
-            "observation_quality", observationQuality,
-            "current_distance_km", Math.round(distanceKm),
-            "current_altitude_km", Math.round(issAlt),
-            "is_today", riseDateTime.toLocalDate().equals(now.toLocalDate()),
-            "is_tomorrow", riseDateTime.toLocalDate().equals(now.toLocalDate().plusDays(1)),
-            "is_visible_now", isCurrentlyVisible(distanceKm, issAlt)
-        );
+        Map<String, Object> result = new HashMap<>();
+        result.put("message_key", "iss.advanced_opportunity");
+        result.put("friendly_message", friendlyMessage);
+        result.put("rise_time", riseDateTime.format(DateTimeFormatter.ofPattern("HH:mm")));
+        result.put("rise_date", riseDateTime.format(DateTimeFormatter.ofPattern("MM-dd")));
+        result.put("duration_minutes", durationMinutes);
+        result.put("max_elevation", Math.round(maxElevation));
+        result.put("start_direction", startDirection);
+        result.put("end_direction", endDirection);
+        result.put("brightness", brightness);
+        result.put("brightness_desc", brightnessDesc);
+        result.put("observation_quality", observationQuality);
+        result.put("current_distance_km", Math.round(distanceKm));
+        result.put("current_altitude_km", Math.round(issAlt));
+        result.put("is_today", riseDateTime.toLocalDate().equals(now.toLocalDate()));
+        result.put("is_tomorrow", riseDateTime.toLocalDate().equals(now.toLocalDate().plusDays(1)));
+        result.put("is_visible_now", isCurrentlyVisible(distanceKm, issAlt));
+        return result;
     }
     
     private Map<String, Object> createNoPassesInfo(double issLat, double issLon, double issAlt,
