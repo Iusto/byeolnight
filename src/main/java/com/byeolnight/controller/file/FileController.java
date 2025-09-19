@@ -24,6 +24,7 @@ import java.util.Map;
 public class FileController {
 
     private final S3Service s3Service;
+    private final CloudFrontService cloudFrontService;
     private final FileUploadRateLimitService rateLimitService;
 
     @Operation(summary = "S3 Presigned URL 생성", description = "파일 업로드를 위한 S3 Presigned URL을 생성합니다.")
@@ -136,6 +137,11 @@ public class FileController {
             
             // 이미지 즉시 검증 (비동기적으로 처리하지 않고 즉시 결과 반환)
             try {
+                // CloudFront URL만 허용 (SSRF 방지)
+                if (!isCloudFrontUrl(imageUrl)) {
+                    throw new SecurityException("허용되지 않는 URL입니다. CloudFront URL만 사용 가능합니다.");
+                }
+                
                 // 이미지 다운로드
                 java.net.URL url = new java.net.URL(imageUrl);
                 java.io.InputStream inputStream = url.openStream();
@@ -263,6 +269,48 @@ public class FileController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
                 "이미지 삭제 중 오류가 발생했습니다: " + e.getMessage()
             ));
+        }
+    }
+    
+    /**
+     * 이미지 조회용 CloudFront Signed URL 생성
+     */
+    @GetMapping("/view-url")
+    public ResponseEntity<CommonResponse<Map<String, String>>> getViewUrl(
+            @RequestParam("s3Key") String s3Key) {
+        
+        try {
+            String signedUrl = cloudFrontService.generateSignedUrl(s3Key, 60); // 1시간
+            
+            Map<String, String> result = Map.of(
+                "viewUrl", signedUrl,
+                "s3Key", s3Key
+            );
+            
+            return ResponseEntity.ok(CommonResponse.success(result));
+            
+        } catch (Exception e) {
+            log.error("이미지 조회 URL 생성 실패: s3Key={}", s3Key, e);
+            return ResponseEntity.status(500).body(CommonResponse.error("이미지 URL 생성에 실패했습니다."));
+        }
+    }
+    
+    /**
+     * CloudFront URL 검증 (SSRF 방지)
+     */
+    private boolean isCloudFrontUrl(String imageUrl) {
+        if (imageUrl == null) return false;
+        
+        try {
+            java.net.URL url = new java.net.URL(imageUrl);
+            String host = url.getHost().toLowerCase();
+            
+            // HTTPS + CloudFront 도메인만 허용
+            return "https".equals(url.getProtocol()) && 
+                   host.endsWith(".cloudfront.net");
+                   
+        } catch (Exception e) {
+            return false;
         }
     }
 }

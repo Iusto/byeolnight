@@ -3,6 +3,7 @@ package com.byeolnight.controller.auth;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.dto.user.TokenResponseDto;
 
+import com.byeolnight.dto.user.WithdrawRequestDto;
 import com.byeolnight.entity.log.AuditRefreshTokenLog;
 import com.byeolnight.entity.token.PasswordResetToken;
 import com.byeolnight.entity.user.User;
@@ -434,7 +435,7 @@ public class AuthController {
     @DeleteMapping("/withdraw")
     @Operation(summary = "회원 탈퇴")
     public ResponseEntity<CommonResponse<String>> withdraw(
-            @RequestBody(required = false) com.byeolnight.dto.user.WithdrawRequestDto dto,
+            @RequestBody(required = false) WithdrawRequestDto dto,
             @CookieValue(name = "accessToken", required = false) String accessToken,
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletRequest request) {

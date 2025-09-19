@@ -7,6 +7,16 @@ set -e
 echo "🚀 별 헤는 밤 배포 시작..."
 echo "📦 패키지 매니저: pnpm (프론트엔드)"
 
+# 0. 포트 충돌 방지 (최우선)
+echo "🔧 포트 충돌 방지 및 기존 프로세스 정리..."
+sudo pkill -f nginx || true
+sudo fuser -k 80/tcp 443/tcp || true
+# 80포트 사용 프로세스가 있을 때만 kill
+if sudo lsof -ti:80 2>/dev/null; then
+    sudo lsof -ti:80 | xargs sudo kill -9 || true
+fi
+echo "✅ 포트 정리 완료"
+
 # 1. 코드 업데이트 및 빌드
 echo "📥 최신 코드 가져오기..."
 git fetch origin master && git reset --hard origin/master

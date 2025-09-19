@@ -1,15 +1,11 @@
 package com.byeolnight.controller.user;
 
+import com.byeolnight.dto.shop.EquippedIconDto;
+import com.byeolnight.dto.user.*;
+import com.byeolnight.repository.user.DailyAttendanceRepository;
 import lombok.extern.slf4j.Slf4j;
 import com.byeolnight.service.user.UserService;
 import com.byeolnight.entity.user.User;
-import com.byeolnight.dto.user.UpdateProfileRequestDto;
-import com.byeolnight.dto.user.UserResponseDto;
-import com.byeolnight.dto.user.PointStatusDto;
-import com.byeolnight.dto.user.PointHistoryDto;
-import com.byeolnight.dto.user.UserProfileDto;
-import com.byeolnight.dto.user.MyActivityDto;
-import com.byeolnight.dto.user.UserIdDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.user.PointService;
@@ -40,9 +36,10 @@ public class UserController {
     private final PointService pointService;
     private final MissionService missionService;
     private final AdminChatService adminChatService;
-    private final com.byeolnight.repository.user.DailyAttendanceRepository dailyAttendanceRepository;
+    private final DailyAttendanceRepository dailyAttendanceRepository;
 
-    public UserController(UserService userService, PointService pointService, MissionService missionService, AdminChatService adminChatService, com.byeolnight.repository.user.DailyAttendanceRepository dailyAttendanceRepository) {
+    public UserController(UserService userService, PointService pointService, MissionService missionService,
+                          AdminChatService adminChatService, DailyAttendanceRepository dailyAttendanceRepository) {
         this.userService = userService;
         this.pointService = pointService;
         this.missionService = missionService;
@@ -66,7 +63,7 @@ public class UserController {
         }
         
         // 장착된 아이콘 정보 조회
-        com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
+        EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
         
         // 출석일수 조회
         int attendanceCount = (int) dailyAttendanceRepository.countByUser(user);
@@ -101,7 +98,7 @@ public class UserController {
 
     @GetMapping("/{userId}/equipped-icon")
     public ResponseEntity<CommonResponse<com.byeolnight.dto.shop.EquippedIconDto>> getUserEquippedIcon(@PathVariable Long userId) {
-        com.byeolnight.dto.shop.EquippedIconDto equippedIcon = userService.getUserEquippedIcon(userId);
+        EquippedIconDto equippedIcon = userService.getUserEquippedIcon(userId);
         return ResponseEntity.ok(CommonResponse.success(equippedIcon));
     }
 
@@ -131,7 +128,7 @@ public class UserController {
     @PutMapping("/password")
     public ResponseEntity<CommonResponse<Void>> changePassword(
             @Parameter(hidden = true) @AuthenticationPrincipal User user,
-            @Valid @RequestBody com.byeolnight.dto.user.PasswordChangeRequestDto dto) {
+            @Valid @RequestBody PasswordChangeRequestDto dto) {
         userService.changePassword(user.getId(), dto);
         return ResponseEntity.ok(CommonResponse.success());
     }

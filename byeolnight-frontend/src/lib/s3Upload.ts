@@ -203,10 +203,14 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
       }
     }
     
-    // 4. 업로드된 이미지 정보 반환
-    console.log('이미지 업로드 완료:', presignedData.url);
+    // 4. CloudFront Signed URL 생성
+    const viewUrlResponse = await axios.get('/files/view-url', {
+      params: { s3Key: presignedData.s3Key }
+    });
+    
+    console.log('이미지 업로드 완료:', viewUrlResponse.data.data.viewUrl);
     return {
-      url: presignedData.url,
+      url: viewUrlResponse.data.data.viewUrl, // CloudFront URL
       s3Key: presignedData.s3Key,
       originalName: presignedData.originalName,
       contentType: presignedData.contentType
