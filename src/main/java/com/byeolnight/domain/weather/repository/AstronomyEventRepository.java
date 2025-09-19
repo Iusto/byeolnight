@@ -17,4 +17,10 @@ public interface AstronomyEventRepository extends JpaRepository<AstronomyEvent, 
     @Query("SELECT a FROM AstronomyEvent a WHERE a.isActive = true " +
            "AND a.eventDate >= :thirtyDaysAgo ORDER BY a.eventDate DESC")
     List<AstronomyEvent> findUpcomingEvents(@Param("thirtyDaysAgo") LocalDateTime thirtyDaysAgo);
+    
+    @Query("SELECT a FROM AstronomyEvent a WHERE a.eventDate >= :startDate AND a.eventDate <= :endDate AND a.isActive = true ORDER BY a.eventDate ASC")
+    List<AstronomyEvent> findEventsByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    
+    @Query("SELECT COUNT(a) FROM AstronomyEvent a WHERE a.createdAt >= :startDate")
+    long countByCreatedAtAfter(@Param("startDate") LocalDateTime startDate);
 }

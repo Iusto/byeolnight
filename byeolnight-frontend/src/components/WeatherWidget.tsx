@@ -199,52 +199,75 @@ const WeatherWidget: React.FC = () => {
       return t('weather.iss_no_data');
     }
     
-    // 새로운 ISS API 응답 형식 처리
+    // 새로운 상세 ISS API 응답 형식 처리
+    if (issData.message_key === 'iss.detailed_status') {
+      return translateIssMessage(issData.friendly_message);
+    }
+    
     if (issData.message_key === 'iss.current_status') {
-      return issData.friendly_message || t('weather.iss_current_status');
+      return translateIssMessage(issData.friendly_message) || t('weather.iss_current_status');
     }
     
     if (issData.message_key === 'iss.fallback') {
-      return issData.friendly_message || t('weather.iss_fallback_info');
+      return translateIssMessage(issData.friendly_message) || t('weather.iss_fallback_info');
     }
     
-    if (issData.message_key === 'iss.no_passes') {
-      return issData.friendly_message || t('weather.iss_no_passes');
-    }
-    
-    if (issData.message_key === 'iss.advanced_opportunity') {
-      return issData.friendly_message || t('weather.iss_advanced_opportunity');
-    }
-    
-    // 기존 형식 지원 (하위 호환성)
-    if (issData.message_key === 'iss.detailed_opportunity') {
-      const timeKey = issData.is_today ? 'weather.iss_today' : 
-                     issData.is_tomorrow ? 'weather.iss_tomorrow' : 'weather.iss_future';
-      
-      return t('weather.iss_detailed_message', {
-        time_desc: t(timeKey),
-        time: issData.time,
-        start_direction: t(`weather.compass_${issData.start_direction}`),
-        end_direction: t(`weather.compass_${issData.end_direction}`),
-        max_elevation: issData.max_elevation,
-        duration: issData.duration_minutes,
-        quality: t(`weather.visibility_${issData.visibility_quality}`)
+    // 다음 관측 기회 정보 포함
+    if (issData.next_pass_time) {
+      const baseMessage = translateIssMessage(issData.friendly_message) || t('weather.iss_current_status');
+      const nextPassInfo = t('weather.iss_next_pass', {
+        time: issData.next_pass_time,
+        date: issData.next_pass_date,
+        direction: translateDirection(issData.next_pass_direction),
+        duration: issData.estimated_duration
       });
+      return `${baseMessage} ${nextPassInfo}`;
     }
     
-    if (issData.message_key === 'iss.basic_opportunity') {
-      const timeKey = issData.is_today ? 'weather.iss_today' : 
-                     issData.is_tomorrow ? 'weather.iss_tomorrow' : 'weather.iss_future';
-      
-      return t('weather.iss_basic_message', {
-        time_desc: t(timeKey),
-        time: issData.time,
-        direction: t(`weather.compass_${issData.direction}`),
-        duration: issData.duration_minutes
-      });
+    return translateIssMessage(issData.friendly_message) || t('weather.iss_parse_error');
+  };
+  
+  const translateIssMessage = (message: string) => {
+    if (!message) return '';
+    
+    // 한국어 메시지는 그대로 반환
+    if (message.includes('ISS는') || message.includes('고도')) {
+      return message;
     }
     
-    return issData.friendly_message || t('weather.iss_parse_error');
+    // 영어 메시지 번역
+    if (message.includes('ISS is currently')) {
+      return message.replace(/ISS is currently at altitude (\d+)km moving at (\d+)km\/h/, 
+        (match, alt, vel) => t('weather.iss_status_template', { altitude: alt, velocity: vel }));
+    }
+    
+    return message;
+  };
+  
+  const translateDirection = (direction: string) => {
+    const directionMap: Record<string, string> = {
+      'NORTH': t('weather.compass_north'),
+      'NORTHEAST': t('weather.compass_northeast'),
+      'EAST': t('weather.compass_east'),
+      'SOUTHEAST': t('weather.compass_southeast'),
+      'SOUTH': t('weather.compass_south'),
+      'SOUTHWEST': t('weather.compass_southwest'),
+      'WEST': t('weather.compass_west'),
+      'NORTHWEST': t('weather.compass_northwest'),
+      'UNKNOWN': t('weather.compass_unknown')
+    };
+    return directionMap[direction] || direction;
+  };
+  
+  const translateVisibilityQuality = (quality: string) => {
+    const qualityMap: Record<string, string> = {
+      'EXCELLENT': t('weather.visibility_excellent'),
+      'GOOD': t('weather.visibility_good'),
+      'FAIR': t('weather.visibility_fair'),
+      'POOR': t('weather.visibility_poor'),
+      'UNKNOWN': t('weather.visibility_unknown')
+    };
+    return qualityMap[quality] || quality;
   };
   
   const updateEventsWithIss = (astronomyEvents: AstronomyEvent[], currentIssLocation: IssLocation | null) => {
@@ -267,18 +290,31 @@ const WeatherWidget: React.FC = () => {
       const response = await axios.get('/api/weather/events');
       console.log('천체 이벤트 수신 완료:', sanitizeForLog(response.data.length + '개'));
       
-      // 최근 30일 내 실제 발생한 천체 현상만 표시 (미래 이벤트 제외)
+      // 과거 30일 + 미래 30일 이벤트 포함 (미래 예측 이벤트 표시)
       const now = new Date();
-      const recentEvents = response.data.filter((event: AstronomyEvent) => {
+      const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const validEvents = response.data.filter((event: AstronomyEvent) => {
         const eventDate = new Date(event.eventDate);
-        return eventDate >= thirtyDaysAgo && eventDate <= now;
+        return eventDate >= thirtyDaysAgo && eventDate <= thirtyDaysLater;
       });
       
-      // 최신순 정렬 후 타입별 최대 1개씩 선택 (모든 천체현상 포함)
-      const sortedEvents = recentEvents.sort((a: AstronomyEvent, b: AstronomyEvent) => {
+      // 미래 이벤트 우선, 그 다음 최근 과거 이벤트 순으로 정렬
+      const sortedEvents = validEvents.sort((a: AstronomyEvent, b: AstronomyEvent) => {
         const aDate = new Date(a.eventDate);
         const bDate = new Date(b.eventDate);
-        return bDate.getTime() - aDate.getTime(); // 최신순
+        const aIsFuture = aDate > now;
+        const bIsFuture = bDate > now;
+        
+        // 미래 이벤트 우선
+        if (aIsFuture && !bIsFuture) return -1;
+        if (!aIsFuture && bIsFuture) return 1;
+        
+        // 같은 시간대면 날짜순 정렬
+        if (aIsFuture && bIsFuture) {
+          return aDate.getTime() - bDate.getTime(); // 미래: 가까운 순
+        } else {
+          return bDate.getTime() - aDate.getTime(); // 과거: 최근 순
+        }
       });
       
       const eventsByType = sortedEvents.reduce((acc: Record<string, AstronomyEvent>, event: AstronomyEvent) => {
@@ -287,16 +323,30 @@ const WeatherWidget: React.FC = () => {
           return acc;
         }
         
-        // 미래 이벤트 제외 (예: 9월 8일 개기일식)
-        const eventDate = new Date(event.eventDate);
-        if (eventDate > now) {
-          return acc;
+        // 이벤트 타입 정규화 및 분류 정확성 향상
+        let typeGroup = event.eventType;
+        
+        // 태양 플레어와 개기월식 분리 검증
+        const title = event.title.toLowerCase();
+        const description = event.description.toLowerCase();
+        
+        if (event.eventType === 'SOLAR_FLARE' && 
+            (title.includes('월식') || title.includes('eclipse') || 
+             description.includes('월식') || description.includes('eclipse'))) {
+          return acc; // 태양 플레어에 월식 내용이 섮인 경우 제외
         }
         
-        const typeGroup = event.eventType.includes('ASTEROID') ? 'ASTEROID' :
-                         event.eventType.includes('SOLAR_FLARE') ? 'SOLAR_FLARE' :
-                         event.eventType.includes('GEOMAGNETIC') ? 'GEOMAGNETIC_STORM' :
-                         event.eventType;
+        if (event.eventType === 'BLOOD_MOON' && 
+            (title.includes('flare') || title.includes('플레어') ||
+             description.includes('flare') || description.includes('플레어'))) {
+          return acc; // 개기월식에 태양 플레어 내용이 섮인 경우 제외
+        }
+        
+        // 이벤트 타입 그룹화
+        if (event.eventType.includes('ASTEROID')) typeGroup = 'ASTEROID';
+        else if (event.eventType.includes('SOLAR_FLARE')) typeGroup = 'SOLAR_FLARE';
+        else if (event.eventType.includes('GEOMAGNETIC')) typeGroup = 'GEOMAGNETIC_STORM';
+        else if (event.eventType.includes('METEOR')) typeGroup = 'METEOR_SHOWER';
         
         if (!acc[typeGroup]) {
           acc[typeGroup] = event;
@@ -739,19 +789,72 @@ const WeatherWidget: React.FC = () => {
                         <span className="font-semibold text-white text-sm">{issLocation.current_distance_km}km</span>
                       </div>
                     )}
-                    {issLocation.is_visible_now !== undefined && (
+                    {issLocation.current_direction && (
                       <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
                         <span className="text-gray-300 text-sm flex items-center gap-2">
-                          <span>👁️</span>
-                          <span>{t('weather.iss_visibility')}</span>
+                          <span>🧭</span>
+                          <span>{t('weather.iss_direction')}</span>
+                        </span>
+                        <span className="font-semibold text-white text-sm">{translateDirection(issLocation.current_direction)}</span>
+                      </div>
+                    )}
+                    {issLocation.current_elevation !== undefined && (
+                      <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <span className="text-gray-300 text-sm flex items-center gap-2">
+                          <span>📐</span>
+                          <span>{t('weather.iss_elevation')}</span>
+                        </span>
+                        <span className="font-semibold text-white text-sm">{issLocation.current_elevation}°</span>
+                      </div>
+                    )}
+                    {issLocation.visibility_quality && (
+                      <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <span className="text-gray-300 text-sm flex items-center gap-2">
+                          <span>🌟</span>
+                          <span>{t('weather.iss_visibility_quality')}</span>
                         </span>
                         <span className={`font-semibold text-sm ${
-                          issLocation.is_visible_now ? 'text-green-400' : 'text-red-400'
+                          issLocation.visibility_quality === 'EXCELLENT' ? 'text-green-400' :
+                          issLocation.visibility_quality === 'GOOD' ? 'text-blue-400' :
+                          issLocation.visibility_quality === 'FAIR' ? 'text-yellow-400' : 'text-red-400'
                         }`}>
-                          {issLocation.is_visible_now ? t('weather.iss_visible') : t('weather.iss_not_visible')}
+                          {translateVisibilityQuality(issLocation.visibility_quality)}
                         </span>
                       </div>
                     )}
+                    {issLocation.observation_time && (
+                      <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <span className="text-gray-300 text-sm flex items-center gap-2">
+                          <span>⏰</span>
+                          <span>{t('weather.iss_observation_time')}</span>
+                        </span>
+                        <span className="font-semibold text-white text-sm">{issLocation.observation_time}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* 다음 관측 기회 */}
+                {issLocation.next_pass_time && (
+                  <div className="mt-4 p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-400/30">
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-lg">🔮</span>
+                      <span className="text-sm font-medium text-blue-200">{t('weather.iss_next_observation')}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 pl-7">
+                      <div className="text-sm text-gray-300">
+                        <span className="block font-medium text-white">{t('weather.iss_next_time')}</span>
+                        <span>{issLocation.next_pass_date} {issLocation.next_pass_time}</span>
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        <span className="block font-medium text-white">{t('weather.iss_next_direction')}</span>
+                        <span>{translateDirection(issLocation.next_pass_direction)}</span>
+                      </div>
+                      <div className="text-sm text-gray-300 col-span-2">
+                        <span className="block font-medium text-white">{t('weather.iss_next_duration')}</span>
+                        <span>{issLocation.estimated_duration}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
                 
@@ -762,7 +865,7 @@ const WeatherWidget: React.FC = () => {
                       <span className="text-lg">💡</span>
                       <div>
                         <span className="text-sm font-medium text-white">{t('weather.observation_tip')}</span>
-                        <p className="text-sm text-gray-200 leading-relaxed break-words mt-1">{issLocation.observation_tip}</p>
+                        <p className="text-sm text-gray-200 leading-relaxed break-words mt-1">{translateIssMessage(issLocation.observation_tip)}</p>
                       </div>
                     </div>
                   </div>

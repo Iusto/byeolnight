@@ -56,18 +56,27 @@ public class AstronomyService {
     public List<AstronomyEventResponse> getUpcomingEvents() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime thirtyDaysAgo = now.minusDays(30);
-        List<AstronomyEvent> events = astronomyRepository.findUpcomingEvents(thirtyDaysAgo);
+        LocalDateTime thirtyDaysLater = now.plusDays(30);
+        
+        // 과거 30일 + 미래 30일 이벤트 조회
+        List<AstronomyEvent> events = astronomyRepository.findEventsByDateRange(thirtyDaysAgo, thirtyDaysLater);
         
         return events.stream()
-                .filter(event -> event.getEventDate().isBefore(now) || event.getEventDate().isEqual(now)) // 미래 이벤트 제외
+                .filter(this::isValidAstronomyEvent) // 유효한 천체 이벤트만 필터링
                 .sorted((e1, e2) -> {
-                    boolean e1IsReal = isRealNasaData(e1);
-                    boolean e2IsReal = isRealNasaData(e2);
+                    // 미래 이벤트 우선, 그 다음 최근 과거 이벤트
+                    boolean e1IsFuture = e1.getEventDate().isAfter(now);
+                    boolean e2IsFuture = e2.getEventDate().isAfter(now);
                     
-                    if (e1IsReal && !e2IsReal) return -1;
-                    if (!e1IsReal && e2IsReal) return 1;
+                    if (e1IsFuture && !e2IsFuture) return -1;
+                    if (!e1IsFuture && e2IsFuture) return 1;
                     
-                    return e2.getEventDate().compareTo(e1.getEventDate());
+                    // 같은 시간대면 날짜순 정렬 (미래는 가까운 순, 과거는 최근 순)
+                    if (e1IsFuture && e2IsFuture) {
+                        return e1.getEventDate().compareTo(e2.getEventDate());
+                    } else {
+                        return e2.getEventDate().compareTo(e1.getEventDate());
+                    }
                 })
                 .limit(10)
                 .map(this::convertToResponse)
@@ -80,7 +89,7 @@ public class AstronomyService {
             ResponseEntity<Map> currentResponse = restTemplate.getForEntity(ISS_LOCATION_URL, Map.class);
             
             if (currentResponse.getStatusCode().is2xxSuccessful() && currentResponse.getBody() != null) {
-                return parseSimpleIssData(currentResponse.getBody(), latitude, longitude);
+                return parseDetailedIssData(currentResponse.getBody(), latitude, longitude);
             }
         } catch (Exception e) {
             log.error("ISS Location API 호출 실패: {}", e.getMessage());
@@ -90,38 +99,52 @@ public class AstronomyService {
         return createFallbackIssInfo();
     }
     
-    private Map<String, Object> parseSimpleIssData(Map<String, Object> currentData, double userLat, double userLon) {
+    private Map<String, Object> parseDetailedIssData(Map<String, Object> currentData, double userLat, double userLon) {
         try {
             double issLat = ((Number) currentData.get("latitude")).doubleValue();
             double issLon = ((Number) currentData.get("longitude")).doubleValue();
             double issAlt = ((Number) currentData.get("altitude")).doubleValue();
             double issVelocity = ((Number) currentData.get("velocity")).doubleValue();
+            long timestamp = ((Number) currentData.get("timestamp")).longValue();
             
-            // 현재 거리 계산
+            // 현재 거리 및 방향 계산
             double distanceKm = calculateDistance(userLat, userLon, issLat, issLon);
+            String direction = calculateDirection(userLat, userLon, issLat, issLon);
+            double elevation = calculateElevation(userLat, userLon, issLat, issLon, issAlt);
             
-            // 간단한 관측 가능성 판단
-            boolean isVisible = distanceKm <= 2000 && issAlt >= 300;
-            String visibilityMsg = isVisible ? 
-                "현재 ISS가 관측 가능한 범위에 있습니다." : 
-                "현재 ISS가 관측하기 어려운 위치에 있습니다.";
+            // 관측 가능성 상세 판단
+            boolean isVisible = distanceKm <= 2000 && issAlt >= 300 && elevation > 10;
+            String visibilityQuality = getVisibilityQuality(distanceKm, elevation);
+            
+            // 다음 관측 기회 예측 (간단한 궤도 계산)
+            Map<String, Object> nextPass = calculateNextPass(userLat, userLon, issLat, issLon, issVelocity, timestamp);
             
             Map<String, Object> result = new HashMap<>();
-            result.put("message_key", "iss.current_status");
-            result.put("friendly_message", String.format(
-                "ISS는 현재 고도 %dkm에서 시속 %d km로 이동 중입니다. %s",
-                Math.round(issAlt), Math.round(issVelocity), visibilityMsg
-            ));
+            result.put("message_key", "iss.detailed_status");
+            result.put("friendly_message", createDetailedIssMessage(issAlt, issVelocity, distanceKm, direction, elevation, isVisible));
+            
+            // 현재 상태
             result.put("current_altitude_km", Math.round(issAlt));
             result.put("current_velocity_kmh", Math.round(issVelocity));
             result.put("current_distance_km", Math.round(distanceKm));
+            result.put("current_direction", direction);
+            result.put("current_elevation", Math.round(elevation));
             result.put("is_visible_now", isVisible);
-            result.put("observation_tip", "ISS는 일출 전이나 일몰 후 1-2시간에 가장 잘 보입니다.");
+            result.put("visibility_quality", visibilityQuality);
+            
+            // 관측 정보
+            result.put("observation_time", formatObservationTime(timestamp));
+            result.put("observation_tip", getObservationTip(elevation, direction));
+            
+            // 다음 관측 기회
+            if (nextPass != null) {
+                result.putAll(nextPass);
+            }
             
             return result;
             
         } catch (Exception e) {
-            log.error("ISS 데이터 파싱 실패: {}", e.getMessage());
+            log.error("ISS 상세 데이터 파싱 실패: {}", e.getMessage());
             return createFallbackIssInfo();
         }
     }
@@ -263,12 +286,15 @@ public class AstronomyService {
     private List<AstronomyEvent> collectAllAstronomyData() {
         List<AstronomyEvent> allEvents = new ArrayList<>();
 
-        // NASA API 데이터 (실시간)
+        // NASA API 데이터 (실시간 + 과거)
         allEvents.addAll(safeApiCall("NASA NeoWs", this::fetchNeoWsData));
         allEvents.addAll(safeApiCall("NASA DONKI", this::fetchDonkiData));
         
-        // KASI API 데이터 (한국 기준)
+        // KASI API 데이터 (한국 기준 + 미래 예측)
         allEvents.addAll(safeApiCall("KASI Astronomy", this::fetchKasiAstronomyData));
+        
+        // 미래 천체 이벤트 예측 데이터 추가
+        allEvents.addAll(safeApiCall("Future Events", this::generateFutureAstronomyEvents));
 
         log.info("수집된 총 이벤트 수: {}", allEvents.size());
         return allEvents;
@@ -672,13 +698,15 @@ public class AstronomyService {
 
     
     private Map<String, Object> createFallbackIssInfo() {
-        return Map.of(
-            "message_key", "iss.fallback",
-            "friendly_message", "ISS는 지구 상공 400km에서 90분마다 지구를 한 바퀴 돕니다. 맑은 밤하늘에서 밝은 점으로 관측할 수 있습니다.",
-            "current_altitude_km", 408,
-            "orbital_period_minutes", 93,
-            "observation_tip", "일출 전이나 일몰 후 1-2시간이 관측하기 가장 좋은 시간입니다."
-        );
+        Map<String, Object> fallback = new HashMap<>();
+        fallback.put("message_key", "iss.fallback");
+        fallback.put("friendly_message", "ISS는 지구 상공 400km에서 90분마다 지구를 한 바퀴 돕니다. 맑은 밤하늘에서 밝은 점으로 관측할 수 있습니다.");
+        fallback.put("current_altitude_km", 408);
+        fallback.put("orbital_period_minutes", 93);
+        fallback.put("observation_tip", "일출 전이나 일몰 후 1-2시간이 관측하기 가장 좋은 시간입니다.");
+        fallback.put("visibility_quality", "UNKNOWN");
+        fallback.put("current_direction", "UNKNOWN");
+        return fallback;
     }
     
 
@@ -694,9 +722,211 @@ public class AstronomyService {
         return R * c;
     }
     
-    private boolean isCurrentlyVisible(double distanceKm, double altitudeKm) {
-        // ISS가 지평선 위에 있고 적당한 거리에 있으면 관측 가능
-        return distanceKm <= 2000 && altitudeKm >= 300;
+    private String calculateDirection(double userLat, double userLon, double issLat, double issLon) {
+        double dLon = Math.toRadians(issLon - userLon);
+        double lat1 = Math.toRadians(userLat);
+        double lat2 = Math.toRadians(issLat);
+        
+        double y = Math.sin(dLon) * Math.cos(lat2);
+        double x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+        
+        double bearing = Math.toDegrees(Math.atan2(y, x));
+        bearing = (bearing + 360) % 360;
+        
+        if (bearing >= 337.5 || bearing < 22.5) return "NORTH";
+        if (bearing >= 22.5 && bearing < 67.5) return "NORTHEAST";
+        if (bearing >= 67.5 && bearing < 112.5) return "EAST";
+        if (bearing >= 112.5 && bearing < 157.5) return "SOUTHEAST";
+        if (bearing >= 157.5 && bearing < 202.5) return "SOUTH";
+        if (bearing >= 202.5 && bearing < 247.5) return "SOUTHWEST";
+        if (bearing >= 247.5 && bearing < 292.5) return "WEST";
+        if (bearing >= 292.5 && bearing < 337.5) return "NORTHWEST";
+        
+        return "UNKNOWN";
+    }
+    
+    private double calculateElevation(double userLat, double userLon, double issLat, double issLon, double issAlt) {
+        double distance = calculateDistance(userLat, userLon, issLat, issLon);
+        double earthRadius = 6371.0;
+        double issHeight = earthRadius + issAlt;
+        double userHeight = earthRadius;
+        
+        // 간단한 고도각 계산 (근사치)
+        double elevation = Math.toDegrees(Math.atan2(issHeight - userHeight, distance));
+        return Math.max(0, elevation);
+    }
+    
+    private String getVisibilityQuality(double distance, double elevation) {
+        if (distance > 2000 || elevation < 10) return "POOR";
+        if (distance > 1500 || elevation < 20) return "FAIR";
+        if (distance > 1000 || elevation < 40) return "GOOD";
+        return "EXCELLENT";
+    }
+    
+    private String createDetailedIssMessage(double alt, double velocity, double distance, String direction, double elevation, boolean isVisible) {
+        String visibilityMsg = isVisible ? 
+            String.format("고도각 %.0f도로 %s 방향에서 관측 가능합니다.", elevation, getDirectionKorean(direction)) :
+            "현재 관측하기 어려운 위치에 있습니다.";
+            
+        return String.format(
+            "ISS는 현재 고도 %dkm에서 시속 %dkm로 이동 중입니다. 거리 %dkm. %s",
+            Math.round(alt), Math.round(velocity), Math.round(distance), visibilityMsg
+        );
+    }
+    
+    private String getDirectionKorean(String direction) {
+        switch (direction) {
+            case "NORTH": return "북쪽";
+            case "NORTHEAST": return "북동쪽";
+            case "EAST": return "동쪽";
+            case "SOUTHEAST": return "남동쪽";
+            case "SOUTH": return "남쪽";
+            case "SOUTHWEST": return "남서쪽";
+            case "WEST": return "서쪽";
+            case "NORTHWEST": return "북서쪽";
+            default: return "알 수 없음";
+        }
+    }
+    
+    private Map<String, Object> calculateNextPass(double userLat, double userLon, double issLat, double issLon, double velocity, long timestamp) {
+        try {
+            // ISS 궤도 주기: 약 93분
+            long orbitalPeriodMs = 93 * 60 * 1000;
+            long nextPassTime = timestamp + orbitalPeriodMs;
+            
+            LocalDateTime nextPassDateTime = LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(nextPassTime), 
+                java.time.ZoneId.systemDefault()
+            );
+            
+            Map<String, Object> nextPass = new HashMap<>();
+            nextPass.put("next_pass_time", nextPassDateTime.format(DateTimeFormatter.ofPattern("HH:mm")));
+            nextPass.put("next_pass_date", nextPassDateTime.format(DateTimeFormatter.ofPattern("MM-dd")));
+            nextPass.put("next_pass_direction", "NORTHEAST"); // 예상 방향 (근사치)
+            nextPass.put("estimated_duration", "5-7분");
+            
+            return nextPass;
+        } catch (Exception e) {
+            log.warn("다음 ISS 관측 기회 계산 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private String formatObservationTime(long timestamp) {
+        LocalDateTime time = LocalDateTime.ofInstant(
+            java.time.Instant.ofEpochMilli(timestamp * 1000), 
+            java.time.ZoneId.systemDefault()
+        );
+        return time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+    }
+    
+    private String getObservationTip(double elevation, String direction) {
+        if (elevation > 50) {
+            return String.format("최적의 관측 조건입니다! %s 방향 하늘을 주시하세요.", getDirectionKorean(direction));
+        } else if (elevation > 30) {
+            return String.format("좋은 관측 조건입니다. %s 방향에서 밝은 점을 찾아보세요.", getDirectionKorean(direction));
+        } else if (elevation > 10) {
+            return "낮은 고도에 있어 관측이 어려울 수 있습니다. 지평선 근처를 주시하세요.";
+        } else {
+            return "ISS가 지평선 아래에 있어 관측할 수 없습니다. 다음 기회를 기다려주세요.";
+        }
+    }
+    
+    private boolean isValidAstronomyEvent(AstronomyEvent event) {
+        // 유효한 천체 이벤트인지 확인
+        if (event == null || !event.getIsActive()) {
+            return false;
+        }
+        
+        // 태양 플레어와 개기월식 분리 검증
+        String eventType = event.getEventType();
+        String title = event.getTitle().toLowerCase();
+        String description = event.getDescription().toLowerCase();
+        
+        // 태양 플레어에 월식 내용이 포함된 경우 제외
+        if (eventType.equals("SOLAR_FLARE") && 
+            (title.contains("월식") || title.contains("eclipse") || 
+             description.contains("월식") || description.contains("eclipse"))) {
+            return false;
+        }
+        
+        // 개기월식에 태양 플레어 내용이 포함된 경우 제외
+        if (eventType.equals("BLOOD_MOON") && 
+            (title.contains("flare") || title.contains("플레어") ||
+             description.contains("flare") || description.contains("플레어"))) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private List<AstronomyEvent> generateFutureAstronomyEvents() {
+        List<AstronomyEvent> futureEvents = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        int currentYear = now.getYear();
+        
+        try {
+            // 2025년 예정된 주요 천문현상 (실제 데이터 기반)
+            if (currentYear == 2025) {
+                // 3월 14일 개기월식
+                LocalDateTime marchEclipse = LocalDateTime.of(2025, 3, 14, 13, 0);
+                if (marchEclipse.isAfter(now)) {
+                    futureEvents.add(createAstronomyEvent("BLOOD_MOON", 
+                        "3월 개기월식", 
+                        "3월 14일 개기월식이 예정되어 있습니다. 한국에서 관측 가능합니다.",
+                        marchEclipse, "HIGH"));
+                }
+                
+                // 9월 8일 개기일식
+                LocalDateTime septemberEclipse = LocalDateTime.of(2025, 9, 8, 2, 0);
+                if (septemberEclipse.isAfter(now)) {
+                    futureEvents.add(createAstronomyEvent("SOLAR_ECLIPSE", 
+                        "9월 개기일식", 
+                        "9월 8일 개기일식이 예정되어 있습니다. 그린랜드 지역에서 관측 가능합니다.",
+                        septemberEclipse, "HIGH"));
+                }
+                
+                // 슬퍼문 예측 (다음 근지점)
+                LocalDateTime nextSupermoon = LocalDateTime.of(2025, 11, 15, 20, 0);
+                if (nextSupermoon.isAfter(now)) {
+                    futureEvents.add(createAstronomyEvent("SUPERMOON", 
+                        "11월 슬퍼문", 
+                        "11월 15일 슬퍼문이 예정되어 있습니다. 평소보다 14% 더 크고 30% 더 밝게 보입니다.",
+                        nextSupermoon, "MEDIUM"));
+                }
+            }
+            
+            // 주기적인 유성우 예측
+            addPeriodicMeteorShowers(futureEvents, currentYear);
+            
+            log.info("미래 천체 이벤트 {} 개 생성", futureEvents.size());
+        } catch (Exception e) {
+            log.error("미래 천체 이벤트 생성 실패: {}", e.getMessage());
+        }
+        
+        return futureEvents;
+    }
+    
+    private void addPeriodicMeteorShowers(List<AstronomyEvent> events, int year) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 주요 유성우 예측 데이터
+        Map<String, LocalDateTime> meteorShowers = Map.of(
+            "페르세우스 유성우", LocalDateTime.of(year, 8, 12, 22, 0),
+            "제미니 유성우", LocalDateTime.of(year, 12, 14, 2, 0),
+            "리리드 유성우", LocalDateTime.of(year, 4, 22, 23, 0),
+            "오리온 유성우", LocalDateTime.of(year, 10, 21, 1, 0)
+        );
+        
+        meteorShowers.forEach((name, dateTime) -> {
+            if (dateTime.isAfter(now)) {
+                events.add(createAstronomyEvent("METEOR_SHOWER", 
+                    name, 
+                    String.format("%s이 %d년 %d월 %d일에 예정되어 있습니다. 시간당 최대 60개의 유성을 관측할 수 있습니다.",
+                        name, year, dateTime.getMonthValue(), dateTime.getDayOfMonth()),
+                    dateTime, "MEDIUM"));
+            }
+        });
     }
 
     // ==================== 헬퍼 메서드 ====================
@@ -787,12 +1017,7 @@ public class AstronomyService {
         return "정보 없음";
     }
 
-    private String determineDirection(int hour) {
-        if (hour >= 18 && hour <= 21) return "west";
-        if (hour >= 4 && hour <= 7) return "east";
-        if (hour >= 22 || hour <= 3) return "north";
-        return "south";
-    }
+
 
     private boolean isValidApiKey() {
         return nasaApiKey != null && !nasaApiKey.trim().isEmpty() && !"DEMO_KEY".equals(nasaApiKey);

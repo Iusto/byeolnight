@@ -1,0 +1,31 @@
+{
+  "weather": {
+    "iss_direction": "方向",
+    "iss_elevation": "仰角",
+    "iss_visibility_quality": "観測品質",
+    "iss_observation_time": "観測時間",
+    "iss_next_observation": "次の観測機会",
+    "iss_next_time": "時間",
+    "iss_next_direction": "方向",
+    "iss_next_duration": "継続時間",
+    "iss_status_template": "ISSは現在高度{{altitude}}kmで時速{{velocity}}kmで移動中です。",
+    "iss_next_pass": "次のパス: {{date}} {{time}} {{direction}}方向、約{{duration}}継続",
+    "compass_north": "北",
+    "compass_northeast": "北東",
+    "compass_east": "東",
+    "compass_southeast": "南東",
+    "compass_south": "南",
+    "compass_southwest": "南西",
+    "compass_west": "西",
+    "compass_northwest": "北西",
+    "compass_unknown": "不明",
+    "visibility_excellent": "最適",
+    "visibility_good": "良好",
+    "visibility_fair": "普通",
+    "visibility_poor": "困難",
+    "visibility_unknown": "不明",
+    "event_types": {
+      "METEOR_SHOWER": "流星群"
+    }
+  }
+}
