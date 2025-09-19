@@ -2,6 +2,7 @@ package com.byeolnight.controller.file;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.util.IpUtil;
+import com.byeolnight.service.log.file.CloudFrontService;
 import com.byeolnight.service.log.file.FileUploadRateLimitService;
 import com.byeolnight.service.log.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
