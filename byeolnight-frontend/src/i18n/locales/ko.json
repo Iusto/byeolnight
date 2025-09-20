@@ -438,16 +438,7 @@
     },
     "iss_current_location": "ISS 실시간 위치",
     "iss_position_desc": "국제우주정거장 현재 위치",
-    "moon_phases": {
-      "New Moon": "신월",
-      "Waxing Crescent": "초승달",
-      "First Quarter": "상현달",
-      "Waxing Gibbous": "보름달 전",
-      "Full Moon": "보름달",
-      "Waning Gibbous": "보름달 후",
-      "Last Quarter": "하현달",
-      "Waning Crescent": "그믐달"
-    },
+
     "observation_quality": {
       "EXCELLENT": "최적",
       "GOOD": "양호",
@@ -465,7 +456,12 @@
       "fair": "보통 관측 조건입니다. 간단한 별 관측이 가능합니다.",
       "good": "좋은 관측 조건입니다. 별자리 관측을 추천합니다.",
       "excellent": "최적의 관측 조건입니다. 망원경 관측을 추천합니다.",
-      "unknown": "날씨 정보를 확인할 수 없습니다."
+      "unknown": "날씨 정보를 확인할 수 없습니다.",
+      "EXCELLENT": "최고의 관측 조건입니다. 망원경 관측을 추천합니다.",
+      "GOOD": "좋은 관측 조건입니다. 별자리 관측을 추천합니다.",
+      "FAIR": "보통의 관측 조건입니다. 간단한 별 관측이 가능합니다.",
+      "POOR": "관측 조건이 어렵습니다. 실내 활동을 추천합니다.",
+      "UNKNOWN": "날씨 정보를 확인하는 중입니다."
     },
     "loading_events_list": {
       "asteroid": "소행성",

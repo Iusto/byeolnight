@@ -207,6 +207,17 @@ const WeatherWidget: React.FC = () => {
     }
   };
 
+  const getMoonPhaseIcon = (moonPhase: string) => {
+    switch (moonPhase) {
+      case '그믐달': return '🌑';
+      case '초승달': return '🌒';
+      case '상현달': return '🌓';
+      case '보름달': return '🌕';
+      case '하현달': return '🌗';
+      default: return '🌙';
+    }
+  };
+
   const getQualityColor = (quality: string) => {
     switch (quality) {
       case 'EXCELLENT': return 'text-green-600 bg-green-100';
@@ -266,11 +277,14 @@ const WeatherWidget: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">🌙 달 위상</span>
-                <span className="font-semibold">{weather.moonPhase}</span>
+                <span className="font-semibold flex items-center gap-2">
+                  <span className="text-xl">{getMoonPhaseIcon(weather.moonPhase)}</span>
+                  {weather.moonPhase}
+                </span>
               </div>
             </div>
             <div className="p-3 bg-white/5 rounded-lg">
-              <p className="text-sm text-gray-200">{weather.recommendation}</p>
+              <p className="text-sm text-gray-200">{t(`weather.recommendations.${weather.recommendation}`)}</p>
             </div>
           </div>
         ) : (

@@ -436,16 +436,7 @@
     },
     "iss_current_location": "ISS Real-time Location",
     "iss_position_desc": "International Space Station current position",
-    "moon_phases": {
-      "New Moon": "New Moon",
-      "Waxing Crescent": "Waxing Crescent",
-      "First Quarter": "First Quarter",
-      "Waxing Gibbous": "Waxing Gibbous",
-      "Full Moon": "Full Moon",
-      "Waning Gibbous": "Waning Gibbous",
-      "Last Quarter": "Last Quarter",
-      "Waning Crescent": "Waning Crescent"
-    },
+
     "observation_quality": {
       "EXCELLENT": "Excellent",
       "GOOD": "Good",
@@ -463,7 +454,12 @@
       "fair": "Fair observation conditions. Simple stargazing is possible.",
       "good": "Good observation conditions. Constellation observation is recommended.",
       "excellent": "Excellent observation conditions. Telescope observation is recommended.",
-      "unknown": "Unable to check weather information."
+      "unknown": "Unable to check weather information.",
+      "EXCELLENT": "Excellent observation conditions. Telescope observation is recommended.",
+      "GOOD": "Good observation conditions. Constellation observation is recommended.",
+      "FAIR": "Fair observation conditions. Simple stargazing is possible.",
+      "POOR": "Observation conditions are difficult. Indoor activities are recommended.",
+      "UNKNOWN": "Checking weather information."
     },
     "loading_events_list": {
       "asteroid": "Asteroids",

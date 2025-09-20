@@ -110,24 +110,24 @@ public class WeatherService {
         // 간단한 달의 위상 계산 (실제로는 더 복잡한 계산 필요)
         int dayOfMonth = LocalDateTime.now().getDayOfMonth();
         return switch (dayOfMonth % 8) {
-            case 0 -> "New Moon";
-            case 1, 2 -> "Waxing Crescent";
-            case 3, 4 -> "First Quarter";
-            case 5, 6 -> "Full Moon";
-            default -> "Last Quarter";
+            case 0 -> "그믐달";
+            case 1, 2 -> "초승달";
+            case 3, 4 -> "상현달";
+            case 5, 6 -> "보름달";
+            default -> "하현달";
         };
     }
     
     private WeatherResponse createFallbackResponse(Double latitude, Double longitude) {
         return WeatherResponse.builder()
-            .location("Unknown")
+            .location("알 수 없음")
             .latitude(latitude)
             .longitude(longitude)
             .cloudCover(50.0)
             .visibility(10.0)
-            .moonPhase("Unknown")
+            .moonPhase("알 수 없음")
             .observationQuality("UNKNOWN")
-            .recommendation("Unable to check weather information.")
+            .recommendation("UNKNOWN")
             .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
             .build();
     }
@@ -149,13 +149,7 @@ public class WeatherService {
     }
     
     private String generateRecommendation(String quality) {
-        return switch (quality) {
-            case "EXCELLENT" -> "Excellent observation conditions. Telescope observation is recommended.";
-            case "GOOD" -> "Good observation conditions. Constellation observation is recommended.";
-            case "FAIR" -> "Fair observation conditions. Simple stargazing is possible.";
-            case "POOR" -> "Observation conditions are difficult. Indoor activities are recommended.";
-            default -> "Checking weather information.";
-        };
+        return quality; // 프론트엔드에서 i18n 키로 사용
     }
     
     // 내부 데이터 클래스
