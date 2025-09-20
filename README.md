@@ -76,9 +76,36 @@ cd byeolnight-frontend && pnpm install && pnpm run dev
 - **파일 업로드 보안**: S3 Presigned URL + CloudFront 조합
 - **동시성 제어**: Redisson 분산 락 구현
 
+### 📁 파일 업로드/조회 플로우
+
+#### 📤 **업로드 플로우**
+```
+1. Client → Server: 파일명/타입 전송
+2. Server: 확장자/용량 검증 (10MB, jpg/png/gif 등)
+3. Server: S3 Presigned URL 생성 (5분 유효)
+4. Client → S3: Presigned URL로 직접 업로드
+5. Server: Google Vision API로 이미지 검열
+6. 부적절한 이미지 → S3에서 자동 삭제
+```
+
+#### 📥 **조회/다운로드 플로우**
+```
+Client → CloudFront → S3 (OAI 인증)
+- S3 직접 접근 완전 차단
+- CloudFront CDN을 통한 빠른 이미지 로딩
+- Signed URL로 보안 강화 (선택적)
+```
+
+#### 🔒 **보안 특징**
+- **서버 부하 없음**: 클라이언트가 S3에 직접 업로드
+- **자동 검열**: Google Vision API 기반 부적절한 이미지 차단
+- **접근 제어**: S3 버킷 비공개 + CloudFront OAI만 허용
+- **용량 제한**: 10MB 제한으로 서버 리소스 보호
+
 ### ⚡ 성능 최적화
 - **데이터베이스 인덱싱**: QueryDSL 기반 최적화된 쿼리
 - **S3 직접 업로드**: Presigned URL로 서버 부하 분산
+- **CloudFront CDN**: 전 세계 엣지 캐싱으로 빠른 이미지 로딩
 - **Redis 캐싱**: 세션 및 데이터 캐싱 레이어
 - **테스트 최적화**: 공통 Mock 설정으로 코드 중복 제거
 
@@ -261,14 +288,6 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - **보안 검사**: CodeQL + OWASP 의존성 검사
 
 ---
-
-## 🔧 개발자 정보
-
-### 트러블슈팅 가이드
-- **일반적인 문제**: [FAQ.md](./docs/FAQ.md)
-- **설정 문제**: [CONFIG-GUIDE.md](./docs/CONFIG-GUIDE.md)
-- **성능 문제**: [PERFORMANCE-TUNING.md](./docs/PERFORMANCE-TUNING.md)
-- **JWT 암호화 문제**: [JWT Config Server 암호화 문제 해결기](./docs/troubleshooting/jwt-config-server-issue.md)
 
 ### 기여 가이드
 - **코드 스타일**: Google Java Style Guide + Prettier (Frontend)

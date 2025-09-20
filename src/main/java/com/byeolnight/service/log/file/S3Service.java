@@ -57,6 +57,9 @@ public class S3Service {
     @Value("${cloud.aws.region.static}")
     private String region;
     
+    @Value("${cloud.aws.cloudfront.domain}")
+    private String cloudFrontDomain;
+    
     private String getBucketName() {
         return bucketName;
     }
@@ -99,8 +102,8 @@ public class S3Service {
             PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(presignRequest);
             String presignedUrl = presignedRequest.url().toString();
 
-            String permanentUrl = String.format("https://%s.s3.%s.amazonaws.com/%s",
-                    getBucketName(), getRegion(), s3Key);
+            // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
+            String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
 
             Map<String, String> result = new HashMap<>();
             result.put("uploadUrl", presignedUrl);
@@ -177,8 +180,8 @@ public class S3Service {
             
             s3Client.putObject(putRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(imageBytes));
             
-            String permanentUrl = String.format("https://%s.s3.%s.amazonaws.com/%s",
-                    getBucketName(), getRegion(), s3Key);
+            // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
+            String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
             
             Map<String, String> result = new HashMap<>();
             result.put("url", permanentUrl);
@@ -395,9 +398,13 @@ public class S3Service {
     private boolean isOrphanFile(S3Object s3Object) {
         try {
             String s3Key = s3Object.key();
-            String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", getBucketName(), getRegion(), s3Key);
+            // CloudFront URL 사용 (S3 직접 URL과 함께 검사)
+            String fileUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
+            String s3DirectUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", getBucketName(), getRegion(), s3Key);
             
+            // CloudFront URL, S3 직접 URL, S3 키 모두 검사
             boolean usedInPosts = postRepository.existsByContentContaining(fileUrl) || 
+                                postRepository.existsByContentContaining(s3DirectUrl) ||
                                 postRepository.existsByContentContaining(s3Key);
             
             if (usedInPosts) {
@@ -405,6 +412,7 @@ public class S3Service {
             }
             
             boolean usedInComments = commentRepository.existsByContentContaining(fileUrl) ||
+                                   commentRepository.existsByContentContaining(s3DirectUrl) ||
                                    commentRepository.existsByContentContaining(s3Key);
             
             return !usedInComments;

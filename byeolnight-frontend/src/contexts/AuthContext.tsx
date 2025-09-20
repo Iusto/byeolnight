@@ -32,7 +32,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // 쿠키에서 JWT 토큰 존재 여부 확인
+  const hasAuthCookie = (): boolean => {
+    return document.cookie.split(';').some(cookie => 
+      cookie.trim().startsWith('accessToken=') || 
+      cookie.trim().startsWith('refreshToken=')
+    );
+  };
+
   const fetchMyInfo = async (): Promise<boolean> => {
+    // 로그인 상태가 아니면 API 호출하지 않음
+    if (!hasAuthCookie()) {
+      setUser(null);
+      return false;
+    }
+
     try {
       const res = await axios.get('/member/users/me');
       const userData = res.data?.success ? res.data.data : null;
@@ -94,9 +108,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 로그인된 사용자만 토큰 갱신
   useEffect(() => {
-    if (!user) return;
+    if (!user || !hasAuthCookie()) return;
     
     const interval = setInterval(async () => {
+      // 쿠키가 없으면 토큰 갱신 시도하지 않음
+      if (!hasAuthCookie()) {
+        setUser(null);
+        return;
+      }
+
       try {
         const res = await axios.post('/auth/token/refresh');
         if (!res.data?.success) setUser(null);
@@ -108,7 +128,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => clearInterval(interval);
   }, [user]);
 
-  const refreshUserInfo = () => fetchMyInfo();
+  const refreshUserInfo = async () => {
+    await fetchMyInfo();
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, refreshUserInfo }}>
