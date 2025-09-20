@@ -40,6 +40,11 @@ springdoc:
 # 로깅 설정
 logging:
   level:
-    org.apache.catalina.core: WARN
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.web.servlet.DispatcherServlet: INFO
+    org.springframework.web.servlet.mvc.method.annotation: INFO
     org.springframework.web.socket: WARN
     org.springframework.web.socket.sockjs: WARN
+    org.apache.catalina.core: WARN
+    com.byeolnight: INFO
