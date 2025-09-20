@@ -72,11 +72,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String baseUrl = request.getServerName().contains("localhost") ? 
                     "http://localhost:5173" : "https://byeolnight.com";
             
-            String redirectUrl;
-            // 이메일 기반 닉네임으로 자동 생성되므로 바로 로그인 완료
-            redirectUrl = UriComponentsBuilder.fromUriString(baseUrl + "/oauth/callback")
-                    .queryParam("token", accessToken)
-                    .build().toUriString();
+            // HttpOnly 쿠키로 토큰이 설정되었으므로 URL 파라미터로 전달하지 않음
+            String redirectUrl = baseUrl + "/oauth/callback";
 
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
 

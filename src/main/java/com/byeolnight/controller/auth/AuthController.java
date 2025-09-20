@@ -257,14 +257,13 @@ public class AuthController {
     private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false) // 로컬 개발 시 HTTP 허용
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(validity / 1000);
         
-        // 운영 환경에서만 도메인 설정
-        if (!cookieDomain.isEmpty() && !cookieDomain.equals("localhost")) {
-            builder.domain(cookieDomain).secure(true);
+        if (!cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
         }
         
         return builder.build();
@@ -273,14 +272,13 @@ public class AuthController {
     private ResponseCookie createAccessCookie(String accessToken) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", accessToken)
                 .httpOnly(true)
-                .secure(false) // 로컬 개발 시 HTTP 허용
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(1800);
         
-        // 운영 환경에서만 도메인 설정
-        if (!cookieDomain.isEmpty() && !cookieDomain.equals("localhost")) {
-            builder.domain(cookieDomain).secure(true);
+        if (!cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
         }
         
         return builder.build();
@@ -289,14 +287,13 @@ public class AuthController {
     private ResponseCookie createDeleteCookie(String name) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(false) // 로컬 개발 시 HTTP 허용
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(0);
         
-        // 운영 환경에서만 도메인 설정
-        if (!cookieDomain.isEmpty() && !cookieDomain.equals("localhost")) {
-            builder.domain(cookieDomain).secure(true);
+        if (!cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
         }
         
         return builder.build();

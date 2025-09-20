@@ -25,6 +25,22 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * AWS S3 파일 업로드/관리 핵심 서비스
+ * 
+ * 아키텍처:
+ * - 업로드: Presigned S3 URL (클라이언트 → S3 직접)
+ * - 조회: CloudFront URL (클라이언트 → CloudFront → S3)
+ * 
+ * 주요 기능:
+ * - Presigned URL 생성 (10분 유효)
+ * - Google Vision API 이미지 검열
+ * - 고아 파일 자동 정리
+ * - S3 연결 상태 모니터링
+ * 
+ * @author byeolnight
+ * @since 1.0
+ */
 @Slf4j
 @Service
 public class S3Service {
@@ -76,6 +92,18 @@ public class S3Service {
         return region;
     }
 
+    /**
+     * S3 Presigned URL 생성 (클라이언트 직접 업로드용)
+     * 
+     * 플로우:
+     * 1. 파일 확장자 검증 (jpg, png, gif 등)
+     * 2. S3 Presigned URL 생성 (10분 유효)
+     * 3. CloudFront URL 반환 (조회용)
+     * 
+     * @param originalFilename 원본 파일명
+     * @param contentTypeParam 콘텐츠 타입 (선택적)
+     * @return uploadUrl(업로드용), url(조회용), s3Key 등 포함
+     */
     public Map<String, String> generatePresignedUrl(String originalFilename, String contentTypeParam) {
         if (!isValidImageFile(originalFilename)) {
             throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
@@ -125,6 +153,11 @@ public class S3Service {
         return generatePresignedUrl(originalFilename, null);
     }
 
+    /**
+     * S3 객체 삭제
+     * 
+     * @param s3Key S3 객체 키
+     */
     public void deleteObject(String s3Key) {
         try {
             S3Client s3Client = createS3Client();
@@ -138,6 +171,12 @@ public class S3Service {
         }
     }
 
+    /**
+     * 업로드된 이미지 검열 (Google Vision API)
+     * 
+     * @param imageBytes 이미지 바이트 데이터
+     * @return true: 안전한 이미지, false: 부적절한 이미지
+     */
     public boolean validateUploadedImage(byte[] imageBytes) {
         try {
             boolean isSafe = googleVisionService.isImageSafe(imageBytes);
@@ -149,6 +188,18 @@ public class S3Service {
         }
     }
 
+    /**
+     * 이미지 검열 후 S3 직접 업로드
+     * 
+     * 플로우:
+     * 1. 파일 형식/크기 검증
+     * 2. Google Vision API 검열
+     * 3. 검열 통과 시 S3 업로드
+     * 4. CloudFront URL 반환
+     * 
+     * @param file 업로드할 파일
+     * @return 업로드 결과 정보
+     */
     public Map<String, String> uploadImageWithValidation(org.springframework.web.multipart.MultipartFile file) {
         try {
             if (!isValidImageFile(file.getOriginalFilename())) {
@@ -207,6 +258,13 @@ public class S3Service {
         log.info("이미지 백그라운드 검사: {}", imageUrl);
     }
 
+    /**
+     * 고아 이미지 개수 조회
+     * 
+     * 고아 이미지: 7일 이상 된 파일 중 게시글/댓글에서 사용되지 않는 이미지
+     * 
+     * @return 고아 이미지 개수 (-1: 권한 부족)
+     */
     public int getOrphanImageCount() {
         try {
             S3Client s3Client = createS3Client();
@@ -238,6 +296,11 @@ public class S3Service {
         }
     }
 
+    /**
+     * 고아 이미지 자동 정리
+     * 
+     * @return 삭제된 이미지 개수
+     */
     public int cleanupOrphanImages() {
         try {
             S3Client s3Client = createS3Client();
@@ -275,6 +338,17 @@ public class S3Service {
         }
     }
 
+    /**
+     * S3 연결 상태 및 설정 검증
+     * 
+     * 검증 항목:
+     * - AWS 자격 증명 설정 여부
+     * - 버킷 존재 여부
+     * - 리전 설정 일치 여부
+     * - 권한 확인
+     * 
+     * @return S3 상태 정보
+     */
     public Map<String, Object> getS3Status() {
         Map<String, Object> status = new HashMap<>();
         
@@ -382,6 +456,11 @@ public class S3Service {
         return status;
     }
 
+    /**
+     * S3 클라이언트 생성
+     * 
+     * @return 설정된 자격 증명과 리전으로 생성된 S3 클라이언트
+     */
     private S3Client createS3Client() {
         try {
             AwsBasicCredentials credentials = AwsBasicCredentials.create(getAccessKey(), getSecretKey());
@@ -395,6 +474,15 @@ public class S3Service {
         }
     }
 
+    /**
+     * 고아 파일 여부 판단
+     * 
+     * CloudFront URL, S3 직접 URL, S3 키를 모두 검사하여
+     * 게시글이나 댓글에서 사용되지 않는 파일인지 확인
+     * 
+     * @param s3Object S3 객체
+     * @return true: 고아 파일, false: 사용 중인 파일
+     */
     private boolean isOrphanFile(S3Object s3Object) {
         try {
             String s3Key = s3Object.key();

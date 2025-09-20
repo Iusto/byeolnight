@@ -13,9 +13,7 @@ export default function OAuthCallback() {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        const token = searchParams.get('token')
         const error = searchParams.get('error')
-        const needsNickname = searchParams.get('needsNickname')
 
         if (error) {
           setError(decodeURIComponent(error))
@@ -23,17 +21,16 @@ export default function OAuthCallback() {
           return
         }
 
-
-
-        if (token) {
-          // OAuth 로그인 성공 - HttpOnly 쿠키로 토큰이 자동 저장됨
-          // AuthContext에서 자동으로 사용자 정보를 로드하므로 즉시 리다이렉트
-          setStatus('success');
-          setTimeout(() => navigate('/'), 800);
-        } else {
-          // 토큰이 없어도 HttpOnly 쿠키로 인증될 수 있음
-          setStatus('success');
-          setTimeout(() => navigate('/'), 800);
+        // OAuth 로그인 성공 후 사용자 정보 새로고침
+        // HttpOnly 쿠키가 설정되었으므로 사용자 정보를 다시 조회
+        try {
+          await refreshUserInfo()
+          setStatus('success')
+          setTimeout(() => navigate('/'), 800)
+        } catch (refreshError) {
+          console.error('사용자 정보 새로고침 실패:', refreshError)
+          setError('로그인 후 사용자 정보를 가져오는데 실패했습니다')
+          setStatus('error')
         }
       } catch (err: any) {
         console.error('OAuth 콜백 처리 오류:', err)

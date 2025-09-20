@@ -358,12 +358,12 @@ const WeatherWidget: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="flex justify-between p-2 bg-white/5 rounded-lg">
                       <span className="text-gray-300 text-sm">🚀 고도</span>
-                      <span className="font-semibold text-white text-sm">{issData.current_altitude_km}km</span>
+                      <span className="font-semibold text-white text-sm">{Math.round(issData.current_altitude_km).toLocaleString()}km</span>
                     </div>
                     {issData.current_velocity_kmh && (
                       <div className="flex justify-between p-2 bg-white/5 rounded-lg">
                         <span className="text-gray-300 text-sm">⚡ 속도</span>
-                        <span className="font-semibold text-white text-sm">{issData.current_velocity_kmh}km/h</span>
+                        <span className="font-semibold text-white text-sm">{Math.round(issData.current_velocity_kmh).toLocaleString()}km/h</span>
                       </div>
                     )}
                   </div>

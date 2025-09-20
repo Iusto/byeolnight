@@ -32,26 +32,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 쿠키에서 JWT 토큰 존재 여부 확인
-  const hasAuthCookie = (): boolean => {
-    return document.cookie.split(';').some(cookie => 
-      cookie.trim().startsWith('accessToken=') || 
-      cookie.trim().startsWith('refreshToken=')
-    );
-  };
+
 
   const fetchMyInfo = async (): Promise<boolean> => {
-    // 로그인 상태가 아니면 API 호출하지 않음
-    if (!hasAuthCookie()) {
-      setUser(null);
-      return false;
-    }
-
     try {
       const res = await axios.get('/member/users/me');
       const userData = res.data?.success ? res.data.data : null;
       
-      if (!userData) return false;
+      if (!userData) {
+        setUser(null);
+        return false;
+      }
       
       // 대표 인증서 정보 가져오기
       try {
@@ -68,7 +59,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       setUser(userData);
       return true;
-    } catch {
+    } catch (error) {
+      console.warn('사용자 정보 조회 실패:', error);
       setUser(null);
       return false;
     }
@@ -108,20 +100,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 로그인된 사용자만 토큰 갱신
   useEffect(() => {
-    if (!user || !hasAuthCookie()) return;
+    if (!user) return;
+    
+    let failureCount = 0;
+    const maxFailures = 3;
     
     const interval = setInterval(async () => {
-      // 쿠키가 없으면 토큰 갱신 시도하지 않음
-      if (!hasAuthCookie()) {
-        setUser(null);
-        return;
-      }
-
       try {
         const res = await axios.post('/auth/token/refresh');
-        if (!res.data?.success) setUser(null);
-      } catch {
-        setUser(null);
+        if (!res.data?.success) {
+          failureCount++;
+          if (failureCount >= maxFailures) {
+            console.warn('토큰 갱신 연속 실패로 로그아웃 처리');
+            setUser(null);
+          }
+        } else {
+          failureCount = 0; // 성공 시 실패 카운트 리셋
+        }
+      } catch (error) {
+        failureCount++;
+        console.warn(`토큰 갱신 실패 (${failureCount}/${maxFailures}):`, error);
+        if (failureCount >= maxFailures) {
+          console.warn('토큰 갱신 연속 실패로 로그아웃 처리');
+          setUser(null);
+        }
       }
     }, 25 * 60 * 1000);
 
@@ -129,7 +131,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const refreshUserInfo = async () => {
-    await fetchMyInfo();
+    try {
+      await fetchMyInfo();
+    } catch (error) {
+      console.error('사용자 정보 갱신 실패:', error);
+      throw error;
+    }
   };
 
   return (
