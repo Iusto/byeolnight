@@ -14,6 +14,7 @@ services:
       - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/config-repo/configs/
       - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$%^&*()
+      - SPRING_CLOUD_CONFIG_SERVER_ENCRYPT_ENABLED=true
     volumes:
       - ./config-repo:/app/config-repo
     healthcheck:
@@ -22,7 +23,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    restart: unless-stopped
+    restart: always
     networks:
       - byeolnight-network
 
@@ -65,6 +66,7 @@ services:
       - CONFIG_USERNAME=config-admin
       - CONFIG_PASSWORD=config-secret-2024
       - SPRING_PROFILES_ACTIVE=prod
+
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
@@ -75,9 +77,9 @@ services:
   mysql:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: byeolnight
-      TZ: Asia/Seoul
+      - MYSQL_ROOT_PASSWORD=$$(curl -s -u config-admin:config-secret-2024 http://config-server:8888/byeolnight/prod | jq -r '.propertySources[0].source."docker.mysql.root-password"')
+      - MYSQL_DATABASE=byeolnight
+      - TZ=Asia/Seoul
     command: >
       --innodb-buffer-pool-size=512M
       --innodb-log-file-size=128M
@@ -101,7 +103,7 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    command: sh -c 'redis-server --requirepass "${REDIS_PASSWORD}" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    command: sh -c 'REDIS_PWD=$$(curl -s -u config-admin:config-secret-2024 http://config-server:8888/byeolnight/prod | jq -r ".propertySources[0].source.\"docker.redis.password\"") && redis-server --requirepass "$$REDIS_PWD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
     restart: unless-stopped
     networks:
       - byeolnight-network

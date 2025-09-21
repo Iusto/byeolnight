@@ -282,3 +282,5 @@ GEMINI.md
 *.tar.gz
 *.rar
 *.7z
+# 기존 내용 유지하면서 .env 추가
+.env
