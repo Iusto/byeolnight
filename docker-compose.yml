@@ -66,7 +66,6 @@ services:
       - CONFIG_USERNAME=config-admin
       - CONFIG_PASSWORD=config-secret-2024
       - SPRING_PROFILES_ACTIVE=prod
-
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
@@ -76,8 +75,11 @@ services:
 
   mysql:
     image: mysql:8
+    depends_on:
+      config-server:
+        condition: service_healthy
     environment:
-      - MYSQL_ROOT_PASSWORD=$$(curl -s -u config-admin:config-secret-2024 http://config-server:8888/byeolnight/prod | jq -r '.propertySources[0].source."docker.mysql.root-password"')
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=byeolnight
       - TZ=Asia/Seoul
     command: >
@@ -101,9 +103,14 @@ services:
 
   redis:
     image: redis:7-alpine
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
-    command: sh -c 'REDIS_PWD=$$(curl -s -u config-admin:config-secret-2024 http://config-server:8888/byeolnight/prod | jq -r ".propertySources[0].source.\"docker.redis.password\"") && redis-server --requirepass "$$REDIS_PWD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    command: sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
     restart: unless-stopped
     networks:
       - byeolnight-network
