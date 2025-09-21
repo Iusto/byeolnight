@@ -17,11 +17,11 @@ services:
     volumes:
       - ./config-repo:/app/config-repo
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8888/actuator/health && curl -f -X POST http://localhost:8888/encrypt -d 'test' | grep -q 'AQA'"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
     restart: unless-stopped
     networks:
       - byeolnight-network

@@ -31,16 +31,22 @@ docker compose down
 echo "⚙️ Config Server 시작..."
 docker compose up config-server -d
 echo "⏳ Config Server 준비 대기..."
-sleep 15
+sleep 20
 
 # Config Server 상태 확인
 echo "🔍 Config Server 상태 확인..."
-for i in {1..10}; do
+for i in {1..15}; do
     if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health > /dev/null 2>&1; then
-        echo "✅ Config Server 준비 완료"
-        break
+        # 암호화 기능 검증
+        if curl -s -X POST http://localhost:8888/encrypt -d "test" | grep -q "AQA"; then
+            echo "✅ Config Server 준비 완료 (암호화 기능 확인)"
+            break
+        else
+            echo "⚠️ Config Server 암호화 기능 대기 중... ($i/15)"
+        fi
+    else
+        echo "⏳ Config Server 대기 중... ($i/15)"
     fi
-    echo "⏳ Config Server 대기 중... ($i/10)"
     sleep 3
 done
 
