@@ -114,7 +114,7 @@ const WeatherWidget: React.FC = () => {
       setWeather(response.data);
     } catch (error: any) {
       console.error('날씨 데이터 조회 실패:', error);
-      setWeatherError('날씨 정보를 불러올 수 없습니다.');
+      setWeatherError(t('weather.weather_error'));
     }
   };
 
@@ -125,7 +125,7 @@ const WeatherWidget: React.FC = () => {
       setEvents(response.data || []);
     } catch (error: any) {
       console.error('천체 이벤트 조회 실패:', error);
-      setEventsError('천체 현상 정보를 불러올 수 없습니다.');
+      setEventsError(t('weather.events_error'));
     }
   };
 
@@ -139,21 +139,21 @@ const WeatherWidget: React.FC = () => {
       setIssData(response.data);
     } catch (error: any) {
       console.error('ISS 데이터 조회 실패:', error);
-      setIssError('ISS 관측 정보를 불러올 수 없습니다.');
+      setIssError(t('weather.iss_no_data'));
     }
   };
 
   const handleCollectAstronomy = async () => {
-    if (!confirm('천체 데이터를 업데이트하시겠습니까?')) return;
+    if (!confirm(t('weather.confirm_nasa_update'))) return;
     
     setCollectingAstronomy(true);
     try {
       await axios.post('/api/admin/scheduler/astronomy/manual');
-      alert('천체 데이터 업데이트 완료');
+      alert(t('weather.nasa_update_success'));
       await fetchAstronomyEvents();
     } catch (error: any) {
       console.error('천체 데이터 수집 실패:', error);
-      alert('천체 데이터 업데이트 실패');
+      alert(t('weather.nasa_update_failed'));
     } finally {
       setCollectingAstronomy(false);
     }
@@ -172,21 +172,14 @@ const WeatherWidget: React.FC = () => {
   };
 
   const getEventTypeLabel = (eventType: string) => {
-    const labels: Record<string, string> = {
-      'ASTEROID': '소행성',
-      'SOLAR_FLARE': '태양플레어',
-      'GEOMAGNETIC_STORM': '지자기폭풍',
-      'BLOOD_MOON': '개기월식',
-      'SOLAR_ECLIPSE': '개기일식',
-      'SUPERMOON': '슈퍼문'
-    };
-    return labels[eventType] || eventType;
+    return t(`weather.event_types.${eventType}`) || t('weather.event_types.DEFAULT');
   };
 
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('ko-KR', {
+      const locale = t('common.locale') || 'ko-KR';
+      return date.toLocaleDateString(locale, {
         month: 'long',
         day: 'numeric'
       });
@@ -198,7 +191,8 @@ const WeatherWidget: React.FC = () => {
   const formatTime = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleTimeString('ko-KR', {
+      const locale = t('common.locale') || 'ko-KR';
+      return date.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit'
       });
@@ -208,12 +202,20 @@ const WeatherWidget: React.FC = () => {
   };
 
   const getMoonPhaseIcon = (moonPhase: string) => {
-    switch (moonPhase) {
-      case '그믐달': return '🌑';
-      case '초승달': return '🌒';
-      case '상현달': return '🌓';
-      case '보름달': return '🌕';
-      case '하현달': return '🌗';
+    const moonPhaseKey = Object.keys({
+      'new_moon': '🌑',
+      'waxing_crescent': '🌒',
+      'first_quarter': '🌓',
+      'full_moon': '🌕',
+      'last_quarter': '🌗'
+    }).find(key => t(`weather.moon_phases.${key}`) === moonPhase);
+    
+    switch (moonPhaseKey) {
+      case 'new_moon': return '🌑';
+      case 'waxing_crescent': return '🌒';
+      case 'first_quarter': return '🌓';
+      case 'full_moon': return '🌕';
+      case 'last_quarter': return '🌗';
       default: return '🌙';
     }
   };
@@ -234,7 +236,7 @@ const WeatherWidget: React.FC = () => {
         <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl">
           <div className="animate-pulse text-center py-8">
             <div className="text-4xl mb-4">🌌</div>
-            <p className="text-blue-200 font-medium">데이터를 불러오는 중...</p>
+            <p className="text-blue-200 font-medium">{t('weather.loading_weather_data')}</p>
           </div>
         </div>
       </div>
@@ -247,7 +249,7 @@ const WeatherWidget: React.FC = () => {
       <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl border border-purple-500/20">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold flex items-center gap-2">
-            🌟 별 관측 조건
+            🌟 {t('weather.star_observation')}
           </h3>
           {weather && (
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getQualityColor(weather.observationQuality)}`}>
@@ -262,24 +264,24 @@ const WeatherWidget: React.FC = () => {
           </div>
         ) : weather ? (
           <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="flex justify-between">
-                <span className="text-gray-300">📍 위치</span>
-                <span className="font-semibold">{weather.location}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div className="flex justify-between items-center min-w-0">
+                <span className="text-gray-300 flex-shrink-0">📍 {t('weather.location')}</span>
+                <span className="font-semibold truncate ml-2">{weather.location}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">☁️ 구름</span>
-                <span className="font-semibold">{weather.cloudCover.toFixed(0)}%</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300 flex-shrink-0">☁️ {t('weather.cloud_cover')}</span>
+                <span className="font-semibold ml-2">{weather.cloudCover.toFixed(0)}%</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">👁️ 가시거리</span>
-                <span className="font-semibold">{weather.visibility.toFixed(1)}km</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300 flex-shrink-0">👁️ {t('weather.visibility')}</span>
+                <span className="font-semibold ml-2">{weather.visibility.toFixed(1)}km</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">🌙 달 위상</span>
-                <span className="font-semibold flex items-center gap-2">
-                  <span className="text-xl">{getMoonPhaseIcon(weather.moonPhase)}</span>
-                  {weather.moonPhase}
+              <div className="flex justify-between items-center min-w-0">
+                <span className="text-gray-300 flex-shrink-0">🌙 {t('weather.moon_phase')}</span>
+                <span className="font-semibold flex items-center gap-1 ml-2 min-w-0">
+                  <span className="text-lg">{getMoonPhaseIcon(weather.moonPhase)}</span>
+                  <span className="truncate">{weather.moonPhase}</span>
                 </span>
               </div>
             </div>
@@ -289,7 +291,7 @@ const WeatherWidget: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-300">날씨 정보를 불러오는 중...</p>
+            <p className="text-gray-300">{t('weather.loading_weather')}</p>
           </div>
         )}
       </div>
@@ -298,7 +300,7 @@ const WeatherWidget: React.FC = () => {
       <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl p-6 text-white shadow-2xl border border-blue-500/20">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold flex items-center gap-2">
-            🌌 최근 천체 현상
+            🌌 {t('weather.recent_astronomy_events')}
           </h3>
           {user?.role === 'ADMIN' && (
             <button
@@ -306,7 +308,7 @@ const WeatherWidget: React.FC = () => {
               disabled={collectingAstronomy}
               className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
             >
-              {collectingAstronomy ? '업데이트 중...' : '데이터 업데이트'}
+              {collectingAstronomy ? t('weather.updating') : t('weather.nasa_update')}
             </button>
           )}
         </div>
@@ -343,7 +345,7 @@ const WeatherWidget: React.FC = () => {
         ) : (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🌌</div>
-            <p className="text-purple-200">천체 현상 데이터를 불러오는 중...</p>
+            <p className="text-purple-200">{t('weather.loading_events')}</p>
           </div>
         )}
       </div>
@@ -352,7 +354,7 @@ const WeatherWidget: React.FC = () => {
       <div className="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 rounded-xl p-6 text-white shadow-2xl border border-gray-500/20">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold flex items-center gap-2">
-            🛰️ ISS 관측 기회
+            🛰️ {t('weather.iss_observation_opportunity')}
           </h3>
         </div>
 
@@ -365,18 +367,18 @@ const WeatherWidget: React.FC = () => {
             <div className="flex items-start gap-3">
               <span className="text-2xl">🛰️</span>
               <div className="flex-1">
-                <h4 className="font-semibold text-white mb-3">현재 상태</h4>
+                <h4 className="font-semibold text-white mb-3">{t('weather.iss_current_status')}</h4>
                 <p className="text-sm text-gray-300 mb-4">{issData.friendly_message}</p>
                 
                 {issData.current_altitude_km && (
-                  <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div className="flex justify-between p-2 bg-white/5 rounded-lg">
-                      <span className="text-gray-300 text-sm">🚀 고도</span>
+                      <span className="text-gray-300 text-sm">🚀 {t('weather.iss_altitude')}</span>
                       <span className="font-semibold text-white text-sm">{Math.round(issData.current_altitude_km).toLocaleString()}km</span>
                     </div>
                     {issData.current_velocity_kmh && (
                       <div className="flex justify-between p-2 bg-white/5 rounded-lg">
-                        <span className="text-gray-300 text-sm">⚡ 속도</span>
+                        <span className="text-gray-300 text-sm">⚡ {t('weather.iss_velocity')}</span>
                         <span className="font-semibold text-white text-sm">{Math.round(issData.current_velocity_kmh).toLocaleString()}km/h</span>
                       </div>
                     )}
@@ -387,19 +389,19 @@ const WeatherWidget: React.FC = () => {
                   <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-lg">🔮</span>
-                      <span className="text-sm font-medium text-blue-200">다음 관측 기회</span>
+                      <span className="text-sm font-medium text-blue-200">{t('weather.iss_next_observation')}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pl-7">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-7">
                       <div className="text-sm text-gray-300">
-                        <span className="block font-medium text-white">시간</span>
+                        <span className="block font-medium text-white">{t('weather.iss_next_time')}</span>
                         <span>{issData.next_pass_date} {issData.next_pass_time}</span>
                       </div>
                       <div className="text-sm text-gray-300">
-                        <span className="block font-medium text-white">방향</span>
+                        <span className="block font-medium text-white">{t('weather.iss_next_direction')}</span>
                         <span>{issData.next_pass_direction}</span>
                       </div>
-                      <div className="text-sm text-gray-300 col-span-2">
-                        <span className="block font-medium text-white">지속시간</span>
+                      <div className="text-sm text-gray-300 sm:col-span-2">
+                        <span className="block font-medium text-white">{t('weather.iss_next_duration')}</span>
                         <span>{issData.estimated_duration}</span>
                       </div>
                     </div>
@@ -411,7 +413,7 @@ const WeatherWidget: React.FC = () => {
         ) : (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🛰️</div>
-            <p className="text-gray-200">ISS 정보를 불러오는 중...</p>
+            <p className="text-gray-200">{t('weather.loading_iss_data')}</p>
           </div>
         )}
       </div>

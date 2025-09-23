@@ -71,7 +71,8 @@
     "success": "Success",
     "search": "Search",
     "more": "More",
-    "close": "Close"
+    "close": "Close",
+    "locale": "en-US"
   },
   "message": {
     "send": "Send Message",
@@ -511,7 +512,14 @@
     "visibility_good": "Good",
     "visibility_fair": "Fair",
     "visibility_poor": "Poor",
-    "visibility_unknown": "Unknown"
+    "visibility_unknown": "Unknown",
+    "moon_phases": {
+      "new_moon": "New Moon",
+      "waxing_crescent": "Waxing Crescent",
+      "first_quarter": "First Quarter",
+      "full_moon": "Full Moon",
+      "last_quarter": "Last Quarter"
+    }
   },
   "suggestion": {
     "title": "💡 Suggestion Board",
