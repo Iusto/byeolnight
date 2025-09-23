@@ -163,7 +163,7 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - **Infrastructure**: Docker + GitHub Actions + AWS S3 + CloudFront
 - **External APIs**: Gmail, NewsData, Google Vision, OpenAI, Claude, NASA APIs
 
-> 🔧 **상세 기술 스택**: [TECH-STACK.md](./docs/TECH-STACK.md) 참고
+> 🔧 **상세 기술 스택**: [06_TECH-STACK.md](./docs/06_TECH-STACK.md) 참고
 
 ---
 
@@ -181,7 +181,7 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - **CI/CD**: GitHub Actions 기반 6개 워크플로우
 - **보안**: CodeQL 스캔, OWASP 의존성 검사
 
-> 📊 **상세 기술 정보**: [TECH-STACK.md](./docs/TECH-STACK.md) 참고
+> 📊 **상세 기술 정보**: [06_TECH-STACK.md](./docs/06_TECH-STACK.md) 참고
 
 ---
 
@@ -197,10 +197,10 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 
 ### ⚡ 성능 및 기술
 - [🚀 성능 최적화 전략](./docs/05_optimizations.md)
-- [🔧 기술 스택 상세](./docs/06_tech-stack.md)
+- [🔧 기술 스택 상세](./docs/06_TECH-STACK.md)
 - [🧪 테스트 전략](./docs/07_testing.md)
-- [⏰ 스케줄러 테스트 가이드](./docs/12_scheduler-testing.md)
-- [📊 데이터베이스 설계](./docs/11_database-design.md)
+- [⏰ 스케줄러 테스트 가이드](./docs/10_scheduler-testing.md)
+- [📊 데이터베이스 설계](./docs/09_database-design.md)
 
 ### 🚀 운영 및 개발
 - [📦 배포 가이드](./docs/08_deployment.md)
