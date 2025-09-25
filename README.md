@@ -107,6 +107,8 @@ Client → CloudFront → S3 (OAI 인증)
 - **S3 직접 업로드**: Presigned URL로 서버 부하 분산
 - **CloudFront CDN**: 전 세계 엣지 캐싱으로 빠른 이미지 로딩
 - **Redis 캐싱**: 세션 및 데이터 캐싱 레이어
+- **커넥션 풀 최적화**: HikariCP, Redis, HTTP 커넥션 풀 튜닝
+- **쓰레드 풀 관리**: 이미지 검증용 비동기 쓰레드 풀 최적화
 - **테스트 최적화**: 공통 Mock 설정으로 코드 중복 제거
 
 ### 🔄 실시간 처리
@@ -194,6 +196,7 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - [🧱 도메인 모델 개요](./docs/02_domain-model.md)
 - [🏛️ 애플리케이션 구조](./docs/03_architecture.md)
 - [🎯 핵심 도메인별 구조](./docs/04_core-domains.md)
+- [🏊♂️ 풀 설정 전략 및 근본적 이유](./docs/12_pool-configuration-strategy.md)
 
 ### ⚡ 성능 및 기술
 - [🚀 성능 최적화 전략](./docs/05_optimizations.md)
@@ -208,8 +211,9 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - [⏰ 스케줄러 테스트 가이드](./docs/10_scheduler-testing.md)
 - [🔄 소셜 계정 탈퇴 복구 시스템](docs/11_social-account-recovery.md)
 
-### 🔧 트러블슈팅
+### 🔧 트러블슈팅 & 면접 대비
 - [🌙 JWT Config Server 암호화 문제 해결기](./docs/troubleshooting/jwt-config-server-issue.md)
+- [🎤 면접 대비: 기술 선택 이유 및 대안 검토](./docs/13_interview-tech-decisions.md)
 
 ---
 
@@ -252,6 +256,7 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - **컴포넌트 재사용**: 공통 컴포넌트로 코드 중복 제거
 - **테스트 최적화**: 공통 Mock 설정으로 테스트 코드 간소화
 - **패키지 관리**: pnpm으로 의존성 관리 효율화
+- **리소스 풀 관리**: 비즈니스 요구사항 기반 풀 설정 최적화
 
 ---
 
