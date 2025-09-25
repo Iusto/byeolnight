@@ -87,5 +87,18 @@ EOF
 
 docker compose build --no-cache && docker compose up -d
 
+# 5. SSL 인증서 갱신 체크 (재부팅 시)
+echo "🔒 SSL 인증서 상태 확인..."
+if sudo certbot certificates 2>/dev/null | grep -q "byeolnight.com"; then
+    echo "📋 SSL 인증서 갱신 체크..."
+    # nginx 중지 후 갱신 시도
+    docker compose stop nginx
+    sudo certbot renew --quiet || echo "⚠️ SSL 갱신 불필요 또는 실패"
+    docker compose start nginx
+    echo "✅ SSL 인증서 체크 완료"
+else
+    echo "⚠️ SSL 인증서가 설치되지 않음"
+fi
+
 echo "✅ 배포 완료! 로그 확인 중..."
 docker logs -f byeolnight-app-1
