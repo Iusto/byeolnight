@@ -53,13 +53,34 @@ done
 
 
 echo "🔑 Config Server에서 비밀번호 가져오기..."
-# 평문 값 가져오기
-CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod)
-MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."docker.mysql.root-password"')
-REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."docker.redis.password"')
 
+# Config Server 연결 재시도 로직
+for attempt in {1..5}; do
+    echo "Config Server 연결 시도 $attempt/5..."
+    CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
+    
+    if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq . >/dev/null 2>&1; then
+        echo "✅ Config Server 응답 수신 성공"
+        break
+    else
+        echo "⚠️ Config Server 연결 실패, 3초 후 재시도..."
+        sleep 3
+    fi
+    
+    if [[ $attempt -eq 5 ]]; then
+        echo "❌ Config Server 연결 최종 실패"
+        exit 1
+    fi
+done
+
+# 환경변수 추출 (bash 호환 문법 사용)
+MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.mysql.root-password"]' 2>/dev/null || echo "")
+REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.redis.password"]' 2>/dev/null || echo "")
+
+# 환경변수 검증
 if [[ -z "$MYSQL_ROOT_PASSWORD" ]] || [[ -z "$REDIS_PASSWORD" ]] || [[ "$MYSQL_ROOT_PASSWORD" == "null" ]] || [[ "$REDIS_PASSWORD" == "null" ]]; then
     echo "❌ Config Server에서 비밀번호를 가져오지 못했습니다"
+    echo "CONFIG_RESPONSE: $CONFIG_RESPONSE"
     exit 1
 fi
 
@@ -76,8 +97,8 @@ export REDIS_PASSWORD
 # 4. 전체 서비스 빌드 및 배포
 echo "🏗️ 서비스 빌드 및 배포..."
 echo "현재 환경변수 상태:"
-echo "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:0:3}***"
-echo "REDIS_PASSWORD=${REDIS_PASSWORD:0:3}***"
+echo "MYSQL_ROOT_PASSWORD=$(echo "$MYSQL_ROOT_PASSWORD" | cut -c1-3)***"
+echo "REDIS_PASSWORD=$(echo "$REDIS_PASSWORD" | cut -c1-3)***"
 
 # .env 파일 생성 (Docker Compose가 자동으로 읽음)
 cat > .env << EOF
