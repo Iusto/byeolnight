@@ -60,7 +60,7 @@ jobs:
       run: |
         echo "MySQL 서비스 연결 대기 중..."
         for i in {1..30}; do
-          if mysqladmin ping -h localhost -P 3306 -u root -ptest --silent; then
+          if MYSQL_PWD=test mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent; then
             echo "✅ MySQL 연결 성공"
             break
           fi
@@ -71,7 +71,7 @@ jobs:
     - name: 백엔드 서버 시작
       run: |
         chmod +x ./gradlew
-        nohup ./gradlew bootRun --args='--spring.profiles.active=test --spring.cloud.config.enabled=false' > server.log 2>&1 &
+        nohup ./gradlew bootRun --args='--spring.profiles.active=test' > server.log 2>&1 &
         echo $! > server.pid
         echo "서버 PID: $(cat server.pid)"
       env:
@@ -80,6 +80,7 @@ jobs:
         SPRING_DATASOURCE_PASSWORD: test
         SPRING_DATA_REDIS_HOST: localhost
         SPRING_DATA_REDIS_PORT: 6379
+        JWT_SECRET: ${{ secrets.JWT_SECRET_TEST }}
 
     - name: 서버 시작 대기
       run: |
@@ -316,7 +317,7 @@ jobs:
       run: |
         echo "MySQL 서비스 연결 대기 중..."
         for i in {1..30}; do
-          if mysqladmin ping -h localhost -P 3306 -u root -ptest --silent; then
+          if MYSQL_PWD=test mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent; then
             echo "✅ MySQL 연결 성공"
             break
           fi
@@ -325,6 +326,6 @@ jobs:
         done
         
         # 데이터베이스 연결 및 기본 쿼리 테스트
-        MYSQL_PWD=test mysql -h localhost -P 3306 -u root -e "SELECT 1 as test_connection;" byeolnight_test
-        MYSQL_PWD=test mysql -h localhost -P 3306 -u root -e "SHOW TABLES;" byeolnight_test
+        MYSQL_PWD=test mysql -h 127.0.0.1 -P 3306 -u root -e "SELECT 1 as test_connection;" byeolnight_test
+        MYSQL_PWD=test mysql -h 127.0.0.1 -P 3306 -u root -e "SHOW TABLES;" byeolnight_test
         echo "✅ 데이터베이스 성능 테스트 완료"

@@ -1,0 +1,100 @@
+# 테스트 환경 설정 (GitHub Actions 전용)
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/byeolnight_test}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:test}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        show_sql: false
+  
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+  
+  cloud:
+    config:
+      enabled: false  # Config Server 비활성화
+
+# JWT 설정 (환경 변수로 주입)
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:test-secret-key-for-github-actions-only-not-for-production-use}
+      access-expiration: 1800000
+      refresh-expiration: 604800000
+    max-login-attempts: 10
+    ip-block-duration: 1h
+    password-reset-validity: 30m
+    cookie:
+      secure: false
+      domain: ""
+
+# 로깅 설정
+logging:
+  level:
+    com.byeolnight: INFO
+    org.springframework.web: WARN
+    root: WARN
+
+# 서버 설정
+server:
+  port: 8080
+
+# 사이트 설정
+site:
+  base-url: http://localhost:8080
+
+# 외부 API 비활성화 (테스트용)
+security:
+  file:
+    max-size: 10485760
+    allowed-extensions: jpg,jpeg,png,gif
+    upload-rate-limit: 100
+    presigned-url-duration: 5
+    allowed-domains: localhost
+
+# AWS 설정 비활성화
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:test}
+      secret-key: ${AWS_SECRET_KEY:test}
+    region:
+      static: us-east-1
+    stack:
+      auto: false
+    s3:
+      bucket: test-bucket
+    cloudfront:
+      domain: test.cloudfront.net
+      key-pair-id: test
+      private-key-content: test
+      signed-url-duration: 60
+
+# 외부 API 테스트용 설정
+app:
+  security:
+    external-api:
+      email:
+        mail-from: test@test.com
+        gmail-password: test
+      ai:
+        openai-api-key: test
+        google-api-key: test
+        newsdata-api-key: test
+        newsdata-api-key-backup: test
