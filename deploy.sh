@@ -35,7 +35,7 @@ sleep 20
 
 # Config Server 상태 확인
 echo "🔍 Config Server 상태 확인..."
-for i in {1..15}; do
+for i in $(seq 1 15); do
     if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health > /dev/null 2>&1; then
         # 암호화 기능 검증
         if curl -s -X POST http://localhost:8888/encrypt -d "test" | grep -q "AQA"; then
@@ -55,11 +55,11 @@ done
 echo "🔑 Config Server에서 비밀번호 가져오기..."
 
 # Config Server 연결 재시도 로직
-for attempt in {1..5}; do
+for attempt in 1 2 3 4 5; do
     echo "Config Server 연결 시도 $attempt/5..."
     CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
     
-    if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq . >/dev/null 2>&1; then
+    if [ -n "$CONFIG_RESPONSE" ] && echo "$CONFIG_RESPONSE" | jq . >/dev/null 2>&1; then
         echo "✅ Config Server 응답 수신 성공"
         break
     else
@@ -67,7 +67,7 @@ for attempt in {1..5}; do
         sleep 3
     fi
     
-    if [[ $attempt -eq 5 ]]; then
+    if [ $attempt -eq 5 ]; then
         echo "❌ Config Server 연결 최종 실패"
         exit 1
     fi
@@ -78,7 +78,7 @@ MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].sourc
 REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.redis.password"]' 2>/dev/null || echo "")
 
 # 환경변수 검증
-if [[ -z "$MYSQL_ROOT_PASSWORD" ]] || [[ -z "$REDIS_PASSWORD" ]] || [[ "$MYSQL_ROOT_PASSWORD" == "null" ]] || [[ "$REDIS_PASSWORD" == "null" ]]; then
+if [ -z "$MYSQL_ROOT_PASSWORD" ] || [ -z "$REDIS_PASSWORD" ] || [ "$MYSQL_ROOT_PASSWORD" = "null" ] || [ "$REDIS_PASSWORD" = "null" ]; then
     echo "❌ Config Server에서 비밀번호를 가져오지 못했습니다"
     echo "CONFIG_RESPONSE: $CONFIG_RESPONSE"
     exit 1
