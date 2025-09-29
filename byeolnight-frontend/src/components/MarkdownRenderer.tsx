@@ -1,7 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
-import { sanitizeHtml } from '../utils/htmlSanitizer';
 
 interface MarkdownRendererProps {
   content: string;
@@ -19,24 +18,7 @@ export default function MarkdownRenderer({
   
   if (!content) return null;
   
-  if (isPreview) {
-    // 미리보기/에디터에서만 DOMPurify 후 dangerouslySetInnerHTML 사용
-    const sanitizedContent = sanitizeHtml(content);
-    return (
-      <div 
-        className={`prose prose-lg max-w-none dark:prose-invert youtube-content post-content ${className}`}
-        style={{ 
-          whiteSpace: 'pre-wrap', 
-          wordWrap: 'break-word', 
-          lineHeight: '1.7',
-          ...style 
-        }}
-        dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-      />
-    );
-  }
-  
-  // 렌더링: react-markdown + rehype-sanitize
+  // 미리보기와 일반 렌더링 모두 ReactMarkdown 사용
   return (
     <ReactMarkdown
       className={`prose prose-lg max-w-none dark:prose-invert youtube-content post-content ${className}`}
