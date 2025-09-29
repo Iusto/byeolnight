@@ -1,48 +1,76 @@
-#!/bin/bash
-# MySQL 백업 스크립트
-# 사용법: ./mysql-backup.sh
+#!/usr/bin/env bash
 
-set -e
+set -Eeo pipefail
 
-# 설정
-BACKUP_DIR="$HOME/mysql-backups"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+### 설정 ###
+CONTAINER="byeolnight-mysql-1"                 # MySQL 컨테이너 이름
+BACKUP_DIR="/home/ubuntu/mysql-backups"        # 절대경로 고정(중요)
 LOG_FILE="$BACKUP_DIR/backup.log"
+RETAIN_DAYS=7                                  # 보존 일수
+LOCK_FILE="/var/lock/mysql-backup.lock"        # flock 잠금 파일
+TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
-# 백업 디렉토리 생성
+### 준비 ###
 mkdir -p "$BACKUP_DIR"
+touch "$LOG_FILE"
+# 잠금(중복 실행 방지). 실패시 즉시 종료.
+exec 200>"$LOCK_FILE"
+flock -n 200 || { echo "[$TIMESTAMP] 이미 백업이 실행 중입니다." | tee -a "$LOG_FILE"; exit 1; }
 
-echo "[${TIMESTAMP}] MySQL 백업 시작..." | tee -a "$LOG_FILE"
+log() { echo "[$(date +%Y%m%d_%H%M%S)] $*" | tee -a "$LOG_FILE"; }
 
-# Docker 컨테이너에서 MySQL 비밀번호 가져오기
-MYSQL_PASSWORD=$(docker exec byeolnight-mysql-1 printenv MYSQL_ROOT_PASSWORD 2>/dev/null || echo "byeolnight9703!@")
+log "MySQL 백업 시작..."
 
-# 1. 논리적 백업 (mysqldump)
-echo "논리적 백업 생성 중..." | tee -a "$LOG_FILE"
-docker exec byeolnight-mysql-1 mysqldump -u root -p"$MYSQL_PASSWORD" --all-databases --routines --triggers --events --single-transaction | gzip > "$BACKUP_DIR/logical_${TIMESTAMP}.sql.gz"
+# 컨테이너 확인
+if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
+  log "오류: 컨테이너 '$CONTAINER' 가 실행 중이 아닙니다."
+  exit 2
+fi
 
-# 2. 물리적 백업 (데이터 디렉토리)
-echo "물리적 백업 생성 중..." | tee -a "$LOG_FILE"
-docker exec byeolnight-mysql-1 tar -czf /tmp/mysql_data_${TIMESTAMP}.tar.gz -C /var/lib/mysql .
-docker cp byeolnight-mysql-1:/tmp/mysql_data_${TIMESTAMP}.tar.gz "$BACKUP_DIR/physical_${TIMESTAMP}.tar.gz"
-docker exec byeolnight-mysql-1 rm /tmp/mysql_data_${TIMESTAMP}.tar.gz
+# 비밀번호 획득 (컨테이너 환경변수)
+MYSQL_PASSWORD="$(docker exec "$CONTAINER" printenv MYSQL_ROOT_PASSWORD 2>/dev/null || true)"
 
-# 파일 크기 확인
-LOGICAL_SIZE=$(du -h "$BACKUP_DIR/logical_${TIMESTAMP}.sql.gz" | cut -f1)
-PHYSICAL_SIZE=$(du -h "$BACKUP_DIR/physical_${TIMESTAMP}.tar.gz" | cut -f1)
+# 파일 경로
+LOGICAL_FILE="$BACKUP_DIR/logical_${TIMESTAMP}.sql.gz"
+PHYSICAL_FILE="$BACKUP_DIR/physical_${TIMESTAMP}.tar.gz"
+LOGICAL_SHA="$LOGICAL_FILE.sha256"
+PHYSICAL_SHA="$PHYSICAL_FILE.sha256"
 
-# MySQL 버전 확인
-MYSQL_VERSION=$(docker exec byeolnight-mysql-1 mysql --version)
+### 1) 논리 백업 (mysqldump)
+log "논리적 백업 생성 중..."
+# 경고 숨기기 위해 컨테이너 내부에서 MYSQL_PWD 사용
+docker exec -e MYSQL_PWD="$MYSQL_PASSWORD" "$CONTAINER" \
+  sh -c 'mysqldump -u root --all-databases --routines --triggers --events --single-transaction --quick' \
+  | gzip > "$LOGICAL_FILE"
 
-# 로그 기록
-echo "[${TIMESTAMP}] 백업 완료" | tee -a "$LOG_FILE"
-echo "- 논리적 백업: logical_${TIMESTAMP}.sql.gz (${LOGICAL_SIZE})" | tee -a "$LOG_FILE"
-echo "- 물리적 백업: physical_${TIMESTAMP}.tar.gz (${PHYSICAL_SIZE})" | tee -a "$LOG_FILE"
-echo "- MySQL 버전: ${MYSQL_VERSION}" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+# 무결성 점검 & 해시
+gzip -t "$LOGICAL_FILE"
+sha256sum "$LOGICAL_FILE" > "$LOGICAL_SHA"
 
-# 7일 이상 된 백업 파일 삭제
-find "$BACKUP_DIR" -name "*.sql.gz" -mtime +7 -delete
-find "$BACKUP_DIR" -name "*.tar.gz" -mtime +7 -delete
+### 2) 물리 백업 (데이터 디렉터리 tar)
+log "물리적 백업 생성 중..."
+TMP_TAR="/tmp/mysql_data_${TIMESTAMP}.tar.gz"
+docker exec "$CONTAINER" sh -c "tar -C /var/lib/mysql -czf '$TMP_TAR' ."
+docker cp "$CONTAINER:$TMP_TAR" "$PHYSICAL_FILE"
+docker exec "$CONTAINER" rm -f "$TMP_TAR"
 
-echo "백업이 완료되었습니다: $BACKUP_DIR"
+# 무결성 점검 & 해시
+tar -tzf "$PHYSICAL_FILE" >/dev/null
+sha256sum "$PHYSICAL_FILE" > "$PHYSICAL_SHA"
+
+### 부가 정보
+LOGICAL_SIZE="$(du -h "$LOGICAL_FILE" | awk '{print $1}')"
+PHYSICAL_SIZE="$(du -h "$PHYSICAL_FILE" | awk '{print $1}')"
+MYSQL_VERSION="$(docker exec "$CONTAINER" mysql --version || echo 'unknown')"
+
+log "백업 완료"
+log "- 논리적 백업: $(basename "$LOGICAL_FILE") ($LOGICAL_SIZE)"
+log "- 물리적 백업: $(basename "$PHYSICAL_FILE") ($PHYSICAL_SIZE)"
+log "- MySQL 버전: $MYSQL_VERSION"
+
+### 보존 정책
+log "보존 정책: ${RETAIN_DAYS}일 지난 파일 정리"
+find "$BACKUP_DIR" -type f \( -name 'logical_*.sql.gz' -o -name 'physical_*.tar.gz' -o -name '*.sha256' \) -mtime +"$RETAIN_DAYS" -print -delete | sed 's/^/[삭제]/' | tee -a "$LOG_FILE" || true
+
+log "백업이 완료되었습니다: $BACKUP_DIR"
+echo "" >> "$LOG_FILE"

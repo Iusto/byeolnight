@@ -86,9 +86,6 @@ cloud:
       private-key-content: test
       signed-url-duration: 60
 
-# 외부 API 테스트용 설정
-app:
-  security:
     external-api:
       email:
         mail-from: test@test.com
