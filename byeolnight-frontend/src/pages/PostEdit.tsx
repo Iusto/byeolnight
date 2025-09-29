@@ -172,7 +172,34 @@ export default function PostEdit() {
     fetchPost();
   }, [id, user]);
   
-
+  const removeImage = (index: number) => {
+    const imageToRemove = uploadedImages[index];
+    if (!imageToRemove) return;
+    
+    // 에디터에서 해당 이미지 제거
+    try {
+      if (editorRef.current?.getInstance) {
+        const instance = editorRef.current.getInstance();
+        if (instance) {
+          const currentContent = instance.getMarkdown();
+          // URL을 정규식에서 안전하게 사용하기 위해 이스케이프
+          const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // 마크다운 이미지 패턴 제거
+          const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'gi');
+          const newContent = currentContent.replace(imgRegex, '').replace(/\n\n+/g, '\n\n');
+          
+          // 에디터와 상태 모두 업데이트
+          instance.setMarkdown(newContent);
+          setContent(newContent);
+        }
+      }
+    } catch (error) {
+      console.error('에디터에서 이미지 제거 중 오류:', error);
+    }
+    
+    // 썸네일 목록에서 이미지 제거
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,6 +445,46 @@ export default function PostEdit() {
                 <span className="mobile-text">✏️ 수정 완료</span>
               )}
             </button>
+
+            {/* 검열 완료된 이미지 목록 */}
+            {uploadedImages.length > 0 && (
+              <div className="space-y-3 mt-6">
+                <h3 className="text-sm font-medium text-gray-300 flex flex-col sm:flex-row items-start sm:items-center gap-2 mobile-text">
+                  <span>✅ 검열 완료된 이미지:</span>
+                  <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30 mobile-caption">
+                    안전한 이미지만 표시됨
+                  </span>
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mobile-grid-2">
+                  {uploadedImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image.url}
+                        alt={image.originalName}
+                        className="w-full h-20 sm:h-24 object-cover rounded-lg shadow-md mobile-thumbnail"
+                        onError={(e) => {
+                          console.error('이미지 로드 실패:', image.url);
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo=';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow-lg z-20 transition-all duration-200 transform hover:scale-110"
+                      >
+                        ×
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 rounded-b-lg truncate mobile-caption">
+                        {image.originalName}
+                      </div>
+                      <div className="absolute top-1 left-1 bg-green-600/90 text-white text-xs px-2 py-1 rounded flex items-center gap-1 mobile-caption shadow-sm z-10">
+                        ✓ 검열완료
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </form>
         </div>
       </div>

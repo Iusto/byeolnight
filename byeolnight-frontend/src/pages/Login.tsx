@@ -41,7 +41,9 @@ export default function Login() {
       await login(email, password)
       navigate('/', { replace: true })
     } catch (err: any) {
-      setError(err.message || '로그인 실패')
+      // 서버에서 온 실제 에러 메시지 추출
+      const errorMessage = err.response?.data?.message || err.message || '로그인 실패'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

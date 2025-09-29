@@ -67,13 +67,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    const res = await axios.post('/auth/login', { email, password });
-    
-    if (!res.data?.success) {
-      throw new Error(res.data?.message || 'Login failed');
+    try {
+      const res = await axios.post('/auth/login', { email, password });
+      
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || 'Login failed');
+      }
+      
+      await fetchMyInfo();
+    } catch (error: any) {
+      // 서버에서 온 실제 에러 메시지를 그대로 전달
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      throw new Error(errorMessage);
     }
-    
-    await fetchMyInfo();
   };
 
   const logout = async () => {

@@ -464,13 +464,48 @@ export default function PostList() {
 
   // 이미지 게시글 카드 렌더링 (Home.tsx와 동일한 로직)
   const renderImagePostCard = (post: Post) => {
-    const imageUrl = post.thumbnailUrl || extractFirstImage(post.content);
+    const imageUrl = post.blinded && !isAdmin ? null : (post.thumbnailUrl || extractFirstImage(post.content));
     const hasImageFailed = failedImages.has(post.id);
     
+    // 블라인드 상태에 따른 스타일 결정
+    const cardClasses = post.blinded 
+      ? "bg-slate-800/30 rounded-xl overflow-hidden border-2 border-red-500/50 opacity-80 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] touch-manipulation"
+      : "bg-slate-800/50 rounded-xl overflow-hidden border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation";
+    
     return (
-      <div key={post.id} className="bg-slate-800/50 rounded-xl overflow-hidden border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
+      <div key={post.id} className={cardClasses}>
         <Link to={`/posts/${post.id}`} className="block">
           <div className="relative aspect-square bg-slate-700/50">
+            {/* 관리자 체크박스 */}
+            {isAdmin && (
+              <div className="absolute top-2 left-2 z-20">
+                <input
+                  type="checkbox"
+                  checked={selectedPosts.includes(post.id)}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePostSelect(post.id, e.target.checked);
+                  }}
+                  className="w-4 h-4 bg-white/90 rounded border-2 border-gray-400"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+            
+            {/* 블라인드 타입 표시 */}
+            {post.blinded && (
+              <div className="absolute top-2 right-2 z-20">
+                <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                  post.blindType === 'ADMIN_BLIND' 
+                    ? 'bg-red-600/90 text-red-100 border border-red-400/50' 
+                    : 'bg-yellow-600/90 text-yellow-100 border border-yellow-400/50'
+                }`}>
+                  {post.blindType === 'ADMIN_BLIND' ? '관리자' : '신고'}
+                </span>
+              </div>
+            )}
+            
             {imageUrl && !hasImageFailed ? (
               <img
                 src={imageUrl}
@@ -491,32 +526,58 @@ export default function PostList() {
               </div>
             )}
             
-            {post.blinded && !isAdmin && (
-              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                <span className="text-3xl">🔒</span>
+            {/* 블라인드 오버레이 */}
+            {post.blinded && (
+              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
+                <span className="text-4xl mb-2">🔒</span>
+                <span className={`text-xs px-2 py-1 rounded font-bold ${
+                  post.blindType === 'ADMIN_BLIND' 
+                    ? 'bg-red-600/90 text-red-100' 
+                    : 'bg-yellow-600/90 text-yellow-100'
+                }`}>
+                  {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+                </span>
               </div>
             )}
           </div>
           
-          <div className="p-3">
-            <h4 className="text-sm font-medium text-white line-clamp-2 mb-2">
+          <div className={`p-3 ${
+            post.blinded 
+              ? 'bg-slate-800/60 border-t border-red-500/30' 
+              : 'bg-slate-800/80'
+          }`}>
+            <h4 className={`text-sm font-medium line-clamp-2 mb-2 ${
+              post.blinded 
+                ? 'text-gray-300' 
+                : 'text-white'
+            }`}>
               {post.blinded && !isAdmin ? (
                 post.blindType === 'ADMIN_BLIND' 
-                  ? '관리자 블라인드 처리됨'
-                  : '신고로 블라인드 처리됨'
+                  ? '관리자가 블라인드 처리한 게시글'
+                  : '신고로 블라인드 처리된 게시글'
               ) : post.title}
             </h4>
             
             <div className="flex justify-between items-center text-xs text-gray-400">
               <div className="flex items-center gap-1">
-                <span className="bg-slate-700/50 rounded px-1 py-0.5">
+                <span className={`rounded px-1 py-0.5 ${
+                  post.blinded 
+                    ? 'bg-red-700/50 border border-red-600/30' 
+                    : 'bg-slate-700/50'
+                }`}>
                   {post.blinded && !isAdmin ? '🔒' : '👤'}
                 </span>
-                <span className="truncate max-w-[60px]">{post.blinded && !isAdmin ? '***' : post.writer}</span>
+                <span className="truncate max-w-[60px]">
+                  {post.blinded && !isAdmin ? '***' : post.writer}
+                </span>
               </div>
               <div className="flex gap-2">
-                <span>💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}</span>
-                <span>❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}</span>
+                <span className={post.blinded && !isAdmin ? 'text-gray-500' : ''}>
+                  💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}
+                </span>
+                <span className={post.blinded && !isAdmin ? 'text-gray-500' : ''}>
+                  ❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}
+                </span>
               </div>
             </div>
           </div>
