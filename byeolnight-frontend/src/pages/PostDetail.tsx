@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import ClickableNickname from '../components/ClickableNickname';
 import UserIconDisplay from '../components/UserIconDisplay';
 import CommentList from '../components/CommentList';
@@ -571,136 +569,7 @@ export default function PostDetail() {
         <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
           {/* 게시글 내용 */}
           <div className="mb-8">
-            <div className="prose prose-lg max-w-none dark:prose-invert youtube-content post-content" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', lineHeight: '1.7' }}>
-              <ReactMarkdown
-                children={post.content}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                skipHtml={false}
-                components={{
-                  img: ({ node, ...props }) => {
-                    // 모든 이미지 URL 허용 (보안 검증은 서버에서 처리)
-                    if (!props.src) {
-                      console.warn('이미지 src가 없습니다.');
-                      return null;
-                    }
-                    
-                    return (
-                      <img
-                        {...props}
-                        loading="lazy"
-                        style={{
-                          maxWidth: '100%',
-                          height: 'auto',
-                          margin: '16px 0',
-                          borderRadius: '8px',
-                          display: 'block',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                          cursor: 'pointer'
-                        }}
-                        onError={(e) => {
-                          console.error('마크다운 이미지 로드 실패:', props.src);
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
-                          e.currentTarget.onerror = null;
-                        }}
-                        onClick={() => props.src && window.open(props.src, '_blank')}
-                      />
-                    );
-                  },
-                  // 일반 텍스트에서 이미지 URL을 감지하여 이미지로 변환
-                  p: ({ node, children, ...props }) => {
-                    // 모든 텍스트 노드를 확인
-                    const getAllTextContent = (node: any): string => {
-                      if (!node) return '';
-                      if (node.type === 'text') return node.value || '';
-                      if (node.children) {
-                        return node.children.map(getAllTextContent).join('');
-                      }
-                      return '';
-                    };
-                    
-                    const textContent = getAllTextContent(node);
-                    
-                    // S3 이미지 URL 패턴 매칭 (더 포괄적)
-                    const imageUrlPatterns = [
-                      /https:\/\/byeolnight-bucket\.s3\.[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?/gi,
-                      /https:\/\/[^\s]*\.s3\.[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?/gi,
-                      /https:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?/gi
-                    ];
-                    
-                    let imageUrl = null;
-                    for (const pattern of imageUrlPatterns) {
-                      const match = textContent.match(pattern);
-                      if (match) {
-                        imageUrl = match[0];
-                        break;
-                      }
-                    }
-                    
-                    // 이미지 URL이 발견되고 텍스트가 URL만 포함하는 경우
-                    if (imageUrl && textContent.trim() === imageUrl.trim()) {
-                      return (
-                        <div style={{ margin: '16px 0' }}>
-                          <img
-                            src={imageUrl}
-                            alt="업로드된 이미지"
-                            loading="lazy"
-                            style={{
-                              maxWidth: '100%',
-                              height: 'auto',
-                              borderRadius: '8px',
-                              display: 'block',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                              cursor: 'pointer'
-                            }}
-                            onError={(e) => {
-                              console.error('이미지 로드 실패:', imageUrl);
-                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
-                              e.currentTarget.onerror = null;
-                            }}
-                            onClick={() => window.open(imageUrl, '_blank')}
-                          />
-                        </div>
-                      );
-                    }
-                    
-                    // 텍스트에 이미지 URL이 포함되어 있지만 다른 텍스트도 있는 경우
-                    if (imageUrl && textContent.includes(imageUrl)) {
-                      const parts = textContent.split(imageUrl);
-                      return (
-                        <div>
-                          {parts[0] && <p {...props}>{parts[0]}</p>}
-                          <div style={{ margin: '16px 0' }}>
-                            <img
-                              src={imageUrl}
-                              alt="업로드된 이미지"
-                              loading="lazy"
-                              style={{
-                                maxWidth: '100%',
-                                height: 'auto',
-                                borderRadius: '8px',
-                                display: 'block',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                                cursor: 'pointer'
-                              }}
-                              onError={(e) => {
-                                console.error('이미지 로드 실패:', imageUrl);
-                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
-                                e.currentTarget.onerror = null;
-                              }}
-                              onClick={() => window.open(imageUrl, '_blank')}
-                            />
-                          </div>
-                          {parts[1] && <p {...props}>{parts[1]}</p>}
-                        </div>
-                      );
-                    }
-                    
-                    return <p {...props}>{children}</p>;
-                  }
-                }}
-              />
-            </div>
+            <MarkdownRenderer content={post.content} />
             
             {/* iframe 지원 상태 표시 (개발용) */}
             {process.env.NODE_ENV === 'development' && iframeSupported !== null && (

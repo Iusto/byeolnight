@@ -202,6 +202,7 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - [🚀 성능 최적화 전략](./docs/05_optimizations.md)
 - [🔧 기술 스택 상세](./docs/06_TECH-STACK.md)
 - [🧪 테스트 전략](./docs/07_testing.md)
+- [📁 이미지 업로드 파이프라인 상세](./docs/14_image-upload-pipeline.md)
 - [⏰ 스케줄러 테스트 가이드](./docs/10_scheduler-testing.md)
 - [📊 데이터베이스 설계](./docs/09_database-design.md)
 
