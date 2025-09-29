@@ -637,7 +637,7 @@ export default function PostList() {
                   <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '***' : post.likeCount}</span>
                 </div>
               </div>
-              {isHot && (
+              {isHot && category !== 'IMAGE' && (
                 <p className="text-sm text-gray-300 mb-3 line-clamp-2 leading-relaxed">
                   {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content}
                 </p>

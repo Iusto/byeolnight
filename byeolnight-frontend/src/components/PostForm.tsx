@@ -69,6 +69,57 @@ export default function PostForm({
     }
   }, [fixedCategory, isFixedCategory]);
 
+  // 미리보기 스타일 추가
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .preview-markdown h1 { font-size: 2rem !important; font-weight: bold !important; margin: 1.5rem 0 1rem 0 !important; color: #e2e8f0 !important; }
+      .preview-markdown h2 { font-size: 1.75rem !important; font-weight: bold !important; margin: 1.25rem 0 0.75rem 0 !important; color: #e2e8f0 !important; }
+      .preview-markdown h3 { font-size: 1.5rem !important; font-weight: bold !important; margin: 1rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
+      .preview-markdown h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
+      .preview-markdown h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
+      .preview-markdown h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; }
+      .preview-markdown p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.4rem 0 !important; color: #cbd5e1 !important; }
+      .preview-markdown strong { font-weight: bold !important; color: #f1f5f9 !important; }
+      .preview-markdown em { font-style: italic !important; color: #a78bfa !important; }
+      .preview-markdown u { text-decoration: underline !important; color: #cbd5e1 !important; }
+      .preview-markdown s, .preview-markdown del { text-decoration: line-through !important; color: #94a3b8 !important; }
+      .preview-markdown blockquote { 
+        border-left: 4px solid #8b5cf6 !important; 
+        padding: 1rem 1.5rem !important; 
+        margin: 1.5rem 0 !important;
+        font-style: italic !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+        border-radius: 0 8px 8px 0 !important;
+        color: #c4b5fd !important;
+      }
+      .preview-markdown code {
+        background: rgba(139, 92, 246, 0.2) !important;
+        color: #e879f9 !important;
+        padding: 0.2rem 0.4rem !important;
+        border-radius: 4px !important;
+        font-family: 'Courier New', 'Consolas', monospace !important;
+        font-size: 0.9em !important;
+      }
+      .preview-markdown img { 
+        max-width: 100% !important; 
+        height: auto !important; 
+        margin: 16px 0 !important; 
+        border-radius: 8px !important; 
+        display: block !important; 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important; 
+        cursor: pointer !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
+
   // 컨텐츠 길이 계산
   useEffect(() => {
     if (content) {
@@ -252,7 +303,7 @@ export default function PostForm({
         {content && (
           <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
             <h3 className="text-sm font-medium text-gray-300 mb-3">📝 미리보기:</h3>
-            <MarkdownRenderer content={content} isPreview={true} />
+            <MarkdownRenderer content={content} isPreview={true} className="preview-markdown" />
           </div>
         )}
         
