@@ -21,7 +21,7 @@ export default function MarkdownRenderer({
   // 미리보기와 일반 렌더링 모두 ReactMarkdown 사용
   return (
     <ReactMarkdown
-      className={`prose prose-lg max-w-none dark:prose-invert youtube-content post-content ${className}`}
+      className={`youtube-content post-content ${className}`}
       rehypePlugins={[
         rehypeRaw, // 제한적 raw HTML 허용
         [rehypeSanitize, {
@@ -36,6 +36,80 @@ export default function MarkdownRenderer({
         }]
       ]}
       components={{
+        // 제목 컴포넌트들
+        h1: ({ children, ...props }) => (
+          <h1 {...props} style={{ fontSize: '2rem', fontWeight: 'bold', margin: '1.5rem 0 1rem 0', color: '#e2e8f0' }}>
+            {children}
+          </h1>
+        ),
+        h2: ({ children, ...props }) => (
+          <h2 {...props} style={{ fontSize: '1.75rem', fontWeight: 'bold', margin: '1.25rem 0 0.75rem 0', color: '#e2e8f0' }}>
+            {children}
+          </h2>
+        ),
+        h3: ({ children, ...props }) => (
+          <h3 {...props} style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '1rem 0 0.5rem 0', color: '#e2e8f0' }}>
+            {children}
+          </h3>
+        ),
+        h4: ({ children, ...props }) => (
+          <h4 {...props} style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0.75rem 0 0.5rem 0', color: '#e2e8f0' }}>
+            {children}
+          </h4>
+        ),
+        h5: ({ children, ...props }) => (
+          <h5 {...props} style={{ fontSize: '1.125rem', fontWeight: 'bold', margin: '0.75rem 0 0.5rem 0', color: '#e2e8f0' }}>
+            {children}
+          </h5>
+        ),
+        h6: ({ children, ...props }) => (
+          <h6 {...props} style={{ fontSize: '1rem', fontWeight: 'bold', margin: '0.5rem 0 0.25rem 0', color: '#e2e8f0' }}>
+            {children}
+          </h6>
+        ),
+        // 텍스트 스타일
+        p: ({ children, ...props }) => (
+          <p {...props} style={{ fontSize: '1rem', lineHeight: '1.7', margin: '0.4rem 0', color: '#cbd5e1' }}>
+            {children}
+          </p>
+        ),
+        strong: ({ children, ...props }) => (
+          <strong {...props} style={{ fontWeight: 'bold', color: '#f1f5f9' }}>
+            {children}
+          </strong>
+        ),
+        em: ({ children, ...props }) => (
+          <em {...props} style={{ fontStyle: 'italic', color: '#a78bfa' }}>
+            {children}
+          </em>
+        ),
+        // 인용구
+        blockquote: ({ children, ...props }) => (
+          <blockquote {...props} style={{
+            borderLeft: '4px solid #8b5cf6',
+            padding: '1rem 1.5rem',
+            margin: '1.5rem 0',
+            fontStyle: 'italic',
+            background: 'rgba(139, 92, 246, 0.1)',
+            borderRadius: '0 8px 8px 0',
+            color: '#c4b5fd'
+          }}>
+            {children}
+          </blockquote>
+        ),
+        // 코드
+        code: ({ children, ...props }) => (
+          <code {...props} style={{
+            background: 'rgba(139, 92, 246, 0.2)',
+            color: '#e879f9',
+            padding: '0.2rem 0.4rem',
+            borderRadius: '4px',
+            fontFamily: 'Courier New, Consolas, monospace',
+            fontSize: '0.9em'
+          }}>
+            {children}
+          </code>
+        ),
         // 이미지 컴포넌트 커스터마이징
         img: ({ src, alt, ...props }) => (
           <img 
