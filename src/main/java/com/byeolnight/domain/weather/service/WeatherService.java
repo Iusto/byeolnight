@@ -28,7 +28,7 @@ public class WeatherService {
     @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
     private String apiUrl;
     
-    private static final int CACHE_HOURS = 1;
+    private static final int CACHE_HOURS = 0;
     
     public WeatherResponse getObservationConditions(Double latitude, Double longitude) {
         // 캐시된 데이터 확인
