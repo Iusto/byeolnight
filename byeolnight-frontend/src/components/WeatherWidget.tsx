@@ -99,7 +99,7 @@ const WeatherWidget: React.FC = () => {
           clearTimeout(timeoutId);
           resolve(null);
         },
-        { timeout: 5000, enableHighAccuracy: false, maximumAge: 300000 }
+        { timeout: 10000, enableHighAccuracy: true, maximumAge: 60000 }
       );
     });
   };
@@ -265,7 +265,7 @@ const WeatherWidget: React.FC = () => {
                 <span className="font-semibold ml-2">{weather.visibility.toFixed(1)}km</span>
               </div>
               <div className="flex justify-between items-center min-w-0">
-                <span className="text-gray-300 flex-shrink-0">🌙 {t('weather.moon_phase')}</span>
+                <span className="text-gray-300 flex-shrink-0">{t('weather.moon_phase')}</span>
                 <span className="font-semibold flex items-center ml-2">
                   <span className="text-2xl">{getMoonPhaseIcon(weather.moonPhase)}</span>
                 </span>
