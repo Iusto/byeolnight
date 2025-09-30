@@ -527,13 +527,6 @@ export default function PostList() {
         </Link>
       </div>
     );
-  };electedPosts([]);
-      setShowMoveModal(false);
-      window.location.reload();
-    } catch (error) {
-      console.error('카테고리 이동 실패:', error);
-      alert('카테고리 이동에 실패했습니다.');
-    }
   };
 
   // 게시글 목록 렌더링 함수
