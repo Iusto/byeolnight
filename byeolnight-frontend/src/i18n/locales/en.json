@@ -512,14 +512,7 @@
     "visibility_good": "Good",
     "visibility_fair": "Fair",
     "visibility_poor": "Poor",
-    "visibility_unknown": "Unknown",
-    "moon_phases": {
-      "new_moon": "New Moon",
-      "waxing_crescent": "Waxing Crescent",
-      "first_quarter": "First Quarter",
-      "full_moon": "Full Moon",
-      "last_quarter": "Last Quarter"
-    }
+    "visibility_unknown": "Unknown"
   },
   "suggestion": {
     "title": "💡 Suggestion Board",

@@ -22,7 +22,7 @@ public class WeatherService {
     private final WeatherObservationRepository weatherRepository;
     private final RestTemplate restTemplate = new RestTemplate();
     
-    @Value("${weather.api.key:dummy-key}")
+    @Value("${weather.api.key}")
     private String apiKey;
     
     @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
@@ -59,8 +59,11 @@ public class WeatherService {
     }
     
     private Map<String, Object> callWeatherAPI(Double latitude, Double longitude) {
-        String url = String.format("%s/weather?lat=%f&lon=%f&appid=%s&units=metric", 
-                                 apiUrl, latitude, longitude, apiKey);
+        String url = String.format(
+                java.util.Locale.US,
+                "%s/weather?lat=%f&lon=%f&appid=%s&units=metric",
+                apiUrl, latitude, longitude, apiKey
+        );
         
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
         if (response == null) {
@@ -79,45 +82,93 @@ public class WeatherService {
             .longitude(lon)
             .cloudCover(weatherData.cloudCover())
             .visibility(weatherData.visibility())
-            .moonPhase(getMoonPhase()) // 간단한 계산
+            .moonPhase(getMoonPhaseIcon())
             .observationQuality(quality)
             .observationTime(LocalDateTime.now())
             .build();
             
         return weatherRepository.save(observation);
     }
-    
+
+    @SuppressWarnings("unchecked")
     private WeatherData extractWeatherData(Map<String, Object> apiData) {
-        String location = apiData.getOrDefault("name", "알 수 없음").toString();
-        
+        String location = String.valueOf(apiData.getOrDefault("name", "알 수 없음"));
         Map<String, Object> clouds = (Map<String, Object>) apiData.get("clouds");
-        double cloudCover = clouds != null ? ((Number) clouds.get("all")).doubleValue() : 50.0;
-        
-        double visibility = apiData.containsKey("visibility") ? 
-            ((Number) apiData.get("visibility")).doubleValue() / 1000.0 : 10.0;
-            
-        return new WeatherData(location, cloudCover, visibility);
+
+        double cloudCover = 50.0;
+        if (clouds != null) {
+            Object all = clouds.get("all");
+            if (all instanceof Number n) cloudCover = n.doubleValue();
+        }
+
+        double visibilityKm = 10.0;
+        Object vis = apiData.get("visibility");
+        if (vis instanceof Number n) visibilityKm = n.doubleValue() / 1000.0;
+
+        return new WeatherData(location, cloudCover, visibilityKm);
     }
-    
-    private String calculateObservationQuality(double cloudCover, double visibility) {
-        if (cloudCover < 20 && visibility > 15) return "EXCELLENT";
-        if (cloudCover < 40 && visibility > 10) return "GOOD";
-        if (cloudCover < 70 && visibility > 5) return "FAIR";
+
+    private String calculateObservationQuality(double cloudCover, double visibilityKm) {
+        if (cloudCover < 20 && visibilityKm >= 8)  return "EXCELLENT"; // 8~10km
+        if (cloudCover < 40 && visibilityKm >= 6)  return "GOOD";
+        if (cloudCover < 70 && visibilityKm >= 3)  return "FAIR";
         return "POOR";
     }
-    
-    private String getMoonPhase() {
-        // 간단한 달의 위상 계산 (실제로는 더 복잡한 계산 필요)
-        int dayOfMonth = LocalDateTime.now().getDayOfMonth();
-        return switch (dayOfMonth % 8) {
-            case 0 -> "그믐달";
-            case 1, 2 -> "초승달";
-            case 3, 4 -> "상현달";
-            case 5, 6 -> "보름달";
-            default -> "하현달";
-        };
+
+    /**
+     * UTC 시간을 율리우스력으로 변환
+     * @param dtUtc UTC 기준 날짜시간
+     * @return 율리우스 일수 (Julian Day Number)
+     */
+    private static double toJulian(LocalDateTime dtUtc) {
+        int Y = dtUtc.getYear(), M = dtUtc.getMonthValue(), D = dtUtc.getDayOfMonth();
+        int A = (14 - M) / 12;
+        Y = Y + 4800 - A;
+        M = M + 12 * A - 3;
+        long JDN = D + (153L*M + 2)/5 + 365L*Y + Y/4 - Y/100 + Y/400 - 32045;
+        double frac = (dtUtc.getHour() - 12) / 24.0 + dtUtc.getMinute()/1440.0 + dtUtc.getSecond()/86400.0;
+        return JDN + frac;
     }
-    
+
+    /**
+     * 달의 위상 비율 계산
+     * @param nowUtc UTC 기준 현재 시간
+     * @return 달의 위상 비율 (0.0~1.0, 0.5≈보름달)
+     */
+    private static double moonPhaseFraction(LocalDateTime nowUtc) {
+        final double SYNODIC = 29.530588853;      // 회합월 (달의 위상 주기)
+        final double NEWMOON_JDN = 2451550.1;     // 2000-01-06 18:14 UT 신월 기준점
+        double j = toJulian(nowUtc);
+        double cycles = (j - NEWMOON_JDN) / SYNODIC;
+        return cycles - Math.floor(cycles); // 0.0~1.0 (0.5≈보름달)
+    }
+
+    /**
+     * 달의 위상을 이모지 아이콘으로 반환
+     * @param f 달의 위상 비율 (0.0~1.0, 0.5≈보름달)
+     * @return 달의 위상 이모지
+     */
+    private static String getMoonPhase(double f) {
+        if (f < 0.03 || f > 0.97) return "🌑"; // 신월
+        if (f < 0.22)              return "🌒"; // 초승달
+        if (Math.abs(f - 0.25) < 0.03) return "🌓"; // 상현달
+        if (f < 0.47)              return "🌔"; // 상현→보름
+        if (Math.abs(f - 0.50) < 0.03) return "🌕"; // 보름달
+        if (f < 0.72)              return "🌖"; // 보름→하현
+        if (Math.abs(f - 0.75) < 0.03) return "🌗"; // 하현달
+        return "🌘"; // 그믐달
+    }
+
+    /**
+     * 현재 달의 위상을 정확히 계산하여 이모지로 반환
+     * @return 달의 위상 이모지
+     */
+    private String getMoonPhaseIcon() {
+        LocalDateTime nowUtc = LocalDateTime.now(java.time.ZoneOffset.UTC);
+        double f = moonPhaseFraction(nowUtc);
+        return getMoonPhase(f);
+    }
+
     private WeatherResponse createFallbackResponse(Double latitude, Double longitude) {
         return WeatherResponse.builder()
             .location("알 수 없음")
@@ -125,7 +176,7 @@ public class WeatherService {
             .longitude(longitude)
             .cloudCover(50.0)
             .visibility(10.0)
-            .moonPhase("알 수 없음")
+            .moonPhase("🌙")
             .observationQuality("UNKNOWN")
             .recommendation("UNKNOWN")
             .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))

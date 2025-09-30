@@ -201,23 +201,10 @@ const WeatherWidget: React.FC = () => {
     }
   };
 
+  // 백엔드에서 이미 아이콘으로 반환하므로 그대로 사용
   const getMoonPhaseIcon = (moonPhase: string) => {
-    const moonPhaseKey = Object.keys({
-      'new_moon': '🌑',
-      'waxing_crescent': '🌒',
-      'first_quarter': '🌓',
-      'full_moon': '🌕',
-      'last_quarter': '🌗'
-    }).find(key => t(`weather.moon_phases.${key}`) === moonPhase);
-    
-    switch (moonPhaseKey) {
-      case 'new_moon': return '🌑';
-      case 'waxing_crescent': return '🌒';
-      case 'first_quarter': return '🌓';
-      case 'full_moon': return '🌕';
-      case 'last_quarter': return '🌗';
-      default: return '🌙';
-    }
+    // 백엔드에서 이미 정확한 달의 위상 아이콘을 계산해서 반환
+    return moonPhase;
   };
 
   const getQualityColor = (quality: string) => {
@@ -279,9 +266,8 @@ const WeatherWidget: React.FC = () => {
               </div>
               <div className="flex justify-between items-center min-w-0">
                 <span className="text-gray-300 flex-shrink-0">🌙 {t('weather.moon_phase')}</span>
-                <span className="font-semibold flex items-center gap-1 ml-2 min-w-0">
-                  <span className="text-lg">{getMoonPhaseIcon(weather.moonPhase)}</span>
-                  <span className="truncate">{weather.moonPhase}</span>
+                <span className="font-semibold flex items-center ml-2">
+                  <span className="text-2xl">{getMoonPhaseIcon(weather.moonPhase)}</span>
                 </span>
               </div>
             </div>
@@ -336,7 +322,7 @@ const WeatherWidget: React.FC = () => {
                       </span>
                     </div>
                     <h4 className="font-semibold text-white mb-2">{event.title}</h4>
-                    <p className="text-sm text-gray-300">{event.description}</p>
+                    <p className="text-sm text-gray-300">{event.descriptions}</p>
                   </div>
                 </div>
               </div>

@@ -514,14 +514,7 @@
     "visibility_good": "양호",
     "visibility_fair": "보통",
     "visibility_poor": "어려움",
-    "visibility_unknown": "알 수 없음",
-    "moon_phases": {
-      "new_moon": "그믐달",
-      "waxing_crescent": "초승달",
-      "first_quarter": "상현달",
-      "full_moon": "보름달",
-      "last_quarter": "하현달"
-    }
+    "visibility_unknown": "알 수 없음"
   },
   "suggestion": {
     "title": "💡 건의게시판",

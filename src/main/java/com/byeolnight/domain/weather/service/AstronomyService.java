@@ -36,7 +36,7 @@ public class AstronomyService {
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
-    @Value("${nasa.api.key:DEMO_KEY}")
+    @Value("${nasa.api.key}")
     private String nasaApiKey;
 
     // API URLs

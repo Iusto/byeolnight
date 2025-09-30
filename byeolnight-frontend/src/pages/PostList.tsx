@@ -4,10 +4,9 @@ import axios from '../lib/axios';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import DiscussionTopicBanner from '../components/DiscussionTopicBanner';
 
-
-// 상수 및 타입 정의
+// 조건부 import
+const DiscussionTopicBanner = React.lazy(() => import('../components/DiscussionTopicBanner'));
 
 // 게시글 타입 정의
 interface Post {
@@ -18,7 +17,7 @@ interface Post {
   writer: string;
   writerIcon?: string;
   blinded: boolean;
-  blindType?: string; // 'ADMIN_BLIND' 또는 'REPORT_BLIND'
+  blindType?: string;
   likeCount: number;
   likedByMe: boolean;
   hot: boolean;
@@ -29,7 +28,7 @@ interface Post {
   thumbnailUrl?: string;
 }
 
-// CATEGORY_LABELS를 다국어로 처리하기 위해 함수로 변경
+// 카테고리 라벨 함수 (다국어 지원)
 const getCategoryLabel = (category: string, t: any): string => {
   const labels: Record<string, string> = {
     NEWS: t('home.space_news'),
@@ -43,36 +42,7 @@ const getCategoryLabel = (category: string, t: any): string => {
   return labels[category] || category;
 };
 
-// 기존 CATEGORY_LABELS는 호환성을 위해 유지
-const CATEGORY_LABELS: Record<string, string> = {
-  NEWS: '뉴스',
-  DISCUSSION: '토론',
-  IMAGE: '사진',
-  REVIEW: '후기',
-  FREE: '자유',
-  NOTICE: '공지',
-  STARLIGHT_CINEMA: '별빛 시네마',
-};
-
-// AdminUserPage.tsx에서도 사용할 수 있도록 export
-export { CATEGORY_LABELS };
-
-// 카테고리 관련 상수
-const RESTRICTED_CATEGORIES = ['NEWS', 'NOTICE', 'STARLIGHT_CINEMA'];
-const USER_WRITABLE_CATEGORIES = ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'];
-
-// 카테고리별 아이콘 매핑
-const CATEGORY_ICONS: Record<string, string> = {
-  NEWS: '🚀',
-  DISCUSSION: '💬',
-  IMAGE: '🌌',
-  REVIEW: '⭐',
-  FREE: '🎈',
-  NOTICE: '📢',
-  STARLIGHT_CINEMA: '🎬'
-};
-
-// 카테고리별 설명을 다국어로 처리하는 함수
+// 카테고리 설명 함수 (다국어 지원)
 const getCategoryDescription = (category: string, t: any): string => {
   const descriptions: Record<string, string> = {
     NEWS: t('home.news_auto_desc'),
@@ -86,20 +56,29 @@ const getCategoryDescription = (category: string, t: any): string => {
   return descriptions[category] || '';
 };
 
-// 기존 CATEGORY_DESCRIPTIONS는 호환성을 위해 유지
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  NEWS: '최신 우주 뉴스를 AI가 자동으로 수집합니다',
-  DISCUSSION: 'AI가 생성한 토론 주제로 깊이 있는 대화를 나눠보세요',
-  IMAGE: '아름다운 우주 사진을 공유하고 감상해보세요',
-  REVIEW: '우주 관련 경험과 후기를 나눠주세요',
-  FREE: '우주에 대한 자유로운 이야기를 나눠보세요',
-  NOTICE: '중요한 공지사항을 확인하세요',
-  STARLIGHT_CINEMA: 'AI가 큐레이션한 우주 영상을 감상하세요'
+// 호환성을 위한 카테고리 라벨 (AdminUserPage.tsx에서 사용)
+export const CATEGORY_LABELS: Record<string, string> = {
+  NEWS: '뉴스',
+  DISCUSSION: '토론',
+  IMAGE: '사진',
+  REVIEW: '후기',
+  FREE: '자유',
+  NOTICE: '공지',
+  STARLIGHT_CINEMA: '별빛 시네마',
 };
 
-// 작성자 아이콘 통일
-const renderStellaIcon = (iconName: string | null | undefined) => {
-  return '👤'; // 모든 사용자에게 동일한 아이콘 사용
+// 카테고리 관련 상수
+const USER_WRITABLE_CATEGORIES = ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE'];
+
+// 카테고리별 아이콘 매핑
+const CATEGORY_ICONS: Record<string, string> = {
+  NEWS: '🚀',
+  DISCUSSION: '💬',
+  IMAGE: '🌌',
+  REVIEW: '⭐',
+  FREE: '🎈',
+  NOTICE: '📢',
+  STARLIGHT_CINEMA: '🎬'
 };
 
 export default function PostList() {
@@ -130,9 +109,22 @@ export default function PostList() {
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
   
-  // 게시글 분류
-  const hotPosts = posts.filter((p) => p.hot).slice(0, 4);
-  const normalPosts = sort === 'popular' ? posts.slice(0, 30) : posts.filter((p) => !p.hot).slice(0, 25);
+  // 게시글 분류 (한 번의 순회로 최적화)
+  const { hotPosts, normalPosts } = React.useMemo(() => {
+    if (sort === 'popular') {
+      return { hotPosts: [], normalPosts: posts.slice(0, 30) };
+    }
+    const hot: Post[] = [];
+    const normal: Post[] = [];
+    posts.forEach(post => {
+      if (post.hot && hot.length < 4) {
+        hot.push(post);
+      } else if (!post.hot && normal.length < 25) {
+        normal.push(post);
+      }
+    });
+    return { hotPosts: hot, normalPosts: normal };
+  }, [posts, sort]);
   
   // 권한 관련 변수
   const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
@@ -213,15 +205,8 @@ export default function PostList() {
 
   // 카테고리 변경 핸들러
   const handleCategoryChange = (cat: string) => {
-    // React 상태 업데이트 배칭 문제 해결
-    setTimeout(() => {
-      try {
-        const params = createUrlParams({ category: cat, page: '0' });
-        navigate(`?${params.toString()}`, { replace: true });
-      } catch (error) {
-        console.error('카테고리 변경 오류:', error);
-      }
-    }, 0);
+    const params = createUrlParams({ category: cat, page: '0' });
+    navigate(`?${params.toString()}`, { replace: true });
   };
 
   // 정렬 변경 핸들러
@@ -301,6 +286,256 @@ export default function PostList() {
     }
   };
 
+  // 이미지 추출 함수
+  const extractFirstImage = (content: string): string | null => {
+    if (!content) return null;
+    const imgMatches = [
+      content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i),
+      content.match(/!\[.*?\]\(([^)]+)\)/),
+      content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i)
+    ];
+    
+    for (const match of imgMatches) {
+      if (match?.[1] && !match[1].includes('placeholder')) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  };
+
+  // 이미지 로드 실패 상태 관리
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+
+  // 공통 이미지 오류 처리 함수
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.style.display = 'none';
+    const parent = e.currentTarget.parentElement;
+    if (parent) {
+      parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center"><span class="text-3xl sm:text-4xl">🌌</span></div>';
+    }
+  };
+
+  // 통합된 게시글 렌더링 함수
+  const renderPost = (post: Post, variant: 'hot-card' | 'normal-card' | 'image-card' | 'list-item', isHot = false) => {
+    const isBlinded = post.blinded && !isAdmin;
+    const displayTitle = isBlinded ? 
+      (post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드 처리됨' : '신고로 블라인드 처리됨') : 
+      post.title;
+    const displayContent = isBlinded ? '내용을 볼 수 없습니다.' : post.content;
+    const displayWriter = isBlinded ? '***' : post.writer;
+    const displayStats = isBlinded ? '*' : '';
+
+    const commonProps = {
+      key: post.id,
+      className: `transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation ${
+        variant === 'image-card' ? 'rounded-xl overflow-hidden' : 'rounded-xl p-4'
+      } ${
+        isBlinded ? 'opacity-80 border-red-500/50' : 
+        isHot ? 'bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 hover:shadow-orange-500/25' :
+        'bg-slate-800/50 border border-slate-600/30 hover:border-purple-500/40 hover:shadow-lg'
+      }`
+    };
+
+    if (variant === 'image-card') {
+      const imageUrl = isBlinded ? null : (post.thumbnailUrl || extractFirstImage(post.content));
+      const hasImageFailed = failedImages.has(post.id);
+      
+      return (
+        <div {...commonProps}>
+          <Link to={`/posts/${post.id}`} className="block">
+            <div className="relative aspect-square bg-slate-700/50">
+              {isAdmin && (
+                <div className="absolute top-2 left-2 z-20">
+                  <input
+                    type="checkbox"
+                    checked={selectedPosts.includes(post.id)}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handlePostSelect(post.id, e.target.checked);
+                    }}
+                    className="w-4 h-4 bg-white/90 rounded border-2 border-gray-400"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+              
+              {post.blinded && (
+                <div className="absolute top-2 right-2 z-20">
+                  <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                    post.blindType === 'ADMIN_BLIND' 
+                      ? 'bg-red-600/90 text-red-100 border border-red-400/50' 
+                      : 'bg-yellow-600/90 text-yellow-100 border border-yellow-400/50'
+                  }`}>
+                    {post.blindType === 'ADMIN_BLIND' ? '관리자' : '신고'}
+                  </span>
+                </div>
+              )}
+              
+              {imageUrl && !hasImageFailed ? (
+                <img
+                  src={imageUrl}
+                  alt="별 사진"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={handleImageError}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700/50 to-purple-900/30">
+                  <span className="text-3xl">🌌</span>
+                </div>
+              )}
+              
+              {post.blinded && (
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
+                  <span className="text-4xl mb-2">🔒</span>
+                  <span className={`text-xs px-2 py-1 rounded font-bold ${
+                    post.blindType === 'ADMIN_BLIND' 
+                      ? 'bg-red-600/90 text-red-100' 
+                      : 'bg-yellow-600/90 text-yellow-100'
+                  }`}>
+                    {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            <div className={`p-3 ${
+              post.blinded 
+                ? 'bg-slate-800/60 border-t border-red-500/30' 
+                : 'bg-slate-800/80'
+            }`}>
+              <h4 className={`text-sm font-medium line-clamp-2 mb-2 ${
+                post.blinded ? 'text-gray-300' : 'text-white'
+              }`}>
+                {displayTitle}
+              </h4>
+              
+              <div className="flex justify-between items-center text-xs text-gray-400">
+                <div className="flex items-center gap-1">
+                  <span className={`rounded px-1 py-0.5 ${
+                    post.blinded 
+                      ? 'bg-red-700/50 border border-red-600/30' 
+                      : 'bg-slate-700/50'
+                  }`}>
+                    {isBlinded ? '🔒' : '👤'}
+                  </span>
+                  <span className="truncate max-w-[60px]">{displayWriter}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className={isBlinded ? 'text-gray-500' : ''}>
+                    💬 {isBlinded ? displayStats : (post.commentCount || 0)}
+                  </span>
+                  <span className={isBlinded ? 'text-gray-500' : ''}>
+                    ❤️ {isBlinded ? displayStats : post.likeCount}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+      );
+    }
+
+    if (variant === 'list-item') {
+      return (
+        <div {...commonProps}>
+          <div className="flex items-start gap-3">
+            {isAdmin && (
+              <input
+                type="checkbox"
+                checked={selectedPosts.includes(post.id)}
+                onChange={(e) => handlePostSelect(post.id, e.target.checked)}
+                className="w-4 h-4 mt-1 flex-shrink-0"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <Link to={`/posts/${post.id}`} className="block">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
+                  <h4 className="text-base sm:text-lg font-semibold text-white flex-1 flex items-center gap-2 line-clamp-2">
+                    {isHot && <span className="text-orange-400 flex-shrink-0">🔥</span>}
+                    {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs flex-shrink-0">[{post.dDay}]</span>}
+                    <span className="break-words">{displayTitle}</span>
+                    {post.blinded && (
+                      <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${
+                        post.blindType === 'ADMIN_BLIND' 
+                          ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
+                          : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
+                      }`}>
+                        {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+                      </span>
+                    )}
+                  </h4>
+                  <div className="flex items-center gap-3 text-sm text-gray-400 flex-shrink-0">
+                    {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
+                    <span className="flex items-center gap-1">💬 {isBlinded ? displayStats : (post.commentCount || 0)}</span>
+                    <span className="flex items-center gap-1">❤️ {isBlinded ? displayStats : post.likeCount}</span>
+                  </div>
+                </div>
+                {isHot && category !== 'IMAGE' && (
+                  <p className="text-sm text-gray-300 mb-3 line-clamp-2 leading-relaxed">
+                    {displayContent}
+                  </p>
+                )}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-gray-400">
+                  <span className="flex items-center gap-2">
+                    <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30">
+                      {isBlinded ? '🔒' : '👤'}
+                    </span>
+                    <span className="truncate">{displayWriter}</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-xs sm:text-sm">
+                    📅 {isBlinded ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // card variants (hot-card, normal-card)
+    return (
+      <div {...commonProps}>
+        <Link to={`/posts/${post.id}`} className="block">
+          <div className="flex items-start gap-3 mb-3">
+            <div className={`flex-shrink-0 w-${isHot ? '10' : '8'} h-${isHot ? '10' : '8'} bg-gradient-to-br ${isHot ? 'from-orange-500/30 to-red-500/30' : 'from-purple-500/30 to-pink-500/30'} rounded-full flex items-center justify-center`}>
+              <span className={`text-${isHot ? 'lg' : 'sm'}`}>{isHot ? '🔥' : (CATEGORY_ICONS[post.category] || '📝')}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
+                {displayTitle}
+              </h4>
+              <p className={`text-xs sm:text-sm text-gray-300 ${isHot ? 'line-clamp-2 leading-relaxed' : 'line-clamp-1'}`}>
+                {isHot ? displayContent : displayContent.substring(0, 60) + '...'}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
+                {isBlinded ? '🔒' : '👤'}
+              </span>
+              <span className="truncate max-w-[80px]">{displayWriter}</span>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="flex items-center gap-1">💬 {isBlinded ? displayStats : (post.commentCount || 0)}</span>
+              <span className="flex items-center gap-1">❤️ {isBlinded ? displayStats : post.likeCount}</span>
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  };electedPosts([]);
+      setShowMoveModal(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('카테고리 이동 실패:', error);
+      alert('카테고리 이동에 실패했습니다.');
+    }
+  };
+
   // 게시글 목록 렌더링 함수
   const renderPostList = () => {
     if (loading) {
@@ -320,7 +555,7 @@ export default function PostList() {
               <span className="text-xl sm:text-2xl">🔥</span> {t('home.hot_posts')}
             </h3>
             <div className="space-y-3 mb-6 sm:mb-8">
-              {hotPosts.map((post) => renderPostItem(post, true))}
+              {hotPosts.map((post) => renderPost(post, 'list-item', true))}
             </div>
           </>
         )}
@@ -333,11 +568,11 @@ export default function PostList() {
         
         {category === 'IMAGE' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-            {normalPosts.map((post) => renderImagePostCard(post))}
+            {normalPosts.map((post) => renderPost(post, 'image-card'))}
           </div>
         ) : (
           <div className="space-y-4">
-            {normalPosts.map((post) => renderPostItem(post, false))}
+            {normalPosts.map((post) => renderPost(post, 'list-item'))}
           </div>
         )}
 
@@ -366,383 +601,7 @@ export default function PostList() {
       </>
     );
   };
-  
-  // 인기 게시글 카드 렌더링
-  const renderHotPostCard = (post: Post) => {
-    return (
-      <div key={post.id} className="bg-gradient-to-br from-orange-600/20 to-red-600/20 rounded-xl p-4 border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/25 transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
-        <Link to={`/posts/${post.id}`} className="block">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500/30 to-red-500/30 rounded-full flex items-center justify-center">
-              <span className="text-lg">🔥</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
-                {post.blinded && !isAdmin ? (
-                  post.blindType === 'ADMIN_BLIND' 
-                    ? '관리자 블라인드 처리됨'
-                    : '신고로 블라인드 처리됨'
-                ) : post.title}
-              </h4>
-              <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 leading-relaxed">
-                {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content}
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-between items-center text-xs text-gray-400">
-            <div className="flex items-center gap-2">
-              <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
-                {post.blinded && !isAdmin ? '🔒' : '👤'}
-              </span>
-              <span className="truncate max-w-[80px]">{post.blinded && !isAdmin ? '***' : post.writer}</span>
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="flex items-center gap-1">💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}</span>
-              <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}</span>
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
-  };
 
-  // 일반 게시글 카드 렌더링
-  const renderPostCard = (post: Post) => {
-    return (
-      <div key={post.id} className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation">
-        <Link to={`/posts/${post.id}`} className="block">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full flex items-center justify-center">
-              <span className="text-sm">{CATEGORY_ICONS[post.category] || '📝'}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm sm:text-base font-semibold text-white line-clamp-2 leading-tight mb-2">
-                {post.blinded && !isAdmin ? (
-                  post.blindType === 'ADMIN_BLIND' 
-                    ? '관리자 블라인드 처리됨'
-                    : '신고로 블라인드 처리됨'
-                ) : post.title}
-              </h4>
-              <p className="text-xs sm:text-sm text-gray-300 line-clamp-1">
-                {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content.substring(0, 60) + '...'}
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-between items-center text-xs text-gray-400">
-            <div className="flex items-center gap-2">
-              <span className="bg-slate-700/50 rounded px-1.5 py-0.5">
-                {post.blinded && !isAdmin ? '🔒' : '👤'}
-              </span>
-              <span className="truncate max-w-[80px]">{post.blinded && !isAdmin ? '***' : post.writer}</span>
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="flex items-center gap-1">💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}</span>
-              <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}</span>
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
-  };
-
-  // 이미지 추출 함수 (Home.tsx와 동일)
-  const extractFirstImage = (content: string): string | null => {
-    if (!content) return null;
-    const imgMatches = [
-      content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i),
-      content.match(/!\[.*?\]\(([^)]+)\)/),
-      content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i)
-    ];
-    
-    for (const match of imgMatches) {
-      if (match?.[1] && !match[1].includes('placeholder')) {
-        return match[1].trim();
-      }
-    }
-    return null;
-  };
-
-  // 이미지 게시글 카드 렌더링 (Home.tsx와 동일한 로직)
-  const renderImagePostCard = (post: Post) => {
-    const imageUrl = post.blinded && !isAdmin ? null : (post.thumbnailUrl || extractFirstImage(post.content));
-    const hasImageFailed = failedImages.has(post.id);
-    
-    // 블라인드 상태에 따른 스타일 결정
-    const cardClasses = post.blinded 
-      ? "bg-slate-800/30 rounded-xl overflow-hidden border-2 border-red-500/50 opacity-80 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] touch-manipulation"
-      : "bg-slate-800/50 rounded-xl overflow-hidden border border-slate-600/30 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation";
-    
-    return (
-      <div key={post.id} className={cardClasses}>
-        <Link to={`/posts/${post.id}`} className="block">
-          <div className="relative aspect-square bg-slate-700/50">
-            {/* 관리자 체크박스 */}
-            {isAdmin && (
-              <div className="absolute top-2 left-2 z-20">
-                <input
-                  type="checkbox"
-                  checked={selectedPosts.includes(post.id)}
-                  onChange={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handlePostSelect(post.id, e.target.checked);
-                  }}
-                  className="w-4 h-4 bg-white/90 rounded border-2 border-gray-400"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            )}
-            
-            {/* 블라인드 타입 표시 */}
-            {post.blinded && (
-              <div className="absolute top-2 right-2 z-20">
-                <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                  post.blindType === 'ADMIN_BLIND' 
-                    ? 'bg-red-600/90 text-red-100 border border-red-400/50' 
-                    : 'bg-yellow-600/90 text-yellow-100 border border-yellow-400/50'
-                }`}>
-                  {post.blindType === 'ADMIN_BLIND' ? '관리자' : '신고'}
-                </span>
-              </div>
-            )}
-            
-            {imageUrl && !hasImageFailed ? (
-              <img
-                src={imageUrl}
-                alt="별 사진"
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center"><span class="text-3xl">🌌</span></div>';
-                  }
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700/50 to-purple-900/30">
-                <span className="text-3xl">🌌</span>
-              </div>
-            )}
-            
-            {/* 블라인드 오버레이 */}
-            {post.blinded && (
-              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
-                <span className="text-4xl mb-2">🔒</span>
-                <span className={`text-xs px-2 py-1 rounded font-bold ${
-                  post.blindType === 'ADMIN_BLIND' 
-                    ? 'bg-red-600/90 text-red-100' 
-                    : 'bg-yellow-600/90 text-yellow-100'
-                }`}>
-                  {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          <div className={`p-3 ${
-            post.blinded 
-              ? 'bg-slate-800/60 border-t border-red-500/30' 
-              : 'bg-slate-800/80'
-          }`}>
-            <h4 className={`text-sm font-medium line-clamp-2 mb-2 ${
-              post.blinded 
-                ? 'text-gray-300' 
-                : 'text-white'
-            }`}>
-              {post.blinded && !isAdmin ? (
-                post.blindType === 'ADMIN_BLIND' 
-                  ? '관리자가 블라인드 처리한 게시글'
-                  : '신고로 블라인드 처리된 게시글'
-              ) : post.title}
-            </h4>
-            
-            <div className="flex justify-between items-center text-xs text-gray-400">
-              <div className="flex items-center gap-1">
-                <span className={`rounded px-1 py-0.5 ${
-                  post.blinded 
-                    ? 'bg-red-700/50 border border-red-600/30' 
-                    : 'bg-slate-700/50'
-                }`}>
-                  {post.blinded && !isAdmin ? '🔒' : '👤'}
-                </span>
-                <span className="truncate max-w-[60px]">
-                  {post.blinded && !isAdmin ? '***' : post.writer}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <span className={post.blinded && !isAdmin ? 'text-gray-500' : ''}>
-                  💬 {post.blinded && !isAdmin ? '*' : (post.commentCount || 0)}
-                </span>
-                <span className={post.blinded && !isAdmin ? 'text-gray-500' : ''}>
-                  ❤️ {post.blinded && !isAdmin ? '*' : post.likeCount}
-                </span>
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
-  };
-
-  // 게시글 아이템 렌더링 (리스트 형식)
-  const renderPostItem = (post: Post, isHot: boolean = false) => {
-    const postClasses = post.blinded 
-      ? 'bg-[#1a1a2e]/50 border border-gray-700/30 opacity-70 hover:bg-[#1e1e3a]/60 hover:border-gray-600/40' 
-      : isHot
-        ? 'bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 hover:shadow-orange-500/25'
-        : 'bg-[#1f2336]/80 border border-gray-600/50 hover:bg-[#252842]/80 hover:border-purple-500/30 hover:shadow-lg';
-    
-    return (
-      <div
-        key={post.id}
-        className={`rounded-lg p-4 transition-all duration-200 transform hover:scale-[1.01] ${postClasses}`}
-      >
-        <div className="flex items-start gap-3">
-          {isAdmin && (
-            <input
-              type="checkbox"
-              checked={selectedPosts.includes(post.id)}
-              onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-              className="w-4 h-4 mt-1 flex-shrink-0"
-            />
-          )}
-          <div className="flex-1 min-w-0">
-            <Link to={`/posts/${post.id}`} className="block">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
-                <h4 className="text-base sm:text-lg font-semibold text-white flex-1 flex items-center gap-2 line-clamp-2">
-                  {isHot && <span className="text-orange-400 flex-shrink-0">🔥</span>}
-                  {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs flex-shrink-0">[{post.dDay}]</span>}
-                  <span className="break-words">
-                    {post.blinded && !isAdmin ? (
-                      post.blindType === 'ADMIN_BLIND' 
-                        ? '관리자가 직접 블라인드 처리한 게시글입니다'
-                        : '다수의 신고로 블라인드 처리된 게시글입니다'
-                    ) : post.title}
-                  </span>
-                  {post.blinded && (
-                    <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${
-                      post.blindType === 'ADMIN_BLIND' 
-                        ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
-                        : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
-                    }`}>
-                      {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
-                    </span>
-                  )}
-                </h4>
-                <div className="flex items-center gap-3 text-sm text-gray-400 flex-shrink-0">
-                  {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
-                  <span className="flex items-center gap-1">💬 {post.blinded && !isAdmin ? '***' : (post.commentCount || 0)}</span>
-                  <span className="flex items-center gap-1">❤️ {post.blinded && !isAdmin ? '***' : post.likeCount}</span>
-                </div>
-              </div>
-              {isHot && category !== 'IMAGE' && (
-                <p className="text-sm text-gray-300 mb-3 line-clamp-2 leading-relaxed">
-                  {post.blinded && !isAdmin ? '내용을 볼 수 없습니다.' : post.content}
-                </p>
-              )}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-gray-400">
-                <span className="flex items-center gap-2">
-                  <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                    {post.blinded && !isAdmin ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
-                  </span>
-                  <span className="truncate">{post.blinded && !isAdmin ? '***' : post.writer}</span>
-                </span>
-                <span className="flex items-center gap-1 text-xs sm:text-sm">
-                  📅 {post.blinded && !isAdmin ? '****-**-**' : new Date(post.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  // 이미지 로드 실패 상태 관리
-  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
-
-  // 이미지 게시글 아이템 렌더링 (Home.tsx와 동일한 로직)
-  const renderImagePostItem = (post: Post) => {
-    const imageUrl = post.blinded ? null : (post.thumbnailUrl || extractFirstImage(post.content));
-    const hasImageFailed = failedImages.has(post.id);
-    
-    return (
-      <div 
-        key={post.id} 
-        className={`rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-[1.03] ${post.blinded ? 'opacity-70' : ''}`}
-      >
-        <Link to={`/posts/${post.id}`} className="block h-full">
-          <div className="relative aspect-square bg-slate-800/50 overflow-hidden">
-            {imageUrl && !hasImageFailed ? (
-              <img
-                src={imageUrl}
-                alt={post.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-slate-700/50 to-purple-900/30 flex items-center justify-center"><span class="text-4xl">🌌</span></div>';
-                  }
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700/50 to-purple-900/30">
-                <span className="text-4xl">🌌</span>
-              </div>
-            )}
-            
-            {/* 관리자 체크박스 */}
-            {isAdmin && (
-              <div className="absolute top-2 left-2 z-10">
-                <input
-                  type="checkbox"
-                  checked={selectedPosts.includes(post.id)}
-                  onChange={(e) => handlePostSelect(post.id, e.target.checked)}
-                  className="w-4 h-4"
-                />
-              </div>
-            )}
-            
-
-            
-            {/* 블라인드 표시 */}
-            {post.blinded && (
-              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                <span className="text-4xl">🔒</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="p-3 bg-slate-800/80">
-            <h4 className="text-sm font-medium text-white line-clamp-1">
-              {post.blinded ? (
-                post.blindType === 'ADMIN_BLIND' 
-                  ? '관리자 블라인드 처리됨'
-                  : '신고로 블라인드 처리됨'
-              ) : post.title}
-            </h4>
-            
-            <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
-              <span className="flex items-center gap-1">
-                <span className="bg-slate-700/50 rounded px-1 py-0.5 border border-slate-600/30">
-                  {post.blinded ? '🔒' : (post.writerIcon ? renderStellaIcon(post.writerIcon) : '✍️')}
-                </span>
-                <span className="truncate max-w-[80px]">{post.blinded ? '***' : post.writer}</span>
-              </span>
-              <div className="flex gap-2">
-                <span className="flex items-center">💬 {post.blinded ? '*' : (post.commentCount || 0)}</span>
-                <span className="flex items-center">❤️ {post.blinded ? '*' : post.likeCount}</span>
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
-  };
   
   // 카테고리 이동 모달 렌더링
   const renderCategoryMoveModal = () => {
@@ -987,7 +846,11 @@ export default function PostList() {
         )}
         
         {/* 토론 카테고리 - 오늘의 토론 주제 배너 */}
-        {category === 'DISCUSSION' && <DiscussionTopicBanner />}
+        {category === 'DISCUSSION' && (
+          <React.Suspense fallback={null}>
+            <DiscussionTopicBanner />
+          </React.Suspense>
+        )}
         
         {/* 관리자 토론 주제 생성 */}
         {category === 'DISCUSSION' && user?.role === 'ADMIN' && (
