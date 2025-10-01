@@ -322,7 +322,7 @@ const WeatherWidget: React.FC = () => {
                       </span>
                     </div>
                     <h4 className="font-semibold text-white mb-2">{event.title}</h4>
-                    <p className="text-sm text-gray-300">{event.descriptions}</p>
+                    <p className="text-sm text-gray-300">{t('event.descriptions')}</p>
                   </div>
                 </div>
               </div>
