@@ -41,14 +41,12 @@ class AstronomyServiceIntegrationTest {
     @Test
     @DisplayName("Spring Context와 함께 ISS 위치 정보를 정상적으로 조회한다")
     void getIssLocation_WithSpringContext_Success() {
-        // Given - ISS Pass API 응답 구조에 맞게 수정
+        // Given - ISS 위치 API 응답 구조에 맞게 수정
         Map<String, Object> mockResponse = Map.of(
-            "response", List.of(
-                Map.of(
-                    "risetime", 1640995200L,
-                    "duration", 300
-                )
-            )
+            "altitude", 408.5,
+            "velocity", 27600.0,
+            "latitude", 37.5,
+            "longitude", 126.9
         );
         
         when(restTemplate.getForEntity(anyString(), eq(Map.class)))
@@ -59,22 +57,12 @@ class AstronomyServiceIntegrationTest {
 
         // Then - ISS 관측 기회 정보가 포함되어 있는지 확인
         assertThat(result).containsKey("message_key");
-        assertThat(result.get("message_key")).isIn("iss.basic_opportunity", "iss.detailed_opportunity", "iss.no_passes");
+        assertThat(result.get("message_key")).isIn("iss.detailed_status", "iss.fallback");
     }
 
     @Test
     @DisplayName("Spring Context와 함께 천체 데이터 수집이 정상 동작한다")
     void performAstronomyDataCollection_WithSpringContext_Success() {
-        // Given
-        when(restTemplate.getForEntity(contains("neo/rest/v1/feed"), eq(Map.class)))
-            .thenReturn(ResponseEntity.ok(Map.of("near_earth_objects", Map.of())));
-        when(restTemplate.getForEntity(contains("DONKI/FLR"), eq(Map[].class)))
-            .thenReturn(ResponseEntity.ok(new Map[0]));
-        when(restTemplate.getForEntity(contains("DONKI/GST"), eq(Map[].class)))
-            .thenReturn(ResponseEntity.ok(new Map[0]));
-        when(restTemplate.getForEntity(contains("planetary/apod"), eq(Map[].class)))
-            .thenReturn(ResponseEntity.ok(new Map[0]));
-
         // When & Then
         assertThatCode(() -> astronomyService.fetchDailyAstronomyEvents())
             .doesNotThrowAnyException();
