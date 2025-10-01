@@ -437,42 +437,7 @@
       "METEOR_SHOWER": "유성우",
       "DEFAULT": "천체 이벤트"
     },
-    "event_titles": {
-      "ASTEROID": "지구 근접 소행성 발견",
-      "SOLAR_FLARE": "태양 플레어 발생",
-      "GEOMAGNETIC_STORM": "지자기 폭풍 경보",
-      "ISS_LOCATION": "국제우주정거장 위치",
-      "MARS_WEATHER": "화성 날씨 정보",
-      "METEOR_SHOWER": "유성우 관측 기회",
-      "LUNAR_ECLIPSE": "월식 관측 안내",
-      "BLOOD_MOON": "개기월식 관측",
-      "TOTAL_LUNAR_ECLIPSE": "개기월식 현상",
-      "SOLAR_ECLIPSE": "개기일식 현상",
-      "PLANET_CONJUNCTION": "행성 근접 현상",
-      "COMET_OBSERVATION": "혜성 관측 기회",
-      "SUPERMOON": "슈퍼문 현상",
-      "SPECIAL_EVENT": "특별 천체 현상",
-      "ASTEROID_FORECAST": "소행성 접근 예보",
-      "DEFAULT": "천체 현상 알림"
-    },
-    "event_descriptions": {
-      "ASTEROID": "지구에 근접하는 소행성이 발견되었습니다. 안전한 거리를 유지하며 지나갈 예정입니다.",
-      "SOLAR_FLARE": "태양에서 강력한 플레어가 발생했습니다. 통신 및 GPS에 일시적 영향이 있을 수 있습니다.",
-      "GEOMAGNETIC_STORM": "지자기 폭풍이 예상됩니다. 극지방에서 오로라 관측 기회가 있을 수 있습니다.",
-      "ISS_LOCATION": "국제우주정거장의 현재 위치와 궤도 정보를 제공합니다.",
-      "MARS_WEATHER": "화성의 현재 날씨 상황과 대기 조건을 안내합니다.",
-      "METEOR_SHOWER": "유성우 관측에 최적인 시간과 방향을 안내합니다.",
-      "LUNAR_ECLIPSE": "월식 현상의 시작 시간과 관측 조건을 제공합니다.",
-      "BLOOD_MOON": "개기월식으로 인한 붉은 달 현상을 관측할 수 있습니다.",
-      "TOTAL_LUNAR_ECLIPSE": "완전한 월식 현상이 관측됩니다.",
-      "SOLAR_ECLIPSE": "개기일식 현상의 관측 지역과 시간을 안내합니다.",
-      "PLANET_CONJUNCTION": "행성들이 근접하여 나타나는 특별한 현상입니다.",
-      "COMET_OBSERVATION": "혜성 관측에 적합한 시간과 위치를 안내합니다.",
-      "SUPERMOON": "달이 지구에 가장 가까워져 더 크고 밝게 보입니다.",
-      "SPECIAL_EVENT": "특별한 천체 현상이 관측됩니다.",
-      "ASTEROID_FORECAST": "소행성의 지구 접근 예보와 안전성을 안내합니다.",
-      "DEFAULT": "흥미로운 천체 현상이 관측되고 있습니다."
-    },
+
     "iss_current_location": "ISS 실시간 위치",
     "iss_position_desc": "국제우주정거장 현재 위치",
 

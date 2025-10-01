@@ -433,42 +433,7 @@
       "ASTEROID_FORECAST": "小惑星予報",
       "DEFAULT": "天体イベント"
     },
-    "event_titles": {
-      "ASTEROID": "地球近接小惑星発見",
-      "SOLAR_FLARE": "太陽フレア発生",
-      "GEOMAGNETIC_STORM": "地磁気嵐警報",
-      "ISS_LOCATION": "国際宇宙ステーション位置",
-      "MARS_WEATHER": "火星天気情報",
-      "METEOR_SHOWER": "流星群観測機会",
-      "LUNAR_ECLIPSE": "月食観測案内",
-      "BLOOD_MOON": "皆既月食観測",
-      "TOTAL_LUNAR_ECLIPSE": "皆既月食現象",
-      "SOLAR_ECLIPSE": "日食現象",
-      "PLANET_CONJUNCTION": "惑星接近現象",
-      "COMET_OBSERVATION": "彗星観測機会",
-      "SUPERMOON": "スーパームーン現象",
-      "SPECIAL_EVENT": "特別天体現象",
-      "ASTEROID_FORECAST": "小惑星接近予報",
-      "DEFAULT": "天体現象アラート"
-    },
-    "event_descriptions": {
-      "ASTEROID": "地球に接近する小惑星が発見されました。安全な距離を保って通過する予定です。",
-      "SOLAR_FLARE": "太陽で強力なフレアが発生しました。通信やGPSに一時的な影響がある可能性があります。",
-      "GEOMAGNETIC_STORM": "地磁気嵐が予想されます。極地方でオーロラ観測の機会があるかもしれません。",
-      "ISS_LOCATION": "国際宇宙ステーションの現在位置と軌道情報を提供します。",
-      "MARS_WEATHER": "火星の現在の天気状況と大気条件を案内します。",
-      "METEOR_SHOWER": "流星群観測に最適な時間と方向を案内します。",
-      "LUNAR_ECLIPSE": "月食現象の開始時間と観測条件を提供します。",
-      "BLOOD_MOON": "皆既月食による赤い月現象を観測できます。",
-      "TOTAL_LUNAR_ECLIPSE": "完全な月食現象が観測されます。",
-      "SOLAR_ECLIPSE": "日食現象の観測地域と時間を案内します。",
-      "PLANET_CONJUNCTION": "惑星が接近して現れる特別な現象です。",
-      "COMET_OBSERVATION": "彗星観測に適した時間と位置を案内します。",
-      "SUPERMOON": "月が地球に最も近づいて、より大きく明るく見えます。",
-      "SPECIAL_EVENT": "特別な天体現象が観測されます。",
-      "ASTEROID_FORECAST": "小惑星の地球接近予報と安全性を案内します。",
-      "DEFAULT": "興味深い天体現象が観測されています。"
-    },
+
     "iss_current_location": "ISSリアルタイム位置",
     "iss_position_desc": "国際宇宙ステーション現在位置",
 

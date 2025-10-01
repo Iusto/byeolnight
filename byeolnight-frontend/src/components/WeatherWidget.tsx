@@ -321,12 +321,8 @@ const WeatherWidget: React.FC = () => {
                         {formatTime(event.eventDate)}
                       </span>
                     </div>
-                    <h4 className="font-semibold text-white mb-2">
-                      {t(`weather.event_titles.${event.eventType}`) || event.title}
-                    </h4>
-                    <p className="text-sm text-gray-300">
-                      {t(`weather.event_descriptions.${event.eventType}`) || event.description}
-                    </p>
+                    <h4 className="font-semibold text-white mb-2">{event.title}</h4>
+                    <p className="text-sm text-gray-300">{event.description}</p>
                   </div>
                 </div>
               </div>

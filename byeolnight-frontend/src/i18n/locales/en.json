@@ -435,42 +435,7 @@
       "METEOR_SHOWER": "Meteor Shower",
       "DEFAULT": "Astronomy Event"
     },
-    "event_titles": {
-      "ASTEROID": "Near-Earth Asteroid Discovery",
-      "SOLAR_FLARE": "Solar Flare Event",
-      "GEOMAGNETIC_STORM": "Geomagnetic Storm Alert",
-      "ISS_LOCATION": "International Space Station Position",
-      "MARS_WEATHER": "Mars Weather Information",
-      "METEOR_SHOWER": "Meteor Shower Observation",
-      "LUNAR_ECLIPSE": "Lunar Eclipse Observation",
-      "BLOOD_MOON": "Total Lunar Eclipse Observation",
-      "TOTAL_LUNAR_ECLIPSE": "Total Lunar Eclipse Event",
-      "SOLAR_ECLIPSE": "Solar Eclipse Event",
-      "PLANET_CONJUNCTION": "Planetary Conjunction Event",
-      "COMET_OBSERVATION": "Comet Observation Opportunity",
-      "SUPERMOON": "Supermoon Event",
-      "SPECIAL_EVENT": "Special Astronomical Event",
-      "ASTEROID_FORECAST": "Asteroid Approach Forecast",
-      "DEFAULT": "Astronomical Event Alert"
-    },
-    "event_descriptions": {
-      "ASTEROID": "A near-Earth asteroid has been discovered. It will pass at a safe distance from Earth.",
-      "SOLAR_FLARE": "A powerful solar flare has occurred. There may be temporary effects on communications and GPS.",
-      "GEOMAGNETIC_STORM": "A geomagnetic storm is expected. Aurora observations may be possible in polar regions.",
-      "ISS_LOCATION": "Current position and orbital information of the International Space Station.",
-      "MARS_WEATHER": "Current weather conditions and atmospheric information on Mars.",
-      "METEOR_SHOWER": "Optimal time and direction for meteor shower observation.",
-      "LUNAR_ECLIPSE": "Start time and observation conditions for the lunar eclipse event.",
-      "BLOOD_MOON": "A red moon phenomenon can be observed due to the total lunar eclipse.",
-      "TOTAL_LUNAR_ECLIPSE": "A complete lunar eclipse event will be observed.",
-      "SOLAR_ECLIPSE": "Observation areas and times for the solar eclipse event.",
-      "PLANET_CONJUNCTION": "A special phenomenon where planets appear close together.",
-      "COMET_OBSERVATION": "Suitable times and locations for comet observation.",
-      "SUPERMOON": "The moon appears larger and brighter as it is closest to Earth.",
-      "SPECIAL_EVENT": "A special astronomical phenomenon is being observed.",
-      "ASTEROID_FORECAST": "Forecast and safety information for asteroid approach to Earth.",
-      "DEFAULT": "An interesting astronomical phenomenon is being observed."
-    },
+
     "iss_current_location": "ISS Real-time Location",
     "iss_position_desc": "International Space Station current position",
 
