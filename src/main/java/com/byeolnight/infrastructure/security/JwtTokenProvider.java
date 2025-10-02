@@ -79,11 +79,6 @@ public class JwtTokenProvider {
         Claims claims = parseToken(token);
         return Long.parseLong(claims.getSubject());
     }
-
-    public String getSessionIdFromToken(String token) {
-        Claims claims = parseToken(token);
-        return claims.get("sessionId", String.class);
-    }
     
     private Claims parseToken(String token) {
         return Jwts.parser().verifyWith(key).build()

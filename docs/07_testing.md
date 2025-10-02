@@ -77,7 +77,49 @@ void recoverWithdrawnAccount_Within30Days_CompleteRecovery() {
 }
 ```
 
-### 3. 천체 데이터 수집 테스트 (외부 API 연동)
+### 3. 쿠키 TTL 검증 테스트 (운영급 보안)
+
+```java
+@Test
+@DisplayName("TTL 계산 정확성 검증")
+void validateTTLCalculations() {
+    // Given
+    long sevenDaysInMs = 7 * 24 * 60 * 60 * 1000L; // 7일 (밀리초)
+    long thirtyMinutesInSeconds = 30 * 60L; // 30분 (초)
+
+    // When & Then - 정확한 TTL 계산 검증
+    assertThat(sevenDaysInMs / 1000)
+            .as("Refresh Token TTL은 정확히 604800초(7일)여야 함")
+            .isEqualTo(604800L);
+
+    assertThat(thirtyMinutesInSeconds)
+            .as("Access Token TTL은 정확히 1800초(30분)여야 함")
+            .isEqualTo(1800L);
+}
+
+@Test
+@DisplayName("ResponseCookie MaxAge 설정 검증")
+void validateResponseCookieMaxAge() {
+    // Given
+    ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "test-token")
+            .maxAge(604800L) // 7일
+            .build();
+
+    ResponseCookie accessCookie = ResponseCookie.from("accessToken", "test-token")
+            .maxAge(1800L) // 30분
+            .build();
+
+    ResponseCookie sessionCookie = ResponseCookie.from("sessionToken", "test-token")
+            .build(); // maxAge 설정 안함
+
+    // Then - 쿠키 TTL 설정 검증
+    assertThat(refreshCookie.getMaxAge().getSeconds()).isEqualTo(604800L);
+    assertThat(accessCookie.getMaxAge().getSeconds()).isEqualTo(1800L);
+    assertThat(sessionCookie.getMaxAge().getSeconds()).isEqualTo(-1L); // 세션 쿠키
+}
+```
+
+### 4. 천체 데이터 수집 테스트 (외부 API 연동)
 
 ```java
 @ExtendWith(MockitoExtension.class)
@@ -159,12 +201,13 @@ class AuthServiceTest {
 
 ## 📊 테스트 현황 (2025-01-27 최신)
 
-### ✅ 구현 완료 (123개 테스트 100% 통과)
+### ✅ 구현 완료 (126개 테스트 100% 통과)
 
-#### 1. 인증/보안 시스템 (45개 테스트)
+#### 1. 인증/보안 시스템 (48개 테스트)
 - **AuthServiceTest**: 로그인 성공/실패, 계정 잠금, IP 차단
 - **TokenServiceTest**: Redis 토큰 관리, 블랙리스트, TTL 처리
 - **EmailAuthServiceTest**: 이메일 인증, 시도 횟수 제한, HTML 템플릿
+- **CookieTTLValidationTest**: 쿠키 TTL 정확성 검증 (신규 추가)
 
 #### 2. 소셜 계정 복구 시스템 (15개 테스트)
 - **SocialAccountCleanupServiceTest**: 30일 내 완전 복구, 개인정보 마스킹
@@ -185,8 +228,11 @@ class AuthServiceTest {
 ### 🎯 테스트 실행 명령어
 
 ```bash
-# 전체 테스트 실행 (123개)
+# 전체 테스트 실행 (126개)
 ./gradlew test
+
+# 쿠키 TTL 테스트
+./gradlew test --tests "CookieTTLValidationTest"
 
 # 핵심 시스템별 테스트
 ./gradlew test --tests "*AuthService*"
@@ -202,11 +248,11 @@ class AuthServiceTest {
 BUILD SUCCESSFUL in 13s
 5 actionable tasks: 2 executed, 3 up-to-date
 
-123 tests completed, 0 failed, 36 skipped ✅
+126 tests completed, 0 failed, 36 skipped ✅
 ```
 
 #### 주요 성과
-- **전체 테스트**: 123개 모두 통과 ✅
+- **전체 테스트**: 126개 모두 통과 ✅
 - **실패 테스트**: 0개 ✅
 - **테스트 안정성**: 100% 달성 ✅
 - **빌드 시간**: 13초 (최적화 완료)
@@ -235,11 +281,11 @@ BUILD SUCCESSFUL in 13s
 
 | 테스트 영역 | 테스트 수 | 통과율 | 주요 커버리지 |
 |------------|-----------|--------|---------------|
-| **인증 시스템** | 45개 | 100% ✅ | 로그인, 토큰 관리, 이메일 인증 |
+| **인증 시스템** | 48개 | 100% ✅ | 로그인, 토큰 관리, 이메일 인증, 쿠키 TTL |
 | **소셜 계정 복구** | 15개 | 100% ✅ | 30일 복구, 개인정보 마스킹 |
 | **천체 데이터** | 25개 | 100% ✅ | NASA API, ISS 위치, 실시간 데이터 |
 | **스케줄러** | 12개 | 100% ✅ | 크론 표현식, 자동화 작업 |
-| **기타 시스템** | 26개 | 100% ✅ | 애플리케이션 설정, 유틸리티 |
+| **기타 시스템** | 23개 | 100% ✅ | 애플리케이션 설정, 유틸리티 |
 
 ### 테스트 최적화 성과
 

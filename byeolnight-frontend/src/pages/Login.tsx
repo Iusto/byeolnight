@@ -38,7 +38,7 @@ export default function Login() {
     setError('')
     
     try {
-      await login(email, password)
+      await login(email, password, rememberMe)
       navigate('/', { replace: true })
     } catch (err: any) {
       // 서버에서 온 실제 에러 메시지 추출

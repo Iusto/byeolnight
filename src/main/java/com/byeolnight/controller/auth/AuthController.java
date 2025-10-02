@@ -61,8 +61,8 @@ public class AuthController {
             @Valid @RequestBody LoginRequestDto dto, HttpServletRequest request) {
         try {
             AuthService.LoginResult result = authService.authenticate(dto, request);
-            ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity());
-            ResponseCookie accessCookie = createAccessCookie(result.getAccessToken());
+            ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity(), dto.isRememberMe());
+            ResponseCookie accessCookie = createAccessCookie(result.getAccessToken(), dto.isRememberMe());
             TokenResponseDto tokenResponse = new TokenResponseDto(result.getAccessToken(), true);
 
             return ResponseEntity.ok()
@@ -110,8 +110,9 @@ public class AuthController {
 
             tokenService.saveRefreshToken(user.getEmail(), newRefreshToken, refreshTokenValidity);
 
-            ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity);
-            ResponseCookie accessCookie = createAccessCookie(newAccessToken);
+            // 기존 쿠키 설정 유지 (세션 쿠키)
+            ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity, false);
+            ResponseCookie accessCookie = createAccessCookie(newAccessToken, false);
             TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, true);
 
             return ResponseEntity.ok()
@@ -254,12 +255,16 @@ public class AuthController {
         }
     }
 
-    private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
+    private ResponseCookie createRefreshCookie(String refreshToken, long validity, boolean rememberMe) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
                 .path("/");
+        
+        if (rememberMe) {
+            builder.maxAge(validity / 1000); // 7일
+        }
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);
@@ -268,13 +273,16 @@ public class AuthController {
         return builder.build();
     }
 
-    private ResponseCookie createAccessCookie(String accessToken) {
+    private ResponseCookie createAccessCookie(String accessToken, boolean rememberMe) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", accessToken)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
                 .path("/");
-                // maxAge 제거 - 브라우저 세션 쿠키로 설정 (브라우저 종료 시 삭제)
+        
+        if (rememberMe) {
+            builder.maxAge(1800); // 30분
+        }
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);

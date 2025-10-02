@@ -21,12 +21,17 @@ public class LoginRequestDto {
     @Schema(description = "비밀번호", example = "password123!", required = true)
     private final String password;
 
+    @Schema(description = "로그인 유지 여부", example = "false")
+    private final boolean rememberMe;
+
     @Builder
     @JsonCreator
     public LoginRequestDto(
             @JsonProperty("email") String email, 
-            @JsonProperty("password") String password) {
+            @JsonProperty("password") String password,
+            @JsonProperty("rememberMe") Boolean rememberMe) {
         this.email = email;
         this.password = password;
+        this.rememberMe = rememberMe != null ? rememberMe : false;
     }
 }

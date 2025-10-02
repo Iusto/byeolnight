@@ -36,6 +36,7 @@ import static org.mockito.BDDMockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * AuthController 통합 테스트 - 실제 HTTP 요청/응답 검증
@@ -109,6 +110,74 @@ class AuthControllerTest {
     @Nested
     @DisplayName("로그인 API")
     class LoginAPI {
+
+        @Test
+        @DisplayName("로그인 유지 체크 - 쿠키 TTL 7일/30분 설정")
+        void login_RememberMeTrue_SetsCookieTTL() throws Exception {
+            // Given
+            LoginRequestDto rememberMeRequest = LoginRequestDto.builder()
+                    .email("test@example.com")
+                    .password("password123")
+                    .rememberMe(true)
+                    .build();
+            
+            AuthService.LoginResult loginResult = new AuthService.LoginResult(
+                    TEST_ACCESS_TOKEN, TEST_REFRESH_TOKEN, 604800000L); // 7일
+            given(authService.authenticate(any(LoginRequestDto.class), any())).willReturn(loginResult);
+
+            // When
+            var result = mockMvc.perform(post("/api/auth/login")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(rememberMeRequest)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            // Then
+            String setCookieHeader = result.getResponse().getHeaders("Set-Cookie").toString();
+            
+            // Refresh Token: 7일 = 604800초
+            assertThat(setCookieHeader)
+                    .contains("refreshToken=")
+                    .contains("Max-Age=604800");
+            
+            // Access Token: 30분 = 1800초
+            assertThat(setCookieHeader)
+                    .contains("accessToken=")
+                    .contains("Max-Age=1800");
+        }
+
+        @Test
+        @DisplayName("로그인 유지 미체크 - 세션 쿠키 설정")
+        void login_RememberMeFalse_SetsSessionCookies() throws Exception {
+            // Given
+            LoginRequestDto sessionRequest = LoginRequestDto.builder()
+                    .email("test@example.com")
+                    .password("password123")
+                    .rememberMe(false)
+                    .build();
+            
+            AuthService.LoginResult loginResult = new AuthService.LoginResult(
+                    TEST_ACCESS_TOKEN, TEST_REFRESH_TOKEN, 604800000L);
+            given(authService.authenticate(any(LoginRequestDto.class), any())).willReturn(loginResult);
+
+            // When
+            var result = mockMvc.perform(post("/api/auth/login")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(sessionRequest)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            // Then
+            String setCookieHeader = result.getResponse().getHeaders("Set-Cookie").toString();
+            
+            // 세션 쿠키: Max-Age 없음
+            assertThat(setCookieHeader)
+                    .contains("refreshToken=")
+                    .contains("accessToken=")
+                    .doesNotContain("Max-Age");
+        }
 
         @Test
         @DisplayName("정상 로그인 - 토큰 및 쿠키 반환")
