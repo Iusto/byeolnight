@@ -20,12 +20,14 @@ echo "✅ 포트 정리 완료"
 # 1. 코드 업데이트 및 빌드
 echo "📥 최신 코드 가져오기..."
 git fetch origin master && git reset --hard origin/master
-echo "🔨 애플리케이션 빌드..."
-chmod +x ./gradlew && ./gradlew clean bootJar -x test
+
 
 # 2. 기존 컨테이너 정리
 echo "🧹 기존 컨테이너 정리..."
 docker compose down
+
+echo "🔨 애플리케이션 빌드..."
+chmod +x ./gradlew && ./gradlew clean bootJar -x test
 
 # 3. Config Server 시작 및 환경변수 설정
 echo "⚙️ Config Server 시작..."
