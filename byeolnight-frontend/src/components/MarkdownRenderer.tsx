@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import YouTubeEmbed from './YouTubeEmbed';
 
 interface MarkdownRendererProps {
   content: string;
@@ -18,10 +19,34 @@ export default function MarkdownRenderer({
   
   if (!content) return null;
   
-  // 미리보기와 일반 렌더링 모두 ReactMarkdown 사용
+  // YouTube URL을 감지하고 컴포넌트로 변환
+  const processYouTubeUrls = (text: string) => {
+    const youtubeRegex = /(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
+    const parts = text.split(youtubeRegex);
+    
+    return parts.map((part, index) => {
+      if (part && part.match(youtubeRegex)) {
+        return <YouTubeEmbed key={index} url={part} />;
+      }
+      return part;
+    });
+  };
+  
+  // YouTube URL이 포함된 경우 특별 처리
+  const hasYouTube = /https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/.test(content);
+  
+  if (hasYouTube) {
+    return (
+      <div className={`post-content ${className}`} style={style}>
+        {processYouTubeUrls(content)}
+      </div>
+    );
+  }
+  
+  // 일반 마크다운 렌더링
   return (
     <ReactMarkdown
-      className={`youtube-content post-content ${className}`}
+      className={`post-content ${className}`}
       rehypePlugins={[
         rehypeRaw, // 제한적 raw HTML 허용
         [rehypeSanitize, {

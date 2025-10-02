@@ -74,38 +74,9 @@ export default function PostDetail() {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      /* YouTube iframe 완전 격리 */
-      iframe[src*="youtube.com"], iframe[src*="youtu.be"] {
-        position: static !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        height: 315px !important;
-        border: none !important;
-        border-radius: 8px !important;
-        display: block !important;
-        margin: 16px auto !important;
-        z-index: auto !important;
-        transform: none !important;
-        top: auto !important;
-        left: auto !important;
-        right: auto !important;
-        bottom: auto !important;
-        float: none !important;
-        clear: both !important;
-      }
-      
-      /* 모든 iframe 컨테이너 리셋 */
-      .youtube-content, .video-container, div[class*="video"], div[class*="youtube"] {
-        position: static !important;
-        width: auto !important;
-        height: auto !important;
-        padding: 0 !important;
-        margin: 16px 0 !important;
-        z-index: auto !important;
-        transform: none !important;
-        overflow: visible !important;
-      }
+
       /* 글씨 크기 및 스타일 적용 */
+      .post-content { overflow-wrap: break-word !important; word-wrap: break-word !important; }
       .post-content h1 { font-size: 2rem !important; font-weight: bold !important; margin: 1.5rem 0 1rem 0 !important; color: #e2e8f0 !important; }
       .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; margin: 1.25rem 0 0.75rem 0 !important; color: #e2e8f0 !important; }
       .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; margin: 1rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
