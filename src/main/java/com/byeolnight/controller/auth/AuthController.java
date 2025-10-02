@@ -259,8 +259,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
-                .path("/")
-                .maxAge(validity / 1000);
+                .path("/");
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);
@@ -274,8 +273,8 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
-                .path("/")
-                .maxAge(1800);
+                .path("/");
+                // maxAge 제거 - 브라우저 세션 쿠키로 설정 (브라우저 종료 시 삭제)
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);

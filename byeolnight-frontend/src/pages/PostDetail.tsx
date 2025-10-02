@@ -76,21 +76,27 @@ export default function PostDetail() {
     style.textContent = `
       .youtube-content iframe {
         width: 100% !important;
-        min-height: 400px !important;
+        max-width: 100% !important;
+        height: 400px !important;
         border: none !important;
         border-radius: 12px !important;
         display: block !important;
         visibility: visible !important;
         background: #000 !important;
+        z-index: 1 !important;
+        position: relative !important;
+        margin: 20px 0 !important;
       }
       .youtube-content .video-container {
         position: relative !important;
         width: 100% !important;
+        max-width: 100% !important;
         padding-bottom: 56.25% !important;
         height: 0 !important;
         margin: 20px 0 !important;
         border-radius: 12px !important;
         overflow: hidden !important;
+        z-index: 1 !important;
       }
       .youtube-content .video-container iframe {
         position: absolute !important;
@@ -98,18 +104,19 @@ export default function PostDetail() {
         left: 0 !important;
         width: 100% !important;
         height: 100% !important;
-        min-height: unset !important;
+        z-index: 1 !important;
       }
       /* 글씨 크기 및 스타일 적용 */
-      .post-content h1 { font-size: 2rem !important; font-weight: bold !important; margin: 1.5rem 0 1rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; margin: 1.25rem 0 0.75rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; margin: 1rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; }
-      .post-content img { max-width: 100% !important; height: auto !important; margin: 16px 0 !important; border-radius: 8px !important; display: block !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important; cursor: pointer !important; }
+      .post-content { position: relative !important; z-index: 2 !important; }
+      .post-content h1 { font-size: 2rem !important; font-weight: bold !important; margin: 1.5rem 0 1rem 0 !important; color: #e2e8f0 !important; z-index: 2 !important; position: relative !important; }
+      .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; margin: 1.25rem 0 0.75rem 0 !important; color: #e2e8f0 !important; z-index: 2 !important; position: relative !important; }
+      .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; margin: 1rem 0 0.5rem 0 !important; color: #e2e8f0 !important; z-index: 2 !important; position: relative !important; }
+      .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; z-index: 2 !important; position: relative !important; }
+      .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; z-index: 2 !important; position: relative !important; }
+      .post-content h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; z-index: 2 !important; position: relative !important; }
+      .post-content img { max-width: 100% !important; height: auto !important; margin: 16px 0 !important; border-radius: 8px !important; display: block !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important; cursor: pointer !important; z-index: 2 !important; position: relative !important; }
       .post-content img:hover { opacity: 0.9 !important; transition: opacity 0.2s ease !important; }
-      .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.4rem 0 !important; color: #cbd5e1 !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
+      .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.4rem 0 !important; color: #cbd5e1 !important; white-space: pre-wrap !important; word-wrap: break-word !important; z-index: 2 !important; position: relative !important; }
       .post-content strong { font-weight: bold !important; color: #f1f5f9 !important; }
       .post-content em { font-style: italic !important; color: #a78bfa !important; }
       .post-content u { text-decoration: underline !important; font-weight: normal !important; color: #cbd5e1 !important; }
