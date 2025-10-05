@@ -19,6 +19,16 @@ export default function MarkdownRenderer({
   
   if (!content) return null;
   
+  // HTML 엔티티 디코딩 함수
+  const decodeHtmlEntities = (text: string): string => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+  
+  // 콘텐츠 디코딩
+  const decodedContent = decodeHtmlEntities(content);
+  
   // YouTube URL을 감지하고 컴포넌트로 변환
   const processYouTubeUrls = (text: string) => {
     const youtubeRegex = /(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
@@ -33,12 +43,12 @@ export default function MarkdownRenderer({
   };
   
   // YouTube URL이 포함된 경우 특별 처리
-  const hasYouTube = /https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/.test(content);
+  const hasYouTube = /https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/.test(decodedContent);
   
   if (hasYouTube) {
     return (
       <div className={`post-content ${className}`} style={style}>
-        {processYouTubeUrls(content)}
+        {processYouTubeUrls(decodedContent)}
       </div>
     );
   }
@@ -178,7 +188,7 @@ export default function MarkdownRenderer({
         ...style 
       }}
     >
-      {content}
+      {decodedContent}
     </ReactMarkdown>
   );
 }
