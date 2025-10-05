@@ -588,31 +588,21 @@ public class CinemaService {
         content.append("🎬 **오늘의 우주 영상**: ").append(title).append("\n\n");
         
         content.append("▶️ **영상 보기**\n\n");
-        content.append(String.format("""
-            <div class="video-container" style="position: relative; padding-bottom: 56.25%%; height: 0; overflow: hidden; max-width: 100%%; background: #000; margin: 20px 0;">
-                <iframe src="https://www.youtube.com/embed/%s" 
-                        frameborder="0" 
-                        allowfullscreen 
-                        style="position: absolute; top: 0; left: 0; width: 100%%; height: 100%%;">
-                </iframe>
-            </div>
-            
-            """, videoId));
-        
-        content.append("⚠️ **영상이 보이지 않나요?** [YouTube에서 보기](https://www.youtube.com/watch?v=").append(videoId).append(")\n\n");
+        content.append("https://www.youtube.com/watch?v=").append(videoId).append("\n\n");
         
         content.append("📺 **채널명**: ").append(channelTitle);
         if (publishedAt != null) {
-            content.append(" 📅 **발행일**: ").append(publishedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")));
+            content.append("\n📅 **발행일**: ").append(publishedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")));
         }
         content.append("\n\n");
         
         if (description != null && !description.trim().isEmpty()) {
-            content.append("📝 **설명** ").append(description).append("\n\n");
+            String truncatedDesc = description.length() > 200 ? description.substring(0, 197) + "..." : description;
+            content.append("📝 **설명**\n").append(truncatedDesc).append("\n\n");
         }
 
         content.append("💬 **자유롭게 의견을 나눠주세요!**\n\n");
-        content.append("---\n\n");
+        content.append("---\n");
         
         return content.toString();
     }
