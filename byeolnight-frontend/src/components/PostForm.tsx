@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import TuiEditor from './TuiEditor';
@@ -55,7 +55,7 @@ export default function PostForm({
   const { t } = useTranslation();
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
-  const [contentLength, setContentLength] = useState(0);
+
   const [category, setCategory] = useState(initialCategory);
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>(initialImages);
   const [isImageValidating, setIsImageValidating] = useState(false);
@@ -71,14 +71,12 @@ export default function PostForm({
 
 
 
-  // 컨텐츠 길이 계산
-  useEffect(() => {
-    if (content) {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = content;
-      const textContent = tempDiv.textContent || tempDiv.innerText || '';
-      setContentLength(textContent.length);
-    }
+  // 메모이제이션된 컨텐츠 길이 계산
+  const contentLength = useMemo(() => {
+    if (!content) return 0;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    return (doc.body.textContent || '').length;
   }, [content]);
 
   // 에디터에 이미지 삽입 함수
@@ -211,10 +209,6 @@ export default function PostForm({
               value={content}
               onChange={(newContent) => {
                 setContent(newContent);
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = newContent;
-                const textContent = tempDiv.textContent || tempDiv.innerText || '';
-                setContentLength(textContent.length);
                 
                 // 에디터에서 삭제된 이미지 감지 및 썸네일 목록에서 제거
                 try {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
@@ -17,17 +18,17 @@ export default function MarkdownRenderer({
   isPreview = false 
 }: MarkdownRendererProps) {
   
-  if (!content) return null;
+  // 메모이제이션된 HTML 엔티티 디코딩
+  const decodedContent = useMemo(() => {
+    if (!content) return '';
+    
+    // 브라우저 내장 API 사용으로 성능 개선
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<!doctype html><body>${content}`, 'text/html');
+    return doc.body.textContent || content;
+  }, [content]);
   
-  // HTML 엔티티 디코딩 함수
-  const decodeHtmlEntities = (text: string): string => {
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = text;
-    return textarea.value;
-  };
-  
-  // 콘텐츠 디코딩
-  const decodedContent = decodeHtmlEntities(content);
+  if (!decodedContent) return null;
   
   // YouTube URL을 감지하고 컴포넌트로 변환
   const processYouTubeUrls = (text: string) => {
@@ -58,9 +59,8 @@ export default function MarkdownRenderer({
     <ReactMarkdown
       className={`post-content ${className}`}
       rehypePlugins={[
-        rehypeRaw, // 제한적 raw HTML 허용
+        rehypeRaw,
         [rehypeSanitize, {
-          // 엄격한 sanitize 정책
           tagNames: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'u', 's', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li', 'br', 'hr', 'a', 'img', 'iframe'],
           attributes: {
             '*': ['className', 'style'],

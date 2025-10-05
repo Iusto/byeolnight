@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -57,9 +58,13 @@ public class PostService {
         return distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
             validateAdminCategoryWrite(dto.getCategory(), user);
 
+            // HTML 엔티티 디코딩 처리
+            String decodedTitle = HtmlUtils.htmlUnescape(dto.getTitle());
+            String decodedContent = HtmlUtils.htmlUnescape(dto.getContent());
+            
             Post post = Post.builder()
-                    .title(dto.getTitle())
-                    .content(dto.getContent())
+                    .title(decodedTitle)
+                    .content(decodedContent)
                     .category(dto.getCategory())
                     .writer(user)
                     .build();
@@ -116,7 +121,12 @@ public class PostService {
         }
 
         validateAdminCategoryWrite(dto.getCategory(), user);
-        post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
+        
+        // HTML 엔티티 디코딩 처리
+        String decodedTitle = HtmlUtils.htmlUnescape(dto.getTitle());
+        String decodedContent = HtmlUtils.htmlUnescape(dto.getContent());
+        
+        post.update(decodedTitle, decodedContent, dto.getCategory());
 
         // 기존 파일 목록 조회
         List<File> oldFiles = fileRepository.findAllByPost(post);
