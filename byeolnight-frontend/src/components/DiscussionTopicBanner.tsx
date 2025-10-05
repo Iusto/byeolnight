@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
-import { sanitizeHtml } from '../utils/htmlSanitizer';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface DiscussionTopic {
   id: number;
@@ -100,10 +100,9 @@ export default function DiscussionTopicBanner() {
         </h2>
 
         {/* 내용 */}
-        <div 
-          className="text-gray-200 mb-6 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(todayTopic.content) }}
-        />
+        <div className="text-gray-200 mb-6 leading-relaxed">
+          <MarkdownRenderer content={todayTopic.content} />
+        </div>
 
         {/* 통계 및 액션 버튼 */}
         <div className="flex items-center justify-between">
