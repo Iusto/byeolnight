@@ -71,7 +71,7 @@ jobs:
     - name: 백엔드 서버 시작
       run: |
         chmod +x ./gradlew
-        nohup ./gradlew bootRun --args='--spring.profiles.active=test' > server.log 2>&1 &
+        nohup ./gradlew bootRun --args='--spring.profiles.active=test --spring.cloud.config.enabled=false' > server.log 2>&1 &
         echo $! > server.pid
         echo "서버 PID: $(cat server.pid)"
       env:
@@ -80,6 +80,7 @@ jobs:
         SPRING_DATASOURCE_PASSWORD: test
         SPRING_DATA_REDIS_HOST: localhost
         SPRING_DATA_REDIS_PORT: 6379
+        SPRING_JPA_HIBERNATE_DDL_AUTO: create
 
     - name: 서버 시작 대기
       run: |
