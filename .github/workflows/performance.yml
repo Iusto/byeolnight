@@ -80,7 +80,6 @@ jobs:
         SPRING_DATASOURCE_PASSWORD: test
         SPRING_DATA_REDIS_HOST: localhost
         SPRING_DATA_REDIS_PORT: 6379
-        SPRING_JPA_HIBERNATE_DDL_AUTO: create
 
     - name: 서버 시작 대기
       run: |
