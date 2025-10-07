@@ -34,6 +34,21 @@ spring:
   cloud:
     config:
       enabled: false  # Config Server 비활성화
+  
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: test@test.com
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        transport:
+          protocol: smtp
 
 # JWT 설정 (환경 변수로 주입)
 app:
