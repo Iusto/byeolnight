@@ -56,7 +56,7 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
-    - name: MySQL 연결 대기
+    - name: MySQL 연결 대기 및 DB 초기화
       run: |
         echo "MySQL 서비스 연결 대기 중..."
         for i in {1..30}; do
@@ -67,6 +67,11 @@ jobs:
           echo "대기 중... ($i/30)"
           sleep 2
         done
+        
+        echo "🔄 DB 완전 초기화 중..."
+        MYSQL_PWD=test mysql -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS byeolnight_test;"
+        MYSQL_PWD=test mysql -h 127.0.0.1 -P 3306 -u root -e "CREATE DATABASE byeolnight_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        echo "✅ DB 초기화 완료"
 
     - name: 백엔드 서버 시작
       run: |
