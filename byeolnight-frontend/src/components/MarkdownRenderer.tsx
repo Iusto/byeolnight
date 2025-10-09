@@ -22,10 +22,10 @@ export default function MarkdownRenderer({
   const decodedContent = useMemo(() => {
     if (!content) return '';
     
-    // 브라우저 내장 API 사용으로 성능 개선
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<!doctype html><body>${content}`, 'text/html');
-    return doc.body.textContent || content;
+    // HTML 엔티티만 디코딩 (마크다운 문법 유지)
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = content;
+    return textarea.value;
   }, [content]);
   
   if (!decodedContent) return null;
