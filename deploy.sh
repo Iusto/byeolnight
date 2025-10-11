@@ -1,127 +1,141 @@
 #!/bin/bash
 # EC2 서버 원클릭 배포 스크립트
 # 사용법: chmod +x deploy.sh && ./deploy.sh
-
-set -e
+set -euo pipefail
 
 echo "🚀 별 헤는 밤 배포 시작..."
-echo "📦 패키지 매니저: pnpm (프론트엔드)"
 
-# 0. 포트 충돌 방지 (최우선)
-echo "🔧 포트 충돌 방지 및 기존 프로세스 정리..."
-sudo pkill -f nginx || true
-sudo fuser -k 80/tcp 443/tcp || true
-# 80포트 사용 프로세스가 있을 때만 kill
-if sudo lsof -ti:80 2>/dev/null; then
-    sudo lsof -ti:80 | xargs sudo kill -9 || true
-fi
-echo "✅ 포트 정리 완료"
+ROOT_DIR="/home/ubuntu/byeolnight"
+cd "$ROOT_DIR"
 
-# 1. 코드 업데이트 및 빌드
+# ===== 공통 함수 =====
+kill_holders() {
+  echo "🔧 build/ 디렉터리를 점유 중인 프로세스 탐지/정리..."
+  # build/를 열고 있는 PID 나열
+  local pids
+  pids=$(lsof -t +D ./build 2>/dev/null || true)
+  if [[ -n "${pids:-}" ]]; then
+    echo "⚠️ 점유 PID: $pids"
+    # 정상 종료 시도
+    kill $pids 2>/dev/null || true
+    sleep 2
+    # 살아있으면 강제 종료
+    pids=$(lsof -t +D ./build 2>/dev/null || true)
+    if [[ -n "${pids:-}" ]]; then
+      echo "⛔ 강제 종료: $pids"
+      kill -9 $pids 2>/dev/null || true
+    fi
+  else
+    echo "✅ build/ 점유 프로세스 없음"
+  fi
+
+  # 혹시 모를 파일 핸들 닫기
+  fuser -vm ./build 2>/dev/null || true
+  fuser -k ./build 2>/dev/null || true
+}
+
+hard_clean_build() {
+  echo "🧹 build/ 강제 정리..."
+  sudo chown -R ubuntu:ubuntu ./build 2>/dev/null || true
+  chmod -R u+rwX ./build 2>/dev/null || true
+  rm -rf ./build || true
+}
+
+# ===== 0. 포트/프로세스 충돌 방지(과격 종료 제거) =====
+# 무조건 pkill nginx는 위험하므로 제거. Docker nginx는 compose로만 제어.
+echo "🔧 기존 컨테이너 정리..."
+docker compose down --remove-orphans || true
+
+# 혹시 이전 배포에서 호스트에 떠있는 Java/Gradle가 build/를 잡고 있을 수 있음
+./gradlew --stop || true
+
+# ===== 1. 코드 업데이트 =====
 echo "📥 최신 코드 가져오기..."
 git fetch origin master && git reset --hard origin/master
 
+# ===== 2. Gradle 클린(안전 가드 포함) =====
+echo "🧽 Gradle 클린 시작..."
+kill_holders
+# 1차 시도: 데몬/파일워처 끄고 clean
+if ! ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false; then
+  echo "⚠️ gradlew clean 실패 → 홀더 재정리 후 재시도"
+  kill_holders
+  hard_clean_build
+  # 2차 시도
+  ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false || true
+fi
 
-# 2. 기존 컨테이너 정리
-echo "🧹 기존 컨테이너 정리..."
-docker compose down
+# 그래도 남았을 가능성 방지
+hard_clean_build
 
-echo "🔨 애플리케이션 빌드..."
-chmod +x ./gradlew && ./gradlew clean bootJar -x test
+# ===== 3. 서버 빌드 =====
+echo "🔨 bootJar 빌드..."
+chmod +x ./gradlew
+./gradlew bootJar -x test --no-daemon -Dorg.gradle.vfs.watch=false
 
-# 3. Config Server 시작 및 환경변수 설정
+# ===== 4. Config Server 기동 =====
 echo "⚙️ Config Server 시작..."
 docker compose up config-server -d
 echo "⏳ Config Server 준비 대기..."
-sleep 20
-
-# Config Server 상태 확인
-echo "🔍 Config Server 상태 확인..."
 for i in $(seq 1 15); do
-    if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health > /dev/null 2>&1; then
-        # 암호화 기능 검증
-        if curl -s -X POST http://localhost:8888/encrypt -d "test" | grep -q "AQA"; then
-            echo "✅ Config Server 준비 완료 (암호화 기능 확인)"
-            break
-        else
-            echo "⚠️ Config Server 암호화 기능 대기 중... ($i/15)"
-        fi
-    else
-        echo "⏳ Config Server 대기 중... ($i/15)"
+  if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then
+    if curl -s -X POST http://localhost:8888/encrypt -d "test" | grep -q "AQA"; then
+      echo "✅ Config Server OK(암호화 확인)"
+      break
     fi
-    sleep 3
+    echo "⌛ 암호화 기능 대기중... ($i/15)"
+  else
+    echo "⌛ Config Server 대기중... ($i/15)"
+  fi
+  sleep 2
 done
 
-
-
+# ===== 5. 비밀값 로드 =====
 echo "🔑 Config Server에서 비밀번호 가져오기..."
-
-# Config Server 연결 재시도 로직
+CONFIG_RESPONSE=""
 for attempt in 1 2 3 4 5; do
-    echo "Config Server 연결 시도 $attempt/5..."
-    CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
-    
-    if [ -n "$CONFIG_RESPONSE" ] && echo "$CONFIG_RESPONSE" | jq . >/dev/null 2>&1; then
-        echo "✅ Config Server 응답 수신 성공"
-        break
-    else
-        echo "⚠️ Config Server 연결 실패, 3초 후 재시도..."
-        sleep 3
-    fi
-    
-    if [ $attempt -eq 5 ]; then
-        echo "❌ Config Server 연결 최종 실패"
-        exit 1
-    fi
+  echo "시도 $attempt/5"
+  CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
+  if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq . >/dev/null 2>&1; then
+    echo "✅ Config Server 응답 수신"
+    break
+  fi
+  sleep 3
+  [[ $attempt -eq 5 ]] && echo "❌ Config Server 연결 실패" && exit 1
 done
 
-# 환경변수 추출 (bash 호환 문법 사용)
 MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.mysql.root-password"]' 2>/dev/null || echo "")
 REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.redis.password"]' 2>/dev/null || echo "")
 
-# 환경변수 검증
-if [ -z "$MYSQL_ROOT_PASSWORD" ] || [ -z "$REDIS_PASSWORD" ] || [ "$MYSQL_ROOT_PASSWORD" = "null" ] || [ "$REDIS_PASSWORD" = "null" ]; then
-    echo "❌ Config Server에서 비밀번호를 가져오지 못했습니다"
-    echo "CONFIG_RESPONSE: $CONFIG_RESPONSE"
-    exit 1
+if [[ -z "$MYSQL_ROOT_PASSWORD" || -z "$REDIS_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" || "$REDIS_PASSWORD" == "null" ]]; then
+  echo "❌ 비밀번호 추출 실패"
+  exit 1
 fi
 
-echo "환경변수 확인:"
-echo "MYSQL_ROOT_PASSWORD=[${#MYSQL_ROOT_PASSWORD}자] 설정됨"
-echo "REDIS_PASSWORD=[${#REDIS_PASSWORD}자] 설정됨"
-echo "✅ 비밀번호 설정 완료"
+echo "환경변수 확인: MYSQL_ROOT_PASSWORD=$(echo "$MYSQL_ROOT_PASSWORD" | cut -c1-3)***  REDIS_PASSWORD=$(echo "$REDIS_PASSWORD" | cut -c1-3)***"
+export MYSQL_ROOT_PASSWORD REDIS_PASSWORD
 
-
-
-export MYSQL_ROOT_PASSWORD
-export REDIS_PASSWORD
-
-# 4. 전체 서비스 빌드 및 배포
-echo "🏗️ 서비스 빌드 및 배포..."
-echo "현재 환경변수 상태:"
-echo "MYSQL_ROOT_PASSWORD=$(echo "$MYSQL_ROOT_PASSWORD" | cut -c1-3)***"
-echo "REDIS_PASSWORD=$(echo "$REDIS_PASSWORD" | cut -c1-3)***"
-
-# .env 파일 생성 (Docker Compose가 자동으로 읽음)
-cat > .env << EOF
+# Docker Compose용 .env 생성
+cat > .env <<EOF
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
 EOF
 
-docker compose build --no-cache && docker compose up -d
+# ===== 6. 이미지 빌드 & 기동 =====
+echo "🏗️ 서비스 빌드 및 배포..."
+docker compose build --no-cache
+docker compose up -d
 
-# 5. SSL 인증서 갱신 체크 (재부팅 시)
+# ===== 7. SSL 인증서 점검(도커 nginx 기준) =====
 echo "🔒 SSL 인증서 상태 확인..."
 if sudo certbot certificates 2>/dev/null | grep -q "byeolnight.com"; then
-    echo "📋 SSL 인증서 갱신 체크..."
-    # nginx 중지 후 갱신 시도
-    docker compose stop nginx
-    sudo certbot renew --quiet || echo "⚠️ SSL 갱신 불필요 또는 실패"
-    docker compose start nginx
-    echo "✅ SSL 인증서 체크 완료"
+  echo "📋 SSL 인증서 갱신 체크..."
+  docker compose stop nginx || true
+  sudo certbot renew --quiet || echo "⚠️ SSL 갱신 불필요/실패"
+  docker compose start nginx || true
 else
-    echo "⚠️ SSL 인증서가 설치되지 않음"
+  echo "⚠️ SSL 인증서가 설치되지 않음"
 fi
 
-echo "✅ 배포 완료! 로그 확인 중..."
+echo "✅ 배포 완료! 로그 출력..."
 docker logs -f byeolnight-app-1

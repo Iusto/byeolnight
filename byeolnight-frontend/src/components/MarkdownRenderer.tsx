@@ -30,31 +30,6 @@ export default function MarkdownRenderer({
   
   if (!decodedContent) return null;
   
-  // YouTube URL을 감지하고 컴포넌트로 변환
-  const processYouTubeUrls = (text: string) => {
-    const youtubeRegex = /(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
-    const parts = text.split(youtubeRegex);
-    
-    return parts.map((part, index) => {
-      if (part && part.match(youtubeRegex)) {
-        return <YouTubeEmbed key={index} url={part} />;
-      }
-      return part;
-    });
-  };
-  
-  // YouTube URL이 포함된 경우 특별 처리
-  const hasYouTube = /https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/.test(decodedContent);
-  
-  if (hasYouTube) {
-    return (
-      <div className={`post-content ${className}`} style={style}>
-        {processYouTubeUrls(decodedContent)}
-      </div>
-    );
-  }
-  
-  // 일반 마크다운 렌더링
   return (
     <ReactMarkdown
       className={`post-content ${className}`}
@@ -164,22 +139,29 @@ export default function MarkdownRenderer({
             loading="lazy"
           />
         ),
-        // 링크 컴포넌트 커스터마이징
-        a: ({ href, children, ...props }) => (
-          <a 
-            href={href} 
-            {...props}
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{
-              color: '#a78bfa',
-              textDecoration: 'underline',
-              transition: 'color 0.2s ease'
-            }}
-          >
-            {children}
-          </a>
-        )
+        // 링크 컴포넌트 - YouTube URL 감지
+        a: ({ href, children, ...props }) => {
+          const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+)/;
+          if (href && youtubeRegex.test(href)) {
+            const fullUrl = href.startsWith('http') ? href : `https://${href}`;
+            return <YouTubeEmbed url={fullUrl} />;
+          }
+          return (
+            <a 
+              href={href} 
+              {...props}
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{
+                color: '#a78bfa',
+                textDecoration: 'underline',
+                transition: 'color 0.2s ease'
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
       }}
       style={{ 
         whiteSpace: 'pre-wrap', 
