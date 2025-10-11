@@ -46,7 +46,11 @@ hard_clean_build() {
 echo "🔧 기존 컨테이너 정리..."
 docker compose down --remove-orphans || true
 
-# 혹시 이전 배포에서 호스트에 떠있는 Java/Gradle가 build/를 잡고 있을 수 있음
+# ⬇️ gradlew 실행권한/줄바꿈 보정 먼저
+chmod +x ./gradlew 2>/dev/null || true
+command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
+
+# 그 다음에 데몬 정지
 ./gradlew --stop || true
 
 # ===== 1. 코드 업데이트 =====
