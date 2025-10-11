@@ -248,7 +248,7 @@ export default function PostForm({
         {content && (
           <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
             <h3 className="text-sm font-medium text-gray-300 mb-3">📝 미리보기:</h3>
-            <MarkdownRenderer content={content} isPreview={true} />
+            <MarkdownRenderer content={content} />
           </div>
         )}
         

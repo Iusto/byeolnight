@@ -2,20 +2,21 @@ import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm';
 import YouTubeEmbed from './YouTubeEmbed';
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
   style?: React.CSSProperties;
-  isPreview?: boolean; // 미리보기/에디터용인지 구분
 }
+
+const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+)/;
 
 export default function MarkdownRenderer({ 
   content, 
   className = '', 
-  style,
-  isPreview = false 
+  style
 }: MarkdownRendererProps) {
   
   // 메모이제이션된 HTML 엔티티 디코딩
@@ -33,6 +34,7 @@ export default function MarkdownRenderer({
   return (
     <ReactMarkdown
       className={`post-content ${className}`}
+      remarkPlugins={[remarkGfm]}
       rehypePlugins={[
         rehypeRaw,
         [rehypeSanitize, {
@@ -77,12 +79,23 @@ export default function MarkdownRenderer({
             {children}
           </h6>
         ),
-        // 텍스트 스타일
-        p: ({ children, ...props }) => (
-          <p {...props} style={{ fontSize: '1rem', lineHeight: '1.7', margin: '0.4rem 0', color: '#cbd5e1' }}>
-            {children}
-          </p>
-        ),
+        p: ({ children, ...props }) => {
+          const processChildren = (child: any): any => {
+            if (typeof child === 'string') {
+              const parts = child.split(new RegExp(`(${YOUTUBE_REGEX.source})`, 'g'));
+              return parts.map((part, i) => 
+                YOUTUBE_REGEX.test(part) ? <YouTubeEmbed key={i} url={part} /> : part
+              );
+            }
+            return child;
+          };
+          
+          return (
+            <p {...props} style={{ fontSize: '1rem', lineHeight: '1.7', margin: '0.4rem 0', color: '#cbd5e1' }}>
+              {Array.isArray(children) ? children.map(processChildren) : processChildren(children)}
+            </p>
+          );
+        },
         strong: ({ children, ...props }) => (
           <strong {...props} style={{ fontWeight: 'bold', color: '#f1f5f9' }}>
             {children}
@@ -139,12 +152,9 @@ export default function MarkdownRenderer({
             loading="lazy"
           />
         ),
-        // 링크 컴포넌트 - YouTube URL 감지
         a: ({ href, children, ...props }) => {
-          const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+)/;
-          if (href && youtubeRegex.test(href)) {
-            const fullUrl = href.startsWith('http') ? href : `https://${href}`;
-            return <YouTubeEmbed url={fullUrl} />;
+          if (href && YOUTUBE_REGEX.test(href)) {
+            return <YouTubeEmbed url={href.startsWith('http') ? href : `https://${href}`} />;
           }
           return (
             <a 
@@ -152,11 +162,7 @@ export default function MarkdownRenderer({
               {...props}
               target="_blank" 
               rel="noopener noreferrer"
-              style={{
-                color: '#a78bfa',
-                textDecoration: 'underline',
-                transition: 'color 0.2s ease'
-              }}
+              style={{ color: '#a78bfa', textDecoration: 'underline', transition: 'color 0.2s ease' }}
             >
               {children}
             </a>
