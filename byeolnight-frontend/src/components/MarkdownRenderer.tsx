@@ -12,6 +12,7 @@ interface MarkdownRendererProps {
 }
 
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+)/;
+const YOUTUBE_REGEX_GLOBAL = new RegExp(YOUTUBE_REGEX.source, 'g');
 
 export default function MarkdownRenderer({ 
   content, 
@@ -79,23 +80,11 @@ export default function MarkdownRenderer({
             {children}
           </h6>
         ),
-        p: ({ children, ...props }) => {
-          const processChildren = (child: any): any => {
-            if (typeof child === 'string') {
-              const parts = child.split(new RegExp(`(${YOUTUBE_REGEX.source})`, 'g'));
-              return parts.map((part, i) => 
-                YOUTUBE_REGEX.test(part) ? <YouTubeEmbed key={i} url={part} /> : part
-              );
-            }
-            return child;
-          };
-          
-          return (
-            <p {...props} style={{ fontSize: '1rem', lineHeight: '1.7', margin: '0.4rem 0', color: '#cbd5e1' }}>
-              {Array.isArray(children) ? children.map(processChildren) : processChildren(children)}
-            </p>
-          );
-        },
+        p: ({ children, ...props }) => (
+          <p {...props} style={{ fontSize: '1rem', lineHeight: '1.7', margin: '0.4rem 0', color: '#cbd5e1' }}>
+            {children}
+          </p>
+        ),
         strong: ({ children, ...props }) => (
           <strong {...props} style={{ fontWeight: 'bold', color: '#f1f5f9' }}>
             {children}
@@ -154,7 +143,18 @@ export default function MarkdownRenderer({
         ),
         a: ({ href, children, ...props }) => {
           if (href && YOUTUBE_REGEX.test(href)) {
-            return <YouTubeEmbed url={href.startsWith('http') ? href : `https://${href}`} />;
+            try {
+              const fullUrl = href.startsWith('http') ? href : `https://${href}`;
+              return <YouTubeEmbed url={fullUrl} />;
+            } catch (error) {
+              console.error('YouTube 임베드 오류:', error);
+              return (
+                <a href={href} {...props} target="_blank" rel="noopener noreferrer"
+                   style={{ color: '#a78bfa', textDecoration: 'underline' }}>
+                  {children || href}
+                </a>
+              );
+            }
           }
           return (
             <a 
