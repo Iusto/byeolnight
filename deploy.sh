@@ -57,17 +57,15 @@ command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 echo "📥 최신 코드 가져오기..."
 git fetch origin master && git reset --hard origin/master
 
-# ===== 2. Gradle 클린(안전 가드 포함) =====
+# ⬇️ reset 후에 반드시 다시 실행권한/줄바꿈 보정
+chmod +x ./gradlew 2>/dev/null || true
+command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
+
+# ===== 2. Gradle 클린 =====
 echo "🧽 Gradle 클린 시작..."
 kill_holders
-# 1차 시도: 데몬/파일워처 끄고 clean
-if ! ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false; then
-  echo "⚠️ gradlew clean 실패 → 홀더 재정리 후 재시도"
-  kill_holders
-  hard_clean_build
-  # 2차 시도
-  ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false || true
-fi
+./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false \
+  || sh ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false || true
 
 # 그래도 남았을 가능성 방지
 hard_clean_build
