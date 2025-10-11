@@ -21,7 +21,7 @@ if ! cd "$APPDIR" 2>/dev/null; then
   exit 1
 fi
 
-chmod +x ./deploy.sh || true
+chmod +x ./deploy.sh
 
 # 표준출력은 버리고, 표준에러만 임시 파일에 모음
 if ./deploy.sh >/dev/null 2>"$TMP_ERR"; then
