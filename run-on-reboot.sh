@@ -1,30 +1,30 @@
-# /home/ubuntu/byeolnight/run-on-reboot.sh
 #!/usr/bin/env bash
 set -euo pipefail
-
-# 스크립트 전체 KST
 export TZ=Asia/Seoul
-
-# 로그 타임스탬프 (타임존 표기 포함)
 timestamp() { date '+%F %T %Z'; }
 
 APPDIR="/home/ubuntu/byeolnight"
 LOG="/home/ubuntu/byeolnight-startup.log"
 TMP_ERR="$(mktemp)"
+trap 'rm -f "$TMP_ERR" "$TMP_ERR".*' EXIT
 
-# 종료 시 임시파일 정리
-trap 'rm -f "$TMP_ERR"' EXIT
+# 디버그(임시): 진입 흔적 남기기
+echo "$(timestamp) ENTER run-on-reboot.sh" >> "$LOG"
 
-# 작업 디렉토리 진입 실패도 사유로 기록
-if ! cd "$APPDIR" 2>/dev/null; then
-  echo "$(timestamp) 실패: 디렉터리 진입 실패 ($APPDIR)" >> "$LOG"
+# 1) 작업 디렉토리 진입
+if ! cd "$APPDIR" 2>"$TMP_ERR.cd"; then
+  echo "$(timestamp) 실패: 디렉터리 진입 실패 ($APPDIR) - $(tr '\n' ' ' < "$TMP_ERR.cd")" >> "$LOG"
   exit 1
 fi
 
-chmod +x ./deploy.sh
+# 2) deploy.sh 권한 정리 (실패도 기록)
+if ! chmod 755 ./deploy.sh 2>"$TMP_ERR.chmod"; then
+  echo "$(timestamp) 실패: chmod 755 ./deploy.sh - $(tr '\n' ' ' < "$TMP_ERR.chmod")" >> "$LOG"
+  exit 1
+fi
 
-# 표준출력은 버리고, 표준에러만 임시 파일에 모음
-if ./deploy.sh >/dev/null 2>"$TMP_ERR"; then
+# 3) 실행 (bash로 직접 실행: noexec/실행비트 이슈 회피)
+if /bin/bash ./deploy.sh >/dev/null 2>"$TMP_ERR"; then
   echo "$(timestamp) 성공적으로 실행" >> "$LOG"
 else
   REASON_ONE_LINE="$(tail -n 50 "$TMP_ERR" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g')"
