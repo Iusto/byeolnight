@@ -126,16 +126,18 @@ echo "🏗️ 서비스 빌드 및 배포..."
 docker compose build --no-cache
 docker compose up -d
 
-# ===== 7. SSL 인증서 점검(도커 nginx 기준) =====
-echo "🔒 SSL 인증서 상태 확인..."
-if sudo certbot certificates 2>/dev/null | grep -q "byeolnight.com"; then
-  echo "📋 SSL 인증서 갱신 체크..."
-  docker compose stop nginx || true
-  sudo certbot renew --quiet || echo "⚠️ SSL 갱신 불필요/실패"
-  docker compose start nginx || true
-else
-  echo "⚠️ SSL 인증서가 설치되지 않음"
-fi
+# ===== 7. SSL 인증서 점검 & 갱신 =====
+echo "🔒 SSL 인증서 갱신(webroot)"
+# ACME 경로 사전 점검
+sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+echo OK | sudo tee /var/www/certbot/.well-known/acme-challenge/ping.txt >/dev/null
+curl -sfI http://byeolnight.com/.well-known/acme-challenge/ping.txt >/dev/null || {
+  echo "❌ ACME 경로 노출 실패(nginx.conf/볼륨 확인 필요)"; exit 1; }
+
+# nginx는 그대로 둔 채 renew 실행
+docker compose run --rm certbot renew || { echo "❌ renew 실패"; exit 1; }
+docker compose exec -T nginx nginx -s reload || true
+echo "✅ SSL 갱신 완료"
 
 echo "✅ 배포 완료! 로그 출력..."
 docker logs -f byeolnight-app-1
