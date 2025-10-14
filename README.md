@@ -198,7 +198,7 @@ React 18 (Frontend) ↔️ Spring Boot (Backend) ↔️ MySQL 8 (Database)
 - [🏊♂️ 풀 설정 전략 및 근본적 이유](./docs/12_pool-configuration-strategy.md)
 
 ### ⚡ 성능 및 기술
-- [🚀 성능 최적화 전략](./docs/05_optimizations.md)
+- [📊 성능 최적화 전략](./docs/PERFORMANCE.md)
 - [🔧 기술 스택 상세](./docs/06_TECH-STACK.md)
 - [🧪 테스트 전략](./docs/07_testing.md)
 - [📁 이미지 업로드 파이프라인 상세](./docs/14_image-upload-pipeline.md)
