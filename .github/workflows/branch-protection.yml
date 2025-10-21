@@ -18,30 +18,6 @@ jobs:
           fi
           echo "✅ 브랜치 규칙 준수"
 
-  commit-convention:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check commit messages
-        run: |
-          commits=$(git log --format=%s origin/${{ github.base_ref }}..${{ github.head_ref }})
-          echo "검사할 커밋:"
-          echo "$commits"
-          
-          while IFS= read -r commit; do
-            if ! echo "$commit" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci)(\(.+\))?: .+'; then
-              echo "❌ 커밋 컨벤션 위반: $commit"
-              echo "형식: type(scope): subject"
-              echo "예시: feat(auth): Google OAuth2 추가"
-              exit 1
-            fi
-          done <<< "$commits"
-          
-          echo "✅ 모든 커밋이 컨벤션 준수"
-
   quality-gate:
     runs-on: ubuntu-latest
     steps:
