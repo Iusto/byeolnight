@@ -7,11 +7,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/public/comments")
 @RequiredArgsConstructor
@@ -24,9 +26,9 @@ public class PublicCommentController {
     @ApiResponse(responseCode = "200", description = "댓글 목록 반환")
     @GetMapping("/post/{postId}")
     public ResponseEntity<CommonResponse<List<CommentResponseDto>>> getByPost(@PathVariable Long postId) {
-        System.out.println("PublicCommentController.getByPost 호출 - postId: " + postId);
+        log.debug("PublicCommentController.getByPost 호출 - postId: {}", postId);
         List<CommentResponseDto> comments = commentService.getByPostId(postId, null);
-        System.out.println("반환할 댓글 수: " + comments.size());
+        log.debug("반환할 댓글 수: {}", comments.size());
         return ResponseEntity.ok(CommonResponse.success(comments));
     }
 }

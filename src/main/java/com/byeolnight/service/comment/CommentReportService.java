@@ -11,6 +11,7 @@ import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.PointService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentReportService {
@@ -56,8 +58,7 @@ public class CommentReportService {
                 throw new IllegalArgumentException("이미 신고한 댓글입니다.");
             }
             
-            // 신고자 정보 로깅
-            System.out.println("User ID: " + reporterId + ", Comment ID: " + commentId);
+            log.debug("User ID: {}, Comment ID: {}", reporterId, commentId);
             
             // 신고 객체 생성 및 저장
             CommentReport report = CommentReport.of(reporter, comment, reason, description);
@@ -75,8 +76,7 @@ public class CommentReportService {
                 commentRepository.save(comment);
             }
             
-            // 성공 로그
-            System.out.println("댓글 신고 처리 완료 - 신고 수: " + comment.getReportCount());
+            log.info("댓글 신고 처리 완료 - 신고 수: {}", comment.getReportCount());
         } catch (Exception e) {
             e.printStackTrace(); // 상세 오류 로그 출력
             throw new RuntimeException(e.getMessage());

@@ -72,35 +72,34 @@ public class NotificationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
-        System.out.println("=== 읽지 않은 알림 조회 시작 ===");
-        System.out.println("요청 userId: " + userId);
-        System.out.println("조회된 사용자: " + user.getNickname() + " (ID: " + user.getId() + ")");
+        log.debug("=== 읽지 않은 알림 조회 시작 ===");
+        log.debug("요청 userId: {}", userId);
+        log.debug("조회된 사용자: {} (ID: {})", user.getNickname(), user.getId());
         
-        // 전체 알림 수 확인
         long totalNotifications = notificationRepository.count();
-        System.out.println("전체 알림 수: " + totalNotifications);
+        log.debug("전체 알림 수: {}", totalNotifications);
         
-        // 해당 사용자의 전체 알림 수 확인
         long userTotalNotifications = notificationRepository.countByUser(user);
-        System.out.println("사용자 전체 알림 수: " + userTotalNotifications);
+        log.debug("사용자 전체 알림 수: {}", userTotalNotifications);
         
         List<Notification> notifications = notificationRepository.findByUserAndIsReadFalseOrderByCreatedAtDesc(user);
-        System.out.println("조회된 읽지 않은 알림 수: " + notifications.size());
+        log.debug("조회된 읽지 않은 알림 수: {}", notifications.size());
         
         if (!notifications.isEmpty()) {
-            notifications.forEach(n -> {
-                System.out.println("알림 상세: ID=" + n.getId() + ", 타입=" + n.getType() + ", 제목=" + n.getTitle() + ", 읽음여부=" + n.getIsRead() + ", 생성시간=" + n.getCreatedAt());
-            });
+            notifications.forEach(n -> 
+                log.debug("알림 상세: ID={}, 타입={}, 제목={}, 읽음여부={}, 생성시간={}", 
+                    n.getId(), n.getType(), n.getTitle(), n.getIsRead(), n.getCreatedAt())
+            );
         } else {
-            System.out.println("읽지 않은 알림이 없습니다. 데이터베이스를 직접 확인해보세요.");
+            log.debug("읽지 않은 알림이 없습니다.");
         }
         
         List<NotificationDto.Response> result = notifications.stream()
                 .map(NotificationDto.Response::from)
                 .toList();
                 
-        System.out.println("반환할 알림 DTO 수: " + result.size());
-        System.out.println("=== 읽지 않은 알림 조회 완료 ===");
+        log.debug("반환할 알림 DTO 수: {}", result.size());
+        log.debug("=== 읽지 않은 알림 조회 완료 ===");
         return result;
     }
 
@@ -110,10 +109,10 @@ public class NotificationService {
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
         long count = notificationRepository.countByUserAndIsReadFalse(user);
-        System.out.println("=== 읽지 않은 알림 개수 조회 ===");
-        System.out.println("userId: " + userId + ", 사용자: " + user.getNickname());
-        System.out.println("읽지 않은 알림 개수: " + count);
-        System.out.println("=== 개수 조회 완료 ===");
+        log.debug("=== 읽지 않은 알림 개수 조회 ===");
+        log.debug("userId: {}, 사용자: {}", userId, user.getNickname());
+        log.debug("읽지 않은 알림 개수: {}", count);
+        log.debug("=== 개수 조회 완료 ===");
         return count;
     }
 

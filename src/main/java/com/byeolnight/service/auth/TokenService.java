@@ -19,7 +19,7 @@ public class TokenService {
 
     public void delete(String refreshToken, String email) {
         redisTemplate.delete("refresh:" + email);
-        System.out.println("[Logout] refreshToken for " + email + " removed");
+        log.info("[Logout] refreshToken for {} removed", email);
     }
     
     public void deleteRefreshToken(String email) {

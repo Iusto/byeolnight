@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/member/notifications")
 @RequiredArgsConstructor
@@ -41,12 +43,12 @@ public class NotificationController {
             @RequestParam(defaultValue = "20") int size,
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        System.out.println("알림 목록 조회 요청 - userId: " + user.getId());
+        log.debug("알림 목록 조회 요청 - userId: {}", user.getId());
         
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         NotificationDto.ListResponse response = notificationService.getNotifications(user.getId(), pageable);
-        System.out.println("조회된 알림 수: " + response.getNotifications().size());
+        log.debug("조회된 알림 수: {}", response.getNotifications().size());
         
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -56,10 +58,10 @@ public class NotificationController {
     public ResponseEntity<CommonResponse<List<NotificationDto.Response>>> getUnreadNotifications(
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        System.out.println("읽지 않은 알림 조회 요청 - userId: " + user.getId());
+        log.debug("읽지 않은 알림 조회 요청 - userId: {}", user.getId());
         
         List<NotificationDto.Response> response = notificationService.getUnreadNotifications(user.getId());
-        System.out.println("읽지 않은 알림 수: " + response.size());
+        log.debug("읽지 않은 알림 수: {}", response.size());
         
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -69,10 +71,10 @@ public class NotificationController {
     public ResponseEntity<CommonResponse<NotificationDto.UnreadCountResponse>> getUnreadCount(
             @AuthenticationPrincipal User user
     ) {
-        System.out.println("읽지 않은 알림 개수 조회 요청 - userId: " + user.getId());
+        log.debug("읽지 않은 알림 개수 조회 요청 - userId: {}", user.getId());
         
         long count = notificationService.getUnreadCount(user.getId());
-        System.out.println("읽지 않은 알림 개수: " + count);
+        log.debug("읽지 않은 알림 개수: {}", count);
         
         NotificationDto.UnreadCountResponse response = NotificationDto.UnreadCountResponse.builder()
                 .count(count)
@@ -92,7 +94,7 @@ public class NotificationController {
             @Parameter(description = "알림 ID", example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        System.out.println("알림 읽음 처리 요청 - notificationId: " + id + ", userId: " + user.getId());
+        log.debug("알림 읽음 처리 요청 - notificationId: {}, userId: {}", id, user.getId());
         
         notificationService.markAsRead(id, user.getId());
         return ResponseEntity.ok(CommonResponse.success());
@@ -103,7 +105,7 @@ public class NotificationController {
     public ResponseEntity<CommonResponse<Void>> markAllAsRead(
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        System.out.println("모든 알림 읽음 처리 요청 - userId: " + user.getId());
+        log.debug("모든 알림 읽음 처리 요청 - userId: {}", user.getId());
         
         notificationService.markAllAsRead(user.getId());
         return ResponseEntity.ok(CommonResponse.success());
@@ -120,7 +122,7 @@ public class NotificationController {
             @Parameter(description = "알림 ID", example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal User user
     ) {
-        System.out.println("알림 삭제 요청 - notificationId: " + id + ", userId: " + user.getId());
+        log.debug("알림 삭제 요청 - notificationId: {}, userId: {}", id, user.getId());
         
         notificationService.deleteNotification(id, user.getId());
         return ResponseEntity.ok(CommonResponse.success());
