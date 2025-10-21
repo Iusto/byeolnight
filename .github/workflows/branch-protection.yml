@@ -1,0 +1,74 @@
+name: Branch Protection Check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        run: |
+          if [[ "${{ github.base_ref }}" == "main" && "${{ github.head_ref }}" != "develop" ]]; then
+            echo "❌ main 브랜치는 develop에서만 머지 가능합니다"
+            exit 1
+          fi
+          echo "✅ 브랜치 규칙 준수"
+
+  commit-convention:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages
+        run: |
+          commits=$(git log --format=%s origin/${{ github.base_ref }}..${{ github.head_ref }})
+          echo "검사할 커밋:"
+          echo "$commits"
+          
+          while IFS= read -r commit; do
+            if ! echo "$commit" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci)(\(.+\))?: .+'; then
+              echo "❌ 커밋 컨벤션 위반: $commit"
+              echo "형식: type(scope): subject"
+              echo "예시: feat(auth): Google OAuth2 추가"
+              exit 1
+            fi
+          done <<< "$commits"
+          
+          echo "✅ 모든 커밋이 컨벤션 준수"
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Build
+        run: ./gradlew build -x test
+
+      - name: Quality Gate
+        if: success()
+        run: echo "✅ 품질 테스트 통과"
+
+      - name: Quality Gate Failed
+        if: failure()
+        run: |
+          echo "❌ 품질 테스트 실패"
+          echo "모든 테스트가 통과해야 머지 가능합니다"
+          exit 1

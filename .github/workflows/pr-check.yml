@@ -2,7 +2,7 @@ name: PR 검증
 
 on:
   pull_request:
-    branches: [ master, develop ]
+    branches: [ main, develop ]
     types: [opened, synchronize, reopened]
 
 jobs:
