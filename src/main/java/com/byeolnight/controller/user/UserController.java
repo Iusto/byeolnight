@@ -4,7 +4,9 @@ import com.byeolnight.dto.shop.EquippedIconDto;
 import com.byeolnight.dto.user.*;
 import com.byeolnight.repository.user.DailyAttendanceRepository;
 import lombok.extern.slf4j.Slf4j;
-import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.UserProfileService;
+import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.UserQueryService;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.infrastructure.common.CommonResponse;
@@ -32,15 +34,20 @@ import java.util.List;
 @Tag(name = "👤 회원 API - 사용자", description = "사용자 프로필 및 계정 관리 API")
 public class UserController {
 
-    private final UserService userService;
+    private final UserProfileService userProfileService;
+    private final UserAccountService userAccountService;
+    private final UserQueryService userQueryService;
     private final PointService pointService;
     private final MissionService missionService;
     private final AdminChatService adminChatService;
     private final DailyAttendanceRepository dailyAttendanceRepository;
 
-    public UserController(UserService userService, PointService pointService, MissionService missionService,
+    public UserController(UserProfileService userProfileService, UserAccountService userAccountService,
+                          UserQueryService userQueryService, PointService pointService, MissionService missionService,
                           AdminChatService adminChatService, DailyAttendanceRepository dailyAttendanceRepository) {
-        this.userService = userService;
+        this.userProfileService = userProfileService;
+        this.userAccountService = userAccountService;
+        this.userQueryService = userQueryService;
         this.pointService = pointService;
         this.missionService = missionService;
         this.adminChatService = adminChatService;
@@ -63,7 +70,7 @@ public class UserController {
         }
         
         // 장착된 아이콘 정보 조회
-        EquippedIconDto equippedIcon = userService.getUserEquippedIcon(user.getId());
+        EquippedIconDto equippedIcon = userProfileService.getUserEquippedIcon(user.getId());
         
         // 출석일수 조회
         int attendanceCount = (int) dailyAttendanceRepository.countByUser(user);
@@ -92,13 +99,13 @@ public class UserController {
     })
     @GetMapping("/{userId}/profile")
     public ResponseEntity<CommonResponse<UserProfileDto>> getUserProfile(@PathVariable Long userId) {
-        UserProfileDto profile = userService.getUserProfile(userId);
+        UserProfileDto profile = userProfileService.getUserProfile(userId);
         return ResponseEntity.ok(CommonResponse.success(profile));
     }
 
     @GetMapping("/{userId}/equipped-icon")
     public ResponseEntity<CommonResponse<com.byeolnight.dto.shop.EquippedIconDto>> getUserEquippedIcon(@PathVariable Long userId) {
-        EquippedIconDto equippedIcon = userService.getUserEquippedIcon(userId);
+        EquippedIconDto equippedIcon = userProfileService.getUserEquippedIcon(userId);
         return ResponseEntity.ok(CommonResponse.success(equippedIcon));
     }
 
@@ -114,7 +121,7 @@ public class UserController {
     public ResponseEntity<CommonResponse<Void>> updateProfile(
             @Parameter(hidden = true) @AuthenticationPrincipal User user,
             @Valid @RequestBody UpdateProfileRequestDto dto) {
-        userService.updateProfile(user.getId(), dto);
+        userProfileService.updateProfile(user.getId(), dto);
         return ResponseEntity.ok(CommonResponse.success());
     }
 
@@ -129,7 +136,7 @@ public class UserController {
     public ResponseEntity<CommonResponse<Void>> changePassword(
             @Parameter(hidden = true) @AuthenticationPrincipal User user,
             @Valid @RequestBody PasswordChangeRequestDto dto) {
-        userService.changePassword(user.getId(), dto);
+        userAccountService.changePassword(user.getId(), dto);
         return ResponseEntity.ok(CommonResponse.success());
     }
 
@@ -177,7 +184,7 @@ public class UserController {
             @Parameter(hidden = true) @AuthenticationPrincipal User user,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        MyActivityDto activity = userService.getMyActivity(user.getId(), page, size);
+        MyActivityDto activity = userProfileService.getMyActivity(user.getId(), page, size);
         return ResponseEntity.ok(CommonResponse.success(activity));
     }
 
@@ -188,7 +195,7 @@ public class UserController {
     })
     @GetMapping("/profile-by-nickname/{nickname}")
     public ResponseEntity<CommonResponse<UserIdDto>> getUserIdByNickname(@PathVariable String nickname) {
-        User user = userService.findByNickname(nickname)
+        User user = userQueryService.findByNickname(nickname)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         UserIdDto userIdDto = UserIdDto.builder().id(user.getId()).build();
         return ResponseEntity.ok(CommonResponse.success(userIdDto));
