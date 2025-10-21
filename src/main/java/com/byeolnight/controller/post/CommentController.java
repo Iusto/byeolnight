@@ -11,10 +11,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/member/comments")
 @RequiredArgsConstructor
@@ -74,8 +76,7 @@ public class CommentController {
         }
         
         try {
-            // 사용자 정보 로깅
-            System.out.println("Controller - User ID: " + user.getId() + ", Email: " + user.getEmail() + ", Nickname: " + user.getNickname());
+            log.debug("Controller - User ID: {}, Email: {}, Nickname: {}", user.getId(), user.getEmail(), user.getNickname());
             
             // 사용자 ID를 전달하는 방식으로 변경
             commentReportService.reportCommentById(commentId, user.getId(), reason, description);

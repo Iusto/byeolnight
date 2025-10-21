@@ -10,9 +10,11 @@ import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostReportService {
@@ -43,7 +45,7 @@ public class PostReportService {
         // 신고 수 5개 이상이면 자동 블라인드 (포인트 지급은 관리자 승인 후)
         if (post.getReportCount() >= 5 && !post.isBlinded()) {
             post.blind();
-            System.out.println("신고 자동 블라인드 처리: postId=" + postId + ", blindType=" + post.getBlindType());
+            log.info("신고 자동 블라인드 처리: postId={}, blindType={}", postId, post.getBlindType());
             if (!postBlindLogRepository.existsByPostId(post.getId())) {
                 postBlindLogRepository.save(PostBlindLog.of(post, PostBlindLog.Reason.REPORT));
             }
