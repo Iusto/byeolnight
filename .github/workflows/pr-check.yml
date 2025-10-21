@@ -16,20 +16,6 @@ jobs:
       with:
         fetch-depth: 0  # 전체 히스토리 가져오기
 
-    - name: PR 제목 검증
-      run: |
-        PR_TITLE="${{ github.event.pull_request.title }}"
-        
-        # PR 제목 패턴 검증 (feat:, fix:, docs:, refactor:, test: 등)
-        if [[ ! $PR_TITLE =~ ^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: ]]; then
-          echo "❌ PR 제목이 컨벤션을 따르지 않습니다."
-          echo "올바른 형식: feat: 새로운 기능 추가"
-          echo "올바른 형식: fix(auth): JWT 토큰 갱신 버그 수정"
-          exit 1
-        fi
-        
-        echo "✅ PR 제목이 컨벤션을 따릅니다: $PR_TITLE"
-
     - name: 변경된 파일 분석
       id: changed-files
       uses: tj-actions/changed-files@v42
