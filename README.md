@@ -60,27 +60,27 @@ chmod +x deploy.sh && ./deploy.sh
 
 ## 🏗️ 아키텍처
 
-```
-[아키텍처 다이어그램 추가 예정 - draw.io]
+![아키텍처 다이어그램](./docs/다이어그램.png)
 
-클라이언트 계층:
+### 계층별 구성
+
+**클라이언트 계층:**
 - React 18 + TypeScript (SPA)
 - WebSocket (STOMP) 실시간 통신
 
-애플리케이션 계층:
+**애플리케이션 계층:**
 - Spring Boot 3.2.4 (REST API)
 - Spring Security 6.2.3 (JWT + OAuth2)
 - Spring Cloud Config Server (중앙 설정 관리)
 
-데이터 계층:
+**데이터 계층:**
 - MySQL 8.0 (주 데이터베이스)
 - Redis 7.0 (캐시 + 세션 + 분산 락)
 
-외부 연동:
+**외부 연동:**
 - AWS S3 + CloudFront (파일 저장/CDN)
 - OAuth2 Provider (Google, Kakao, Naver)
 - External APIs (Gmail, Vision, NASA 등)
-```
 
 ---
 
