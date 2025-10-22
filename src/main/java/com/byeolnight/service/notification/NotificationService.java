@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -49,6 +50,7 @@ public class NotificationService {
     }
 
     // 사용자 알림 목록 조회
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public NotificationDto.ListResponse getNotifications(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
@@ -68,6 +70,7 @@ public class NotificationService {
     }
 
     // 읽지 않은 알림 조회
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<NotificationDto.Response> getUnreadNotifications(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
@@ -104,6 +107,7 @@ public class NotificationService {
     }
 
     // 읽지 않은 알림 개수
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public long getUnreadCount(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
