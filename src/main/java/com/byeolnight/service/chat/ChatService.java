@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
 import java.util.List;
@@ -38,10 +40,12 @@ public class ChatService {
     }
 
 
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getRecentMessages(String roomId) {
         return getRecentMessages(roomId, 100);
     }
     
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getRecentMessages(String roomId, int limit) {
         return chatMessageRepository.findTop100ByRoomIdOrderByTimestampAsc(roomId,
                 org.springframework.data.domain.PageRequest.of(0, limit))
@@ -58,6 +62,7 @@ public class ChatService {
                 .toList();
     }
     
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getBlindedMessages(int limit) {
         return chatMessageRepository.findByIsBlindedTrueOrderByBlindedAtDesc(
                 org.springframework.data.domain.PageRequest.of(0, limit))
@@ -74,6 +79,7 @@ public class ChatService {
                 .toList();
     }
     
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getMessagesBefore(String roomId, String beforeId, int limit) {
         Long beforeIdLong = Long.parseLong(beforeId);
         return chatMessageRepository.findByRoomIdAndIdLessThanOrderByTimestampDesc(roomId, beforeIdLong,
