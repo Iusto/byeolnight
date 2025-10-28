@@ -20,4 +20,5 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /home/ubuntu/byeolnight
+            chmod +x deploy.sh
             ./deploy.sh
