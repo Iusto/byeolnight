@@ -20,28 +20,19 @@ jobs:
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           timeout: 25m
           command_timeout: 25m
+          envs: GH_USERNAME,GH_TOKEN
           script: |
-            set -e
-            
-            export GITHUB_USERNAME="${{ secrets.GH_USERNAME }}"
-            export GITHUB_TOKEN="${{ secrets.GH_TOKEN }}"
-            
-            cd /home/ubuntu/byeolnight || exit 1
+            export GITHUB_USERNAME="$GH_USERNAME"
+            export GITHUB_TOKEN="$GH_TOKEN"
+            cd /home/ubuntu/byeolnight
             chmod +x deploy.sh
-            
-            echo "🚀 배포 시작: $(date)"
-            if ./deploy.sh; then
-              echo "✅ 배포 성공: $(date)"
-              exit 0
-            else
-              echo "❌ 배포 실패: $(date)"
-              echo "📋 최근 로그:"
-              docker logs --tail 100 byeolnight-app-1 2>&1 || true
-              exit 1
-            fi
+            ./deploy.sh
