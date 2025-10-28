@@ -55,7 +55,7 @@ command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 
 # ===== 1. 코드 업데이트 =====
 echo "📥 최신 코드 가져오기..."
-git fetch origin master && git reset --hard origin/master
+git fetch origin main && git reset --hard origin/main
 
 # ⬇️ reset 후에 반드시 다시 실행권한/줄바꿈 보정
 chmod +x ./gradlew 2>/dev/null || true

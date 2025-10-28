@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
-import UserIconDisplay from '../components/UserIconDisplay';
+import { UserIconDisplay } from '../components/user';
 import type { Suggestion } from '../types/suggestion';
 
 type SuggestionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';

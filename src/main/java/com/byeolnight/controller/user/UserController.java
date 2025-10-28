@@ -208,9 +208,9 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "인증 실패")
     })
     @GetMapping("/chat/ban-status")
-    public ResponseEntity<CommonResponse<java.util.Map<String, Object>>> getChatBanStatus(
+    public ResponseEntity<CommonResponse<com.byeolnight.dto.admin.ChatBanStatusDto>> getChatBanStatus(
             @Parameter(hidden = true) @AuthenticationPrincipal User user) {
-        java.util.Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
+        com.byeolnight.dto.admin.ChatBanStatusDto banStatus = adminChatService.getUserBanStatus(user.getNickname());
         return ResponseEntity.ok(CommonResponse.success(banStatus));
     }
 }

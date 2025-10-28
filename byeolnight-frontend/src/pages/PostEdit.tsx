@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import PostForm from '../components/PostForm';
+import { PostForm } from '../components/post';
 
 // 이미지 URL 정규식
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;

@@ -5,11 +5,14 @@ import com.byeolnight.entity.chat.ChatMessage;
 import com.byeolnight.repository.chat.ChatBanRepository;
 import com.byeolnight.repository.chat.ChatMessageRepository;
 import com.byeolnight.dto.admin.ChatStatsDto;
+import com.byeolnight.dto.admin.ChatBanStatusDto;
+import com.byeolnight.dto.admin.BannedUserDto;
+import com.byeolnight.dto.admin.BlindedMessageDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +28,7 @@ public class AdminChatService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final ChatBanRepository chatBanRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+
     private final StringRedisTemplate redisTemplate;
 
     // 메시지 블라인드 처리
@@ -38,9 +41,7 @@ public class AdminChatService {
         message.blind(adminId);
         chatMessageRepository.save(message);
         
-        // 관리자들에게 실시간 알림
-        messagingTemplate.convertAndSend("/topic/admin/chat-update", 
-            Map.of("type", "MESSAGE_BLINDED", "messageId", messageId));
+
         
         log.info("메시지 {} 블라인드 처리됨 by 관리자 {}", messageId, adminId);
     }
@@ -55,9 +56,7 @@ public class AdminChatService {
         message.unblind();
         chatMessageRepository.save(message);
         
-        // 관리자들에게 실시간 알림
-        messagingTemplate.convertAndSend("/topic/admin/chat-update", 
-            Map.of("type", "MESSAGE_UNBLINDED", "messageId", messageId));
+
         
         log.info("메시지 {} 블라인드 해제됨", messageId);
     }
@@ -79,13 +78,7 @@ public class AdminChatService {
         
         chatBanRepository.save(chatBan);
         
-        // 관리자들에게 실시간 알림
-        messagingTemplate.convertAndSend("/topic/admin/chat-update", 
-            Map.of("type", "USER_BANNED", "username", username, "duration", durationMinutes));
-        
-        // 해당 사용자에게 금지 알림
-        messagingTemplate.convertAndSend("/queue/user." + username + ".ban", 
-            Map.of("banned", true, "duration", durationMinutes, "reason", chatBan.getReason()));
+
         
         log.info("사용자 {} {}분간 채팅 금지됨 by 관리자 {} - 사유: {}", username, durationMinutes, adminId, reason);
     }
@@ -98,13 +91,7 @@ public class AdminChatService {
                     ban.unban();
                     chatBanRepository.save(ban);
                     
-                    // 관리자들에게 실시간 알림
-                    messagingTemplate.convertAndSend("/topic/admin/chat-update", 
-                        Map.of("type", "USER_UNBANNED", "username", userId));
-                    
-                    // 해당 사용자에게 해제 알림
-                    messagingTemplate.convertAndSend("/queue/user." + userId + ".ban", 
-                        Map.of("banned", false));
+
                     
                     log.info("사용자 {} 채팅 금지 해제됨", userId);
                 });
@@ -123,40 +110,36 @@ public class AdminChatService {
     }
 
     // 제재된 사용자 목록 조회 (페이징 지원)
-    public List<Map<String, Object>> getBannedUsers(int limit, int offset) {
+    public List<BannedUserDto> getBannedUsers(int limit, int offset) {
         List<ChatBan> activeBans = chatBanRepository.findByIsActiveTrueOrderByBannedAtDesc();
         
         return activeBans.stream()
                 .filter(ban -> !ban.isExpired())
                 .skip(offset)
                 .limit(limit)
-                .map(ban -> {
-                    Map<String, Object> userInfo = new HashMap<>();
-                    userInfo.put("userId", ban.getUsername());
-                    userInfo.put("username", ban.getUsername());
-                    userInfo.put("bannedUntil", ban.getBannedUntil());
-                    userInfo.put("bannedBy", ban.getBannedBy());
-                    userInfo.put("reason", ban.getReason());
-                    return userInfo;
-                })
+                .map(ban -> BannedUserDto.builder()
+                    .userId(ban.getUsername())
+                    .username(ban.getUsername())
+                    .bannedUntil(ban.getBannedUntil())
+                    .bannedBy(ban.getBannedBy())
+                    .reason(ban.getReason())
+                    .build())
                 .collect(Collectors.toList());
     }
 
     // 블라인드된 메시지 목록 조회 (페이징 지원)
-    public List<Map<String, Object>> getBlindedMessages(int limit, int offset) {
+    public List<BlindedMessageDto> getBlindedMessages(int limit, int offset) {
         List<ChatMessage> blindedMessages = chatMessageRepository
                 .findByIsBlindedTrueOrderByBlindedAtDesc(PageRequest.of(offset / limit, limit));
         
         return blindedMessages.stream()
-                .map(message -> {
-                    Map<String, Object> messageInfo = new HashMap<>();
-                    messageInfo.put("messageId", message.getId().toString());
-                    messageInfo.put("blindedBy", message.getBlindedBy());
-                    messageInfo.put("blindedAt", message.getBlindedAt());
-                    messageInfo.put("originalMessage", message.getMessage());
-                    messageInfo.put("sender", message.getSender());
-                    return messageInfo;
-                })
+                .map(message -> BlindedMessageDto.builder()
+                    .messageId(message.getId().toString())
+                    .blindedBy(message.getBlindedBy())
+                    .blindedAt(message.getBlindedAt())
+                    .originalMessage(message.getMessage())
+                    .sender(message.getSender())
+                    .build())
                 .collect(Collectors.toList());
     }
 
@@ -178,9 +161,7 @@ public class AdminChatService {
     }
 
     // 사용자 채팅 금지 상태 상세 정보 조회
-    public Map<String, Object> getUserBanStatus(String username) {
-        Map<String, Object> result = new HashMap<>();
-        
+    public ChatBanStatusDto getUserBanStatus(String username) {
         Optional<ChatBan> activeBan = chatBanRepository
                 .findByUsernameAndIsActiveTrueAndBannedUntilAfter(username, LocalDateTime.now());
         
@@ -190,24 +171,20 @@ public class AdminChatService {
             if (ban.isExpired()) {
                 ban.unban();
                 chatBanRepository.save(ban);
-                result.put("banned", false);
+                return ChatBanStatusDto.builder().banned(false).build();
             } else {
-                result.put("banned", true);
-                result.put("reason", ban.getReason());
-                result.put("bannedUntil", ban.getBannedUntil());
-                result.put("bannedBy", ban.getBannedBy());
-                
-                // 남은 시간 계산 (분 단위)
                 long remainingMinutes = java.time.Duration.between(LocalDateTime.now(), ban.getBannedUntil()).toMinutes();
-                result.put("remainingMinutes", Math.max(0, remainingMinutes));
-                
-
+                return ChatBanStatusDto.builder()
+                    .banned(true)
+                    .reason(ban.getReason())
+                    .bannedUntil(ban.getBannedUntil())
+                    .bannedBy(ban.getBannedBy())
+                    .remainingMinutes(Math.max(0, remainingMinutes))
+                    .build();
             }
-        } else {
-            result.put("banned", false);
         }
         
-        return result;
+        return ChatBanStatusDto.builder().banned(false).build();
     }
 
     // 만료된 채팅 금지 정리 (스케줄러)

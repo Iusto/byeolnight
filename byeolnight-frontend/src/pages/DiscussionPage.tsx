@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
-import DiscussionTopicBanner from '../components/DiscussionTopicBanner';
+import { DiscussionTopicBanner } from '../components/post';
 import { useAuth } from '../contexts/AuthContext';
 
 interface DiscussionPost {

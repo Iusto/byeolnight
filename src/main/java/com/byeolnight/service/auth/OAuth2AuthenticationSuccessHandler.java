@@ -2,6 +2,7 @@ package com.byeolnight.service.auth;
 
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
+import org.springframework.beans.factory.annotation.Value;
 import com.byeolnight.service.auth.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,11 +24,20 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    @Value("${app.security.cookie.domain:}")
-    private String cookieDomain;
-    
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenService tokenService;
+    
+    @Value("${app.frontend.local-url:http://localhost:5173}")
+    private String localFrontendUrl;
+    
+    @Value("${app.frontend.prod-url:https://byeolnight.com}")
+    private String prodFrontendUrl;
+    
+    @Value("${app.security.cookie.access-token-max-age:1800}")
+    private int accessTokenMaxAge;
+    
+    @Value("${app.security.cookie.domain:}")
+    private String cookieDomain;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -69,23 +79,23 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, deleteJSessionId.toString());
 
-            String baseUrl = request.getServerName().contains("localhost") ? 
-                    "http://localhost:5173" : "https://byeolnight.com";
-            
-            // HttpOnly 쿠키로 토큰이 설정되었으므로 URL 파라미터로 전달하지 않음
+            String baseUrl = getBaseUrl(request);
             String redirectUrl = baseUrl + "/oauth/callback";
 
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
 
         } catch (Exception e) {
             log.error("OAuth2 인증 성공 처리 중 오류 발생", e);
-            String baseUrl = request.getServerName().contains("localhost") ? 
-                    "http://localhost:5173" : "https://byeolnight.com";
+            String baseUrl = getBaseUrl(request);
             String errorUrl = UriComponentsBuilder.fromUriString(baseUrl + "/oauth/callback")
                     .queryParam("error", "OAuth 로그인 처리 중 오류가 발생했습니다")
                     .build().toUriString();
             getRedirectStrategy().sendRedirect(request, response, errorUrl);
         }
+    }
+
+    private String getBaseUrl(HttpServletRequest request) {
+        return request.getServerName().contains("localhost") ? localFrontendUrl : prodFrontendUrl;
     }
 
     private ResponseCookie createRefreshCookie(String refreshToken, long validity) {
@@ -109,7 +119,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .secure(true)
                 .sameSite("Lax")
                 .path("/")
-                .maxAge(1800);
+                .maxAge(accessTokenMaxAge);
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);

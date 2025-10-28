@@ -1,10 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import IpBlockModal from '../components/IpBlockModal';
-import AdminReasonModal from '../components/AdminReasonModal';
-import PointAwardModal from '../components/PointAwardModal';
-import ReportDetailModal from '../components/ReportDetailModal';
+import { IpBlockModal, AdminReasonModal, PointAwardModal, ReportDetailModal } from '../components/admin';
 import { grantNicknameChangeTicket } from '../lib/api/admin';
 import { CATEGORY_LABELS } from './PostList';
 

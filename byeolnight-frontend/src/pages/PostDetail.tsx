@@ -3,11 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import MarkdownRenderer from '../components/MarkdownRenderer';
-import ClickableNickname from '../components/ClickableNickname';
-import UserIconDisplay from '../components/UserIconDisplay';
-import CommentList from '../components/CommentList';
-import CommentForm from '../components/CommentForm';
+import { MarkdownRenderer } from '../components/post';
+import { ClickableNickname, UserIconDisplay } from '../components/user';
+import { CommentList, CommentForm } from '../components/post';
 
 
 interface Post {

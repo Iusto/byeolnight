@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import StellaIcon from '../components/StellaIcon';
-import WithdrawModal from '../components/WithdrawModal';
+import { StellaIcon, WithdrawModal } from '../components/user';
 import type { UserIcon, EquippedIcon } from '../types/stellaIcon';
 
 interface Post {

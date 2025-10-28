@@ -1,5 +1,6 @@
 package com.byeolnight.service.discussion;
 
+import com.byeolnight.dto.admin.DiscussionStatusDto;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.post.PostRepository;
@@ -69,17 +70,16 @@ public class DiscussionService {
     /**
      * 토론 시스템 상태 조회
      */
-    public Object getDiscussionStatus() {
+    public DiscussionStatusDto getDiscussionStatus() {
         Post todayTopic = postRepository.findTodayDiscussionTopic().orElse(null);
         long totalDiscussionPosts = postRepository.countByCategoryAndIsDeletedFalse(Post.Category.DISCUSSION);
         
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("todayTopicExists", todayTopic != null);
-        result.put("todayTopicTitle", todayTopic != null ? todayTopic.getTitle() : null);
-        result.put("totalDiscussionPosts", totalDiscussionPosts);
-        result.put("lastUpdated", java.time.LocalDateTime.now());
-        
-        return result;
+        return DiscussionStatusDto.builder()
+            .todayTopicExists(todayTopic != null)
+            .todayTopicTitle(todayTopic != null ? todayTopic.getTitle() : null)
+            .totalDiscussionPosts(totalDiscussionPosts)
+            .lastUpdated(java.time.LocalDateTime.now())
+            .build();
     }
 
     /**

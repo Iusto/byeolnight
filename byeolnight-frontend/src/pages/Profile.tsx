@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import MyActivity from '../components/MyActivity';
-import UserIconDisplay from '../components/UserIconDisplay';
+import { MyActivity } from '../components/user';
+import { UserIconDisplay } from '../components/user';
 import { getReceivedMessages, getSentMessages, markMessageAsRead, type Message, type MessageListResponse } from '../lib/api/message';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../lib/api/notification';
 import type { Notification, NotificationListResponse } from '../types/notification';

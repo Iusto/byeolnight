@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import WithdrawModal from '../components/WithdrawModal';
+import { WithdrawModal } from '../components/user';
 
 type TabType = 'info' | 'edit' | 'password';
 

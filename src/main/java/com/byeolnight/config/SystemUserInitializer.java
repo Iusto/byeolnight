@@ -24,6 +24,12 @@ public class SystemUserInitializer implements ApplicationRunner {
     private final UserService userService;
     private final StellaIconRepository stellaIconRepository;
 
+    @Value("${app.system.users.newsbot.email:newsbot@byeolnight.com}")
+    private String newsbotEmail;
+    
+    @Value("${app.system.users.system.email:system@byeolnight.com}")
+    private String systemEmail;
+
     @Value("${app.system.passwords.newsbot}")
     private String newsBotRawPassword;
 
@@ -34,35 +40,35 @@ public class SystemUserInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         
         // 뉴스봇 사용자 생성
-        if (!userRepository.existsByEmail("newsbot@byeolnight.com")) {
+        if (!userRepository.existsByEmail(newsbotEmail)) {
             String encodedPassword = passwordEncoder.encode(newsBotRawPassword);
             
             User newsBot = User.builder()
-                    .email("newsbot@byeolnight.com")
+                    .email(newsbotEmail)
                     .nickname("뉴스봇")
                     .password(encodedPassword)
                     .role(User.Role.ADMIN)
                     .build();
 
             userRepository.save(newsBot);
-            log.info("뉴스봇 계정이 생성되었습니다: newsbot@byeolnight.com");
+            log.info("뉴스봇 계정이 생성되었습니다: {}", newsbotEmail);
         } else {
             log.info("뉴스봇 계정이 이미 존재합니다.");
         }
 
         // 기존 시스템 계정 유지 (하위 호환성)
-        if (!userRepository.existsByEmail("system@byeolnight.com")) {
+        if (!userRepository.existsByEmail(systemEmail)) {
             String encodedPassword = passwordEncoder.encode(systemRawPassword);
             
             User systemUser = User.builder()
-                    .email("system@byeolnight.com")
+                    .email(systemEmail)
                     .nickname("별 헤는 밤")
                     .password(encodedPassword)
                     .role(User.Role.ADMIN)
                     .build();
 
             userRepository.save(systemUser);
-            log.info("시스템 사용자 계정이 생성되었습니다: system@byeolnight.com");
+            log.info("시스템 사용자 계정이 생성되었습니다: {}", systemEmail);
         } else {
             log.info("시스템 사용자 계정이 이미 존재합니다.");
         }
