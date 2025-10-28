@@ -56,10 +56,10 @@ command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 # ===== 1. Config Repository 업데이트 (코드 업데이트 전에 먼저) =====
 if [ ! -d "config-repo" ]; then
   echo "📦 Config Repository clone..."
-  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
+  git clone -b main https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
 else
   echo "🔄 Config Repository 업데이트..."
-  cd config-repo && git pull && cd ..
+  cd config-repo && git checkout main && git pull origin main && cd ..
 fi
 
 # ===== 2. 코드 업데이트 =====
