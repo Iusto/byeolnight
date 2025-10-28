@@ -10,11 +10,7 @@ services:
       - "8888:8888"
     environment:
       - SPRING_PROFILES_ACTIVE=native
-      - SPRING_SECURITY_USER_NAME=${CONFIG_USERNAME}
-      - SPRING_SECURITY_USER_PASSWORD=${CONFIG_PASSWORD}
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/config-repo/configs/
-      - ENCRYPT_KEY=${CONFIG_ENCRYPT_KEY}
-      - SPRING_CLOUD_CONFIG_SERVER_ENCRYPT_ENABLED=true
     volumes:
       - ./config-repo:/app/config-repo
     healthcheck:
@@ -42,8 +38,6 @@ services:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
-      - CONFIG_USERNAME=${CONFIG_USERNAME}
-      - CONFIG_PASSWORD=${CONFIG_PASSWORD}
       - SPRING_PROFILES_ACTIVE=prod
     restart: unless-stopped
     volumes:

@@ -8,8 +8,8 @@ spring:
     active: native
   security:
     user:
-      name: config-admin
-      password: config-secret-2024
+      name: ${CONFIG_USERNAME:config-admin}
+      password: ${CONFIG_PASSWORD:config-secret-2024}
   cloud:
     config:
       server:
@@ -23,7 +23,7 @@ spring:
 
 # 암호화 설정
 encrypt:
-  key: byeolnight-config-encryption-key-2025!@#$%^&*()
+  key: ${ENCRYPT_KEY:byeolnight-config-encryption-key-2025!@#$%^&*()}
   fail-on-error: false
 
 management:
