@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +25,6 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
 
     // 알림 생성 및 실시간 전송
     @Transactional
@@ -138,26 +137,9 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUser(user);
     }
 
-    // 실시간 알림 전송
+    // 실시간 알림 전송 (Native WebSocket으로 변경 후 제거됨)
     private void sendRealTimeNotification(Long userId, NotificationDto.Response notification) {
-        try {
-            // 사용자별 개인 알림 전송
-            messagingTemplate.convertAndSendToUser(
-                userId.toString(), 
-                "/queue/notifications", 
-                notification
-            );
-            
-            // 전체 브로드캐스트도 함께 전송 (디버깅용)
-            messagingTemplate.convertAndSend(
-                "/topic/notifications/" + userId,
-                notification
-            );
-            
-            log.info("실시간 알림 전송 완료: userId={}, type={}, title={}", userId, notification.getType(), notification.getTitle());
-        } catch (Exception e) {
-            log.error("실시간 알림 전송 실패: userId={}, error={}", userId, e.getMessage(), e);
-        }
+        log.info("알림 생성됨: userId={}, type={}, title={}", userId, notification.getType(), notification.getTitle());
     }
 
     // 게시글 댓글 알림
