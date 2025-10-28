@@ -6,10 +6,8 @@ spring:
     name: config-server
   profiles:
     active: native
-  security:
-    user:
-      name: ${CONFIG_USERNAME:config-admin}
-      password: ${CONFIG_PASSWORD:config-secret-2024}
+  config:
+    import: optional:file:../config-repo/configs/config-server-${spring.profiles.active:prod}.yml
   cloud:
     config:
       server:
@@ -20,11 +18,6 @@ spring:
           clone-on-start: false
       encrypt:
         enabled: true
-
-# 암호화 설정
-encrypt:
-  key: ${ENCRYPT_KEY:byeolnight-config-encryption-key-2025!@#$%^&*()}
-  fail-on-error: false
 
 management:
   endpoints:
