@@ -26,12 +26,9 @@ aws-exports.js
 secrets/
 config/secrets/
 
-# Config Repository (실제 설정값 포함)
+# Config Repository - Private Git 레포지토리로 분리 관리
+# https://github.com/Iusto/byeolnight-config (Private)
 config-repo/
-!config-repo/configs/*.template
-# Config 파일들 개별 무시
-config-repo/configs/byeolnight-*.yml
-!config-repo/configs/byeolnight-*.template
 
 # 암호화 관련 임시 파일
 temp_encrypted.txt

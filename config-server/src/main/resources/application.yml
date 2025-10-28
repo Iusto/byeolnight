@@ -5,7 +5,7 @@ spring:
   application:
     name: config-server
   profiles:
-    active: native
+    active: ${SPRING_PROFILES_ACTIVE:native}
   config:
     import: optional:file:../config-repo/configs/config-server-${spring.profiles.active:prod}.yml
   cloud:
@@ -14,8 +14,12 @@ spring:
         native:
           search-locations: file:../config-repo/configs,classpath:/
         git:
-          uri: file:///tmp/config-repo
-          clone-on-start: false
+          uri: https://github.com/Iusto/byeolnight-config.git
+          default-label: main
+          clone-on-start: true
+          username: ${GITHUB_USERNAME:}
+          password: ${GITHUB_TOKEN:}
+          search-paths: configs
       encrypt:
         enabled: true
 
