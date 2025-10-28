@@ -106,12 +106,12 @@ cloud:
       private-key-content: test
       signed-url-duration: 60
 
-    external-api:
-      email:
-        mail-from: test@test.com
-        gmail-password: test
-      ai:
-        openai-api-key: test
-        google-api-key: test
-        newsdata-api-key: test
-        newsdata-api-key-backup: test
+  external-api:
+    email:
+      mail-from: test@test.com
+      gmail-password: test
+    ai:
+      openai-api-key: test
+      google-api-key: test
+      newsdata-api-key: test
+      newsdata-api-key-backup: test

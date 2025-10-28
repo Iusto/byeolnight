@@ -59,6 +59,12 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // 서버 점검 중 (502, 503, 504)
+    if (error.response?.status >= 502 && error.response?.status <= 504) {
+      window.location.href = '/maintenance.html';
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
 
     // 공개 API들은 토큰 재발급 시도하지 않음
