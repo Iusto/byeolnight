@@ -38,6 +38,9 @@ public class CinemaService {
     
     @Value("${app.security.external-api.ai.openai-api-key:}")
     private String openaiApiKey;
+    
+    @Value("${app.system.users.newsbot.email:newsbot@byeolnight.com}")
+    private String newsbotEmail;
 
     // ================================ 스케줄링 ================================
     
@@ -679,7 +682,7 @@ public class CinemaService {
     }
     
     private User getSystemUser() {
-        return userRepository.findByEmail("newsbot@byeolnight.com")
+        return userRepository.findByEmail(newsbotEmail)
                 .orElseThrow(() -> new RuntimeException("시스템 사용자를 찾을 수 없습니다"));
     }
     
@@ -782,77 +785,73 @@ public class CinemaService {
         return query;
     }
     
-    public Map<String, Object> getCinemaStatus() {
-        Map<String, Object> status = new HashMap<>();
-        
+    public com.byeolnight.dto.admin.CinemaStatusDto getCinemaStatus() {
         try {
             long totalCinemaPosts = postRepository.countByCategory(Post.Category.STARLIGHT_CINEMA);
-            status.put("totalCinemaPosts", totalCinemaPosts);
-            
             Optional<Post> latestPost = postRepository.findFirstByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA);
-            boolean latestPostExists = latestPost.isPresent();
-            status.put("latestPostExists", latestPostExists);
             
-            if (latestPostExists) {
+            com.byeolnight.dto.admin.CinemaStatusDto.CinemaStatusDtoBuilder builder = com.byeolnight.dto.admin.CinemaStatusDto.builder()
+                .totalCinemaPosts(totalCinemaPosts)
+                .latestPostExists(latestPost.isPresent());
+            
+            if (latestPost.isPresent()) {
                 Post latest = latestPost.get();
-                status.put("latestPostTitle", latest.getTitle());
-                status.put("lastUpdated", latest.getCreatedAt());
-                
                 LocalDateTime now = LocalDateTime.now();
-                LocalDateTime lastUpdate = latest.getCreatedAt();
-                long daysSinceUpdate = java.time.temporal.ChronoUnit.DAYS.between(lastUpdate, now);
-                status.put("daysSinceLastUpdate", daysSinceUpdate);
-                
+                long daysSinceUpdate = java.time.temporal.ChronoUnit.DAYS.between(latest.getCreatedAt(), now);
                 boolean isHealthy = daysSinceUpdate < 2;
-                status.put("systemHealthy", isHealthy);
+                
+                builder.latestPostTitle(latest.getTitle())
+                    .lastUpdated(latest.getCreatedAt())
+                    .daysSinceLastUpdate(daysSinceUpdate)
+                    .systemHealthy(isHealthy);
                 
                 if (!isHealthy) {
-                    status.put("warning", "마지막 업데이트가 " + daysSinceUpdate + "일 전입니다. 스케줄러 확인이 필요합니다.");
+                    builder.warning("마지막 업데이트가 " + daysSinceUpdate + "일 전입니다. 스케줄러 확인이 필요합니다.");
                 }
             } else {
-                status.put("latestPostTitle", null);
-                status.put("lastUpdated", null);
-                status.put("daysSinceLastUpdate", -1);
-                status.put("systemHealthy", false);
-                status.put("warning", "별빛 시네마 게시글이 없습니다.");
+                builder.daysSinceLastUpdate(-1L)
+                    .systemHealthy(false)
+                    .warning("별빛 시네마 게시글이 없습니다.");
             }
             
             LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
             long todayPosts = postRepository.countByCategoryAndCreatedAtAfter(Post.Category.STARLIGHT_CINEMA, todayStart);
-            status.put("todayPosts", todayPosts);
             
-            boolean googleApiConfigured = googleApiKey != null && !googleApiKey.trim().isEmpty();
-            boolean openaiApiConfigured = openaiApiKey != null && !openaiApiKey.trim().isEmpty();
+            com.byeolnight.dto.admin.CinemaStatusDto.SystemConfigDto systemConfig = com.byeolnight.dto.admin.CinemaStatusDto.SystemConfigDto.builder()
+                .schedulerEnabled(true)
+                .dailyScheduleTime("20:00 (KST)")
+                .retryTimes("20:05, 20:10 (KST)")
+                .maxRetryCount(cinemaConfig.getCollection().getRetryCount())
+                .keywordCount(cinemaConfig.getCollection().getKeywordCount())
+                .build();
             
-            status.put("googleApiConfigured", googleApiConfigured);
-            status.put("openaiApiConfigured", openaiApiConfigured);
-            
-            Map<String, Object> systemConfig = new HashMap<>();
-            systemConfig.put("schedulerEnabled", true);
-            systemConfig.put("dailyScheduleTime", "20:00 (KST)");
-            systemConfig.put("retryTimes", "20:05, 20:10 (KST)");
-            systemConfig.put("maxRetryCount", cinemaConfig.getCollection().getRetryCount());
-            systemConfig.put("keywordCount", cinemaConfig.getCollection().getKeywordCount());
-            status.put("systemConfig", systemConfig);
-            
+            String statusMessage;
             if (totalCinemaPosts == 0) {
-                status.put("statusMessage", "별빛 시네마 시스템이 아직 시작되지 않았습니다.");
-            } else if (!latestPostExists) {
-                status.put("statusMessage", "별빛 시네마 게시글을 찾을 수 없습니다.");
-            } else if (status.get("daysSinceLastUpdate") != null && (Long) status.get("daysSinceLastUpdate") >= 2) {
-                status.put("statusMessage", "별빛 시네마 시스템에 주의가 필요합니다.");
+                statusMessage = "별빛 시네마 시스템이 아직 시작되지 않았습니다.";
+            } else if (!latestPost.isPresent()) {
+                statusMessage = "별빛 시네마 게시글을 찾을 수 없습니다.";
+            } else if (builder.build().getDaysSinceLastUpdate() >= 2) {
+                statusMessage = "별빛 시네마 시스템에 주의가 필요합니다.";
             } else {
-                status.put("statusMessage", "별빛 시네마 시스템이 정상 작동 중입니다.");
+                statusMessage = "별빛 시네마 시스템이 정상 작동 중입니다.";
             }
+            
+            return builder
+                .todayPosts(todayPosts)
+                .googleApiConfigured(googleApiKey != null && !googleApiKey.trim().isEmpty())
+                .openaiApiConfigured(openaiApiKey != null && !openaiApiKey.trim().isEmpty())
+                .systemConfig(systemConfig)
+                .statusMessage(statusMessage)
+                .build();
             
         } catch (Exception e) {
             log.error("별빛 시네마 상태 조회 실패", e);
-            status.put("error", "상태 조회 실패: " + e.getMessage());
-            status.put("systemHealthy", false);
-            status.put("statusMessage", "시스템 상태를 확인할 수 없습니다.");
+            return com.byeolnight.dto.admin.CinemaStatusDto.builder()
+                .error("상태 조회 실패: " + e.getMessage())
+                .systemHealthy(false)
+                .statusMessage("시스템 상태를 확인할 수 없습니다.")
+                .build();
         }
-        
-        return status;
     }
 
     // ================================ 내부 클래스 ================================

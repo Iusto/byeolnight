@@ -1,6 +1,7 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.domain.weather.service.AstronomyService;
+import com.byeolnight.dto.admin.SchedulerStatusDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.crawler.SpaceNewsScheduler;
 import com.byeolnight.service.discussion.DiscussionTopicScheduler;
@@ -109,24 +110,22 @@ public class AdminSchedulerController {
         description = "스케줄러 작업들의 대상 데이터 개수를 조회합니다."
     )
     @ApiResponse(responseCode = "200", description = "스케줄러 상태 조회 성공")
-    public CommonResponse<Map<String, Object>> getSchedulerStatus() {
+    public CommonResponse<SchedulerStatusDto> getSchedulerStatus() {
         try {
-            Map<String, Object> status = new HashMap<>();
-            
-            // 쪽지 정리 대상 개수
             int messagesToDelete = messageRepository.findMessagesEligibleForPermanentDeletion().size();
-            status.put("messagesToDelete", messagesToDelete);
             
-            // 게시글 정리 대상 개수
             LocalDateTime threshold = LocalDateTime.now().minusDays(30);
             int postsToDelete = postRepository.findExpiredDeletedPosts(threshold).size();
-            status.put("postsToDelete", postsToDelete);
             
-            // 탈퇴 회원 정리 대상 개수 (탈퇴/밴 계정 모두 포함)
             LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
             int usersToCleanup = userRepository.findByWithdrawnAtBeforeAndStatusIn(
                 oneYearAgo, java.util.List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)).size();
-            status.put("usersToCleanup", usersToCleanup);
+            
+            SchedulerStatusDto status = SchedulerStatusDto.builder()
+                .messagesToDelete(messagesToDelete)
+                .postsToDelete(postsToDelete)
+                .usersToCleanup(usersToCleanup)
+                .build();
             
             return CommonResponse.success(status);
         } catch (Exception e) {

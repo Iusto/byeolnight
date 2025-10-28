@@ -1,5 +1,6 @@
 package com.byeolnight.controller.admin;
 
+import com.byeolnight.dto.admin.CinemaStatusDto;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.cinema.CinemaService;
@@ -42,13 +43,7 @@ public class AdminCinemaController {
     @Operation(summary = "별빛 시네마 상태 조회", description = "별빛 시네마 시스템의 상태를 조회합니다.")
     @GetMapping("/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResponse<Object>> getCinemaStatus() {
-        try {
-            Object status = cinemaService.getCinemaStatus();
-            return ResponseEntity.ok(CommonResponse.success(status));
-        } catch (Exception e) {
-            return ResponseEntity.status(500)
-                .body(CommonResponse.error("상태 조회 실패: " + e.getMessage()));
-        }
+    public ResponseEntity<CommonResponse<CinemaStatusDto>> getCinemaStatus() {
+        return ResponseEntity.ok(CommonResponse.success(cinemaService.getCinemaStatus()));
     }
 }

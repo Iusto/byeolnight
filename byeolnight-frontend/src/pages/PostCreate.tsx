@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import PostForm from '../components/PostForm';
+import { PostForm } from '../components/post';
 
 interface FileDto {
   originalName: string;

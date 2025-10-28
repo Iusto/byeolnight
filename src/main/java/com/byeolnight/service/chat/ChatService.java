@@ -6,9 +6,9 @@ import com.byeolnight.dto.chat.ChatMessageDto;
 import com.byeolnight.entity.chat.ChatParticipation;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.UserRepository;
+import com.byeolnight.service.certificate.CertificateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,23 +21,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final SimpMessagingTemplate messagingTemplate;
     private final ChatMessageRepository chatMessageRepository;
     private final com.byeolnight.repository.chat.ChatParticipationRepository chatParticipationRepository;
     private final UserRepository userRepository;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
-
-    public void sendMessage(ChatMessageDto dto) {
-        ChatMessage entity = ChatMessage.builder()
-                .roomId(dto.getRoomId())
-                .sender(dto.getSender())
-                .message(dto.getMessage())
-                .build();
-        
-        ChatMessage saved = chatMessageRepository.save(entity);
-        dto.setId(saved.getId().toString());
-        messagingTemplate.convertAndSend("/topic/public", dto);
-    }
+    private final CertificateService certificateService;
 
 
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
@@ -95,45 +82,6 @@ public class ChatService {
                         .isBlinded(entity.getIsBlinded())
                         .build())
                 .collect(java.util.stream.Collectors.toList());
-    }
-
-    public void handleChatMessage(ChatMessageDto dto, Principal principal, boolean isPrivate) {
-        String sender = extractSender(principal, dto);
-        ChatMessageDto updatedDto = ChatMessageDto.builder()
-                .roomId(dto.getRoomId())
-                .sender(sender)
-                .message(dto.getMessage())
-                .timestamp(dto.getTimestamp())
-                .build();
-
-        save(updatedDto);
-        messagingTemplate.convertAndSend("/topic/public", updatedDto);
-    }
-
-    public void handleDirectMessage(ChatMessageDto dto, Principal principal, String to) {
-        String sender = extractSender(principal, dto);
-        ChatMessageDto updatedDto = ChatMessageDto.builder()
-                .roomId(dto.getRoomId())
-                .sender(sender)
-                .message(dto.getMessage())
-                .timestamp(dto.getTimestamp())
-                .build();
-
-        save(updatedDto);
-        messagingTemplate.convertAndSend("/queue/user." + to, updatedDto);
-    }
-
-    private String extractSender(Principal principal, ChatMessageDto dto) {
-        if (principal != null) {
-            return principal.getName();
-        } else {
-            log.warn("⚠️ Principal is null. fallback to DTO sender: {}", dto.getSender());
-            return dto.getSender() != null ? dto.getSender() : "익명";
-        }
-    }
-
-    public void save(ChatMessageDto dto) {
-        save(dto, "unknown");
     }
     
     public void save(ChatMessageDto dto, String ipAddress) {

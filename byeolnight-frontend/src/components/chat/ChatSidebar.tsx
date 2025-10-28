@@ -91,7 +91,7 @@ export default function ChatSidebar() {
 
   const loadInitialMessages = async () => {
     try {
-      const res = await axios.get('/public/chat', {
+      const res = await axios.get('/member/chat', {
         params: { roomId: 'public', limit: 20 },
       });
       
@@ -120,7 +120,7 @@ export default function ChatSidebar() {
     
     setLoadingHistory(true);
     try {
-      const res = await axios.get('/public/chat/history', {
+      const res = await axios.get('/member/chat/history', {
         params: { 
           roomId: 'public', 
           beforeId: oldestMessageId,

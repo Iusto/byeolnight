@@ -5,7 +5,7 @@ on:
     - cron: '0 6 * * 1'   # 매주 월요일 오후 3시 (UTC 06:00 = KST 15:00)
   workflow_dispatch:     # 수동 실행 가능
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths: [ '.github/workflows/performance.yml' ]
     inputs:
       target_url:

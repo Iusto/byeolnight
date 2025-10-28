@@ -1,0 +1,60 @@
+name: Deploy Frontend to S3
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'byeolnight-frontend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: byeolnight-frontend/pnpm-lock.yaml
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install dependencies
+        working-directory: byeolnight-frontend
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build
+        working-directory: byeolnight-frontend
+        run: pnpm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+      
+      - name: Deploy to S3
+        run: |
+          aws s3 sync byeolnight-frontend/dist s3://byeolnight-frontend \
+            --delete \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "index.html"
+          
+          aws s3 cp byeolnight-frontend/dist/index.html s3://byeolnight-frontend/index.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-northeast-2
+      
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

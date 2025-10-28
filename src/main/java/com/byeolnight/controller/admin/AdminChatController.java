@@ -2,6 +2,9 @@ package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.admin.ChatBanRequestDto;
 import com.byeolnight.dto.admin.ChatStatsDto;
+import com.byeolnight.dto.admin.ChatBanStatusDto;
+import com.byeolnight.dto.admin.BannedUserDto;
+import com.byeolnight.dto.admin.BlindedMessageDto;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.AdminChatService;
@@ -80,31 +83,28 @@ public class AdminChatController {
     @Operation(summary = "제재된 사용자 목록", description = "현재 채팅 금지된 사용자 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/banned-users")
-    public ResponseEntity<List<Map<String, Object>>> getBannedUsers(
+    public ResponseEntity<List<BannedUserDto>> getBannedUsers(
             @RequestParam(defaultValue = "5") int limit,
             @RequestParam(defaultValue = "0") int offset
     ) {
-        List<Map<String, Object>> bannedUsers = adminChatService.getBannedUsers(limit, offset);
-        return ResponseEntity.ok(bannedUsers);
+        return ResponseEntity.ok(adminChatService.getBannedUsers(limit, offset));
     }
 
     @Operation(summary = "블라인드된 메시지 목록", description = "블라인드 처리된 메시지 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/blinded-messages")
-    public ResponseEntity<List<Map<String, Object>>> getBlindedMessages(
+    public ResponseEntity<List<BlindedMessageDto>> getBlindedMessages(
             @RequestParam(defaultValue = "5") int limit,
             @RequestParam(defaultValue = "0") int offset
     ) {
-        List<Map<String, Object>> blindedMessages = adminChatService.getBlindedMessages(limit, offset);
-        return ResponseEntity.ok(blindedMessages);
+        return ResponseEntity.ok(adminChatService.getBlindedMessages(limit, offset));
     }
 
     @Operation(summary = "사용자 채팅 금지 상태 확인", description = "현재 로그인한 사용자의 채팅 금지 상태를 확인합니다.")
     @GetMapping("/ban-status")
-    public ResponseEntity<Map<String, Object>> getBanStatus(
+    public ResponseEntity<ChatBanStatusDto> getBanStatus(
             @org.springframework.security.core.annotation.AuthenticationPrincipal User user
     ) {
-        Map<String, Object> banStatus = adminChatService.getUserBanStatus(user.getNickname());
-        return ResponseEntity.ok(banStatus);
+        return ResponseEntity.ok(adminChatService.getUserBanStatus(user.getNickname()));
     }
 }

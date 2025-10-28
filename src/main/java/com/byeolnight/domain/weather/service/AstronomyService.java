@@ -3,6 +3,9 @@ package com.byeolnight.domain.weather.service;
 import com.byeolnight.domain.weather.dto.AstronomyEventResponse;
 import com.byeolnight.domain.weather.entity.AstronomyEvent;
 import com.byeolnight.domain.weather.repository.AstronomyEventRepository;
+import com.byeolnight.dto.admin.AstronomyCollectionResultDto;
+import com.byeolnight.dto.admin.AstronomyCollectionStatusDto;
+import com.byeolnight.dto.admin.AstronomyStatsDto;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +104,7 @@ public class AstronomyService {
     }
     
     @Transactional
-    public Map<String, Object> manualFetchAstronomyEvents() {
+    public AstronomyCollectionResultDto manualFetchAstronomyEvents() {
         return performAstronomyDataCollection("관리자 수동 수집");
     }
 
@@ -421,37 +424,37 @@ public class AstronomyService {
 
     // ==================== 데이터 수집 ====================
     
-    private Map<String, Object> performAstronomyDataCollection(String trigger) {
-        Map<String, Object> result = new HashMap<>();
-        
+    private AstronomyCollectionResultDto performAstronomyDataCollection(String trigger) {
         try {
             log.info("천체 이벤트 데이터 수집 시작 ({})", trigger);
             
-            List<AstronomyEvent> newEvents = new ArrayList<>();
-            
-            // 예측 가능한 이벤트만 데이터베이스에 저장
-            newEvents.addAll(generatePredictableEventsForDB());
+            List<AstronomyEvent> newEvents = generatePredictableEventsForDB();
             
             if (!newEvents.isEmpty()) {
                 astronomyRepository.deleteAll();
                 astronomyRepository.saveAll(newEvents);
                 
-                result.put("success", true);
-                result.put("message", "천체 이벤트 데이터 수집 완료");
-                result.put("afterCount", newEvents.size());
-                
                 log.info("천체 이벤트 데이터 수집 완료: {} 개", newEvents.size());
+                
+                return AstronomyCollectionResultDto.builder()
+                    .success(true)
+                    .message("천체 이벤트 데이터 수집 완료")
+                    .afterCount(newEvents.size())
+                    .build();
             } else {
-                result.put("success", false);
-                result.put("message", "새로운 천체 데이터 없음");
+                return AstronomyCollectionResultDto.builder()
+                    .success(false)
+                    .message("새로운 천체 데이터 없음")
+                    .build();
             }
         } catch (Exception e) {
-            result.put("success", false);
-            result.put("message", "데이터 수집 실패: " + e.getMessage());
             log.error("천체 이벤트 데이터 수집 실패", e);
+            return AstronomyCollectionResultDto.builder()
+                .success(false)
+                .message("데이터 수집 실패: " + e.getMessage())
+                .error(e.getClass().getSimpleName())
+                .build();
         }
-        
-        return result;
     }
     
     private List<AstronomyEvent> generatePredictableEventsForDB() {
@@ -496,18 +499,40 @@ public class AstronomyService {
 
     // ==================== 기타 메서드 ====================
     
-    public Map<String, Object> getAstronomyEventStats() {
-        Map<String, Object> stats = new HashMap<>();
-        
+    public AstronomyStatsDto getAstronomyEventStats() {
         try {
             long totalCount = astronomyRepository.count();
-            stats.put("totalCount", totalCount);
-            stats.put("lastUpdated", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            return AstronomyStatsDto.builder()
+                .totalCount(totalCount)
+                .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .build();
         } catch (Exception e) {
             log.error("천체 이벤트 통계 조회 실패", e);
-            stats.put("error", e.getMessage());
+            return AstronomyStatsDto.builder()
+                .error(e.getMessage())
+                .build();
         }
-        
-        return stats;
+    }
+
+    public AstronomyCollectionStatusDto getCollectionStatus() {
+        return AstronomyCollectionStatusDto.builder()
+            .scheduledCollection("매일 오전 9시 자동 실행")
+            .manualCollection("관리자 수동 실행 가능")
+            .dataSources(Map.of(
+                "NASA_NeoWs", "지구 근접 소행성 데이터",
+                "NASA_DONKI", "태양 플레어, 지자기 폭풍 데이터",
+                "KASI", "한국천문연구원 월식/일식/슈퍼문 데이터"
+            ))
+            .supportedEventTypes(Map.of(
+                "ASTEROID", "소행성 근접 통과",
+                "SOLAR_FLARE", "태양 플레어",
+                "GEOMAGNETIC_STORM", "지자기 폭풍",
+                "LUNAR_ECLIPSE", "월식",
+                "SOLAR_ECLIPSE", "일식",
+                "BLOOD_MOON", "개기월식",
+                "SUPERMOON", "슈퍼문",
+                "BLUE_MOON", "블루문"
+            ))
+            .build();
     }
 }

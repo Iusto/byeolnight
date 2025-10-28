@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from '../lib/axios';
-import AgreementModal from '../components/AgreementModal';
-import TermsOfService from '../components/TermsOfService';
-import PrivacyPolicy from '../components/PrivacyPolicy';
+import { AgreementModal, TermsOfService, PrivacyPolicy } from '../components/ui';
 
 export default function Signup() {
   const navigate = useNavigate();

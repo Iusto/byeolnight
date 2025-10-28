@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 // 조건부 import
-const DiscussionTopicBanner = React.lazy(() => import('../components/DiscussionTopicBanner'));
+const DiscussionTopicBanner = React.lazy(() => import('../components/post/DiscussionTopicBanner'));
 
 // 게시글 타입 정의
 interface Post {

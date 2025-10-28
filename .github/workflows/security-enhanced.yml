@@ -2,9 +2,9 @@ name: 강화된 보안 검사
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   schedule:
     - cron: '0 2 * * 1'  # 매주 월요일 오전 2시
 

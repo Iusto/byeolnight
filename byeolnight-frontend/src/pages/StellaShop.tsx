@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import StellaIcon from '../components/StellaIcon';
+import { StellaIcon } from '../components/user';
 
 import type { StellaIcon as StellaIconType, UserIcon } from '../types/stellaIcon';
 

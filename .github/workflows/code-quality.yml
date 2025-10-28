@@ -2,9 +2,9 @@ name: 코드 품질 검사
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 permissions:
   actions: read
