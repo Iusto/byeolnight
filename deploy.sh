@@ -3,127 +3,215 @@
 # 사용법: chmod +x deploy.sh && ./deploy.sh
 set -euo pipefail
 
-echo "🚀 별 헤는 밤 백엔드 배포 시작..."
+LOG_FILE="/home/ubuntu/deploy-$(date +%Y%m%d-%H%M%S).log"
+exec 1> >(tee -a "$LOG_FILE")
+exec 2>&1
+
+echo "🚀 별 헤는 밤 백엔드 배포 시작... ($(date))"
+echo "📝 로그: $LOG_FILE"
 
 ROOT_DIR="/home/ubuntu/byeolnight"
-cd "$ROOT_DIR"
+cd "$ROOT_DIR" || { echo "❌ 디렉터리 이동 실패"; exit 1; }
 
 # ===== 공통 함수 =====
+log_step() {
+  echo ""
+  echo "═══════════════════════════════════════════════════════════"
+  echo "$1"
+  echo "═══════════════════════════════════════════════════════════"
+}
+
+check_command() {
+  if ! command -v "$1" &> /dev/null; then
+    echo "❌ 필수 명령어 없음: $1"
+    exit 1
+  fi
+}
+
 kill_holders() {
-  echo "🔧 build/ 디렉터리를 점유 중인 프로세스 탐지/정리..."
-  # build/를 열고 있는 PID 나열
+  if [ ! -d "./build" ]; then
+    return 0
+  fi
+  
+  echo "🔧 build/ 디렉터리 점유 프로세스 정리..."
   local pids
   pids=$(lsof -t +D ./build 2>/dev/null || true)
+  
   if [[ -n "${pids:-}" ]]; then
     echo "⚠️ 점유 PID: $pids"
-    # 정상 종료 시도
     kill $pids 2>/dev/null || true
-    sleep 2
-    # 살아있으면 강제 종료
+    sleep 3
+    
     pids=$(lsof -t +D ./build 2>/dev/null || true)
     if [[ -n "${pids:-}" ]]; then
       echo "⛔ 강제 종료: $pids"
       kill -9 $pids 2>/dev/null || true
+      sleep 2
     fi
-  else
-    echo "✅ build/ 점유 프로세스 없음"
   fi
-
-  # 혹시 모를 파일 핸들 닫기
-  fuser -vm ./build 2>/dev/null || true
+  
   fuser -k ./build 2>/dev/null || true
+  echo "✅ 프로세스 정리 완료"
 }
 
 hard_clean_build() {
   echo "🧹 build/ 강제 정리..."
-  sudo chown -R ubuntu:ubuntu ./build 2>/dev/null || true
-  chmod -R u+rwX ./build 2>/dev/null || true
-  rm -rf ./build || true
+  if [ -d "./build" ]; then
+    sudo chown -R ubuntu:ubuntu ./build 2>/dev/null || true
+    chmod -R u+rwX ./build 2>/dev/null || true
+    rm -rf ./build || { echo "⚠️ build/ 삭제 실패 (무시)"; }
+  fi
+  echo "✅ 빌드 디렉터리 정리 완료"
 }
 
-# ===== 0. 포트/프로세스 충돌 방지 =====
-echo "🔧 기존 컨테이너 정리..."
-docker compose down --remove-orphans --volumes || true
-docker container prune -f || true
+# ===== 0. 환경 검증 =====
+log_step "0️⃣ 환경 검증"
+check_command docker
+check_command git
+check_command jq
+check_command curl
 
-# ⬇️ gradlew 실행권한/줄바꿈 보정 먼저
-chmod +x ./gradlew 2>/dev/null || true
-command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
-
-# 그 다음에 데몬 정지
-./gradlew --stop || true
-
-# ===== 1. Config Repository 업데이트 (코드 업데이트 전에 먼저) =====
-# ===== 1. 코드 업데이트 먼저 =====
-echo "📥 최신 코드 가져오기..."
-git fetch origin main && git reset --hard origin/main
-
-# ===== 2. Config Repository 업데이트 =====
-if [ ! -d "configs" ]; then
-  echo "📦 Config Repository clone..."
-  git clone -b main https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git configs
-else
-  echo "🔄 Config Repository 업데이트..."
-  cd configs && git checkout main && git reset --hard origin/main && git pull origin main && cd ..
+if [ -z "${GITHUB_USERNAME:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
+  echo "❌ GITHUB_USERNAME 또는 GITHUB_TOKEN 환경변수 없음"
+  exit 1
 fi
 
-# ⬇️ reset 후에 반드시 다시 실행권한/줄바꿈 보정
+echo "✅ 환경 검증 완료"
+
+# ===== 1. 기존 서비스 정리 =====
+log_step "1️⃣ 기존 서비스 정리"
+echo "🛑 Docker 컨테이너 중지..."
+docker compose down --remove-orphans 2>/dev/null || true
+sleep 2
+
+echo "🧹 Gradle 데몬 정지..."
+chmod +x ./gradlew 2>/dev/null || true
+command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
+./gradlew --stop 2>/dev/null || true
+
+echo "✅ 기존 서비스 정리 완료"
+
+# ===== 2. 코드 업데이트 =====
+log_step "2️⃣ 코드 업데이트"
+echo "📥 메인 저장소 업데이트..."
+git fetch origin main || { echo "❌ git fetch 실패"; exit 1; }
+git reset --hard origin/main || { echo "❌ git reset 실패"; exit 1; }
+
+# gradlew 권한 복구
 chmod +x ./gradlew 2>/dev/null || true
 command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 
-# ===== 3. Gradle 클린 =====
-echo "🧽 Gradle 클린 시작..."
-kill_holders
-./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false \
-  || sh ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false || true
+echo "📦 Config 저장소 업데이트..."
+if [ ! -d "configs" ]; then
+  git clone -b main "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git" configs \
+    || { echo "❌ Config 저장소 clone 실패"; exit 1; }
+else
+  cd configs || exit 1
+  git fetch origin main || { echo "❌ Config fetch 실패"; cd ..; exit 1; }
+  git reset --hard origin/main || { echo "❌ Config reset 실패"; cd ..; exit 1; }
+  cd ..
+fi
 
-# 그래도 남았을 가능성 방지
+echo "✅ 코드 업데이트 완료"
+
+# ===== 3. 빌드 정리 =====
+log_step "3️⃣ 빌드 정리"
+kill_holders
 hard_clean_build
 
-# ===== 4. 서버 빌드 =====
-echo "🔨 bootJar 빌드..."
+echo "🧽 Gradle clean 실행..."
+./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false 2>&1 || {
+  echo "⚠️ Gradle clean 실패, 재시도..."
+  sleep 2
+  hard_clean_build
+  ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false 2>&1 || true
+}
+
+echo "✅ 빌드 정리 완료"
+
+# ===== 4. 애플리케이션 빌드 =====
+log_step "4️⃣ 애플리케이션 빌드"
+echo "🔨 bootJar 빌드 시작..."
 chmod +x ./gradlew
-./gradlew bootJar -x test --no-daemon -Dorg.gradle.vfs.watch=false
+
+./gradlew bootJar -x test --no-daemon -Dorg.gradle.vfs.watch=false || {
+  echo "❌ 빌드 실패"
+  exit 1
+}
+
+if [ ! -f "build/libs/"*.jar ]; then
+  echo "❌ JAR 파일 생성 실패"
+  exit 1
+fi
+
+echo "✅ 빌드 완료: $(ls -lh build/libs/*.jar | awk '{print $9, $5}')"
 
 # ===== 5. Config Server 기동 =====
+log_step "5️⃣ Config Server 기동"
 echo "⚙️ Config Server 시작..."
-docker compose up -d config-server
-echo "⏳ Config Server 준비 대기..."
-for i in $(seq 1 15); do
-  if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then
-    if curl -s -X POST http://localhost:8888/encrypt -d "test" | grep -q "AQA"; then
-      echo "✅ Config Server OK(암호화 확인)"
+docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
+
+echo "⏳ Config Server 준비 대기 (최대 60초)..."
+CONFIG_READY=false
+for i in $(seq 1 30); do
+  if curl -s -f -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then
+    ENCRYPT_TEST=$(curl -s -X POST http://localhost:8888/encrypt -d "test" 2>/dev/null || echo "")
+    if echo "$ENCRYPT_TEST" | grep -q "AQA"; then
+      echo "✅ Config Server 준비 완료 (${i}초)"
+      CONFIG_READY=true
       break
     fi
-    echo "⌛ 암호화 기능 대기중... ($i/15)"
+    echo "⌛ 암호화 기능 대기중... ($i/30)"
   else
-    echo "⌛ Config Server 대기중... ($i/15)"
+    echo "⌛ Config Server 헬스체크 대기중... ($i/30)"
   fi
   sleep 2
 done
 
-# ===== 6. 비밀값 로드 =====
-echo "🔑 Config Server에서 비밀번호 가져오기..."
+if [ "$CONFIG_READY" = false ]; then
+  echo "❌ Config Server 준비 시간 초과"
+  docker logs byeolnight-config-server-1 2>&1 | tail -50
+  exit 1
+fi
+
+# ===== 6. 설정값 로드 =====
+log_step "6️⃣ 설정값 로드"
+echo "🔑 Config Server에서 설정 가져오기..."
+
 CONFIG_RESPONSE=""
-for attempt in 1 2 3 4 5; do
-  echo "시도 $attempt/5"
-  CONFIG_RESPONSE=$(curl -s -u config-admin:config-secret-2024 http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
-  if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq . >/dev/null 2>&1; then
-    echo "✅ Config Server 응답 수신"
+for attempt in $(seq 1 5); do
+  echo "시도 $attempt/5..."
+  CONFIG_RESPONSE=$(curl -s -f -u config-admin:config-secret-2024 \
+    http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
+  
+  if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq empty 2>/dev/null; then
+    echo "✅ Config 응답 수신"
     break
   fi
+  
+  if [ $attempt -eq 5 ]; then
+    echo "❌ Config Server 응답 실패"
+    docker logs byeolnight-config-server-1 2>&1 | tail -30
+    exit 1
+  fi
   sleep 3
-  [[ $attempt -eq 5 ]] && echo "❌ Config Server 연결 실패" && exit 1
 done
 
+# 설정값 추출
 MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.mysql.root-password"]' 2>/dev/null || echo "")
 REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.redis.password"]' 2>/dev/null || echo "")
 CONFIG_USERNAME=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["config.server.username"]' 2>/dev/null || echo "")
 CONFIG_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["config.server.password"]' 2>/dev/null || echo "")
 CONFIG_ENCRYPT_KEY=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["config.server.encrypt-key"]' 2>/dev/null || echo "")
 
-if [[ -z "$MYSQL_ROOT_PASSWORD" || -z "$REDIS_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" || "$REDIS_PASSWORD" == "null" ]]; then
-  echo "❌ 비밀번호 추출 실패"
+# 검증
+if [[ -z "$MYSQL_ROOT_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" ]]; then
+  echo "❌ MYSQL_ROOT_PASSWORD 추출 실패"
+  exit 1
+fi
+
+if [[ -z "$REDIS_PASSWORD" || "$REDIS_PASSWORD" == "null" ]]; then
+  echo "❌ REDIS_PASSWORD 추출 실패"
   exit 1
 fi
 
@@ -132,10 +220,15 @@ if [[ -z "$CONFIG_USERNAME" || -z "$CONFIG_PASSWORD" || -z "$CONFIG_ENCRYPT_KEY"
   exit 1
 fi
 
-echo "환경변수 확인: MYSQL_ROOT_PASSWORD=$(echo "$MYSQL_ROOT_PASSWORD" | cut -c1-3)***  REDIS_PASSWORD=$(echo "$REDIS_PASSWORD" | cut -c1-3)***"
+echo "✅ 설정값 검증 완료"
+echo "   - MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:0:3}***"
+echo "   - REDIS_PASSWORD: ${REDIS_PASSWORD:0:3}***"
+echo "   - CONFIG_USERNAME: $CONFIG_USERNAME"
+
+# 환경변수 내보내기
 export MYSQL_ROOT_PASSWORD REDIS_PASSWORD CONFIG_USERNAME CONFIG_PASSWORD CONFIG_ENCRYPT_KEY
 
-# Docker Compose용 .env 생성
+# .env 파일 생성
 cat > .env <<EOF
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -144,13 +237,46 @@ CONFIG_PASSWORD=${CONFIG_PASSWORD}
 CONFIG_ENCRYPT_KEY=${CONFIG_ENCRYPT_KEY}
 EOF
 
-# ===== 7. 백엔드 서비스 기동 =====
-echo "🏗️ 백엔드 서비스 배포..."
-docker compose build --no-cache app
-docker compose up -d app
+chmod 600 .env
+echo "✅ .env 파일 생성 완료"
 
-echo "✅ 백엔드 배포 완료!"
+# ===== 7. 백엔드 서비스 배포 =====
+log_step "7️⃣ 백엔드 서비스 배포"
+echo "🐳 Docker 이미지 빌드..."
+docker compose build --no-cache app || { echo "❌ 이미지 빌드 실패"; exit 1; }
+
+echo "🚀 백엔드 서비스 시작..."
+docker compose up -d app || { echo "❌ 서비스 시작 실패"; exit 1; }
+
+echo "⏳ 애플리케이션 헬스체크 (최대 120초)..."
+APP_READY=false
+for i in $(seq 1 60); do
+  if curl -s -f http://localhost:8080/actuator/health >/dev/null 2>&1; then
+    echo "✅ 애플리케이션 준비 완료 (${i}초)"
+    APP_READY=true
+    break
+  fi
+  echo "⌛ 애플리케이션 시작 대기중... ($i/60)"
+  sleep 2
+done
+
+if [ "$APP_READY" = false ]; then
+  echo "⚠️ 애플리케이션 헬스체크 시간 초과 (백그라운드에서 계속 시작 중)"
+  echo "📋 최근 로그:"
+  docker logs --tail 50 byeolnight-app-1 2>&1
+fi
+
+log_step "✅ 배포 완료"
+echo "🎉 별 헤는 밤 백엔드 배포 성공!"
 echo "📝 프론트엔드는 S3+CloudFront에서 자동 배포됩니다."
 echo ""
-echo "로그 확인:"
-docker logs -f byeolnight-app-1
+echo "📊 서비스 상태:"
+docker compose ps
+echo ""
+echo "📋 실시간 로그 확인:"
+echo "   docker logs -f byeolnight-app-1"
+echo ""
+echo "🔍 헬스체크:"
+echo "   curl http://localhost:8080/actuator/health"
+echo ""
+echo "📝 배포 로그: $LOG_FILE"

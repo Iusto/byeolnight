@@ -3,11 +3,19 @@ name: Deploy Backend to EC2
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'build.gradle'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'deploy.sh'
+      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
       - name: Deploy to EC2
@@ -16,7 +24,24 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 25m
+          command_timeout: 25m
           script: |
-            cd /home/ubuntu/byeolnight
+            set -e
+            
+            export GITHUB_USERNAME="${{ secrets.GH_USERNAME }}"
+            export GITHUB_TOKEN="${{ secrets.GH_TOKEN }}"
+            
+            cd /home/ubuntu/byeolnight || exit 1
             chmod +x deploy.sh
-            ./deploy.sh
+            
+            echo "🚀 배포 시작: $(date)"
+            if ./deploy.sh; then
+              echo "✅ 배포 성공: $(date)"
+              exit 0
+            else
+              echo "❌ 배포 실패: $(date)"
+              echo "📋 최근 로그:"
+              docker logs --tail 100 byeolnight-app-1 2>&1 || true
+              exit 1
+            fi
