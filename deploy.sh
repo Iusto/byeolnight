@@ -155,16 +155,11 @@ echo "⏳ Config Server 준비 대기 (최대 60초)..."
 CONFIG_READY=false
 for i in $(seq 1 30); do
   if curl -s -f -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then
-    ENCRYPT_TEST=$(curl -s -X POST http://localhost:8888/encrypt -d "test" 2>/dev/null || echo "")
-    if echo "$ENCRYPT_TEST" | grep -q "AQA"; then
-      echo "✅ Config Server 준비 완료 (${i}초)"
-      CONFIG_READY=true
-      break
-    fi
-    echo "⌛ 암호화 기능 대기중... ($i/30)"
-  else
-    echo "⌛ Config Server 헬스체크 대기중... ($i/30)"
+    echo "✅ Config Server 준비 완료 (${i}초)"
+    CONFIG_READY=true
+    break
   fi
+  echo "⌛ Config Server 헬스체크 대기중... ($i/30)"
   sleep 2
 done
 
