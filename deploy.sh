@@ -56,10 +56,10 @@ command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 # ===== 1. Config Repository 업데이트 (코드 업데이트 전에 먼저) =====
 if [ ! -d "config-repo" ]; then
   echo "📦 Config Repository clone..."
-  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
+  git clone -b main https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
 else
   echo "🔄 Config Repository 업데이트..."
-  cd config-repo && git pull && cd ..
+  cd config-repo && git checkout main && git pull origin main && cd ..
 fi
 
 # ===== 2. 코드 업데이트 =====
@@ -86,15 +86,6 @@ chmod +x ./gradlew
 
 # ===== 5. Config Server 기동 =====
 echo "⚙️ Config Server 시작..."
-# Git에서 config-repo clone
-if [ ! -d "config-repo" ]; then
-  echo "📦 Config Repository clone..."
-  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
-else
-  echo "🔄 Config Repository 업데이트..."
-  cd config-repo && git pull && cd ..
-fi
-
 docker compose up -d config-server
 echo "⏳ Config Server 준비 대기..."
 for i in $(seq 1 15); do
