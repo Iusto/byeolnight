@@ -54,6 +54,11 @@ command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 ./gradlew --stop || true
 
 # ===== 1. Config Repository 업데이트 (코드 업데이트 전에 먼저) =====
+# ===== 1. 코드 업데이트 먼저 =====
+echo "📥 최신 코드 가져오기..."
+git fetch origin main && git reset --hard origin/main
+
+# ===== 2. Config Repository 업데이트 =====
 if [ ! -d "configs" ]; then
   echo "📦 Config Repository clone..."
   git clone -b main https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git configs
@@ -61,10 +66,6 @@ else
   echo "🔄 Config Repository 업데이트..."
   cd configs && git checkout main && git reset --hard origin/main && git pull origin main && cd ..
 fi
-
-# ===== 2. 코드 업데이트 =====
-echo "📥 최신 코드 가져오기..."
-git fetch origin main && git reset --hard origin/main
 
 # ⬇️ reset 후에 반드시 다시 실행권한/줄바꿈 보정
 chmod +x ./gradlew 2>/dev/null || true
