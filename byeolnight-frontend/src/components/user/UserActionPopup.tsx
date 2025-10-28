@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { sendMessage } from '../lib/api/message';
+﻿import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { sendMessage } from '../../lib/api/message';
 import UserProfileModal from './UserProfileModal';
-import axios from '../lib/axios';
+import axios from '../../lib/axios';
 
 interface UserActionPopupProps {
   targetUserId: number;

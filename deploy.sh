@@ -1,9 +1,9 @@
 #!/bin/bash
-# EC2 서버 원클릭 배포 스크립트
+# EC2 백엔드 배포 스크립트 (프론트엔드는 S3+CloudFront)
 # 사용법: chmod +x deploy.sh && ./deploy.sh
 set -euo pipefail
 
-echo "🚀 별 헤는 밤 배포 시작..."
+echo "🚀 별 헤는 밤 백엔드 배포 시작..."
 
 ROOT_DIR="/home/ubuntu/byeolnight"
 cd "$ROOT_DIR"
@@ -123,23 +123,13 @@ MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
 EOF
 
-# ===== 6. 이미지 빌드 & 기동 =====
-echo "🏗️ 서비스 빌드 및 배포..."
-docker compose build --no-cache
-docker compose up -d
+# ===== 6. 백엔드 서비스 기동 =====
+echo "🏗️ 백엔드 서비스 배포..."
+docker compose build --no-cache app
+docker compose up -d app
 
-# ===== 7. SSL 인증서 점검 & 갱신 =====
-echo "🔒 SSL 인증서 갱신(webroot)"
-# ACME 경로 사전 점검
-sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
-echo OK | sudo tee /var/www/certbot/.well-known/acme-challenge/ping.txt >/dev/null
-curl -sfI http://byeolnight.com/.well-known/acme-challenge/ping.txt >/dev/null || {
-  echo "❌ ACME 경로 노출 실패(nginx.conf/볼륨 확인 필요)"; exit 1; }
-
-# nginx는 그대로 둔 채 renew 실행
-docker compose run --rm certbot renew || { echo "❌ renew 실패"; exit 1; }
-docker compose exec -T nginx nginx -s reload || true
-echo "✅ SSL 갱신 완료"
-
-echo "✅ 배포 완료! 로그 출력..."
+echo "✅ 백엔드 배포 완료!"
+echo "📝 프론트엔드는 S3+CloudFront에서 자동 배포됩니다."
+echo ""
+echo "로그 확인:"
 docker logs -f byeolnight-app-1

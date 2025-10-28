@@ -1,6 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import type { StellaIcon as StellaIconType } from '../types/stellaIcon';
-import * as StellarIcons from './icons';
+import * as StellarIcons from '../icons';
 
 interface StellaIconProps {
   icon: StellaIconType;

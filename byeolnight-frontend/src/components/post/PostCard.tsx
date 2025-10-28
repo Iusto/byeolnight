@@ -1,5 +1,5 @@
-import React from 'react';
-import ClickableNickname from './ClickableNickname';
+﻿import React from 'react';
+import { ClickableNickname } from '../user';
 
 type PostProps = {
   id: number;

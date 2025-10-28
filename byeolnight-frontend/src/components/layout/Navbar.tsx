@@ -1,9 +1,9 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+﻿import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import UserIconDisplay from './UserIconDisplay';
-import NotificationDropdown from './notification/NotificationDropdown';
-import LanguageSwitcher from './LanguageSwitcher';
+import { UserIconDisplay } from '../user';
+import NotificationDropdown from '../notification/NotificationDropdown';
+import { LanguageSwitcher } from '../ui';
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {

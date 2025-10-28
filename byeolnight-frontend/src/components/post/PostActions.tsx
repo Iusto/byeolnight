@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+﻿import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 type Props = {
   postId: number;

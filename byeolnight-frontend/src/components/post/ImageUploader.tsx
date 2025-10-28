@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { uploadImage } from '../lib/s3Upload';
+﻿import { useState, useRef, useEffect } from 'react';
+import { uploadImage } from '../../lib/s3Upload';
 import { isHandlingImageUpload } from './TuiEditor';
 
 // 이미지 URL 정규식

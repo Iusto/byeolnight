@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import axios from '../lib/axios';
-import { useAuth } from '../contexts/AuthContext';
-import EmojiPicker from './EmojiPicker';
+﻿import { useState } from 'react';
+import axios from '../../lib/axios';
+import { useAuth } from '../../contexts/AuthContext';
+import { EmojiPicker } from '../chat';
 
 interface Props {
   postId: number;

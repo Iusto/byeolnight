@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from '../lib/axios';
-import { useAuth } from '../contexts/AuthContext';
+import axios from '../../lib/axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Post {
   id: number;

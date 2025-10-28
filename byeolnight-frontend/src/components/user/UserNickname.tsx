@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import axios from '../lib/axios';
+﻿import React, { useEffect, useState } from 'react';
+import axios from '../../lib/axios';
 import StellaIcon from './StellaIcon';
 
 interface UserNicknameProps {

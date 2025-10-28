@@ -1,9 +1,8 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AuthContext } from '../contexts/AuthContext';
-import axios from '../lib/axios';
-import AdminChatControls from './AdminChatControls';
-import AdminChatModal from './AdminChatModal';
+import { AuthContext } from '../../contexts/AuthContext';
+import axios from '../../lib/axios';
+import { AdminChatControls, AdminChatModal } from '../admin';
 import EmojiPicker from './EmojiPicker';
 import chatConnector from './ChatConnector';
 

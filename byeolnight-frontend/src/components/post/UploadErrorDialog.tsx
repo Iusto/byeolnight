@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { diagnoseCompatibility, BrowserInfo } from '../utils/browserCompatibility';
+﻿import { useState, useEffect } from 'react';
+import { diagnoseCompatibility, BrowserInfo } from '../../utils/browserCompatibility';
 
 interface UploadErrorDialogProps {
   isOpen: boolean;

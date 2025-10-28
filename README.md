@@ -18,22 +18,6 @@
 
 ---
 
-## ⚡ Quick Start
-
-Docker만 있으면 3줄로 실행 가능합니다:
-
-```bash
-git clone https://github.com/Iusto/byeolnight.git
-cd byeolnight
-chmod +x deploy.sh && ./deploy.sh
-```
-
-**접속**: http://localhost
-
-> ⚠️ **주의**: Mock 데이터로 실행됩니다. 실제 외부 API 연동은 [배포 가이드](./docs/08_deployment.md) 참고
-
----
-
 ## 🎯 주요 기능
 
 ### 💬 실시간 소통
