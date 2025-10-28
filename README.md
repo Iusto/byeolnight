@@ -126,10 +126,10 @@
 - [📊 데이터베이스 설계](./docs/09_database-design.md)
 
 ### 트러블슈팅
+- [🚀 자동배포 트러블슈팅](./docs/troubleshooting/deployment-issues.md)
 - [🌙 JWT Config Server 암호화 문제](./docs/troubleshooting/jwt-config-server-issue.md)
 - [🔄 소셜 계정 탈퇴 복구](./docs/11_social-account-recovery.md)
 - [⏰ 스케줄러 테스트](./docs/10_scheduler-testing.md)
-- [🎤 면접 대비: 기술 선택 이유](./docs/13_interview-tech-decisions.md)
 
 
 > 📚 **상세 정보**: [기술 스택 상세 문서](./docs/06_tech-stack.md)
