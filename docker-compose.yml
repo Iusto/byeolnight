@@ -10,10 +10,10 @@ services:
       - "8888:8888"
     environment:
       - SPRING_PROFILES_ACTIVE=native
-      - SPRING_SECURITY_USER_NAME=config-admin
-      - SPRING_SECURITY_USER_PASSWORD=config-secret-2024
+      - SPRING_SECURITY_USER_NAME=${CONFIG_USERNAME}
+      - SPRING_SECURITY_USER_PASSWORD=${CONFIG_PASSWORD}
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/config-repo/configs/
-      - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$%^&*()
+      - ENCRYPT_KEY=${CONFIG_ENCRYPT_KEY}
       - SPRING_CLOUD_CONFIG_SERVER_ENCRYPT_ENABLED=true
     volumes:
       - ./config-repo:/app/config-repo
@@ -27,30 +27,9 @@ services:
     networks:
       - byeolnight-network
 
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot
-    depends_on:
-      - app
-      - frontend
-    restart: unless-stopped
-    networks:
-      - byeolnight-network
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/www/certbot:/var/www/certbot
-    profiles: ["cert"]
-
   app:
+    ports:
+      - "8080:8080"
     build: .
     depends_on:
       config-server:
@@ -63,8 +42,8 @@ services:
       - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
-      - CONFIG_USERNAME=config-admin
-      - CONFIG_PASSWORD=config-secret-2024
+      - CONFIG_USERNAME=${CONFIG_USERNAME}
+      - CONFIG_PASSWORD=${CONFIG_PASSWORD}
       - SPRING_PROFILES_ACTIVE=prod
     restart: unless-stopped
     volumes:
@@ -111,18 +90,6 @@ services:
     volumes:
       - redis_data:/data
     command: sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
-    restart: unless-stopped
-    networks:
-      - byeolnight-network
-
-  frontend:
-    build:
-      context: ./byeolnight-frontend
-      args:
-        VITE_API_BASE_URL: https://byeolnight.com/api
-        VITE_WS_URL: https://byeolnight.com/ws
-    depends_on:
-      - app
     restart: unless-stopped
     networks:
       - byeolnight-network
