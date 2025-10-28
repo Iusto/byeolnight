@@ -7,8 +7,10 @@ export TZ=Asia/Seoul
 timestamp() { date '+%Y-%m-%d %H:%M:%S %Z'; }
 
 APPDIR="/home/ubuntu/byeolnight"
-LOG="/home/ubuntu/byeolnight-startup.log"
+LOG="$APPDIR/logs/startup.log"
 MAX_LOG_SIZE=10485760  # 10MB
+
+mkdir -p "$APPDIR/logs"
 
 # 로그 파일 크기 제한
 if [ -f "$LOG" ] && [ $(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0) -gt $MAX_LOG_SIZE ]; then

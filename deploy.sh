@@ -3,15 +3,16 @@
 # 사용법: chmod +x deploy.sh && ./deploy.sh
 set -euo pipefail
 
-LOG_FILE="/home/ubuntu/deploy-$(date +%Y%m%d-%H%M%S).log"
+ROOT_DIR="/home/ubuntu/byeolnight"
+cd "$ROOT_DIR" || { echo "❌ 디렉터리 이동 실패"; exit 1; }
+
+mkdir -p logs
+LOG_FILE="$ROOT_DIR/logs/deploy-$(date +%Y%m%d-%H%M%S).log"
 exec 1> >(tee -a "$LOG_FILE")
 exec 2>&1
 
 echo "🚀 별 헤는 밤 백엔드 배포 시작... ($(date))"
 echo "📝 로그: $LOG_FILE"
-
-ROOT_DIR="/home/ubuntu/byeolnight"
-cd "$ROOT_DIR" || { echo "❌ 디렉터리 이동 실패"; exit 1; }
 
 # ===== 공통 함수 =====
 log_step() {
@@ -151,15 +152,15 @@ log_step "5️⃣ Config Server 기동"
 echo "⚙️ Config Server 시작..."
 docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
 
-echo "⏳ Config Server 준비 대기 (최대 60초)..."
+echo "⏳ Config Server 준비 대기 (최대 90초)..."
 CONFIG_READY=false
-for i in $(seq 1 30); do
-  if curl -s -f -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then
+for i in $(seq 1 45); do
+  if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then
     echo "✅ Config Server 준비 완료 (${i}초)"
     CONFIG_READY=true
     break
   fi
-  echo "⌛ Config Server 헬스체크 대기중... ($i/30)"
+  echo "⌛ Config Server 헬스체크 대기중... ($i/45)"
   sleep 2
 done
 
@@ -220,20 +221,8 @@ echo "   - MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:0:3}***"
 echo "   - REDIS_PASSWORD: ${REDIS_PASSWORD:0:3}***"
 echo "   - CONFIG_USERNAME: $CONFIG_USERNAME"
 
-# 환경변수 내보내기
+# 환경변수 내보내기 (Docker Compose에서 사용)
 export MYSQL_ROOT_PASSWORD REDIS_PASSWORD CONFIG_USERNAME CONFIG_PASSWORD CONFIG_ENCRYPT_KEY
-
-# .env 파일 생성
-cat > .env <<EOF
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-REDIS_PASSWORD=${REDIS_PASSWORD}
-CONFIG_USERNAME=${CONFIG_USERNAME}
-CONFIG_PASSWORD=${CONFIG_PASSWORD}
-CONFIG_ENCRYPT_KEY=${CONFIG_ENCRYPT_KEY}
-EOF
-
-chmod 600 .env
-echo "✅ .env 파일 생성 완료"
 
 # ===== 7. 백엔드 서비스 배포 =====
 log_step "7️⃣ 백엔드 서비스 배포"

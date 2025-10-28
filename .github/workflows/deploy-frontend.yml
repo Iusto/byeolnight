@@ -10,11 +10,14 @@ on:
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -22,9 +25,6 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
           cache-dependency-path: byeolnight-frontend/pnpm-lock.yaml
-      
-      - name: Install pnpm
-        run: npm install -g pnpm
       
       - name: Install dependencies
         working-directory: byeolnight-frontend
