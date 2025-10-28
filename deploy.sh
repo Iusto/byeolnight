@@ -59,7 +59,7 @@ if [ ! -d "config-repo" ]; then
   git clone -b main https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
 else
   echo "🔄 Config Repository 업데이트..."
-  cd config-repo && git checkout main && git pull origin main && cd ..
+  cd config-repo && git checkout main && git reset --hard origin/main && git pull origin main && cd ..
 fi
 
 # ===== 2. 코드 업데이트 =====
