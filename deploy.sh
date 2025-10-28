@@ -41,10 +41,10 @@ hard_clean_build() {
   rm -rf ./build || true
 }
 
-# ===== 0. 포트/프로세스 충돌 방지(과격 종료 제거) =====
-# 무조건 pkill nginx는 위험하므로 제거. Docker nginx는 compose로만 제어.
+# ===== 0. 포트/프로세스 충돌 방지 =====
 echo "🔧 기존 컨테이너 정리..."
-docker compose down --remove-orphans || true
+docker compose down --remove-orphans --volumes || true
+docker container prune -f || true
 
 # ⬇️ gradlew 실행권한/줄바꿈 보정 먼저
 chmod +x ./gradlew 2>/dev/null || true
@@ -77,7 +77,7 @@ chmod +x ./gradlew
 
 # ===== 4. Config Server 기동 =====
 echo "⚙️ Config Server 시작..."
-docker compose up config-server -d
+docker compose up -d config-server
 echo "⏳ Config Server 준비 대기..."
 for i in $(seq 1 15); do
   if curl -s -u config-admin:config-secret-2024 http://localhost:8888/actuator/health >/dev/null 2>&1; then

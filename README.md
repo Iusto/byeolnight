@@ -48,21 +48,28 @@
 
 ### 계층별 구성
 
-**클라이언트 계층:**
+**프론트엔드 (S3 + CloudFront):**
 - React 18 + TypeScript (SPA)
-- Native WebSocket 실시간 통신
+- S3 정적 호스팅 + CloudFront CDN
+- GitHub Actions 자동 배포
 
-**애플리케이션 계층:**
+**백엔드 (EC2 + Docker):**
 - Spring Boot 3.2.4 (REST API)
 - Spring Security 6.2.3 (JWT + OAuth2)
 - Spring Cloud Config Server (중앙 설정 관리)
+- Native WebSocket 실시간 통신
 
 **데이터 계층:**
 - MySQL 8.0 (주 데이터베이스)
 - Redis 7.0 (캐시 + 세션 + 분산 락)
 
+**AWS 인프라:**
+- S3: 프론트엔드 빌드 파일 + 사용자 업로드 이미지
+- CloudFront: 글로벌 CDN (프론트엔드 + 이미지 + API 프록시)
+- Route 53: DNS 관리
+- EC2: 백엔드 API 서버
+
 **외부 연동:**
-- AWS S3 + CloudFront (파일 저장/CDN)
 - OAuth2 Provider (Google, Kakao, Naver)
 - External APIs (Gmail, Vision, NASA 등)
 
@@ -71,8 +78,9 @@
 ## 🔧 핵심 구현
 
 ### ⚡ 성능 최적화
+- **프론트엔드 분리**: S3 + CloudFront로 정적 파일 서빙 (백엔드 부하 제로)
 - **S3 Presigned URL**: 클라이언트 직접 업로드로 서버 부하 제로
-- **CloudFront CDN**: 전 세계 엣지 캐싱
+- **CloudFront CDN**: 전 세계 엣지 캐싱 (프론트엔드 + 이미지)
 - **Redis 캐싱**: 세션 + 데이터 캐싱
 - **QueryDSL**: 동적 쿼리 최적화
 - **커넥션 풀 튜닝**: HikariCP, Redis, HTTP 풀 최적화
@@ -80,7 +88,7 @@
 ### 🔒 보안
 - **JWT + Redis**: Token 자동 갱신 + 블랙리스트
 - **OAuth2**: 3사 소셜 로그인 통합
-- **S3 + CloudFront OAI**: 파일 직접 접근 차단
+- **S3 + CloudFront OAC**: S3 직접 접근 차단 (CloudFront만 허용)
 - **Redisson 분산 락**: 동시성 제어
 - **Google Vision API**: 이미지 자동 검열
 
@@ -90,9 +98,9 @@
 
 ### 🛠️ 개발 인프라
 - **Spring Cloud Config**: 중앙 설정 관리 + 암호화
-- **GitHub Actions**: 6개 워크플로우 (CI/CD, 보안 스캔)
+- **GitHub Actions**: 자동 배포 (프론트엔드 → S3, 백엔드 → EC2)
 - **Swagger UI**: 자동 API 문서화
-- **Docker Compose**: 원클릭 배포
+- **Docker Compose**: 백엔드 컨테이너 관리
 
 ---
 
