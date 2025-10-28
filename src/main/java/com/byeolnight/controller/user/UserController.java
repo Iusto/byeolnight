@@ -1,5 +1,6 @@
 package com.byeolnight.controller.user;
 
+import com.byeolnight.dto.admin.ChatBanStatusDto;
 import com.byeolnight.dto.shop.EquippedIconDto;
 import com.byeolnight.dto.user.*;
 import com.byeolnight.repository.user.DailyAttendanceRepository;
@@ -104,7 +105,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/equipped-icon")
-    public ResponseEntity<CommonResponse<com.byeolnight.dto.shop.EquippedIconDto>> getUserEquippedIcon(@PathVariable Long userId) {
+    public ResponseEntity<CommonResponse<EquippedIconDto>> getUserEquippedIcon(@PathVariable Long userId) {
         EquippedIconDto equippedIcon = userProfileService.getUserEquippedIcon(userId);
         return ResponseEntity.ok(CommonResponse.success(equippedIcon));
     }
@@ -208,7 +209,7 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "인증 실패")
     })
     @GetMapping("/chat/ban-status")
-    public ResponseEntity<CommonResponse<com.byeolnight.dto.admin.ChatBanStatusDto>> getChatBanStatus(
+    public ResponseEntity<CommonResponse<ChatBanStatusDto>> getChatBanStatus(
             @Parameter(hidden = true) @AuthenticationPrincipal User user) {
         com.byeolnight.dto.admin.ChatBanStatusDto banStatus = adminChatService.getUserBanStatus(user.getNickname());
         return ResponseEntity.ok(CommonResponse.success(banStatus));

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import axios from '../lib/axios';
+﻿import React, { useEffect, useState } from 'react';
+import axios from '../../lib/axios';
 import { Client } from '@stomp/stompjs';
 
 // 관리자 기능 타입 정의

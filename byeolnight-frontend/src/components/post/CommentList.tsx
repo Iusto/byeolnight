@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import axios from '../lib/axios';
-import { useAuth } from '../contexts/AuthContext';
-import UserIconDisplay from './UserIconDisplay';
-import EmojiPicker from './EmojiPicker';
-import ClickableNickname from './ClickableNickname';
+﻿import { useState, useEffect } from 'react';
+import axios from '../../lib/axios';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserIconDisplay } from '../user';
+import { EmojiPicker } from '../chat';
+import { ClickableNickname } from '../user';
 
 interface Comment {
   id: number;

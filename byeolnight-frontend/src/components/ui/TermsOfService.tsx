@@ -1,4 +1,4 @@
-export default function TermsOfService() {
+﻿export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] text-starlight p-8 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-center">📄 이용약관</h1>

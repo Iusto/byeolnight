@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import axios from '../lib/axios';
+﻿import React, { useState } from 'react';
+import axios from '../../lib/axios';
 import AdminActionModal from './AdminActionModal';
 
 interface AdminChatControlsProps {

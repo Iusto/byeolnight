@@ -1,12 +1,12 @@
-// TuiEditor.tsx
+﻿// TuiEditor.tsx
 // Toast UI Editor 커스텀 래퍼 컴포넌트 - 다국어 placeholder 반영 및 이미지 검열 업로드 처리
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { Editor } from '@toast-ui/react-editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
 import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
-import '../styles/tui-editor.css';
-import { uploadImage } from '../lib/s3Upload';
+import '../../styles/tui-editor.css';
+import { uploadImage } from '../../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
 
 // 이미지 URL 정규식

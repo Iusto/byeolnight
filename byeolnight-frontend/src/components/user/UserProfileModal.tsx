@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import axios from '../lib/axios';
+﻿import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import axios from '../../lib/axios';
 import type { SendMessageRequest } from '../types/message';
 
 interface UserProfile {

@@ -1,5 +1,5 @@
-import React from 'react';
-import * as Icons from './icons';
+﻿import React from 'react';
+import * as Icons from '../icons';
 
 interface UserIconDisplayProps {
   iconName?: string;
