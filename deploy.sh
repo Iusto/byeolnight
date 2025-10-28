@@ -53,7 +53,16 @@ command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 # 그 다음에 데몬 정지
 ./gradlew --stop || true
 
-# ===== 1. 코드 업데이트 =====
+# ===== 1. Config Repository 업데이트 (코드 업데이트 전에 먼저) =====
+if [ ! -d "config-repo" ]; then
+  echo "📦 Config Repository clone..."
+  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git config-repo
+else
+  echo "🔄 Config Repository 업데이트..."
+  cd config-repo && git pull && cd ..
+fi
+
+# ===== 2. 코드 업데이트 =====
 echo "📥 최신 코드 가져오기..."
 git fetch origin main && git reset --hard origin/main
 
@@ -61,7 +70,7 @@ git fetch origin main && git reset --hard origin/main
 chmod +x ./gradlew 2>/dev/null || true
 command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 
-# ===== 2. Gradle 클린 =====
+# ===== 3. Gradle 클린 =====
 echo "🧽 Gradle 클린 시작..."
 kill_holders
 ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false \
@@ -70,12 +79,12 @@ kill_holders
 # 그래도 남았을 가능성 방지
 hard_clean_build
 
-# ===== 3. 서버 빌드 =====
+# ===== 4. 서버 빌드 =====
 echo "🔨 bootJar 빌드..."
 chmod +x ./gradlew
 ./gradlew bootJar -x test --no-daemon -Dorg.gradle.vfs.watch=false
 
-# ===== 4. Config Server 기동 =====
+# ===== 5. Config Server 기동 =====
 echo "⚙️ Config Server 시작..."
 # Git에서 config-repo clone
 if [ ! -d "config-repo" ]; then
@@ -101,7 +110,7 @@ for i in $(seq 1 15); do
   sleep 2
 done
 
-# ===== 5. 비밀값 로드 =====
+# ===== 6. 비밀값 로드 =====
 echo "🔑 Config Server에서 비밀번호 가져오기..."
 CONFIG_RESPONSE=""
 for attempt in 1 2 3 4 5; do
@@ -143,7 +152,7 @@ CONFIG_PASSWORD=${CONFIG_PASSWORD}
 CONFIG_ENCRYPT_KEY=${CONFIG_ENCRYPT_KEY}
 EOF
 
-# ===== 6. 백엔드 서비스 기동 =====
+# ===== 7. 백엔드 서비스 기동 =====
 echo "🏗️ 백엔드 서비스 배포..."
 docker compose build --no-cache app
 docker compose up -d app
