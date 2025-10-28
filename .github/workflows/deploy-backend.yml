@@ -20,19 +20,17 @@ jobs:
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
-        env:
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           timeout: 25m
           command_timeout: 25m
-          envs: GH_USERNAME,GH_TOKEN
+          envs: GITHUB_USERNAME,GITHUB_TOKEN
           script: |
-            export GITHUB_USERNAME="$GH_USERNAME"
-            export GITHUB_TOKEN="$GH_TOKEN"
             cd /home/ubuntu/byeolnight
             chmod +x deploy.sh
             ./deploy.sh
+        env:
+          GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

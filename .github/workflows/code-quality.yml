@@ -72,6 +72,12 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: javascript
+        config: |
+          paths-ignore:
+            - '**/dist/**'
+            - '**/build/**'
+            - '**/*.min.js'
+            - '**/node_modules/**'
 
     - name: Node.js 설정
       uses: actions/setup-node@v4
@@ -82,11 +88,7 @@ jobs:
       working-directory: ./byeolnight-frontend
       run: npm install --legacy-peer-deps
 
-    - name: 프론트엔드 빌드
-      working-directory: ./byeolnight-frontend
-      run: npm run build
-
-    - name: CodeQL 분석 실행 (JavaScript)
+    - name: CodeQL 분석 실행 (JavaScript - 소스만)
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:javascript"
