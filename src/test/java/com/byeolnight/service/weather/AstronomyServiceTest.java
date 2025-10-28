@@ -3,6 +3,8 @@ package com.byeolnight.service.weather;
 import com.byeolnight.domain.weather.entity.AstronomyEvent;
 import com.byeolnight.domain.weather.repository.AstronomyEventRepository;
 import com.byeolnight.domain.weather.service.AstronomyService;
+import com.byeolnight.dto.admin.AstronomyCollectionResultDto;
+import com.byeolnight.dto.admin.AstronomyStatsDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,11 +72,11 @@ class AstronomyServiceTest {
     @DisplayName("천체 데이터 수집이 정상 동작한다")
     void fetchDailyAstronomyEvents_Success() {
         // When
-        Map<String, Object> result = astronomyService.manualFetchAstronomyEvents();
+        AstronomyCollectionResultDto result = astronomyService.manualFetchAstronomyEvents();
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).containsKey("success");
+        assertThat(result.isSuccess()).isIn(true, false);
     }
 
     @Test
@@ -84,12 +86,11 @@ class AstronomyServiceTest {
         when(astronomyEventRepository.count()).thenReturn(5L);
 
         // When
-        Map<String, Object> stats = astronomyService.getAstronomyEventStats();
+        AstronomyStatsDto stats = astronomyService.getAstronomyEventStats();
 
         // Then
         assertThat(stats).isNotNull();
-        assertThat(stats).containsKey("totalCount");
-        assertThat(stats.get("totalCount")).isEqualTo(5L);
+        assertThat(stats.getTotalCount()).isEqualTo(5L);
     }
 
     @Test
@@ -119,14 +120,12 @@ class AstronomyServiceTest {
     @DisplayName("데이터 수집 시 예상 결과를 반환한다")
     void fetchDailyAstronomyEvents_ReturnsExpectedResult() {
         // When
-        Map<String, Object> result = astronomyService.manualFetchAstronomyEvents();
+        AstronomyCollectionResultDto result = astronomyService.manualFetchAstronomyEvents();
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).containsKey("success");
-        assertThat(result).containsKey("message");
-        // 성공 또는 실패 둘 다 가능
-        assertThat(result.get("success")).isIn(true, false);
+        assertThat(result.getMessage()).isNotNull();
+        assertThat(result.isSuccess()).isIn(true, false);
     }
 
     @Test
