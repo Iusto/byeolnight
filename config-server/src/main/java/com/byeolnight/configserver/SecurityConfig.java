@@ -20,9 +20,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
-            .httpBasic()
-            .and()
-            .csrf().disable();
+            .httpBasic(basic -> {})
+            .csrf(csrf -> csrf.disable());
         
         return http.build();
     }
