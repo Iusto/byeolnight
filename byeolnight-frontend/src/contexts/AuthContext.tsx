@@ -59,7 +59,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       setUser(userData);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      // 401 에러는 정상 (비로그인 상태)
+      if (error.response?.status === 401) {
+        setUser(null);
+        return false;
+      }
       console.warn('사용자 정보 조회 실패:', error);
       setUser(null);
       return false;
@@ -94,10 +99,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     navigate('/');
   };
 
-  // 초기 로딩 시 로그인 상태 확인
+  // 초기 로딩 시 로그인 상태 확인 (쿠키 있을 때만)
   useEffect(() => {
     const initAuth = async () => {
-      await fetchMyInfo();
+      // 쿠키에 토큰이 있는지 확인
+      const hasToken = document.cookie.includes('accessToken') || document.cookie.includes('refreshToken');
+      
+      if (hasToken) {
+        await fetchMyInfo();
+      }
+      
       setLoading(false);
     };
     
