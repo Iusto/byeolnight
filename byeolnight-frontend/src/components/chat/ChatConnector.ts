@@ -17,6 +17,7 @@ class ChatConnector {
 
   async connect(callbacks: ChatConnectorCallbacks, userNickname?: string) {
     if (this.ws && this.isConnected) {
+      console.log('이미 연결되어 있음');
       return;
     }
 
@@ -27,23 +28,29 @@ class ChatConnector {
       (window.location.hostname === 'localhost' ? 'ws://localhost:8080/ws' : 
        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
     
-    console.log('WebSocket 연결 시도:', { wsUrl, userNickname });
+    console.log('🔌 WebSocket 연결 시도:', { wsUrl, userNickname, hasToken: document.cookie.includes('accessToken') });
     
     try {
       this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => this.handleConnect();
       this.ws.onmessage = (event) => this.handleMessage(event);
-      this.ws.onerror = () => this.handleError();
-      this.ws.onclose = () => this.handleDisconnect();
+      this.ws.onerror = (error) => {
+        console.error('❌ WebSocket 에러:', error);
+        this.handleError();
+      };
+      this.ws.onclose = (event) => {
+        console.log('🔌 WebSocket 연결 종료:', event.code, event.reason);
+        this.handleDisconnect();
+      };
     } catch (error) {
-      console.error('WebSocket 생성 실패:', error);
+      console.error('❌ WebSocket 생성 실패:', error);
       this.handleError();
     }
   }
 
   private handleConnect() {
-    console.log('WebSocket 연결 성공');
+    console.log('✅ WebSocket 연결 성공');
     this.isConnected = true;
     this.retryCount = 0;
     this.callbacks?.onConnect();
@@ -52,6 +59,7 @@ class ChatConnector {
   private handleMessage(event: MessageEvent) {
     try {
       const message = JSON.parse(event.data);
+      console.log('📨 메시지 수신:', message);
       
       if (message.error) {
         this.callbacks?.onBanNotification?.(message);
@@ -59,7 +67,7 @@ class ChatConnector {
         this.callbacks?.onMessage(message);
       }
     } catch (error) {
-      console.error('메시지 파싱 실패:', error);
+      console.error('❌ 메시지 파싱 실패:', error, event.data);
     }
   }
 
@@ -88,14 +96,15 @@ class ChatConnector {
 
   sendMessage(message: { roomId: string; sender: string; message: string }) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.error('WebSocket이 연결되어 있지 않습니다.');
+      console.error('❌ WebSocket이 연결되어 있지 않습니다. readyState:', this.ws?.readyState);
       throw new Error('WebSocket이 연결되어 있지 않습니다.');
     }
 
     try {
+      console.log('📤 메시지 전송:', message);
       this.ws.send(JSON.stringify(message));
     } catch (error) {
-      console.error('메시지 전송 실패:', error);
+      console.error('❌ 메시지 전송 실패:', error);
       throw error;
     }
   }
