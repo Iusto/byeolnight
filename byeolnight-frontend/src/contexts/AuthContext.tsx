@@ -99,16 +99,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     navigate('/');
   };
 
-  // 초기 로딩 시 로그인 상태 확인 (쿠키 있을 때만)
+  // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initAuth = async () => {
-      // 쿠키에 토큰이 있는지 확인
-      const hasToken = document.cookie.includes('accessToken') || document.cookie.includes('refreshToken');
-      
-      if (hasToken) {
-        await fetchMyInfo();
-      }
-      
+      // HttpOnly 쿠키는 document.cookie로 확인 불가
+      // 무조건 API 호출해서 확인 (401이면 비로그인)
+      await fetchMyInfo();
       setLoading(false);
     };
     
