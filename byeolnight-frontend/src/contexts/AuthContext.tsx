@@ -44,17 +44,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return false;
       }
       
-      // 대표 인증서 정보 가져오기
-      try {
-        const certRes = await axios.get('/member/certificates/representative');
-        if (certRes.data?.data) {
-          userData.representativeCertificate = {
-            icon: certRes.data.data.icon,
-            name: certRes.data.data.name
-          };
-        }
-      } catch {
-        // 인증서 조회 실패 무시
+      // 대표 인증서 정보 가져오기 (실패해도 계속 진행)
+      const certRes = await axios.get('/member/certificates/representative').catch(() => null);
+      if (certRes?.data?.data) {
+        userData.representativeCertificate = {
+          icon: certRes.data.data.icon,
+          name: certRes.data.data.name
+        };
       }
       
       setUser(userData);
@@ -65,7 +61,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         return false;
       }
-      console.warn('사용자 정보 조회 실패:', error);
       setUser(null);
       return false;
     }
@@ -95,57 +90,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     setUser(null);
-    alert("로그아웃 되었습니다.");
     navigate('/');
   };
 
-  // 초기 로딩 시 로그인 상태 확인 (쿠키 있을 때만)
+  // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initAuth = async () => {
-      // 쿠키에 토큰이 있는지 확인
-      const hasToken = document.cookie.includes('accessToken') || document.cookie.includes('refreshToken');
-      
-      if (hasToken) {
-        await fetchMyInfo();
-      }
-      
+      // HttpOnly 쿠키는 document.cookie로 확인 불가
+      // 무조건 API 호출해서 확인 (401이면 비로그인)
+      await fetchMyInfo();
       setLoading(false);
     };
     
     initAuth();
   }, []);
 
-  // 로그인된 사용자만 토큰 갱신
-  useEffect(() => {
-    if (!user) return;
-    
-    let failureCount = 0;
-    const maxFailures = 3;
-    
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.post('/auth/token/refresh');
-        if (!res.data?.success) {
-          failureCount++;
-          if (failureCount >= maxFailures) {
-            console.warn('토큰 갱신 연속 실패로 로그아웃 처리');
-            setUser(null);
-          }
-        } else {
-          failureCount = 0; // 성공 시 실패 카운트 리셋
-        }
-      } catch (error) {
-        failureCount++;
-        console.warn(`토큰 갱신 실패 (${failureCount}/${maxFailures}):`, error);
-        if (failureCount >= maxFailures) {
-          console.warn('토큰 갱신 연속 실패로 로그아웃 처리');
-          setUser(null);
-        }
-      }
-    }, 25 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [user]);
+  // 토큰 갱신은 axios 인터셉터에서 자동 처리 (401 시)
 
   const refreshUserInfo = async () => {
     try {
