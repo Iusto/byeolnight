@@ -1,6 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
 import axios from '../../lib/axios';
-import { Client } from '@stomp/stompjs';
 
 // 관리자 기능 타입 정의
 interface AdminChatStats {
@@ -32,7 +31,7 @@ const AdminDashboard: React.FC = () => {
   const [bannedUsers, setBannedUsers] = useState<ChatBanInfo[]>([]);
   const [blindedMessages, setBlindedMessages] = useState<BlindedMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stompClient, setStompClient] = useState<Client | null>(null);
+
   const [showAllBanned, setShowAllBanned] = useState(false);
   const [showAllBlinded, setShowAllBlinded] = useState(false);
   const [allBannedUsers, setAllBannedUsers] = useState<ChatBanInfo[]>([]);
@@ -50,58 +49,9 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadAdminData();
-    connectWebSocket();
-    
-    return () => {
-      if (stompClient) {
-        stompClient.deactivate();
-      }
-    };
   }, []);
 
-  const connectWebSocket = () => {
-    const wsUrl = import.meta.env.VITE_WS_URL || (window.location.protocol === 'https:' ? 'wss://byeolnight.com/ws' : 'ws://localhost:8080/ws');
-    const client = new Client({
-      brokerURL: wsUrl,
-      onConnect: () => {
-        // 관리자 알림 구독
-        client.subscribe('/topic/admin/chat-update', (message) => {
-          const data = JSON.parse(message.body);
-          handleAdminUpdate(data);
-        });
-      },
-      onStompError: (error) => {
-        console.error('WebSocket 연결 오류:', error);
-      }
-    });
-    
-    client.activate();
-    setStompClient(client);
-  };
 
-  const handleAdminUpdate = (data: any) => {
-    switch (data.type) {
-      case 'MESSAGE_BLINDED':
-        // 블라인드된 메시지를 목록에 추가
-        loadAdminData();
-        break;
-      case 'MESSAGE_UNBLINDED':
-        // 블라인드 해제된 메시지를 목록에서 제거
-        const messageId = data.messageId;
-        setBlindedMessages(prev => prev.filter(msg => msg.messageId !== messageId));
-        setAllBlindedMessages(prev => prev.filter(msg => msg.messageId !== messageId));
-        break;
-      case 'USER_BANNED':
-        loadAdminData();
-        break;
-      case 'USER_UNBANNED':
-        // 해제된 사용자를 목록에서 제거
-        const username = data.username;
-        setBannedUsers(prev => prev.filter(user => user.username !== username));
-        setAllBannedUsers(prev => prev.filter(user => user.username !== username));
-        break;
-    }
-  };
 
   const loadAdminData = async () => {
     try {

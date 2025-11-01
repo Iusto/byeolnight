@@ -16,9 +16,6 @@ importers:
 
   .:
     dependencies:
-      '@stomp/stompjs':
-        specifier: ^7.1.1
-        version: 7.1.1
       '@toast-ui/editor':
         specifier: ^3.1.0
         version: 3.2.2
@@ -572,9 +569,6 @@ packages:
     resolution: {integrity: sha512-sq0hHLTgdtwOPDB5SJOuaoHyiP1qSwg+71TQWk8iDS04bW1wIE0oQ6otPiRj2ZvLYNASLMaTp8QRGUVZ+5OL5A==}
     cpu: [x64]
     os: [win32]
-
-  '@stomp/stompjs@7.1.1':
-    resolution: {integrity: sha512-chcDs6YkAnKp1FqzwhGvh3i7v0+/ytzqWdKYw6XzINEKAzke/iD00dNgFPWSZEqktHOK+C1gSzXhLkLbARIaZw==}
 
   '@toast-ui/editor@3.2.2':
     resolution: {integrity: sha512-ASX7LFjN2ZYQJrwmkUajPs7DRr9FsM1+RQ82CfTO0Y5ZXorBk1VZS4C2Dpxinx9kl55V4F8/A2h2QF4QMDtRbA==}
@@ -2399,8 +2393,6 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.48.0':
     optional: true
-
-  '@stomp/stompjs@7.1.1': {}
 
   '@toast-ui/editor@3.2.2':
     dependencies:

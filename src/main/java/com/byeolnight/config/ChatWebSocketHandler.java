@@ -35,12 +35,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             sessions.put(user.getNickname(), session);
             log.info("✅ WebSocket 연결: {}", user.getNickname());
         } else {
-            log.warn("❌ 인증되지 않은 WebSocket 연결 시도 차단");
-            try {
-                session.close(CloseStatus.NOT_ACCEPTABLE);
-            } catch (IOException e) {
-                log.error("세션 종료 실패", e);
-            }
+            log.info("🔓 WebSocket 연결: 비로그인 사용자 (읽기 전용)");
         }
     }
 

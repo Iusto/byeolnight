@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getNotifications, markAsRead, markAllAsRead, getUnreadCount, deleteNotification } from '../../lib/api/notification';
-import { useWebSocket } from '../../hooks/useWebSocket';
 import type { Notification } from '../../types/notification';
 import { NOTIFICATION_ICONS } from '../../types/notification';
 
@@ -14,17 +13,7 @@ export default function NotificationDropdown() {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // WebSocket 실시간 알림 핸들러 메모이제이션
-  const handleNotification = useCallback((notification: any) => {
-    if (import.meta.env.DEV) {
-      console.log('실시간 알림 수신됨:', notification);
-    }
-    setUnreadCount(prev => prev + 1);
-    setNotifications(prev => [notification, ...prev.slice(0, 9)]);
-  }, []);
-
-  // WebSocket 연결 (사용자가 로그인한 경우에만)
-  useWebSocket(user ? handleNotification : undefined);
+  // 실시간 알림은 현재 비활성화됨 (폴링 방식 사용)
 
   useEffect(() => {
     if (user) {
