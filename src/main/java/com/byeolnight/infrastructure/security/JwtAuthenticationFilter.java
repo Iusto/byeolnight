@@ -62,10 +62,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                uri.contains("/api/member/users/me") ||
                uri.contains("/oauth2/authorization") ||
                uri.equals("/") ||
-               uri.equals("/.env") ||
+               uri.contains("/.env") ||
                uri.contains("/.git") ||
                uri.contains("/wp-admin") ||
-               uri.contains("/phpmyadmin");
+               uri.contains("/phpmyadmin") ||
+               uri.contains("/phpunit") ||
+               uri.contains("/vendor") ||
+               uri.contains("/laravel") ||
+               uri.contains("/eval-stdin") ||
+               uri.contains("/hello.world");
     }
 
     @Override
