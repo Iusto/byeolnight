@@ -106,11 +106,6 @@
 
 ## 📚 문서
 
-### 시작하기
-- [⚡ Quick Start](#-quick-start) - 3줄로 실행하기
-- [💻 로컬 개발 환경](#-로컬-개발) - 개발 서버 실행 방법
-- [📦 배포 가이드](./docs/08_deployment.md) - 프로덕션 배포
-
 ### 설계 문서
 - [📋 설계 철학 및 DDD](./docs/01_design-philosophy.md)
 - [🧱 도메인 모델](./docs/02_domain-model.md)
