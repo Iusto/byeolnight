@@ -1,6 +1,5 @@
 ﻿import React, { useEffect, useState, useCallback } from 'react';
 import axios from '../../lib/axios';
-import { Client } from '@stomp/stompjs';
 
 interface AdminChatStats {
   totalMessages: number;
@@ -31,7 +30,7 @@ const AdminChatTable: React.FC = () => {
   const [bannedUsers, setBannedUsers] = useState<ChatBanInfo[]>([]);
   const [blindedMessages, setBlindedMessages] = useState<BlindedMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stompClient, setStompClient] = useState<Client | null>(null);
+
   
   // 필터 및 정렬 상태
   const [activeTab, setActiveTab] = useState<'banned' | 'blinded'>('banned');
@@ -42,59 +41,9 @@ const AdminChatTable: React.FC = () => {
 
   useEffect(() => {
     loadAdminData();
-    connectWebSocket();
-    
-    return () => {
-      if (stompClient) {
-        stompClient.deactivate();
-      }
-    };
   }, []);
 
-  const connectWebSocket = () => {
-    const client = new Client({
-      brokerURL: (import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws').replace('http', 'ws'),
-      onConnect: () => {
-        client.subscribe('/topic/admin/chat-update', (message) => {
-          const data = JSON.parse(message.body);
-          handleAdminUpdate(data);
-        });
-      },
-      onStompError: (error) => {
-        console.error('WebSocket 연결 오류:', error);
-      }
-    });
-    
-    client.activate();
-    setStompClient(client);
-  };
 
-  const handleAdminUpdate = (data: any) => {
-    switch (data.type) {
-      case 'MESSAGE_BLINDED':
-        // 새로 블라인드된 메시지 추가
-        loadAdminData();
-        break;
-      case 'MESSAGE_UNBLINDED':
-        const messageId = data.messageId;
-        setBlindedMessages(prev => prev.filter(msg => msg.messageId !== messageId));
-        if (stats) {
-          setStats(prev => prev ? { ...prev, blindedMessages: Math.max(0, prev.blindedMessages - 1) } : prev);
-        }
-        break;
-      case 'USER_BANNED':
-        // 새로 제재된 사용자 추가
-        loadAdminData();
-        break;
-      case 'USER_UNBANNED':
-        const username = data.username;
-        setBannedUsers(prev => prev.filter(user => user.username !== username));
-        if (stats) {
-          setStats(prev => prev ? { ...prev, bannedUsers: Math.max(0, prev.bannedUsers - 1) } : prev);
-        }
-        break;
-    }
-  };
 
   const loadAdminData = async () => {
     try {
