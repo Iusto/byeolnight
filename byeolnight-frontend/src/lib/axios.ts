@@ -65,8 +65,9 @@ instance.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // 서버 점검 중 (502, 503, 504)
-    if (error.response?.status >= 502 && error.response?.status <= 504) {
+    // 서버 점검 중 (403, 502, 503, 504)
+    // 403: ALB가 백엔드 다운 시 반환
+    if (error.response?.status === 403 || (error.response?.status >= 502 && error.response?.status <= 504)) {
       window.location.href = '/maintenance.html';
       return Promise.reject(error);
     }

@@ -54,7 +54,7 @@ function App() {
         setIsChecking(false);
       } catch (error: any) {
         // axios 인터셉터가 maintenance.html로 리다이렉트 처리
-        if (error.code === 'ERR_NETWORK' || (error.response?.status >= 502 && error.response?.status <= 504)) {
+        if (error.code === 'ERR_NETWORK' || error.response?.status === 403 || (error.response?.status >= 502 && error.response?.status <= 504)) {
           window.location.href = '/maintenance.html';
         } else {
           setIsChecking(false);
