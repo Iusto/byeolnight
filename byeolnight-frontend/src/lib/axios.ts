@@ -59,6 +59,12 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // 네트워크 연결 실패 (서버 다운)
+    if (!error.response && error.code === 'ERR_NETWORK') {
+      window.location.href = '/maintenance.html';
+      return Promise.reject(error);
+    }
+    
     // 서버 점검 중 (502, 503, 504)
     if (error.response?.status >= 502 && error.response?.status <= 504) {
       window.location.href = '/maintenance.html';
