@@ -18,6 +18,16 @@ spring:
       add-mappings: true
 server:
   port: 8080
+
+app:
+  security:
+    max-login-attempts: 10
+    ip-block-duration: 1h
+    password-reset-validity: 30m
+    cookie:
+      secure: true
+      domain: .byeolnight.com
+
 # Swagger/OpenAPI 설정
 springdoc:
   api-docs:
