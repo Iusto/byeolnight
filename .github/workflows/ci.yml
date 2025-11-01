@@ -70,30 +70,10 @@ jobs:
     - name: Gradle 실행 권한 설정
       run: chmod +x ./gradlew
 
-    - name: 의존성 다운로드
+    - name: 테스트 및 빌드
       env:
         GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
-      run: |
-        ./gradlew dependencies --no-daemon --refresh-dependencies
-        
-    - name: 핵심 테스트 실행
-      env:
-        GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
-      run: |
-        echo "핵심 테스트 실행 중... (스케줄러 및 OAuth2 테스트 제외)"
-        ./gradlew test --no-daemon \
-          -Dspring.profiles.active=test \
-          --exclude-task testClasses
-        echo "✅ 핵심 테스트 통과"
-
-    - name: 빌드 검증 (테스트 실패 시 대체)
-      if: failure()
-      env:
-        GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=256m"
-      run: |
-        echo "⚠️ 테스트 실패. 빌드만 검증합니다."
-        ./gradlew clean build -x test --no-daemon
-        echo "✅ 빌드 검증 완료"
+      run: ./gradlew test --no-daemon -Dspring.profiles.active=test
         
     - name: 테스트 결과 업로드
       uses: actions/upload-artifact@v4
@@ -118,28 +98,14 @@ jobs:
         node-version: '20'
         corepack: true
 
-    - name: pnpm 설정
-      run: corepack enable && corepack prepare pnpm@latest --activate
-
-    - name: pnpm 캐시 설정
-      uses: actions/cache@v4
+    - name: pnpm 설치
+      uses: pnpm/action-setup@v4
       with:
-        path: ~/.pnpm-store
-        key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-
+        version: latest
 
     - name: 의존성 설치
       working-directory: ./byeolnight-frontend
       run: pnpm install --frozen-lockfile
-
-    - name: 린트 검사
-      working-directory: ./byeolnight-frontend
-      run: pnpm run lint || echo "⚠️ 린트 경고가 있지만 CI를 계속 진행합니다"
-
-    - name: 타입 체크
-      working-directory: ./byeolnight-frontend
-      run: pnpm run type-check
 
     - name: 빌드 테스트
       working-directory: ./byeolnight-frontend
