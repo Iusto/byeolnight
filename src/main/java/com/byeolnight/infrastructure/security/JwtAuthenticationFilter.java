@@ -60,7 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                uri.contains("/favicon.ico") || 
                uri.contains("/chat/ban-status") ||
                uri.contains("/api/member/users/me") ||
-               uri.contains("/oauth2/authorization");
+               uri.contains("/oauth2/authorization") ||
+               uri.equals("/") ||
+               uri.equals("/.env") ||
+               uri.contains("/.git") ||
+               uri.contains("/wp-admin") ||
+               uri.contains("/phpmyadmin");
     }
 
     @Override
