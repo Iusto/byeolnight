@@ -22,6 +22,7 @@ spring:
           search-paths: configs
       encrypt:
         enabled: true
+        key: byeolnight-secret-key-2024
 
 management:
   endpoints:
