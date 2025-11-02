@@ -196,12 +196,12 @@ for attempt in $(seq 1 5); do
   sleep 3
 done
 
-# 설정값 추출
-MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.mysql.root-password"]' 2>/dev/null || echo "")
-REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["docker.redis.password"]' 2>/dev/null || echo "")
-CONFIG_USERNAME=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["config.server.username"]' 2>/dev/null || echo "")
-CONFIG_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["config.server.password"]' 2>/dev/null || echo "")
-CONFIG_ENCRYPT_KEY=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source["config.server.encrypt-key"]' 2>/dev/null || echo "")
+# 설정값 추출 (계층 구조)
+MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.docker.mysql["root-password"]' 2>/dev/null || echo "")
+REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.docker.redis.password' 2>/dev/null || echo "")
+CONFIG_USERNAME=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.config.server.username' 2>/dev/null || echo "")
+CONFIG_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.config.server.password' 2>/dev/null || echo "")
+CONFIG_ENCRYPT_KEY=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.config.server["encrypt-key"]' 2>/dev/null || echo "")
 
 # 검증
 if [[ -z "$MYSQL_ROOT_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" ]]; then
