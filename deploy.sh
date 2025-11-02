@@ -120,15 +120,7 @@ log_step "3️⃣ 빌드 정리"
 kill_holders
 hard_clean_build
 
-echo "🧽 Gradle clean 실행..."
-./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false 2>&1 || {
-  echo "⚠️ Gradle clean 실패, 재시도..."
-  sleep 2
-  hard_clean_build
-  ./gradlew clean --no-daemon -Dorg.gradle.vfs.watch=false 2>&1 || true
-}
-
-echo "✅ 빌드 정리 완료"
+echo "✅ 빌드 정리 완료 (Q클래스 보존)"
 
 # ===== 4. 애플리케이션 빌드 =====
 log_step "4️⃣ 애플리케이션 빌드"
