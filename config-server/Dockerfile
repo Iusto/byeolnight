@@ -1,11 +1,16 @@
-# 실행 스테이지 (이미 빌드된 JAR 파일 사용)
 FROM eclipse-temurin:21-jre-alpine
 
-# 시간대 설정
-RUN apk add --no-cache tzdata
+# curl 설치 (healthcheck용)
+RUN apk add --no-cache curl tzdata
 ENV TZ=Asia/Seoul
 
 WORKDIR /app
+
+# Gradle 빌드 결과물 복사 (context: ./config-server)
 COPY build/libs/*.jar app.jar
-EXPOSE 8080
+
+# 포트 노출
+EXPOSE 8888
+
+# 애플리케이션 실행
 ENTRYPOINT ["java", "-jar", "app.jar"]
