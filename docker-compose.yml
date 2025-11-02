@@ -11,9 +11,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/configs/
+      - ENCRYPT_KEY=byeolnight-secret-key-2024
       - GITHUB_USERNAME=${GITHUB_USERNAME}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - ENCRYPT_KEY=byeolnight-secret-key-2024
     volumes:
       - ./configs/configs:/app/configs
     healthcheck:
@@ -51,9 +51,6 @@ services:
 
   mysql:
     image: mysql:8
-    depends_on:
-      config-server:
-        condition: service_healthy
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=byeolnight
@@ -79,9 +76,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    depends_on:
-      config-server:
-        condition: service_healthy
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
