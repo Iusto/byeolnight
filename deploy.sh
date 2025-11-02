@@ -106,7 +106,7 @@ chmod +x ./gradlew
 cd ..
 
 echo "🐳 Config Server Docker 이미지 빌드..."
-docker compose build --no-cache config-server || { echo "❌ Config Server Docker 빌드 실패"; exit 1; }
+docker compose build config-server || { echo "❌ Config Server Docker 빌드 실패"; exit 1; }
 
 echo "⚙️ Config Server 시작..."
 docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
@@ -178,7 +178,7 @@ export MYSQL_ROOT_PASSWORD REDIS_PASSWORD
 # ===== 7. 백엔드 서비스 배포 =====
 log_step "7️⃣ 백엔드 서비스 배포"
 echo "🐳 Docker 이미지 빌드..."
-docker compose build --no-cache app || { echo "❌ 이미지 빌드 실패"; exit 1; }
+docker compose build app || { echo "❌ 이미지 빌드 실패"; exit 1; }
 
 echo "🚀 백엔드 서비스 시작..."
 docker compose up -d app || { echo "❌ 서비스 시작 실패"; exit 1; }
