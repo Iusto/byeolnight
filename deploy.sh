@@ -139,16 +139,10 @@ fi
 
 echo "✅ 빌드 완료: $(ls -lh build/libs/*.jar | awk '{print $9, $5}')"
 
-# ===== 5. Config Server 빌드 및 기동 =====
-log_step "5️⃣ Config Server 빌드 및 기동"
-echo "🔨 Config Server Gradle 빌드..."
-cd config-server || { echo "❌ config-server 디렉터리 이동 실패"; exit 1; }
-chmod +x ./gradlew
-./gradlew bootJar -x test --no-daemon || { echo "❌ Config Server Gradle 빌드 실패"; exit 1; }
-cd ..
-
-echo "🐳 Config Server Docker 이미지 빌드..."
-docker compose build --no-cache config-server || { echo "❌ Config Server Docker 빌드 실패"; exit 1; }
+# ===== 5. Config Server 기동 =====
+log_step "5️⃣ Config Server 기동"
+echo "🔨 Config Server 이미지 빌드..."
+docker compose build --no-cache config-server || { echo "❌ Config Server 빌드 실패"; exit 1; }
 
 echo "⚙️ Config Server 시작..."
 docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
