@@ -5,8 +5,8 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Gradle 빌드 결과물 복사
-COPY config-server/build/libs/*.jar app.jar
+# Gradle 빌드 결과물 복사 (context: ./config-server)
+COPY build/libs/*.jar app.jar
 
 # 포트 노출
 EXPOSE 8888
