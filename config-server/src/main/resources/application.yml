@@ -6,23 +6,13 @@ spring:
     name: config-server
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:native}
-  config:
-    import: optional:file:../config-repo/configs/config-server-${spring.profiles.active:prod}.yml
   cloud:
     config:
       server:
         native:
-          search-locations: file:../config-repo/configs,classpath:/
-        git:
-          uri: https://github.com/Iusto/byeolnight-config.git
-          default-label: main
-          clone-on-start: true
-          username: ${GITHUB_USERNAME:}
-          password: ${GITHUB_TOKEN:}
-          search-paths: configs
+          search-locations: ${SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS:file:/app/configs/}
       encrypt:
         enabled: true
-        key: byeolnight-secret-key-2024
 
 management:
   endpoints:
