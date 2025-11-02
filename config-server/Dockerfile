@@ -1,15 +1,11 @@
-FROM openjdk:21-jdk-slim
+# 실행 스테이지 (이미 빌드된 JAR 파일 사용)
+FROM eclipse-temurin:21-jre-alpine
 
-# curl 설치 (healthcheck용)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# 시간대 설정
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Seoul
 
 WORKDIR /app
-
-# Gradle 빌드 결과물 복사
-COPY config-server/build/libs/*.jar app.jar
-
-# 포트 노출
-EXPOSE 8888
-
-# 애플리케이션 실행
+COPY build/libs/*.jar app.jar
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
