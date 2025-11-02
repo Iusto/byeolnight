@@ -153,15 +153,18 @@ docker compose build --no-cache config-server || { echo "❌ Config Server Docke
 echo "⚙️ Config Server 시작..."
 docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
 
-echo "⏳ Config Server 준비 대기 (최대 90초)..."
+echo "⏳ Config Server 초기 시작 대기 (10초)..."
+sleep 10
+
+echo "⏳ Config Server 헬스체크 시작 (최대 60초)..."
 CONFIG_READY=false
-for i in $(seq 1 45); do
+for i in $(seq 1 30); do
   if docker exec byeolnight-config-server-1 curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
     echo "✅ Config Server 준비 완료 (${i}초)"
     CONFIG_READY=true
     break
   fi
-  echo "⌛ Config Server 헬스체크 대기중... ($i/45)"
+  echo "⌛ Config Server 헬스체크 대기중... ($i/30)"
   sleep 2
 done
 
