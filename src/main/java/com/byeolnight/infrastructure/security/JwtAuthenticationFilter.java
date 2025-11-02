@@ -54,24 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return false;
     }
     
-    private boolean isLowPriorityPath(String uri) {
-        return uri.contains("/health") || 
-               uri.contains("/actuator") || 
-               uri.contains("/favicon.ico") || 
-               uri.contains("/chat/ban-status") ||
-               uri.contains("/api/member/users/me") ||
-               uri.contains("/oauth2/authorization") ||
-               uri.equals("/") ||
-               uri.contains("/.env") ||
-               uri.contains("/.git") ||
-               uri.contains("/wp-admin") ||
-               uri.contains("/phpmyadmin") ||
-               uri.contains("/phpunit") ||
-               uri.contains("/vendor") ||
-               uri.contains("/laravel") ||
-               uri.contains("/eval-stdin") ||
-               uri.contains("/hello.world");
-    }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -139,11 +122,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
     
     private void handleMissingToken(String uri, HttpServletResponse response) {
-        if (isLowPriorityPath(uri)) {
-            log.debug("인증 불필요 요청: {}", uri);
-        } else {
-            log.warn("❌ 토큰 부재: {}", uri);
-        }
+        log.debug("토큰 부재: {}", uri);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
     
