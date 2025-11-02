@@ -59,8 +59,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String clientIp = (String) session.getAttributes().getOrDefault("clientIp", "unknown");
         
         // 저장 및 브로드캐스트
-        chatService.save(chatMessage, clientIp);
-        broadcast(chatMessage);
+        try {
+            chatService.save(chatMessage, clientIp);
+            log.debug("💾 채팅 저장 완료: {} - {}", user.getNickname(), chatMessage.getMessage());
+            broadcast(chatMessage);
+        } catch (Exception e) {
+            log.error("❌ 채팅 저장 실패: {}", e.getMessage(), e);
+            sendToUser(user.getNickname(), Map.of("error", "메시지 저장에 실패했습니다."));
+        }
     }
 
     @Override

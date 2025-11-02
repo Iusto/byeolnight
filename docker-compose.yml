@@ -6,8 +6,8 @@ services:
   config-server:
     build:
       context: ./config-server
-    ports:
-      - "8888:8888"
+    expose:
+      - "8888"
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/configs/
