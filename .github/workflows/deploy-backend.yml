@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'config-server/**'
       - 'build.gradle'
       - 'Dockerfile'
       - 'docker-compose.yml'

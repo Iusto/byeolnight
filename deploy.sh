@@ -29,42 +29,6 @@ check_command() {
   fi
 }
 
-kill_holders() {
-  if [ ! -d "./build" ]; then
-    return 0
-  fi
-  
-  echo "🔧 build/ 디렉터리 점유 프로세스 정리..."
-  local pids
-  pids=$(lsof -t +D ./build 2>/dev/null || true)
-  
-  if [[ -n "${pids:-}" ]]; then
-    echo "⚠️ 점유 PID: $pids"
-    kill $pids 2>/dev/null || true
-    sleep 3
-    
-    pids=$(lsof -t +D ./build 2>/dev/null || true)
-    if [[ -n "${pids:-}" ]]; then
-      echo "⛔ 강제 종료: $pids"
-      kill -9 $pids 2>/dev/null || true
-      sleep 2
-    fi
-  fi
-  
-  fuser -k ./build 2>/dev/null || true
-  echo "✅ 프로세스 정리 완료"
-}
-
-hard_clean_build() {
-  echo "🧹 build/ 강제 정리..."
-  if [ -d "./build" ]; then
-    sudo chown -R ubuntu:ubuntu ./build 2>/dev/null || true
-    chmod -R u+rwX ./build 2>/dev/null || true
-    rm -rf ./build || { echo "⚠️ build/ 삭제 실패 (무시)"; }
-  fi
-  echo "✅ 빌드 디렉터리 정리 완료"
-}
-
 # ===== 0. 환경 검증 =====
 log_step "0️⃣ 환경 검증"
 check_command docker
@@ -86,8 +50,6 @@ docker compose down --remove-orphans 2>/dev/null || true
 sleep 2
 
 echo "🧹 Gradle 데몬 정지..."
-chmod +x ./gradlew 2>/dev/null || true
-command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
 ./gradlew --stop 2>/dev/null || true
 
 echo "✅ 기존 서비스 정리 완료"
@@ -97,10 +59,7 @@ log_step "2️⃣ 코드 업데이트"
 echo "📥 메인 저장소 업데이트..."
 git fetch origin main || { echo "❌ git fetch 실패"; exit 1; }
 git reset --hard origin/main || { echo "❌ git reset 실패"; exit 1; }
-
-# gradlew 권한 복구
-chmod +x ./gradlew 2>/dev/null || true
-command -v dos2unix >/dev/null 2>&1 && dos2unix ./gradlew 2>/dev/null || true
+chmod +x ./gradlew
 
 echo "📦 Config 저장소 업데이트..."
 if [ ! -d "configs" ]; then
@@ -117,10 +76,9 @@ echo "✅ 코드 업데이트 완료"
 
 # ===== 3. 빌드 정리 =====
 log_step "3️⃣ 빌드 정리"
-kill_holders
-hard_clean_build
-
-echo "✅ 빌드 정리 완료 (Q클래스 보존)"
+echo "🧹 이전 빌드 정리..."
+./gradlew clean || true
+echo "✅ 빌드 정리 완료"
 
 # ===== 4. 애플리케이션 빌드 =====
 log_step "4️⃣ 애플리케이션 빌드"
@@ -153,10 +111,7 @@ docker compose build --no-cache config-server || { echo "❌ Config Server Docke
 echo "⚙️ Config Server 시작..."
 docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
 
-echo "⏳ Config Server 초기 시작 대기 (10초)..."
-sleep 10
-
-echo "⏳ Config Server 헬스체크 시작 (최대 60초)..."
+echo "⏳ Config Server 헬스체크 (최대 60초)..."
 CONFIG_READY=false
 for i in $(seq 1 30); do
   if docker exec byeolnight-config-server-1 curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
@@ -164,7 +119,7 @@ for i in $(seq 1 30); do
     CONFIG_READY=true
     break
   fi
-  echo "⌛ Config Server 헬스체크 대기중... ($i/30)"
+  echo "⌛ 대기중... ($i/30)"
   sleep 2
 done
 
@@ -196,15 +151,15 @@ for attempt in $(seq 1 5); do
   sleep 3
 done
 
-# 설정값 추출 (계층 구조)
-MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.docker.mysql["root-password"]' 2>/dev/null || echo "")
-REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.docker.redis.password' 2>/dev/null || echo "")
+# 설정값 추출
+MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."docker.mysql.root-password"' 2>/dev/null)
+REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."docker.redis.password"' 2>/dev/null)
 
 # 검증
 if [[ -z "$MYSQL_ROOT_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" ]]; then
   echo "❌ MYSQL_ROOT_PASSWORD 추출 실패"
-  echo "🔍 Config 응답 구조:"
-  echo "$CONFIG_RESPONSE" | jq '.propertySources[0].source | keys' 2>/dev/null
+  echo "🔍 Config 응답:"
+  echo "$CONFIG_RESPONSE" | jq '.propertySources[0].source | with_entries(select(.key | startswith("docker")))' 2>/dev/null
   exit 1
 fi
 
@@ -236,7 +191,7 @@ for i in $(seq 1 60); do
     APP_READY=true
     break
   fi
-  echo "⌛ 애플리케이션 시작 대기중... ($i/60)"
+  echo "⌛ 대기중... ($i/60)"
   sleep 2
 done
 
