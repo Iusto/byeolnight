@@ -199,13 +199,12 @@ done
 # 설정값 추출 (계층 구조)
 MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.docker.mysql["root-password"]' 2>/dev/null || echo "")
 REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.docker.redis.password' 2>/dev/null || echo "")
-CONFIG_USERNAME=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.config.server.username' 2>/dev/null || echo "")
-CONFIG_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.config.server.password' 2>/dev/null || echo "")
-CONFIG_ENCRYPT_KEY=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source.config.server["encrypt-key"]' 2>/dev/null || echo "")
 
 # 검증
 if [[ -z "$MYSQL_ROOT_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" ]]; then
   echo "❌ MYSQL_ROOT_PASSWORD 추출 실패"
+  echo "🔍 Config 응답 구조:"
+  echo "$CONFIG_RESPONSE" | jq '.propertySources[0].source | keys' 2>/dev/null
   exit 1
 fi
 
@@ -214,18 +213,12 @@ if [[ -z "$REDIS_PASSWORD" || "$REDIS_PASSWORD" == "null" ]]; then
   exit 1
 fi
 
-if [[ -z "$CONFIG_USERNAME" || -z "$CONFIG_PASSWORD" || -z "$CONFIG_ENCRYPT_KEY" ]]; then
-  echo "❌ Config Server 자격증명 추출 실패"
-  exit 1
-fi
-
 echo "✅ 설정값 검증 완료"
 echo "   - MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:0:3}***"
 echo "   - REDIS_PASSWORD: ${REDIS_PASSWORD:0:3}***"
-echo "   - CONFIG_USERNAME: $CONFIG_USERNAME"
 
 # 환경변수 내보내기 (Docker Compose에서 사용)
-export MYSQL_ROOT_PASSWORD REDIS_PASSWORD CONFIG_USERNAME CONFIG_PASSWORD CONFIG_ENCRYPT_KEY
+export MYSQL_ROOT_PASSWORD REDIS_PASSWORD
 
 # ===== 7. 백엔드 서비스 배포 =====
 log_step "7️⃣ 백엔드 서비스 배포"
