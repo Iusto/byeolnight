@@ -156,7 +156,7 @@ docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; 
 echo "⏳ Config Server 준비 대기 (최대 90초)..."
 CONFIG_READY=false
 for i in $(seq 1 45); do
-  if curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
+  if docker exec byeolnight-config-server-1 curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
     echo "✅ Config Server 준비 완료 (${i}초)"
     CONFIG_READY=true
     break
@@ -178,7 +178,7 @@ echo "🔑 Config Server에서 설정 가져오기..."
 CONFIG_RESPONSE=""
 for attempt in $(seq 1 5); do
   echo "시도 $attempt/5..."
-  CONFIG_RESPONSE=$(curl -s -f http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
+  CONFIG_RESPONSE=$(docker exec byeolnight-config-server-1 curl -s -f http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
   
   if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq empty 2>/dev/null; then
     echo "✅ Config 응답 수신"
