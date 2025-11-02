@@ -10,7 +10,9 @@ import org.springframework.cloud.config.server.EnableConfigServer;
  * - 암호화/복호화 지원
  * - Git 기반 설정 저장소
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+    org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
+})
 @EnableConfigServer
 public class ConfigServerApplication {
 
