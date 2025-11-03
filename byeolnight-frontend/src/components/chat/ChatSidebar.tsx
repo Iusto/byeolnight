@@ -300,24 +300,30 @@ export default function ChatSidebar() {
 
   useEffect(() => {
     loadInitialMessages();
-    
-    // 비로그인 사용자도 WebSocket 연결 허용 (읽기 전용)
     initializeWebSocket();
     
+    return () => {
+      chatConnector.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     if (user) {
       checkBanStatus();
       statusIntervalRef.current = setInterval(checkBanStatus, 30000);
     } else {
       setBanStatus(null);
+      if (statusIntervalRef.current) {
+        clearInterval(statusIntervalRef.current);
+      }
     }
 
     return () => {
       if (statusIntervalRef.current) {
         clearInterval(statusIntervalRef.current);
       }
-      chatConnector.disconnect();
     };
-  }, [user?.id, i18n.language]);
+  }, [user?.id]);
 
   return (
     <div className="space-y-4">
