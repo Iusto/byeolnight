@@ -62,14 +62,14 @@ instance.interceptors.response.use(
     // 네트워크 연결 실패 (서버 다운)
     if (!error.response && error.code === 'ERR_NETWORK') {
       window.location.href = '/maintenance.html';
-      return Promise.reject(error);
+      return new Promise(() => {}); // 더 이상 진행하지 않음
     }
     
     // 서버 점검 중 (403, 502, 503, 504)
     // 403: ALB가 백엔드 다운 시 반환
     if (error.response?.status === 403 || (error.response?.status >= 502 && error.response?.status <= 504)) {
       window.location.href = '/maintenance.html';
-      return Promise.reject(error);
+      return new Promise(() => {}); // 더 이상 진행하지 않음
     }
 
     const originalRequest = error.config;
