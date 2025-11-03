@@ -74,7 +74,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
         if (auth != null && auth.getPrincipal() instanceof User user) {
             sessions.remove(user.getNickname());
-            log.info("❌ WebSocket 연결 종료: {}", user.getNickname());
+            log.info("❌ WebSocket 연결 종료: {} (code: {}, reason: {})", 
+                user.getNickname(), status.getCode(), status.getReason());
+        } else {
+            log.info("❌ WebSocket 연결 종료: 비로그인 사용자 (code: {}, reason: {})", 
+                status.getCode(), status.getReason());
         }
     }
 

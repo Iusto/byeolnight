@@ -84,6 +84,7 @@ public class AuthController {
     @Operation(summary = "Access Token 재발급")
     public ResponseEntity<CommonResponse<TokenResponseDto>> refreshAccessToken(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            @RequestHeader(value = "Cookie", required = false) String cookieHeader,
             HttpServletRequest request) {
         try {
             if (refreshToken == null || !jwtTokenProvider.validateRefreshToken(refreshToken)) {
@@ -110,9 +111,10 @@ public class AuthController {
 
             tokenService.saveRefreshToken(user.getEmail(), newRefreshToken, refreshTokenValidity);
 
-            // 기존 쿠키 설정 유지 (세션 쿠키)
-            ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity, false);
-            ResponseCookie accessCookie = createAccessCookie(newAccessToken, false);
+            // 기존 쿠키가 영구 쿠키인지 확인 (Max-Age 또는 Expires 존재 여부)
+            boolean isRememberMe = isRememberMeCookie(cookieHeader);
+            ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity, isRememberMe);
+            ResponseCookie accessCookie = createAccessCookie(newAccessToken, isRememberMe);
             TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, true);
 
             return ResponseEntity.ok()
@@ -334,6 +336,13 @@ public class AuthController {
                 tokenService.blacklistAccessToken(token, remainingTime);
             }
         }
+    }
+
+    private boolean isRememberMeCookie(String cookieHeader) {
+        if (cookieHeader == null) return false;
+        // refreshToken 쿠키에 Max-Age나 Expires가 있으면 영구 쿠키 (rememberMe=true)
+        return cookieHeader.contains("refreshToken") && 
+               (cookieHeader.contains("Max-Age") || cookieHeader.contains("Expires"));
     }
 
 
