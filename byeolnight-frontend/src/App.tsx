@@ -53,12 +53,8 @@ function App() {
         await axios.get('/public/posts', { params: { category: 'FREE', page: 0, size: 1 } });
         setIsChecking(false);
       } catch (error: any) {
-        // axios 인터셉터가 maintenance.html로 리다이렉트 처리
-        if (error.code === 'ERR_NETWORK' || error.response?.status === 403 || (error.response?.status >= 502 && error.response?.status <= 504)) {
-          window.location.href = '/maintenance.html';
-        } else {
-          setIsChecking(false);
-        }
+        // 백엔드 다운 시 maintenance 페이지로 이동 (axios 인터셉터가 처리)
+        // 리다이렉트가 발생하면 더 이상 진행하지 않음
       }
     };
     
