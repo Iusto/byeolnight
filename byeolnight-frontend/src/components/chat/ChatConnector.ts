@@ -11,9 +11,12 @@ class ChatConnector {
   private isConnected = false;
   private callbacks: ChatConnectorCallbacks | null = null;
   private retryCount = 0;
-  private maxRetries = 3;
+  private maxRetries = 5;
   private userNickname?: string;
   private reconnectTimeout?: NodeJS.Timeout;
+  private heartbeatInterval?: NodeJS.Timeout;
+  private missedHeartbeats = 0;
+  private maxMissedHeartbeats = 3;
 
   async connect(callbacks: ChatConnectorCallbacks, userNickname?: string) {
     if (this.ws && this.isConnected) {
@@ -53,12 +56,21 @@ class ChatConnector {
     console.log('✅ WebSocket 연결 성공');
     this.isConnected = true;
     this.retryCount = 0;
+    this.missedHeartbeats = 0;
     this.callbacks?.onConnect();
+    this.startHeartbeat();
   }
 
   private handleMessage(event: MessageEvent) {
     try {
       const message = JSON.parse(event.data);
+      
+      // pong 응답 처리
+      if (message.type === 'pong') {
+        this.missedHeartbeats = 0;
+        return;
+      }
+      
       console.log('📨 메시지 수신:', message);
       
       if (message.error) {
@@ -90,8 +102,19 @@ class ChatConnector {
   }
 
   private handleDisconnect() {
+    console.log('🔌 연결 종료 감지, 재연결 시도...');
     this.isConnected = false;
+    this.stopHeartbeat();
     this.callbacks?.onDisconnect();
+    
+    // 자동 재연결 (정상 종료가 아닌 경우)
+    if (this.callbacks && this.retryCount < this.maxRetries) {
+      this.retryCount++;
+      console.log(`자동 재연결 시도 ${this.retryCount}/${this.maxRetries}`);
+      this.reconnectTimeout = setTimeout(() => {
+        this.connect(this.callbacks!, this.userNickname);
+      }, Math.min(3000 * this.retryCount, 15000)); // 최대 15초
+    }
   }
 
   sendMessage(message: { roomId: string; sender: string; message: string }) {
@@ -110,8 +133,11 @@ class ChatConnector {
   }
 
   disconnect() {
+    this.stopHeartbeat();
+    
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
     }
     
     if (this.ws) {
@@ -129,6 +155,12 @@ class ChatConnector {
   async retryConnection() {
     console.log('ChatConnector.retryConnection 호출');
     this.retryCount = 0;
+    this.stopHeartbeat();
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
+    }
     
     if (this.ws) {
       this.ws.close();
@@ -141,6 +173,33 @@ class ChatConnector {
         await this.connect(this.callbacks, this.userNickname);
       }
     }, 500);
+  }
+
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatInterval = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        try {
+          this.ws.send(JSON.stringify({ type: 'ping' }));
+          this.missedHeartbeats++;
+          
+          if (this.missedHeartbeats >= this.maxMissedHeartbeats) {
+            console.warn('⚠️ 하트비트 응답 없음, 연결 재시도');
+            this.ws.close();
+          }
+        } catch (error) {
+          console.error('❌ 하트비트 전송 실패:', error);
+        }
+      }
+    }, 30000); // 30초마다
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = undefined;
+    }
+    this.missedHeartbeats = 0;
   }
 }
 

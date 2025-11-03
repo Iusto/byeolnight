@@ -42,11 +42,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
+        
+        // ping 메시지 처리 (pong 응답)
+        String payload = message.getPayload();
+        if (payload.contains("\"type\":\"ping\"")) {
+            session.sendMessage(new TextMessage("{\"type\":\"pong\"}"));
+            return;
+        }
+        
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             return;
         }
 
-        ChatMessageDto chatMessage = objectMapper.readValue(message.getPayload(), ChatMessageDto.class);
+        ChatMessageDto chatMessage = objectMapper.readValue(payload, ChatMessageDto.class);
         chatMessage.setSender(user.getNickname());
 
         // 채팅 금지 확인
