@@ -34,7 +34,7 @@ public class ChatService {
     
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getRecentMessages(String roomId, int limit) {
-        List<ChatMessageDto> messages = chatMessageRepository.findTop100ByRoomIdOrderByTimestampAsc(roomId,
+        return chatMessageRepository.findRecentByRoomIdOrderByIdAsc(roomId,
                 org.springframework.data.domain.PageRequest.of(0, limit))
                 .stream()
                 .map(entity -> ChatMessageDto.builder()
@@ -47,9 +47,6 @@ public class ChatService {
                         .isBlinded(entity.getIsBlinded())
                         .build())
                 .toList();
-        
-        // DESC로 조회했으므로 역순으로 정렬하여 반환 (오래된 메시지가 먼저)
-        return new java.util.ArrayList<>(messages.reversed());
     }
     
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)

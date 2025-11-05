@@ -42,8 +42,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
-        log.info("📥 WebSocket 메시지 수신: {}", payload);
-        
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
         
         // ping 메시지 처리 (pong 응답)
@@ -70,11 +68,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         
         // 저장 및 브로드캐스트
         try {
-            log.info("📨 채팅 메시지 수신: {} - {}", user.getNickname(), chatMessage.getMessage());
-            chatService.save(chatMessage, clientIp); // save 메서드가 chatMessage에 ID 설정
-            log.info("💾 채팅 저장 완료: {} - {} (ID: {})", user.getNickname(), chatMessage.getMessage(), chatMessage.getId());
-            broadcast(chatMessage); // ID가 포함된 메시지 브로드캐스트
-            log.info("📡 브로드캐스트 완료: {} 세션", sessions.size());
+            chatService.save(chatMessage, clientIp);
+            broadcast(chatMessage);
         } catch (Exception e) {
             log.error("❌ 채팅 저장 실패: {}", e.getMessage(), e);
             sendToUser(user.getNickname(), Map.of("error", "메시지 저장에 실패했습니다."));
@@ -86,11 +81,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
         if (auth != null && auth.getPrincipal() instanceof User user) {
             sessions.remove(user.getNickname());
-            log.info("❌ WebSocket 연결 종료: {} (code: {}, reason: {})", 
-                user.getNickname(), status.getCode(), status.getReason());
-        } else {
-            log.info("❌ WebSocket 연결 종료: 비로그인 사용자 (code: {}, reason: {})", 
-                status.getCode(), status.getReason());
+            log.debug("❌ WebSocket 연결 종료: {} (code: {})", user.getNickname(), status.getCode());
         }
     }
 
