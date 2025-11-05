@@ -2,8 +2,7 @@
 import './i18n'; // i18n 초기화
 import { Routes, Route } from 'react-router-dom'
 import { Layout, ProtectedRoute } from './components/layout';
-import { useEffect, useState } from 'react';
-import axios from './lib/axios';
+
 import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
@@ -39,34 +38,9 @@ const isStaticFilePath = (pathname: string): boolean => {
 };
 
 function App() {
-  const [isChecking, setIsChecking] = useState(true);
-  
   // 현재 경로가 정적 파일 경로인 경우 아무것도 렌더링하지 않음
   if (isStaticFilePath(window.location.pathname)) {
     return null;
-  }
-  
-  // 초기 헬스체크: 백엔드 서버 상태 확인
-  useEffect(() => {
-    const checkBackend = async () => {
-      try {
-        await axios.get('/public/posts', { params: { category: 'FREE', page: 0, size: 1 } });
-        setIsChecking(false);
-      } catch (error: any) {
-        // 백엔드 다운 시 maintenance 페이지로 이동 (axios 인터셉터가 처리)
-        // 리다이렉트가 발생하면 더 이상 진행하지 않음
-      }
-    };
-    
-    checkBackend();
-  }, []);
-  
-  if (isChecking) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div>로딩 중...</div>
-      </div>
-    );
   }
   
   return (

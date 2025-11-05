@@ -20,6 +20,27 @@ const instance = axios.create({
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
+// 헬스체크 상태 관리
+let isServerDown = false;
+let healthCheckInProgress = false;
+
+// 헬스체크 함수
+const checkServerHealth = async (): Promise<boolean> => {
+  if (healthCheckInProgress) return !isServerDown;
+  
+  healthCheckInProgress = true;
+  try {
+    await axios.get(`${API_BASE_URL}/health`, { timeout: 5000 });
+    isServerDown = false;
+    return true;
+  } catch {
+    isServerDown = true;
+    return false;
+  } finally {
+    healthCheckInProgress = false;
+  }
+};
+
 // 대기열 처리
 const processQueue = (error: any) => {
   failedQueue.forEach(({ resolve, reject }) => {
@@ -59,16 +80,18 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // 네트워크 연결 실패 (서버 다운)
-    if (!error.response && error.code === 'ERR_NETWORK') {
-      window.location.href = '/maintenance.html';
-      return new Promise(() => {}); // 더 이상 진행하지 않음
-    }
+    // 네트워크 연결 실패 또는 서버 점검 중 (502, 503, 504)
+    const isNetworkError = (!error.response && error.code === 'ERR_NETWORK') || 
+                           (error.response?.status >= 502 && error.response?.status <= 504);
     
-    // 서버 점검 중 (502, 503, 504)
-    if (error.response?.status >= 502 && error.response?.status <= 504) {
-      window.location.href = '/maintenance.html';
-      return new Promise(() => {}); // 더 이상 진행하지 않음
+    if (isNetworkError) {
+      // 헬스체크로 서버 상태 확인
+      const isHealthy = await checkServerHealth();
+      
+      if (!isHealthy) {
+        window.location.href = '/maintenance.html';
+        return new Promise(() => {});
+      }
     }
 
     const originalRequest = error.config;
