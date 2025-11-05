@@ -266,6 +266,8 @@ public class AuthController {
         
         if (rememberMe) {
             builder.maxAge(validity / 1000); // 7일
+        } else {
+            builder.maxAge(-1); // 세션 쿠키 (브라우저 닫으면 삭제)
         }
         
         if (!cookieDomain.isEmpty()) {
@@ -284,6 +286,8 @@ public class AuthController {
         
         if (rememberMe) {
             builder.maxAge(1800); // 30분
+        } else {
+            builder.maxAge(-1); // 세션 쿠키 (브라우저 닫으면 삭제)
         }
         
         if (!cookieDomain.isEmpty()) {
