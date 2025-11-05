@@ -41,10 +41,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        String payload = message.getPayload();
+        log.info("📥 WebSocket 메시지 수신: {}", payload);
+        
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
         
         // ping 메시지 처리 (pong 응답)
-        String payload = message.getPayload();
         if (payload.contains("\"type\":\"ping\"")) {
             session.sendMessage(new TextMessage("{\"type\":\"pong\"}"));
             return;
@@ -68,9 +70,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         
         // 저장 및 브로드캐스트
         try {
-            chatService.save(chatMessage, clientIp);
-            log.debug("💾 채팅 저장 완료: {} - {}", user.getNickname(), chatMessage.getMessage());
-            broadcast(chatMessage);
+            log.info("📨 채팅 메시지 수신: {} - {}", user.getNickname(), chatMessage.getMessage());
+            chatService.save(chatMessage, clientIp); // save 메서드가 chatMessage에 ID 설정
+            log.info("💾 채팅 저장 완료: {} - {} (ID: {})", user.getNickname(), chatMessage.getMessage(), chatMessage.getId());
+            broadcast(chatMessage); // ID가 포함된 메시지 브로드캐스트
+            log.info("📡 브로드캐스트 완료: {} 세션", sessions.size());
         } catch (Exception e) {
             log.error("❌ 채팅 저장 실패: {}", e.getMessage(), e);
             sendToUser(user.getNickname(), Map.of("error", "메시지 저장에 실패했습니다."));
