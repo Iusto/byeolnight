@@ -47,6 +47,12 @@ springdoc:
     persist-authorization: true
   show-actuator: false
 
+# Actuator 설정
+management:
+  health:
+    mail:
+      enabled: false
+
 # 로깅 설정
 logging:
   level:
