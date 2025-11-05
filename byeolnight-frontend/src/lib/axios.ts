@@ -30,7 +30,8 @@ const checkServerHealth = async (): Promise<boolean> => {
   
   healthCheckInProgress = true;
   try {
-    await axios.get(`${API_BASE_URL}/health`, { timeout: 5000 });
+    // baseURL이 이미 /api를 포함하므로 /health만 호출
+    await instance.get('/health', { timeout: 5000 });
     isServerDown = false;
     return true;
   } catch {
