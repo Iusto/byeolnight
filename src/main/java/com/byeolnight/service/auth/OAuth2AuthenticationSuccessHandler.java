@@ -104,7 +104,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .secure(true)
                 .sameSite("Lax")
                 .path("/")
-                .maxAge(validity / 1000);
+                .maxAge(-1);
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);
@@ -119,7 +119,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .secure(true)
                 .sameSite("Lax")
                 .path("/")
-                .maxAge(accessTokenMaxAge);
+                .maxAge(-1);
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);

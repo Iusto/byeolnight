@@ -84,15 +84,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      if (user) await axios.post('/auth/logout');
+      await axios.post('/auth/logout');
     } catch {
-      // 로그아웃 API 실패 무시
+      // 로그아웃 API 실패해도 계속 진행
+    } finally {
+      setUser(null);
+      window.location.href = '/';
     }
-    
-    setUser(null);
-    
-    // 쿠키 삭제 후 강제 새로고침으로 완전히 초기화
-    window.location.href = '/';
   };
 
   // 초기 로딩 시 로그인 상태 확인
