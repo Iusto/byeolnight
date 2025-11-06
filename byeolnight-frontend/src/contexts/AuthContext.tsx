@@ -90,7 +90,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     setUser(null);
-    navigate('/');
+    
+    // 쿠키 삭제 후 강제 새로고침으로 완전히 초기화
+    window.location.href = '/';
   };
 
   // 초기 로딩 시 로그인 상태 확인
