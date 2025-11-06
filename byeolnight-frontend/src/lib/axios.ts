@@ -24,14 +24,17 @@ let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 let isServerDown = false;
 let healthCheckInProgress = false;
 
-// 헬스체크 함수
+// 헬스체크 함수 (인터셉터 없는 별도 인스턴스 사용)
 const checkServerHealth = async (): Promise<boolean> => {
   if (healthCheckInProgress) return !isServerDown;
   
   healthCheckInProgress = true;
   try {
-    // baseURL이 이미 /api를 포함하므로 /health만 호출
-    await instance.get('/health', { timeout: 5000 });
+    // 인터셉터를 거치지 않는 순수 axios 사용
+    await axios.get(`${API_BASE_URL}/health`, { 
+      timeout: 5000,
+      withCredentials: false // 헬스체크는 인증 불필요
+    });
     isServerDown = false;
     return true;
   } catch {
