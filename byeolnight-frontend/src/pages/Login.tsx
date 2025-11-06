@@ -103,8 +103,7 @@ export default function Login() {
       signup: '회원가입',
       resetPassword: '비밀번호 재설정',
       goHome: '홈페이지로',
-      rememberMe: '로그인 유지',
-
+      rememberMe: '로그인 유지'
     },
     en: {
       title: 'Login',
@@ -119,8 +118,7 @@ export default function Login() {
       signup: 'Sign Up',
       resetPassword: 'Reset Password',
       goHome: 'Go Home',
-      rememberMe: 'Remember Me',
-
+      rememberMe: 'Remember Me'
     },
     ja: {
       title: 'ログイン',
@@ -135,8 +133,7 @@ export default function Login() {
       signup: 'ユーザー登録',
       resetPassword: 'パスワードリセット',
       goHome: 'ホームへ',
-      rememberMe: 'ログイン状態を保持',
-
+      rememberMe: 'ログイン状態を保持'
     }
   }
 

@@ -111,7 +111,6 @@ public class AuthController {
 
             tokenService.saveRefreshToken(user.getEmail(), newRefreshToken, refreshTokenValidity);
 
-            // 기존 쿠키가 영구 쿠키인지 확인 (Max-Age 또는 Expires 존재 여부)
             boolean isRememberMe = isRememberMeCookie(cookieHeader);
             ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity, isRememberMe);
             ResponseCookie accessCookie = createAccessCookie(newAccessToken, isRememberMe);
@@ -262,13 +261,8 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
-                .path("/");
-        
-        if (rememberMe) {
-            builder.maxAge(validity / 1000); // 7일
-        } else {
-            builder.maxAge(-1); // 세션 쿠키 (브라우저 닫으면 삭제)
-        }
+                .path("/")
+                .maxAge(rememberMe ? validity / 1000 : -1);
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);
@@ -282,19 +276,20 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
-                .path("/");
-        
-        if (rememberMe) {
-            builder.maxAge(1800); // 30분
-        } else {
-            builder.maxAge(-1); // 세션 쿠키 (브라우저 닫으면 삭제)
-        }
+                .path("/")
+                .maxAge(rememberMe ? 1800 : -1);
         
         if (!cookieDomain.isEmpty()) {
             builder.domain(cookieDomain);
         }
         
         return builder.build();
+    }
+
+    private boolean isRememberMeCookie(String cookieHeader) {
+        if (cookieHeader == null) return false;
+        return cookieHeader.contains("refreshToken") && 
+               (cookieHeader.contains("Max-Age") || cookieHeader.contains("Expires"));
     }
 
     private ResponseCookie createDeleteCookie(String name) {
@@ -342,12 +337,7 @@ public class AuthController {
         }
     }
 
-    private boolean isRememberMeCookie(String cookieHeader) {
-        if (cookieHeader == null) return false;
-        // refreshToken 쿠키에 Max-Age나 Expires가 있으면 영구 쿠키 (rememberMe=true)
-        return cookieHeader.contains("refreshToken") && 
-               (cookieHeader.contains("Max-Age") || cookieHeader.contains("Expires"));
-    }
+
 
 
     
