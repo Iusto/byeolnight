@@ -14,6 +14,9 @@ spring:
       encrypt:
         enabled: true
 
+encrypt:
+  key: ${ENCRYPT_KEY:byeolnight-config-encryption-key-2025!@#$%^&*()}
+
 management:
   endpoints:
     web:
