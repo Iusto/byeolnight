@@ -23,6 +23,12 @@ public class EmailAuthService {
             throw new IllegalStateException("이미 인증이 완료된 이메일입니다.");
         }
         
+        // 전송 횟수 제한 확인
+        if (isSendBlocked(email)) {
+            log.warn("이메일 인증 코드 전송 차단 - 제한 횟수 초과: {}", email);
+            throw new IllegalStateException("인증 코드 전송 횟수를 초과했습니다. 10분 후 다시 시도해주세요.");
+        }
+        
         String code = generateCode();
         cacheService.set("email:" + email, code, Duration.ofMinutes(5));
 
@@ -30,6 +36,9 @@ public class EmailAuthService {
 
         String subject = "[별 헤는 밤] 이메일 인증 코드";
         String htmlBody = createEmailTemplate(code);
+        
+        // 전송 횟수 증가
+        incrementSendAttempts(email);
         
         // HTML 이메일로 재시도 로직과 함께 전송
         sendHtmlEmailWithRetry(email, subject, htmlBody, 3);
@@ -74,8 +83,6 @@ public class EmailAuthService {
             cacheService.delete(key);  // 검증 성공 시 삭제
             // 검증 성공 상태 저장 (10분간 유효)
             cacheService.set("verified:email:" + email, "true", Duration.ofMinutes(10));
-            // 성공 시 시도 횟수 초기화
-            clearVerificationAttempts(email, clientIp);
             log.info("이메일 인증 성공 - 검증 상태 저장 완료");
             return true;
         }
@@ -230,11 +237,21 @@ public class EmailAuthService {
     }
     
     /**
-     * 인증 성공 시 시도 횟수 초기화
+     * 인증 코드 전송 횟수 제한 확인 (이메일당 5회, 10분)
      */
-    private void clearVerificationAttempts(String email, String clientIp) {
-        cacheService.delete("verify_attempts:email:" + email);
-        cacheService.delete("verify_attempts:ip:" + clientIp);
+    private boolean isSendBlocked(String email) {
+        String key = "send_attempts:email:" + email;
+        Integer attempts = cacheService.get(key);
+        return attempts != null && attempts >= 5;
+    }
+    
+    /**
+     * 인증 코드 전송 횟수 증가
+     */
+    private void incrementSendAttempts(String email) {
+        String key = "send_attempts:email:" + email;
+        Integer attempts = cacheService.get(key);
+        cacheService.set(key, (attempts == null ? 1 : attempts + 1), Duration.ofMinutes(10));
     }
 }
 

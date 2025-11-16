@@ -158,11 +158,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<CommonResponse<?>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
         String path = ex.getResourcePath();
+        
+        // 해킹 시도 경로는 로그 제외
+        if (path != null && (path.contains("phpunit") || path.contains("eval-stdin") || 
+                             path.contains("favicon.ico") || path.contains(".php") ||
+                             path.contains("\\think") || path.contains("invokefunction"))) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(CommonResponse.fail("요청한 리소스를 찾을 수 없습니다."));
+        }
+        
         if (path != null && path.contains("oauth2/authorization")) {
             log.warn("[OAuth2 인증 오류] OAuth2 설정을 확인해주세요: {}", path);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(CommonResponse.fail("소셜 로그인 서비스가 일시적으로 사용할 수 없습니다."));
         }
+        
         log.warn("[리소스 없음] {}", path);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(CommonResponse.fail("요청한 리소스를 찾을 수 없습니다."));
