@@ -45,6 +45,15 @@ echo "✅ 환경 검증 완료"
 
 # ===== 1. 기존 서비스 정리 =====
 log_step "1️⃣ 기존 서비스 정리"
+echo "🗑️ Docker 로그 초기화..."
+for container in $(docker compose ps -q 2>/dev/null); do
+  LOG_PATH=$(docker inspect --format='{{.LogPath}}' "$container" 2>/dev/null || echo "")
+  if [ -n "$LOG_PATH" ] && [ -f "$LOG_PATH" ]; then
+    truncate -s 0 "$LOG_PATH" 2>/dev/null || true
+    echo "   ✓ 로그 초기화: $(docker inspect --format='{{.Name}}' "$container" | sed 's/^\///')"
+  fi
+done
+
 echo "🛑 Docker 컨테이너 중지..."
 docker compose down --remove-orphans 2>/dev/null || true
 sleep 2

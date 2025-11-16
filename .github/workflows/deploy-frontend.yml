@@ -41,9 +41,13 @@ jobs:
           aws s3 sync byeolnight-frontend/dist s3://byeolnight-frontend \
             --delete \
             --cache-control "public,max-age=31536000,immutable" \
-            --exclude "index.html"
+            --exclude "index.html" \
+            --exclude "maintenance.html"
           
           aws s3 cp byeolnight-frontend/dist/index.html s3://byeolnight-frontend/index.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+          
+          aws s3 cp byeolnight-frontend/public/maintenance.html s3://byeolnight-frontend/maintenance.html \
             --cache-control "no-cache,no-store,must-revalidate"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
