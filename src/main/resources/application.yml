@@ -63,4 +63,6 @@ logging:
     org.springframework.web.socket: WARN
     org.springframework.web.socket.sockjs: WARN
     org.apache.catalina.core: WARN
+    org.apache.coyote.http11.Http11Processor: ERROR
+    org.apache.tomcat.util.http.parser: ERROR
     com.byeolnight: INFO
