@@ -36,7 +36,7 @@ public class AstronomyService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
+        .connectTimeout(Duration.ofSeconds(30))
         .build();
 
     @Value("${nasa.api.key}")
@@ -135,7 +135,7 @@ public class AstronomyService {
             
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(30))
                 .build();
                 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -193,7 +193,7 @@ public class AstronomyService {
             
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(30))
                 .build();
                 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -245,7 +245,7 @@ public class AstronomyService {
             
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(30))
                 .build();
                 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -356,7 +356,7 @@ public class AstronomyService {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ISS_LOCATION_URL))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(30))
                 .build();
                 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
