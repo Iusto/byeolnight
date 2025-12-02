@@ -27,8 +27,8 @@ services:
       - byeolnight-network
 
   app:
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     build: .
     depends_on:
       config-server:
@@ -81,6 +81,19 @@ services:
     volumes:
       - redis_data:/data
     command: sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    restart: unless-stopped
+    networks:
+      - byeolnight-network
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
     networks:
       - byeolnight-network
