@@ -38,7 +38,7 @@ services:
       redis:
         condition: service_started
     environment:
-      - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
       - SPRING_PROFILES_ACTIVE=prod
@@ -56,9 +56,9 @@ services:
       - MYSQL_DATABASE=byeolnight
       - TZ=Asia/Seoul
     command: >
-      --innodb-buffer-pool-size=512M
-      --innodb-log-file-size=128M
-      --max-connections=50
+      --innodb-buffer-pool-size=256M
+      --innodb-log-file-size=64M
+      --max-connections=30
       --innodb-flush-log-at-trx-commit=2
       --default-time-zone='+09:00'
     ports:
@@ -80,7 +80,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
-    command: sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru'
+    command: sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 128mb --maxmemory-policy allkeys-lru'
     restart: unless-stopped
     networks:
       - byeolnight-network
