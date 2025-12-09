@@ -190,7 +190,7 @@ echo "🐳 Docker 이미지 빌드..."
 docker compose build app || { echo "❌ 이미지 빌드 실패"; exit 1; }
 
 echo "🚀 백엔드 서비스 시작..."
-docker compose up -d app || { echo "❌ 서비스 시작 실패"; exit 1; }
+docker compose up -d app nginx || { echo "❌ 서비스 시작 실패"; exit 1; }
 
 echo "⏳ 애플리케이션 헬스체크 (최대 120초)..."
 APP_READY=false
