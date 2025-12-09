@@ -32,7 +32,7 @@ jobs:
     - name: CodeQL 초기화
       uses: github/codeql-action/init@v3
       with:
-        languages: java
+        languages: java, javascript
         build-mode: manual
 
     - name: 백엔드 빌드
