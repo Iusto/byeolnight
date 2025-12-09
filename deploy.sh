@@ -210,6 +210,10 @@ if [ "$APP_READY" = false ]; then
   docker logs --tail 50 byeolnight-app-1 2>&1
 fi
 
+echo "🛑 배포가 완료되었으므로 Config Server 중지..."
+docker compose stop config-server || echo "⚠️ Config Server 중지 실패(이미 꺼져있을 수 있음)"
+echo "✅ Config Server 중지 완료"
+
 log_step "✅ 배포 완료"
 echo "🎉 별 헤는 밤 백엔드 배포 성공!"
 echo "📝 프론트엔드는 S3+CloudFront에서 자동 배포됩니다."
