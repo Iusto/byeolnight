@@ -30,10 +30,11 @@ const checkServerHealth = async (): Promise<boolean> => {
   
   healthCheckInProgress = true;
   try {
-    // 인터셉터를 거치지 않는 순수 axios 사용
-    await axios.get(`${API_BASE_URL}/health`, { 
+    // Spring Actuator 헬스체크 사용
+    const baseUrl = API_BASE_URL.replace('/api', '');
+    await axios.get(`${baseUrl}/actuator/health`, { 
       timeout: 5000,
-      withCredentials: false // 헬스체크는 인증 불필요
+      withCredentials: false
     });
     isServerDown = false;
     return true;
@@ -94,7 +95,7 @@ instance.interceptors.response.use(
       
       if (!isHealthy) {
         window.location.href = '/maintenance.html';
-        return new Promise(() => {});
+        return Promise.reject(new Error('서버 점검 중입니다'));
       }
     }
 
