@@ -195,7 +195,7 @@ docker compose up -d app nginx || { echo "❌ 서비스 시작 실패"; exit 1; 
 echo "⏳ 애플리케이션 헬스체크 (최대 120초)..."
 APP_READY=false
 for i in $(seq 1 60); do
-  if curl -s -f http://localhost:8080/actuator/health >/dev/null 2>&1; then
+  if curl -s -f http://localhost/actuator/health >/dev/null 2>&1; then
     echo "✅ 애플리케이션 준비 완료 (${i}초)"
     APP_READY=true
     break
