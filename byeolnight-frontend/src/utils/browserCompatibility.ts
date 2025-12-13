@@ -128,7 +128,7 @@ export const checkNetworkConnection = async (): Promise<{
 
   try {
     const startTime = Date.now();
-    const response = await fetch('/api/health', {
+    const response = await fetch('/actuator/health', {
       method: 'HEAD',
       cache: 'no-cache',
       signal: AbortSignal.timeout(5000)

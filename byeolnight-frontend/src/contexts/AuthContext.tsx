@@ -96,10 +96,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initAuth = async () => {
-      // HttpOnly 쿠키는 document.cookie로 확인 불가
-      // 무조건 API 호출해서 확인 (401이면 비로그인)
-      await fetchMyInfo();
-      setLoading(false);
+      try {
+        // HttpOnly 쿠키는 document.cookie로 확인 불가
+        // 무조건 API 호출해서 확인 (401이면 비로그인)
+        await fetchMyInfo();
+      } catch (error) {
+        console.error('초기 인증 확인 실패:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
     
     initAuth();

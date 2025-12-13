@@ -32,7 +32,6 @@ public final class AuthWhitelist {
             
             // 헬스체크
             "/actuator/health",
-            "/health",
             
             // 정적 리소스
             "/favicon.ico",
