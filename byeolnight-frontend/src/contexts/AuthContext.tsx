@@ -89,27 +89,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // 초기 로딩 시 로그인 상태 확인
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // 서버 헬스체크 먼저 수행
-        const healthCheck = await fetch('/actuator/health', { 
-          method: 'HEAD',
-          cache: 'no-cache',
-          signal: AbortSignal.timeout(5000)
-        }).catch(() => null);
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 3000);
         
-        if (!healthCheck || !healthCheck.ok) {
+        await fetch('/actuator/health', { 
+          method: 'HEAD',
+          signal: controller.signal
+        });
+        
+        await fetchMyInfo();
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
           window.location.href = '/maintenance.html';
           return;
         }
-        
-        // HttpOnly 쿠키는 document.cookie로 확인 불가
-        // 무조건 API 호출해서 확인 (401이면 비로그인)
-        await fetchMyInfo();
-      } catch (error) {
-        console.error('초기 인증 확인 실패:', error);
         setUser(null);
       } finally {
         setLoading(false);
