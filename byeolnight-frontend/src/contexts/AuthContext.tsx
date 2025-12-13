@@ -91,13 +91,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '/api');
+      const baseUrl = API_BASE_URL.replace('/api', '');
+      
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 3000);
       
       try {
-        await fetch('/actuator/health', { 
+        await fetch(`${baseUrl}/actuator/health`, { 
           method: 'HEAD',
-          signal: controller.signal
+          signal: controller.signal,
+          credentials: 'omit'
         });
       } catch {
         window.location.href = '/maintenance.html';
