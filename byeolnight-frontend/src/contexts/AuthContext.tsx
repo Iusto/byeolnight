@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from '../lib/axios';
-import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -30,9 +29,6 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-
 
   const fetchMyInfo = async (): Promise<boolean> => {
     try {
@@ -97,6 +93,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // 서버 헬스체크 먼저 수행
+        const healthCheck = await fetch('/actuator/health', { 
+          method: 'HEAD',
+          cache: 'no-cache',
+          signal: AbortSignal.timeout(5000)
+        }).catch(() => null);
+        
+        if (!healthCheck || !healthCheck.ok) {
+          window.location.href = '/maintenance.html';
+          return;
+        }
+        
         // HttpOnly 쿠키는 document.cookie로 확인 불가
         // 무조건 API 호출해서 확인 (401이면 비로그인)
         await fetchMyInfo();
@@ -110,8 +118,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     initAuth();
   }, []);
-
-  // 토큰 갱신은 axios 인터셉터에서 자동 처리 (401 시)
 
   const refreshUserInfo = async () => {
     try {
