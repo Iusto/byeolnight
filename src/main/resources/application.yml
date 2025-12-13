@@ -1,10 +1,16 @@
-# Config Server에서 관리되는 설정들은 제거하고 기본 설정만 유지
+# ============================================
+# 별 헤는 밤 - 기본 설정
+# Config Server에서 민감 정보 관리
+# ============================================
+
+server:
+  port: 8080
+
 spring:
   jackson:
     time-zone: Asia/Seoul
   servlet:
     multipart:
-      enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
   task:
@@ -12,13 +18,8 @@ spring:
       enabled: true
   jpa:
     open-in-view: false
-  web:
-    resources:
-      static-locations: classpath:/static/
-      add-mappings: true
-server:
-  port: 8080
 
+# 커스텀 보안 설정
 app:
   security:
     max-login-attempts: 10
@@ -28,26 +29,14 @@ app:
       secure: true
       domain: .byeolnight.com
 
-# Swagger/OpenAPI 설정
+# API 문서
 springdoc:
-  api-docs:
-    path: /v3/api-docs
-    enabled: true
   swagger-ui:
     path: /swagger-ui.html
-    enabled: true
     operations-sorter: alpha
     tags-sorter: alpha
-    try-it-out-enabled: true
-    filter: true
-    display-request-duration: true
-    default-models-expand-depth: 2
-    default-model-expand-depth: 2
-    doc-expansion: none
-    persist-authorization: true
-  show-actuator: false
 
-# Actuator 설정
+# 헬스체크
 management:
   endpoints:
     web:
@@ -57,16 +46,11 @@ management:
     mail:
       enabled: false
 
-# 로깅 설정
+# 로깅
 logging:
   level:
     root: INFO
-    org.springframework.web: INFO
-    org.springframework.web.servlet.DispatcherServlet: INFO
-    org.springframework.web.servlet.mvc.method.annotation: INFO
+    com.byeolnight: INFO
     org.springframework.web.socket: WARN
-    org.springframework.web.socket.sockjs: WARN
     org.apache.catalina.core: WARN
     org.apache.coyote.http11.Http11Processor: ERROR
-    org.apache.tomcat.util.http.parser: ERROR
-    com.byeolnight: INFO
