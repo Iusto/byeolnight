@@ -91,21 +91,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 3000);
+      
       try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 3000);
-        
         await fetch('/actuator/health', { 
           method: 'HEAD',
           signal: controller.signal
         });
-        
+      } catch {
+        window.location.href = '/maintenance.html';
+        return;
+      }
+      
+      try {
         await fetchMyInfo();
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          window.location.href = '/maintenance.html';
-          return;
-        }
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);
