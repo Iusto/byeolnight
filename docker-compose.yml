@@ -38,7 +38,7 @@ services:
       redis:
         condition: service_started
     environment:
-      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m
+      - JAVA_OPTS=-Xmx768m -Xms512m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
       - SPRING_PROFILES_ACTIVE=prod
