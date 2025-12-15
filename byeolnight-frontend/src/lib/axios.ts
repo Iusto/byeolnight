@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { checkServerHealth, redirectToMaintenance } from '../utils/healthCheck';
 
 // API 기본 URL 설정
 // Docker 빌드 시 설정된 환경변수 사용
@@ -20,19 +21,7 @@ const instance = axios.create({
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
-// 런타임 헬스체크 (API 실패 시에만 호출)
-const checkServerHealth = async (): Promise<boolean> => {
-  try {
-    const baseUrl = API_BASE_URL.replace('/api', '');
-    await axios.get(`${baseUrl}/actuator/health`, { 
-      timeout: 3000,
-      withCredentials: false
-    });
-    return true;
-  } catch {
-    return false;
-  }
-};
+
 
 // 대기열 처리
 const processQueue = (error: any) => {
@@ -78,11 +67,11 @@ instance.interceptors.response.use(
                            (error.response?.status >= 502 && error.response?.status <= 504);
     
     if (isNetworkError) {
-      // 헬스체크로 서버 상태 확인
+      // 사이트 이용 중 서버 다운 감지
       const isHealthy = await checkServerHealth();
       
       if (!isHealthy) {
-        window.location.href = '/maintenance.html';
+        redirectToMaintenance();
         return Promise.reject(new Error('서버 점검 중입니다'));
       }
     }
