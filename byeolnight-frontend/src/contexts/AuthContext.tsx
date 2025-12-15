@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from '../lib/axios';
+import { checkServerHealth, redirectToMaintenance } from '../utils/healthCheck';
 
 interface User {
   id: number;
@@ -91,24 +92,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-        (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '/api');
-      const baseUrl = API_BASE_URL.replace('/api', '');
+      // 앱 시작 시 서버 상태 확인
+      const isHealthy = await checkServerHealth();
       
-      // 초기 헬스체크 (3초 타임아웃)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
-      try {
-        await fetch(`${baseUrl}/actuator/health`, { 
-          method: 'HEAD',
-          signal: controller.signal,
-          credentials: 'omit'
-        });
-        clearTimeout(timeoutId);
-      } catch {
-        clearTimeout(timeoutId);
-        window.location.href = '/maintenance.html';
+      if (!isHealthy) {
+        redirectToMaintenance();
         return;
       }
       
