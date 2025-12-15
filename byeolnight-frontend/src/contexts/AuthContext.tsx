@@ -95,8 +95,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '/api');
       const baseUrl = API_BASE_URL.replace('/api', '');
       
+      // 초기 헬스체크 (3초 타임아웃)
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       
       try {
         await fetch(`${baseUrl}/actuator/health`, { 
@@ -104,11 +105,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           signal: controller.signal,
           credentials: 'omit'
         });
+        clearTimeout(timeoutId);
       } catch {
+        clearTimeout(timeoutId);
         window.location.href = '/maintenance.html';
         return;
       }
       
+      // 사용자 정보 로드
       try {
         await fetchMyInfo();
       } catch {
