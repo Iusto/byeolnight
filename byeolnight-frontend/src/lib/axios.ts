@@ -20,29 +20,17 @@ const instance = axios.create({
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
-// 헬스체크 상태 관리
-let isServerDown = false;
-let healthCheckInProgress = false;
-
-// 헬스체크 함수 (인터셉터 없는 별도 인스턴스 사용)
+// 런타임 헬스체크 (API 실패 시에만 호출)
 const checkServerHealth = async (): Promise<boolean> => {
-  if (healthCheckInProgress) return !isServerDown;
-  
-  healthCheckInProgress = true;
   try {
-    // Spring Actuator 헬스체크 사용
     const baseUrl = API_BASE_URL.replace('/api', '');
     await axios.get(`${baseUrl}/actuator/health`, { 
-      timeout: 5000,
+      timeout: 3000,
       withCredentials: false
     });
-    isServerDown = false;
     return true;
   } catch {
-    isServerDown = true;
     return false;
-  } finally {
-    healthCheckInProgress = false;
   }
 };
 
