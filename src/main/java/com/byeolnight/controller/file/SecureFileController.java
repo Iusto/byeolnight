@@ -1,8 +1,8 @@
 package com.byeolnight.controller.file;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
-import com.byeolnight.service.log.file.CloudFrontService;
-import com.byeolnight.service.log.file.SecureS3Service;
+import com.byeolnight.service.file.CloudFrontService;
+import com.byeolnight.service.file.SecureS3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

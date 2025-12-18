@@ -1,6 +1,6 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.domain.weather.service.AstronomyService;
+import com.byeolnight.service.weather.AstronomyService;
 import com.byeolnight.dto.admin.SchedulerStatusDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.crawler.SpaceNewsScheduler;
@@ -22,8 +22,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/scheduler")

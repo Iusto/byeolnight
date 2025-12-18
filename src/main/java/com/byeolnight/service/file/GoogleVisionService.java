@@ -1,4 +1,4 @@
-package com.byeolnight.service.log.file;
+package com.byeolnight.service.file;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

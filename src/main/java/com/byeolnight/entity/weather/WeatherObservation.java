@@ -1,4 +1,4 @@
-package com.byeolnight.domain.weather.entity;
+package com.byeolnight.entity.weather;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -9,40 +9,40 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "astronomy_events")
+@Table(name = "weather_observations")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AstronomyEvent {
+public class WeatherObservation {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @Column(nullable = false)
-    private String eventType; // METEOR_SHOWER, ECLIPSE, PLANET_CONJUNCTION
+    private String location;
     
     @Column(nullable = false)
-    private String title;
-    
-    @Column(nullable = false, length = 1000)
-    private String description;
+    private Double latitude;
     
     @Column(nullable = false)
-    private LocalDateTime eventDate;
+    private Double longitude;
     
     @Column(nullable = false)
-    private LocalDateTime peakTime;
+    private Double cloudCover; // 구름량 (0-100%)
     
     @Column(nullable = false)
-    private String visibility; // WORLDWIDE, NORTHERN_HEMISPHERE, SOUTHERN_HEMISPHERE, SPECIFIC_REGIONS
+    private Double visibility; // 시정 (km)
     
     @Column(nullable = false)
-    private String magnitude; // HIGH, MEDIUM, LOW
+    private String moonPhase; // 달의 위상
     
     @Column(nullable = false)
-    private Boolean isActive;
+    private String observationQuality; // EXCELLENT, GOOD, FAIR, POOR
+    
+    @Column(nullable = false)
+    private LocalDateTime observationTime;
     
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -50,8 +50,5 @@ public class AstronomyEvent {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        if (isActive == null) {
-            isActive = true;
-        }
     }
 }

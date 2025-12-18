@@ -1,8 +1,8 @@
-package com.byeolnight.domain.weather.service;
+package com.byeolnight.service.weather;
 
-import com.byeolnight.domain.weather.dto.AstronomyEventResponse;
-import com.byeolnight.domain.weather.entity.AstronomyEvent;
-import com.byeolnight.domain.weather.repository.AstronomyEventRepository;
+import com.byeolnight.dto.weather.AstronomyEventResponse;
+import com.byeolnight.entity.weather.AstronomyEvent;
+import com.byeolnight.repository.weather.AstronomyEventRepository;
 import com.byeolnight.dto.admin.AstronomyCollectionResultDto;
 import com.byeolnight.dto.admin.AstronomyCollectionStatusDto;
 import com.byeolnight.dto.admin.AstronomyStatsDto;
@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;

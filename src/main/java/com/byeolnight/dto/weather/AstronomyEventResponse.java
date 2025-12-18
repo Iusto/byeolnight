@@ -1,4 +1,4 @@
-package com.byeolnight.domain.weather.dto;
+package com.byeolnight.dto.weather;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

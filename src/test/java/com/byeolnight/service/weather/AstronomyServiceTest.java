@@ -1,8 +1,7 @@
 package com.byeolnight.service.weather;
 
-import com.byeolnight.domain.weather.entity.AstronomyEvent;
-import com.byeolnight.domain.weather.repository.AstronomyEventRepository;
-import com.byeolnight.domain.weather.service.AstronomyService;
+import com.byeolnight.entity.weather.AstronomyEvent;
+import com.byeolnight.repository.weather.AstronomyEventRepository;
 import com.byeolnight.dto.admin.AstronomyCollectionResultDto;
 import com.byeolnight.dto.admin.AstronomyStatsDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +18,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;

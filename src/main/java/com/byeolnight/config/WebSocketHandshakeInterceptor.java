@@ -14,7 +14,6 @@ import java.util.Map;
 
 /**
  * WebSocket Handshake 시 HttpOnly 쿠키에서 JWT 토큰 추출
- * SockJS의 쿠키 전달 제한을 우회하여 직접 처리
  */
 @Slf4j
 @Component
