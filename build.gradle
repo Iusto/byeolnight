@@ -83,9 +83,6 @@ dependencies {
     }
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation('it.ozimov:embedded-redis:0.7.3') {
-        exclude group: 'org.slf4j', module: 'slf4j-simple'
-    }
     testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -123,21 +120,5 @@ test {
         // CI 환경 메모리 최적화
         maxHeapSize = '1g'
         jvmArgs '-XX:MaxMetaspaceSize=256m', '-XX:+UseG1GC'
-    }
-}
-
-// OWASP 의존성 검사 설정
-dependencyCheck {
-    format = 'HTML'
-    failBuildOnCVSS = 10.0
-    skipConfigurations = ['testCompileClasspath', 'testRuntimeClasspath']
-    autoUpdate = false
-    
-    analyzers {
-        assemblyEnabled = false
-        nuspecEnabled = false
-        nugetconfEnabled = false
-        nodeEnabled = false
-        centralEnabled = false
     }
 }

@@ -5,7 +5,10 @@ import com.byeolnight.dto.admin.UserStatusChangeRequestDto;
 import com.byeolnight.dto.admin.PointAwardRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.entity.user.User;
+import com.byeolnight.service.auth.SocialAccountCleanupService;
+import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.WithdrawnUserCleanupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -34,9 +37,9 @@ public class AdminUserController {
 
     private final UserService userService;
     private final StringRedisTemplate redisTemplate;
-    private final com.byeolnight.service.user.PointService pointService;
-    private final com.byeolnight.service.user.WithdrawnUserCleanupService withdrawnUserCleanupService;
-    private final com.byeolnight.service.auth.SocialAccountCleanupService socialAccountCleanupService;
+    private final PointService pointService;
+    private final WithdrawnUserCleanupService withdrawnUserCleanupService;
+    private final SocialAccountCleanupService socialAccountCleanupService;
 
     @Operation(summary = "전체 사용자 요약 조회", description = "관리자 권한으로 전체 사용자 목록을 조회합니다.")
     @ApiResponses({

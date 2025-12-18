@@ -1,8 +1,9 @@
-package com.byeolnight.service.log.file;
+package com.byeolnight.service.file;
 
 import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.infrastructure.config.SecurityProperties;
 import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.dto.file.S3StatusDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -253,11 +254,6 @@ public class S3Service {
         }
     }
 
-    public void checkImageInBackground(String imageUrl) {
-        // 백그라운드 검사는 간단하게 로그만 남김
-        log.info("이미지 백그라운드 검사: {}", imageUrl);
-    }
-
     /**
      * 고아 이미지 개수 조회
      * 
@@ -349,25 +345,25 @@ public class S3Service {
      * 
      * @return S3 상태 정보
      */
-    public Map<String, Object> getS3Status() {
-        Map<String, Object> status = new HashMap<>();
+    public S3StatusDto getS3Status() {
+        S3StatusDto.S3StatusDtoBuilder statusBuilder = S3StatusDto.builder();
         
         try {
             // 기본 설정 정보
-            status.put("bucketName", getBucketName());
-            status.put("configuredRegion", getRegion());
+            statusBuilder.bucketName(getBucketName()).configuredRegion(getRegion());
             
             // 자격 증명 확인
             boolean accessKeyConfigured = getAccessKey() != null && !getAccessKey().trim().isEmpty();
             boolean secretKeyConfigured = getSecretKey() != null && !getSecretKey().trim().isEmpty();
             
             if (!accessKeyConfigured || !secretKeyConfigured) {
-                status.put("connectionStatus", "ERROR");
-                status.put("bucketExists", false);
-                status.put("regionMatch", false);
-                status.put("error", "AWS 자격 증명이 설정되지 않았습니다.");
-                status.put("suggestion", "application.yml에서 AWS Access Key와 Secret Key를 확인해주세요.");
-                return status;
+                return statusBuilder
+                        .connectionStatus(S3StatusDto.ConnectionStatus.ERROR)
+                        .bucketExists(false)
+                        .regionMatch(false)
+                        .error("AWS 자격 증명이 설정되지 않았습니다.")
+                        .suggestion("application.yml에서 AWS Access Key와 Secret Key를 확인해주세요.")
+                        .build();
             }
             
             // S3 클라이언트로 실제 연결 테스트
@@ -380,8 +376,7 @@ public class S3Service {
                         .build();
                 s3Client.headBucket(headBucketRequest);
                 
-                status.put("connectionStatus", "SUCCESS");
-                status.put("bucketExists", true);
+                statusBuilder.connectionStatus(S3StatusDto.ConnectionStatus.SUCCESS).bucketExists(true);
                 
                 // 버킷의 실제 리전 확인
                 try {
@@ -396,64 +391,60 @@ public class S3Service {
                         actualRegion = "us-east-1";
                     }
                     
-                    status.put("actualRegion", actualRegion);
-                    status.put("regionMatch", actualRegion.equals(getRegion()));
+                    boolean regionMatch = actualRegion.equals(getRegion());
+                    statusBuilder.actualRegion(actualRegion).regionMatch(regionMatch);
                     
-                    if (!actualRegion.equals(getRegion())) {
-                        status.put("warning", String.format("설정된 리전(%s)과 실제 버킷 리전(%s)이 다릅니다.", getRegion(), actualRegion));
-                        status.put("suggestion", "application.yml의 cloud.aws.region.static 설정을 " + actualRegion + "으로 변경해주세요.");
+                    if (!regionMatch) {
+                        statusBuilder.warning(String.format("설정된 리전(%s)과 실제 버킷 리전(%s)이 다릅니다.", getRegion(), actualRegion))
+                                     .suggestion("application.yml의 cloud.aws.region.static 설정을 " + actualRegion + "으로 변경해주세요.");
                     }
                     
                 } catch (S3Exception regionError) {
                     if (regionError.statusCode() == 403) {
                         log.info("s3:GetBucketLocation 권한 없음 - 설정된 리전 사용: {}", getRegion());
-                        status.put("actualRegion", "권한 없음 (설정값 사용)");
-                        status.put("regionMatch", true);
-                        status.put("info", "리전 조회 권한이 없어 설정된 리전을 사용합니다.");
+                        statusBuilder.actualRegion("권한 없음 (설정값 사용)")
+                                     .regionMatch(true)
+                                     .info("리전 조회 권한이 없어 설정된 리전을 사용합니다.");
                     } else {
                         log.warn("버킷 리전 조회 실패: {}", regionError.getMessage());
-                        status.put("actualRegion", "조회 실패");
-                        status.put("regionMatch", false);
-                        status.put("warning", "버킷 리전을 확인할 수 없습니다.");
+                        statusBuilder.actualRegion("조회 실패").regionMatch(false).warning("버킷 리전을 확인할 수 없습니다.");
                     }
                 } catch (Exception regionError) {
                     log.warn("버킷 리전 조회 실패: {}", regionError.getMessage());
-                    status.put("actualRegion", "조회 실패");
-                    status.put("regionMatch", false);
-                    status.put("warning", "버킷 리전을 확인할 수 없습니다.");
+                    statusBuilder.actualRegion("조회 실패").regionMatch(false).warning("버킷 리전을 확인할 수 없습니다.");
                 }
                 
             } catch (NoSuchBucketException e) {
-                status.put("connectionStatus", "ERROR");
-                status.put("bucketExists", false);
-                status.put("regionMatch", false);
-                status.put("error", "지정된 S3 버킷이 존재하지 않습니다.");
-                status.put("suggestion", "AWS 콘솔에서 " + getBucketName() + " 버킷을 생성하거나 올바른 버킷명을 설정해주세요.");
+                statusBuilder.connectionStatus(S3StatusDto.ConnectionStatus.ERROR)
+                             .bucketExists(false)
+                             .regionMatch(false)
+                             .error("지정된 S3 버킷이 존재하지 않습니다.")
+                             .suggestion("AWS 콘솔에서 " + getBucketName() + " 버킷을 생성하거나 올바른 버킷명을 설정해주세요.");
                 
             } catch (S3Exception e) {
-                status.put("connectionStatus", "ERROR");
-                status.put("bucketExists", false);
-                status.put("regionMatch", false);
+                statusBuilder.connectionStatus(S3StatusDto.ConnectionStatus.ERROR)
+                             .bucketExists(false)
+                             .regionMatch(false);
                 
                 if (e.statusCode() == 403) {
-                    status.put("error", "S3 버킷에 대한 접근 권한이 없습니다.");
-                    status.put("suggestion", "IAM 정책에서 s3:HeadBucket, s3:GetBucketLocation 권한을 확인해주세요.");
+                    statusBuilder.error("S3 버킷에 대한 접근 권한이 없습니다.")
+                                 .suggestion("IAM 정책에서 s3:HeadBucket, s3:GetBucketLocation 권한을 확인해주세요.");
                 } else {
-                    status.put("error", "S3 연결 오류: " + e.getMessage());
-                    status.put("suggestion", "AWS 자격 증명과 리전 설정을 확인해주세요.");
+                    statusBuilder.error("S3 연결 오류: " + e.getMessage())
+                                 .suggestion("AWS 자격 증명과 리전 설정을 확인해주세요.");
                 }
             }
             
         } catch (Exception e) {
             log.error("S3 상태 확인 중 오류 발생", e);
-            status.put("connectionStatus", "ERROR");
-            status.put("bucketExists", false);
-            status.put("regionMatch", false);
-            status.put("error", "S3 상태 확인 실패: " + e.getMessage());
-            status.put("suggestion", "AWS 설정을 확인하고 네트워크 연결을 점검해주세요.");
+            statusBuilder.connectionStatus(S3StatusDto.ConnectionStatus.ERROR)
+                         .bucketExists(false)
+                         .regionMatch(false)
+                         .error("S3 상태 확인 실패: " + e.getMessage())
+                         .suggestion("AWS 설정을 확인하고 네트워크 연결을 점검해주세요.");
         }
         
-        return status;
+        return statusBuilder.build();
     }
 
     /**

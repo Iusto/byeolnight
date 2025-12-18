@@ -1,7 +1,7 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
-import com.byeolnight.service.log.file.S3Service;
+import com.byeolnight.service.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -9,9 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.byeolnight.dto.file.S3StatusDto;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -72,10 +71,10 @@ public class AdminFileController {
         @ApiResponse(responseCode = "200", description = "S3 상태 조회 성공"),
         @ApiResponse(responseCode = "500", description = "S3 연결 오류")
     })
-    public CommonResponse<Map<String, Object>> getS3Status() {
+    public CommonResponse<S3StatusDto> getS3Status() {
         log.info("관리자 S3 상태 확인 요청");
         
-        Map<String, Object> status = s3Service.getS3Status();
+        S3StatusDto status = s3Service.getS3Status();
         
         return CommonResponse.success(status, "S3 상태 정보를 조회했습니다.");
     }

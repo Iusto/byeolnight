@@ -1,9 +1,9 @@
-package com.byeolnight.domain.weather.controller;
+package com.byeolnight.controller.weather;
 
-import com.byeolnight.domain.weather.dto.AstronomyEventResponse;
-import com.byeolnight.domain.weather.dto.WeatherResponse;
-import com.byeolnight.domain.weather.service.AstronomyService;
-import com.byeolnight.domain.weather.service.WeatherService;
+import com.byeolnight.dto.weather.AstronomyEventResponse;
+import com.byeolnight.dto.weather.WeatherResponse;
+import com.byeolnight.service.weather.AstronomyService;
+import com.byeolnight.service.weather.WeatherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

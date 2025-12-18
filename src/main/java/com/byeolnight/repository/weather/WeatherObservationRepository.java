@@ -1,6 +1,6 @@
-package com.byeolnight.domain.weather.repository;
+package com.byeolnight.repository.weather;
 
-import com.byeolnight.domain.weather.entity.WeatherObservation;
+import com.byeolnight.entity.weather.WeatherObservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

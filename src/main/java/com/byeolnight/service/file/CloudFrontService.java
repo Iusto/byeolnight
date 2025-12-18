@@ -1,4 +1,4 @@
-package com.byeolnight.service.log.file;
+package com.byeolnight.service.file;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
