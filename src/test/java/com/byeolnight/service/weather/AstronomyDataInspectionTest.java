@@ -1,8 +1,7 @@
 package com.byeolnight.service.weather;
 
-import com.byeolnight.domain.weather.entity.AstronomyEvent;
-import com.byeolnight.domain.weather.repository.AstronomyEventRepository;
-import com.byeolnight.domain.weather.service.AstronomyService;
+import com.byeolnight.entity.weather.AstronomyEvent;
+import com.byeolnight.repository.weather.AstronomyEventRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;

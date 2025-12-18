@@ -83,6 +83,11 @@ public class EmailAuthService {
             cacheService.delete(key);  // 검증 성공 시 삭제
             // 검증 성공 상태 저장 (10분간 유효)
             cacheService.set("verified:email:" + email, "true", Duration.ofMinutes(10));
+
+            // 성공 시 시도 횟수 카운터 삭제
+            cacheService.delete("verify_attempts:email:" + email);
+            cacheService.delete("verify_attempts:ip:" + clientIp);
+
             log.info("이메일 인증 성공 - 검증 상태 저장 완료");
             return true;
         }

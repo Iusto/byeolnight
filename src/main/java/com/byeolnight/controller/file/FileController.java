@@ -2,9 +2,9 @@ package com.byeolnight.controller.file;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.util.IpUtil;
-import com.byeolnight.service.log.file.CloudFrontService;
-import com.byeolnight.service.log.file.FileUploadRateLimitService;
-import com.byeolnight.service.log.file.S3Service;
+import com.byeolnight.service.file.CloudFrontService;
+import com.byeolnight.service.file.FileUploadRateLimitService;
+import com.byeolnight.service.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -78,35 +78,6 @@ public class FileController {
             log.error("Presigned URL 생성 오류 - filename={}, contentType={}, clientIp={}, error={}", 
                     filename, contentType, clientIp, e.getMessage(), e);
             return ResponseEntity.badRequest().body(CommonResponse.error(e.getMessage()));
-        }
-    }
-
-    @Operation(summary = "이미지 검사", description = "업로드된 이미지를 백그라운드에서 검사합니다. 부적절한 이미지는 자동으로 삭제됩니다.")
-    @PostMapping("/check-image")
-    public ResponseEntity<CommonResponse<Map<String, Object>>> checkImage(
-            @RequestParam("imageUrl") String imageUrl,
-            @RequestParam(value = "needsModeration", defaultValue = "false") boolean needsModeration) {
-        
-        try {
-            // 검열이 필요한 경우에만 검사 진행
-            if (needsModeration) {
-                // 백그라운드에서 검사 시작 (결과는 신경쓰지 않음)
-                s3Service.checkImageInBackground(imageUrl);
-            }
-            
-            // 항상 성공 응답 (UI 블로킹 방지)
-            return ResponseEntity.ok(CommonResponse.success(Map.of(
-                "status", "processing",
-                "url", imageUrl
-            )));
-        } catch (Exception e) {
-            log.error("이미지 검사 요청 오류", e);
-            // 오류가 발생해도 성공 응답 (UI 블로킹 방지)
-            return ResponseEntity.ok(CommonResponse.success(Map.of(
-                "status", "error",
-                "url", imageUrl,
-                "message", "이미지 검사 요청 중 오류가 발생했지만 계속 진행합니다."
-            )));
         }
     }
 

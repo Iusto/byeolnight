@@ -16,7 +16,9 @@ import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.repository.post.PostReportRepository;
-import com.byeolnight.service.log.file.S3Service;
+import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.log.DeleteLogService;
 import com.byeolnight.entity.log.DeleteLog;
@@ -44,10 +46,10 @@ public class PostService {
     private final UserRepository userRepository;
     private final PostReportRepository postReportRepository;
     private final S3Service s3Service;
-    private final com.byeolnight.service.certificate.CertificateService certificateService;
+    private final CertificateService certificateService;
     private final PointService pointService;
     private final CommentRepository commentRepository;
-    private final com.byeolnight.service.notification.NotificationService notificationService;
+    private final NotificationService notificationService;
     private final DeleteLogService deleteLogService;
     private final DistributedLockService distributedLockService;
 
@@ -376,7 +378,19 @@ public class PostService {
         post.blindByAdmin(adminId);
         postRepository.save(post);
         log.info("관리자 블라인드 처리: postId={}, blindType={}", postId, post.getBlindType());
-        pointService.applyPenalty(post.getWriter(), "관리자 블라인드 처리", postId.toString());
+        
+        // 뉴스봇이나 시스템 계정은 페널티 제외
+        User writer = post.getWriter();
+        if (writer != null && !isSystemAccount(writer)) {
+            pointService.applyPenalty(writer, "관리자 블라인드 처리", postId.toString());
+        } else {
+            log.info("시스템 계정 게시글이므로 페널티 제외: writer={}", writer != null ? writer.getEmail() : "null");
+        }
+    }
+
+    // 블라인드 처리 시, 관리자 계정은 통과시키기 위함
+    private boolean isSystemAccount(User user) {
+        return user != null && user.getRole() == User.Role.ADMIN;
     }
 
     @Transactional

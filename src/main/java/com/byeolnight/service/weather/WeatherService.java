@@ -1,8 +1,8 @@
-package com.byeolnight.domain.weather.service;
+package com.byeolnight.service.weather;
 
-import com.byeolnight.domain.weather.dto.WeatherResponse;
-import com.byeolnight.domain.weather.entity.WeatherObservation;
-import com.byeolnight.domain.weather.repository.WeatherObservationRepository;
+import com.byeolnight.dto.weather.WeatherResponse;
+import com.byeolnight.entity.weather.WeatherObservation;
+import com.byeolnight.repository.weather.WeatherObservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

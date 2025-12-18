@@ -1,9 +1,7 @@
 package com.byeolnight.service.weather;
 
 import com.byeolnight.common.TestMockConfig;
-import com.byeolnight.domain.weather.entity.AstronomyEvent;
-import com.byeolnight.domain.weather.repository.AstronomyEventRepository;
-import com.byeolnight.domain.weather.service.AstronomyService;
+import com.byeolnight.repository.weather.AstronomyEventRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +13,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.RestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
