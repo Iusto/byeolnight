@@ -350,8 +350,9 @@ public class PostService {
         }
     }
 
+    // 블라인드 게시글 리스트 조회(관리자용)
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getBlindedPosts() {
+    public List<PostResponseDto> getBlindedPostsList() {
         return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
                 .map(p -> {
                     long commentCount = commentRepository.countByPostId(p.getId());

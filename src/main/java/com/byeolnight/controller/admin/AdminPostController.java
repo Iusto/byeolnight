@@ -2,6 +2,7 @@ package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.entity.user.User;
+import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.post.PostService;
 import com.byeolnight.service.admin.AdminReportPostService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,11 +31,10 @@ public class AdminPostController {
     @Operation(summary = "블라인드 게시글 전체 조회", description = "관리자가 블라인드 처리된 게시글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/blinded")
-    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<List<PostResponseDto>>> getBlindedPosts() {
-        List<PostResponseDto> result = postService.getBlindedPosts();
-        return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result));
+    public ResponseEntity<CommonResponse<List<PostResponseDto>>> getBlindedPostsList() {
+        List<PostResponseDto> result = postService.getBlindedPostsList();
+        return ResponseEntity.ok(CommonResponse.success(result));
     }
-
 
     @Operation(summary = "게시글 블라인드 처리", description = "관리자가 문제가 있는 게시글을 블라인드 처리합니다.")
     @ApiResponses({
@@ -88,11 +88,11 @@ public class AdminPostController {
     }
 
     public static class MoveCategoryRequest {
-        private java.util.List<Long> postIds;
+        private List<Long> postIds;
         private String targetCategory;
         
-        public java.util.List<Long> getPostIds() { return postIds; }
-        public void setPostIds(java.util.List<Long> postIds) { this.postIds = postIds; }
+        public List<Long> getPostIds() { return postIds; }
+        public void setPostIds(List<Long> postIds) { this.postIds = postIds; }
         public String getTargetCategory() { return targetCategory; }
         public void setTargetCategory(String targetCategory) { this.targetCategory = targetCategory; }
     }
