@@ -26,7 +26,11 @@ let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 // 대기열 처리
 const processQueue = (error: any) => {
   failedQueue.forEach(({ resolve, reject }) => {
-    error ? reject(error) : resolve(null);
+    if (error) {
+      reject(error);
+    } else {
+      resolve(null);
+    }
   });
   failedQueue = [];
 };

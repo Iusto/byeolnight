@@ -597,7 +597,7 @@ export default function PostDetail() {
         
         {/* 크롤링 이미지 표시 (외부 URL) */}
         {(() => {
-          const imageUrlMatch = post.content.match(/🖼️ 관련 이미지: (https?:\/\/[^\s]+)/g);
+          const imageUrlMatch = post.content?.match(/🖼️ 관련 이미지: (https?:\/\/[^\s]+)/g);
           if (imageUrlMatch) {
             const imageUrls = imageUrlMatch.map(match => match.replace('🖼️ 관련 이미지: ', ''));
             return (

@@ -1,5 +1,6 @@
 package com.byeolnight.service.post;
 
+import com.byeolnight.dto.file.FileDto;
 import com.byeolnight.entity.file.File;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.post.Post.Category;
@@ -56,21 +57,21 @@ public class PostService {
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
         String lockKey = "post_create:" + user.getId() + ":" + dto.getTitle().hashCode();
-        
+
         return distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
             validateAdminCategoryWrite(dto.getCategory(), user);
 
             // HTML 엔티티 디코딩 처리
             String decodedTitle = HtmlUtils.htmlUnescape(dto.getTitle());
             String decodedContent = HtmlUtils.htmlUnescape(dto.getContent());
-            
+
             Post post = Post.builder()
                     .title(decodedTitle)
                     .content(decodedContent)
                     .category(dto.getCategory())
                     .writer(user)
                     .build();
-        
+
             if (dto.getOriginTopicId() != null) {
                 Post originTopic = postRepository.findById(dto.getOriginTopicId())
                         .orElseThrow(() -> new NotFoundException("원본 토론 주제를 찾을 수 없습니다."));
@@ -79,7 +80,7 @@ public class PostService {
                 }
                 post.setOriginTopicId(dto.getOriginTopicId());
             }
-            
+
             postRepository.save(post);
 
             dto.getImages().forEach(image -> {
@@ -87,21 +88,21 @@ public class PostService {
                 fileRepository.save(file);
             });
 
-            certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POST_WRITE);
-            
+            certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POST_WRITE);
+
             if (dto.getCategory() == Post.Category.IMAGE) {
-                certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.IMAGE_UPLOAD);
+                certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.IMAGE_UPLOAD);
             }
 
             pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
-            
+
             // 포인트 달성 인증서 체크
             try {
-                certificateService.checkAndIssueCertificates(user, com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+                certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
             } catch (Exception e) {
                 log.warn("포인트 인증서 발급 실패: {}", e.getMessage());
             }
-            
+
             if (dto.getCategory() == Post.Category.NOTICE) {
                 try {
                     notificationService.notifyNewNotice(post.getId(), dto.getTitle());
@@ -133,7 +134,7 @@ public class PostService {
         // 기존 파일 목록 조회
         List<File> oldFiles = fileRepository.findAllByPost(post);
         Set<String> newImageUrls = dto.getImages().stream()
-                .map(img -> img.url())
+                .map(FileDto::url)
                 .collect(Collectors.toSet());
         
         // 더 이상 사용되지 않는 파일만 삭제
@@ -185,9 +186,7 @@ public class PostService {
         long likeCount = postLikeRepository.countByPost(post);
         long commentCount = commentRepository.countByPostId(postId);
 
-        PostResponseDto responseDto = PostResponseDto.of(post, likedByMe, likeCount, false, commentCount);
-        
-        return responseDto;
+        return PostResponseDto.of(post, likedByMe, likeCount, false, commentCount);
     }
 
     @Transactional(readOnly = true)
@@ -350,8 +349,9 @@ public class PostService {
         }
     }
 
+    // 블라인드 게시글 리스트 조회(관리자용)
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getBlindedPosts() {
+    public List<PostResponseDto> getBlindedPostsList() {
         return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
                 .map(p -> {
                     long commentCount = commentRepository.countByPostId(p.getId());
