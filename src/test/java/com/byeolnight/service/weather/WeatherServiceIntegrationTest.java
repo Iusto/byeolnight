@@ -2,7 +2,6 @@ package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.weather.WeatherResponse;
 import com.byeolnight.infrastructure.util.CoordinateUtils;
-import com.byeolnight.repository.weather.WeatherObservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,9 +21,6 @@ import static org.mockito.Mockito.*;
 class WeatherServiceIntegrationTest {
 
     @Mock
-    private WeatherObservationRepository weatherRepository;
-
-    @Mock
     private WeatherCacheService weatherCacheService;
 
     @Mock
@@ -34,7 +30,7 @@ class WeatherServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        weatherService = new WeatherService(weatherRepository, weatherCacheService, rateLimitService);
+        weatherService = new WeatherService(weatherCacheService, rateLimitService);
     }
 
     @Test
