@@ -4,11 +4,9 @@ import com.byeolnight.dto.user.PointHistoryDto;
 import com.byeolnight.entity.user.DailyAttendance;
 import com.byeolnight.entity.user.PointHistory;
 import com.byeolnight.entity.user.User;
-import com.byeolnight.infrastructure.lock.DistributedLockService;
 import com.byeolnight.repository.user.DailyAttendanceRepository;
 import com.byeolnight.repository.user.PointHistoryRepository;
 import com.byeolnight.repository.user.UserRepository;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,8 +28,6 @@ public class PointService {
     private final PointHistoryRepository pointHistoryRepository;
     private final DailyAttendanceRepository dailyAttendanceRepository;
     private final UserRepository userRepository;
-    private final EntityManager entityManager;
-    private final DistributedLockService distributedLockService;
 
     // 포인트 상수
     private static final int DAILY_ATTENDANCE_POINTS = 10;
@@ -41,51 +37,35 @@ public class PointService {
     private static final int VALID_REPORT_POINTS = 10;
 
     /**
-     * 출석 체크 포인트 지급 (분산락 적용)
+     * 출석 체크 포인트 지급
+     * DB UNIQUE 제약조건(user_id, attendance_date)으로 중복 방지
      */
     @Transactional
     public boolean checkDailyAttendance(User user) {
-        String lockKey = "attendance:" + user.getId() + ":" + LocalDate.now();
-        
-        return distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
-            LocalDate today = LocalDate.now();
-            log.info("=== 출석 체크 시작 - 사용자: {}, 날짜: {} ===", user.getNickname(), today);
-            
-            try {
-                // 엔티티 매니저 캠시 플러시 및 새로고침
-                entityManager.flush();
-                entityManager.clear();
-                
-                // 사용자 정보 새로고침
-                User refreshedUser = userRepository.findById(user.getId())
-                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-                
-                // 이미 출석했는지 다시 한번 확인 (동시성 문제 방지)
-                boolean alreadyAttended = dailyAttendanceRepository.existsByUserAndAttendanceDate(refreshedUser, today);
-                log.info("출석 여부 확인 결과: {}", alreadyAttended);
-                
-                if (alreadyAttended) {
-                    log.info("사용자 {}는 이미 오늘({}) 출석했습니다.", refreshedUser.getNickname(), today);
-                    return false; // 이미 출석함
-                }
+        LocalDate today = LocalDate.now();
+        log.info("=== 출석 체크 시작 - 사용자: {}, 날짜: {} ===", user.getNickname(), today);
 
-                // 출석 기록 생성 (유니크 제약조건으로 중복 방지)
-                DailyAttendance attendance = DailyAttendance.of(refreshedUser, today);
-                DailyAttendance savedAttendance = dailyAttendanceRepository.save(attendance);
-                log.info("출석 기록 저장 완료 - ID: {}", savedAttendance.getId());
+        try {
+            // 출석 기록 생성 (DB UNIQUE 제약조건으로 중복 방지)
+            DailyAttendance attendance = DailyAttendance.of(user, today);
+            DailyAttendance savedAttendance = dailyAttendanceRepository.save(attendance);
+            log.info("출석 기록 저장 완료 - ID: {}", savedAttendance.getId());
 
-                // 포인트 지급
-                awardPoints(refreshedUser, PointHistory.PointType.DAILY_ATTENDANCE, DAILY_ATTENDANCE_POINTS, "매일 출석 보상", null);
-                
-                log.info("사용자 {}에게 출석 포인트 {}점 지급 완료", refreshedUser.getNickname(), DAILY_ATTENDANCE_POINTS);
-                return true;
-                
-            } catch (Exception e) {
-                // 중복 키 예외 등이 발생한 경우 (이미 출석한 경우)
-                log.error("사용자 {}의 출석 처리 중 예외 발생: {}", user.getNickname(), e.getMessage(), e);
-                return false;
-            }
-        });
+            // 포인트 지급
+            awardPoints(user, PointHistory.PointType.DAILY_ATTENDANCE, DAILY_ATTENDANCE_POINTS, "매일 출석 보상", null);
+
+            log.info("사용자 {}에게 출석 포인트 {}점 지급 완료", user.getNickname(), DAILY_ATTENDANCE_POINTS);
+            return true;
+
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // DB 제약조건 위반 = 이미 출석함
+            log.info("사용자 {}는 이미 오늘({}) 출석했습니다.", user.getNickname(), today);
+            return false;
+        } catch (Exception e) {
+            // 기타 예외
+            log.error("사용자 {}의 출석 처리 중 예외 발생: {}", user.getNickname(), e.getMessage(), e);
+            return false;
+        }
     }
 
     /**
@@ -112,30 +92,26 @@ public class PointService {
     }
 
     /**
-     * 댓글 작성 포인트 지급 (분산락 적용)
+     * 댓글 작성 포인트 지급
      */
     @Transactional
     public void awardCommentWritePoints(User user, Long commentId) {
-        String lockKey = "comment_points:" + user.getId() + ":" + LocalDate.now();
-        
-        distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
-            log.info("=== 댓글 작성 포인트 지급 시작 - 사용자: {}, 댓글ID: {} ===", user.getNickname(), commentId);
-            
-            // 어뷔징 방지: 하루 최대 20개 댓글만 포인트 지급
-            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-            long todayCommentCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
-                user, PointHistory.PointType.COMMENT_WRITE, todayStart);
-            
-            log.info("오늘 댓글 작성 횟수: {}/20", todayCommentCount);
-                
-            if (todayCommentCount >= 20) {
-                log.warn("사용자 {}의 일일 댓글 작성 제한 초과 ({}회)", user.getNickname(), todayCommentCount);
-                return; // 일일 제한 초과
-            }
-            
-            awardPoints(user, PointHistory.PointType.COMMENT_WRITE, COMMENT_WRITE_POINTS, "댓글 작성 보상", commentId.toString());
-            log.info("사용자 {}에게 댓글 작성 포인트 {}점 지급 완료", user.getNickname(), COMMENT_WRITE_POINTS);
-        });
+        log.info("=== 댓글 작성 포인트 지급 시작 - 사용자: {}, 댓글ID: {} ===", user.getNickname(), commentId);
+
+        // 어뷔징 방지: 하루 최대 20개 댓글만 포인트 지급
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        long todayCommentCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
+            user, PointHistory.PointType.COMMENT_WRITE, todayStart);
+
+        log.info("오늘 댓글 작성 횟수: {}/20", todayCommentCount);
+
+        if (todayCommentCount >= 20) {
+            log.warn("사용자 {}의 일일 댓글 작성 제한 초과 ({}회)", user.getNickname(), todayCommentCount);
+            return; // 일일 제한 초과
+        }
+
+        awardPoints(user, PointHistory.PointType.COMMENT_WRITE, COMMENT_WRITE_POINTS, "댓글 작성 보상", commentId.toString());
+        log.info("사용자 {}에게 댓글 작성 포인트 {}점 지급 완료", user.getNickname(), COMMENT_WRITE_POINTS);
     }
 
     /**
@@ -148,25 +124,21 @@ public class PointService {
     }
 
     /**
-     * 추천하기 포인트 지급 (일일 제한, 분산락 적용)
+     * 추천하기 포인트 지급 (일일 제한)
      */
     @Transactional
     public boolean awardGiveLikePoints(User user, String referenceId) {
-        String lockKey = "like_points:" + user.getId() + ":" + LocalDate.now();
-        
-        return distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
-            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-            long todayLikeCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
-                user, PointHistory.PointType.GIVE_LIKE, todayStart);
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        long todayLikeCount = pointHistoryRepository.countByUserAndTypeAndCreatedAtAfter(
+            user, PointHistory.PointType.GIVE_LIKE, todayStart);
 
-            if (todayLikeCount >= 10) {
-                return false; // 일일 제한 초과
-            }
+        if (todayLikeCount >= 10) {
+            return false; // 일일 제한 초과
+        }
 
-            awardPoints(user, PointHistory.PointType.GIVE_LIKE, 1, "추천하기 보상", referenceId);
-            log.info("사용자 {}에게 추천하기 포인트 1점 지급", user.getNickname());
-            return true;
-        });
+        awardPoints(user, PointHistory.PointType.GIVE_LIKE, 1, "추천하기 보상", referenceId);
+        log.info("사용자 {}에게 추천하기 포인트 1점 지급", user.getNickname());
+        return true;
     }
 
     /**
@@ -203,21 +175,8 @@ public class PointService {
     @Transactional(readOnly = true)
     public boolean isTodayAttended(User user) {
         LocalDate today = LocalDate.now();
-        
-        // 엔티티 매니저 캠시 플러시 및 새로고침 (읽기 전용)
-        entityManager.clear();
-        
-        // 사용자 정보 새로고침
-        User refreshedUser = userRepository.findById(user.getId())
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-        
-        // 디버깅용: 실제 출석 기록 조회
-        java.util.List<DailyAttendance> todayAttendances = dailyAttendanceRepository
-                .findByUserAndAttendanceDate(refreshedUser, today);
-        log.info("오늘 출석 기록 수: {}", todayAttendances.size());
-        
-        boolean attended = !todayAttendances.isEmpty();
-        log.info("출석 여부 조회 - 사용자: {}, 날짜: {}, 출석여부: {}", refreshedUser.getNickname(), today, attended);
+        boolean attended = dailyAttendanceRepository.existsByUserAndAttendanceDate(user, today);
+        log.info("출석 여부 조회 - 사용자: {}, 날짜: {}, 출석여부: {}", user.getNickname(), today, attended);
         return attended;
     }
 
@@ -323,117 +282,96 @@ public class PointService {
     }
     
     /**
-     * 아이콘 구매 기록 (분산락 적용)
+     * 아이콘 구매 기록
+     * 트랜잭션으로 동시성 제어
      */
     @Transactional
     public void recordIconPurchase(User user, Long iconId, String iconName, int price) {
-        String lockKey = "icon_purchase:" + user.getId() + ":" + iconId;
-        
-        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            // 포인트 부족 검증
-            User managedUser = userRepository.findById(user.getId())
-                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-            
-            if (managedUser.getPoints() < price) {
-                throw new IllegalArgumentException("포인트가 부족합니다. 필요: " + price + ", 보유: " + managedUser.getPoints());
-            }
-            
-            String description = String.format("스텔라 아이콘 구매: %s", iconName);
-            awardPoints(managedUser, PointHistory.PointType.ICON_PURCHASE, -price, description, iconId.toString());
-            log.info("사용자 {}의 아이콘 구매 기록 완료 - 아이콘: {}, 가격: {}", managedUser.getNickname(), iconName, price);
-        });
+        // 포인트 부족 검증
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (managedUser.getPoints() < price) {
+            throw new IllegalArgumentException("포인트가 부족합니다. 필요: " + price + ", 보유: " + managedUser.getPoints());
+        }
+
+        String description = String.format("스텔라 아이콘 구매: %s", iconName);
+        awardPoints(managedUser, PointHistory.PointType.ICON_PURCHASE, -price, description, iconId.toString());
+        log.info("사용자 {}의 아이콘 구매 기록 완료 - 아이콘: {}, 가격: {}", managedUser.getNickname(), iconName, price);
     }
 
     /**
      * 페널티 포인트 지급 (포인트 부족 시에도 적용)
+     * 트랜잭션으로 동시성 제어
      */
     @Transactional
     private void awardPointsWithPenalty(User user, PointHistory.PointType type, int amount, String description, String referenceId) {
-        String lockKey = "points:" + user.getId();
-        
-        distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
-            log.info("페널티 포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
-                    user.getNickname(), type, amount, description);
-            
-            try {
-                // 사용자 엔티티 새로고침
-                User managedUser = userRepository.findById(user.getId())
-                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-                
-                // 포인트 이력 저장
-                PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
-                pointHistoryRepository.save(history);
-                log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
+        log.info("페널티 포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}",
+                user.getNickname(), type, amount, description);
 
-                // 페널티 적용 (포인트 부족 시 0으로 설정)
-                int beforePoints = managedUser.getPoints();
-                if (amount < 0) {
-                    int penaltyAmount = -amount;
-                    if (managedUser.getPoints() >= penaltyAmount) {
-                        managedUser.decreasePoints(penaltyAmount);
-                    } else {
-                        // 포인트가 부족한 경우 0으로 설정
-                        managedUser.increasePoints(-managedUser.getPoints()); // 현재 포인트만큼 차감하여 0으로 만듦
-                    }
-                } else {
-                    managedUser.increasePoints(amount);
-                }
-                userRepository.save(managedUser);
-                log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
-                
-            } catch (Exception e) {
-                log.error("페널티 포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);
-                throw e;
+        // 사용자 엔티티 새로고침
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 포인트 이력 저장
+        PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
+        pointHistoryRepository.save(history);
+        log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
+
+        // 페널티 적용 (포인트 부족 시 0으로 설정)
+        int beforePoints = managedUser.getPoints();
+        if (amount < 0) {
+            int penaltyAmount = -amount;
+            if (managedUser.getPoints() >= penaltyAmount) {
+                managedUser.decreasePoints(penaltyAmount);
+            } else {
+                // 포인트가 부족한 경우 0으로 설정
+                managedUser.increasePoints(-managedUser.getPoints());
             }
-        });
+        } else {
+            managedUser.increasePoints(amount);
+        }
+        userRepository.save(managedUser);
+        log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
     }
-    
+
     /**
-     * 포인트 지급 공통 메서드 (분산락 적용)
+     * 포인트 지급 공통 메서드
+     * 트랜잭션으로 동시성 제어
      */
     @Transactional
     private void awardPoints(User user, PointHistory.PointType type, int amount, String description, String referenceId) {
-        String lockKey = "points:" + user.getId();
-        
-        distributedLockService.executeWithLock(lockKey, 3, 5, () -> {
-            log.info("포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}", 
-                    user.getNickname(), type, amount, description);
-            
-            try {
-                // 사용자 엔티티 새로고침 (영속성 컨텍스트에서 관리되도록)
-                User managedUser = userRepository.findById(user.getId())
-                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-                
-                // 포인트 이력 저장
-                PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
-                pointHistoryRepository.save(history);
-                log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
+        log.info("포인트 지급 처리 - 사용자: {}, 타입: {}, 금액: {}, 설명: {}",
+                user.getNickname(), type, amount, description);
 
-                // 사용자 포인트 업데이트
-                int beforePoints = managedUser.getPoints();
-                if (amount >= 0) {
-                    managedUser.increasePoints(amount);
-                } else {
-                    managedUser.decreasePoints(-amount); // 음수를 양수로 변환하여 차감
-                }
-                userRepository.save(managedUser);
-                log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
-                
-                // 포인트 달성 인증서 체크
-                try {
-                    com.byeolnight.service.certificate.CertificateService certificateService = 
-                        com.byeolnight.infrastructure.config.ApplicationContextProvider
-                            .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                    certificateService.checkAndIssueCertificates(managedUser, 
-                        com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
-                } catch (Exception certError) {
-                    log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
-                }
-                
-            } catch (Exception e) {
-                log.error("포인트 지급 처리 중 오류 발생 - 사용자: {}, 오류: {}", user.getNickname(), e.getMessage(), e);
-                throw e;
-            }
-        });
+        // 사용자 엔티티 새로고침 (영속성 컨텍스트에서 관리되도록)
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 포인트 이력 저장
+        PointHistory history = PointHistory.of(managedUser, amount, type, description, referenceId);
+        pointHistoryRepository.save(history);
+        log.info("포인트 히스토리 저장 완료 - ID: {}", history.getId());
+
+        // 사용자 포인트 업데이트
+        int beforePoints = managedUser.getPoints();
+        if (amount >= 0) {
+            managedUser.increasePoints(amount);
+        } else {
+            managedUser.decreasePoints(-amount);
+        }
+        userRepository.save(managedUser);
+        log.info("사용자 포인트 업데이트 완료 - 이전: {}, 이후: {}", beforePoints, managedUser.getPoints());
+
+        // 포인트 달성 인증서 체크
+        try {
+            com.byeolnight.service.certificate.CertificateService certificateService =
+                com.byeolnight.infrastructure.config.ApplicationContextProvider
+                    .getBean(com.byeolnight.service.certificate.CertificateService.class);
+            certificateService.checkAndIssueCertificates(managedUser,
+                com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+        } catch (Exception certError) {
+            log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
+        }
     }
 }

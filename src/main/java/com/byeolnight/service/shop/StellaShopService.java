@@ -8,7 +8,6 @@ import com.byeolnight.repository.shop.UserIconRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.shop.StellaIconDataDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
-import com.byeolnight.infrastructure.lock.DistributedLockService;
 import com.byeolnight.service.user.PointService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +32,6 @@ public class StellaShopService {
     private final UserRepository userRepository;
     private final PointService pointService;
     private final ObjectMapper objectMapper;
-    private final DistributedLockService distributedLockService;
 
     /**
      * 상점 아이콘 목록 조회
@@ -54,33 +52,31 @@ public class StellaShopService {
     }
 
     /**
-     * 아이콘 구매 (분산락 적용)
+     * 아이콘 구매
+     * DB UNIQUE 제약조건(user_id, stella_icon_id)으로 중복 구매 방지
      */
     @Transactional
     public void purchaseIcon(User user, Long iconId) {
-        String lockKey = "purchase:" + user.getId() + ":" + iconId;
-        
-        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            StellaIcon icon = stellaIconRepository.findById(iconId)
-                    .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
+        StellaIcon icon = stellaIconRepository.findById(iconId)
+                .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
 
-            // 구매 가능 여부 확인
-            if (!icon.isAvailable()) {
-                throw new IllegalArgumentException("구매할 수 없는 아이콘입니다.");
-            }
+        // 구매 가능 여부 확인
+        if (!icon.isAvailable()) {
+            throw new IllegalArgumentException("구매할 수 없는 아이콘입니다.");
+        }
 
-            // 중복 구매 확인
-            if (userIconRepository.existsByUserAndStellaIcon(user, icon)) {
-                throw new IllegalArgumentException("이미 보유한 아이콘입니다.");
-            }
-
+        try {
             // 포인트 확인 및 차감 (PointService에서 처리)
             pointService.recordIconPurchase(user, icon.getId(), icon.getName(), icon.getPrice());
 
-            // 보관함에 추가
+            // 보관함에 추가 (DB UNIQUE 제약조건으로 중복 방지)
             UserIcon userIcon = UserIcon.of(user, icon, icon.getPrice());
             userIconRepository.save(userIcon);
-        });
+
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // DB 제약조건 위반 = 이미 보유한 아이콘
+            throw new IllegalArgumentException("이미 보유한 아이콘입니다.");
+        }
     }
 
     /**
@@ -92,41 +88,35 @@ public class StellaShopService {
     }
 
     /**
-     * 아이콘 장착 (분산락 적용)
+     * 아이콘 장착
+     * 트랜잭션으로 동시성 제어
      */
     @Transactional
     public void equipIcon(User user, Long iconId) {
-        String lockKey = "equip_icon:" + user.getId();
-        
-        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            // 기존 장착 아이콘 해제
-            userIconRepository.findByUserAndEquippedTrue(user)
-                    .ifPresent(UserIcon::unequip);
+        // 기존 장착 아이콘 해제
+        userIconRepository.findByUserAndEquippedTrue(user)
+                .ifPresent(UserIcon::unequip);
 
-            // 새 아이콘 장착
-            StellaIcon iconToEquip = stellaIconRepository.findById(iconId)
-                    .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
-            UserIcon userIcon = userIconRepository.findByUserAndStellaIcon(user, iconToEquip)
-                    .orElseThrow(() -> new NotFoundException("보유하지 않은 아이콘입니다."));
-            
-            userIcon.equip();
-            user.equipIcon(iconId, iconToEquip.getName()); // 아이콘 이름 수정
-        });
+        // 새 아이콘 장착
+        StellaIcon iconToEquip = stellaIconRepository.findById(iconId)
+                .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
+        UserIcon userIcon = userIconRepository.findByUserAndStellaIcon(user, iconToEquip)
+                .orElseThrow(() -> new NotFoundException("보유하지 않은 아이콘입니다."));
+
+        userIcon.equip();
+        user.equipIcon(iconId, iconToEquip.getName());
     }
 
     /**
-     * 아이콘 해제 (분산락 적용)
+     * 아이콘 해제
+     * 트랜잭션으로 동시성 제어
      */
     @Transactional
     public void unequipIcon(User user) {
-        String lockKey = "equip_icon:" + user.getId();
-        
-        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            userIconRepository.findByUserAndEquippedTrue(user)
-                    .ifPresent(UserIcon::unequip);
-            
-            user.unequipIcon();
-        });
+        userIconRepository.findByUserAndEquippedTrue(user)
+                .ifPresent(UserIcon::unequip);
+
+        user.unequipIcon();
     }
 
     /**

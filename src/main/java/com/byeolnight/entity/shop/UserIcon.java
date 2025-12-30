@@ -6,7 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "user_icons")
+@Table(name = "user_icons",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "stella_icon_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

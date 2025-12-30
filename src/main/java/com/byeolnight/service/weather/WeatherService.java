@@ -1,25 +1,27 @@
 package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.weather.WeatherResponse;
-import com.byeolnight.entity.weather.WeatherObservation;
-import com.byeolnight.repository.weather.WeatherObservationRepository;
+import com.byeolnight.infrastructure.util.CoordinateUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class WeatherService {
-    
-    private final WeatherObservationRepository weatherRepository;
+
+    private final WeatherCacheService weatherCacheService;
+    private final WeatherRateLimitService rateLimitService;
     private final RestTemplate restTemplate = new RestTemplate();
     
     @Value("${weather.api.key}")
@@ -27,37 +29,70 @@ public class WeatherService {
     
     @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
     private String apiUrl;
-    
-    private static final int CACHE_HOURS = 0;
-    
+
     public WeatherResponse getObservationConditions(Double latitude, Double longitude) {
-        // 캐시된 데이터 확인
-        Optional<WeatherObservation> cached = findCachedWeatherData(latitude, longitude);
+        // 1. 좌표 반올림 & 캐시 키 생성
+        String cacheKey = CoordinateUtils.generateCacheKey(latitude, longitude);
+
+        // 2. Redis 캐시 확인
+        Optional<WeatherResponse> cached = weatherCacheService.get(cacheKey);
         if (cached.isPresent()) {
-            return convertToResponse(cached.get());
+            log.info("캐시 HIT: cacheKey={}", cacheKey);
+            return cached.get();
         }
-        
-        // 새로운 데이터 수집
-        return fetchAndSaveWeatherData(latitude, longitude);
+
+        // 3. 호출 제한 확인
+        boolean acquired = rateLimitService.tryAcquire(Duration.ofSeconds(2));
+        if (!acquired) {
+            log.warn("호출 제한 초과: cacheKey={}", cacheKey);
+            throw new IllegalStateException("호출 제한 초과. 잠시 후 다시 시도해주세요.");
+        }
+
+        try {
+            // 4. 외부 API 호출
+            WeatherResponse fresh = fetchWeatherData(latitude, longitude);
+
+            // 5. Redis 저장 (15분 TTL + jitter)
+            Duration ttl = Duration.ofMinutes(15)
+                    .plusSeconds(ThreadLocalRandom.current().nextInt(-60, 61));
+            weatherCacheService.put(cacheKey, fresh, ttl);
+            log.info("캐시 저장: cacheKey={}, ttl={}초", cacheKey, ttl.toSeconds());
+
+            return fresh;
+        } finally {
+            // 6. Semaphore 해제
+            rateLimitService.release();
+        }
     }
     
-    private Optional<WeatherObservation> findCachedWeatherData(Double latitude, Double longitude) {
-        LocalDateTime cacheThreshold = LocalDateTime.now().minusHours(CACHE_HOURS);
-        return weatherRepository.findRecentByLocation(latitude, longitude, cacheThreshold);
-    }
-    
-    private WeatherResponse fetchAndSaveWeatherData(Double latitude, Double longitude) {
+    /**
+     * 외부 API 호출 (Redis 캐시용)
+     */
+    private WeatherResponse fetchWeatherData(Double latitude, Double longitude) {
         try {
             Map<String, Object> apiResponse = callWeatherAPI(latitude, longitude);
-            WeatherObservation observation = parseAndSaveWeatherData(apiResponse, latitude, longitude);
-            return convertToResponse(observation);
-            
+            WeatherData weatherData = extractWeatherData(apiResponse);
+            String quality = calculateObservationQuality(weatherData.cloudCover(), weatherData.visibility());
+            String moonPhase = getMoonPhaseIcon();
+
+            return WeatherResponse.builder()
+                    .location(weatherData.location())
+                    .latitude(latitude)
+                    .longitude(longitude)
+                    .cloudCover(weatherData.cloudCover())
+                    .visibility(weatherData.visibility())
+                    .moonPhase(moonPhase)
+                    .observationQuality(quality)
+                    .recommendation(quality)
+                    .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                    .build();
+
         } catch (Exception e) {
             log.error("날씨 데이터 수집 실패: {}", e.getMessage());
             return createFallbackResponse(latitude, longitude);
         }
     }
-    
+
     private Map<String, Object> callWeatherAPI(Double latitude, Double longitude) {
         String url = String.format(
                 java.util.Locale.US,
@@ -70,24 +105,6 @@ public class WeatherService {
             throw new RuntimeException("API 응답이 null입니다");
         }
         return response;
-    }
-    
-    private WeatherObservation parseAndSaveWeatherData(Map<String, Object> apiData, Double lat, Double lon) {
-        WeatherData weatherData = extractWeatherData(apiData);
-        String quality = calculateObservationQuality(weatherData.cloudCover(), weatherData.visibility());
-        
-        WeatherObservation observation = WeatherObservation.builder()
-            .location(weatherData.location())
-            .latitude(lat)
-            .longitude(lon)
-            .cloudCover(weatherData.cloudCover())
-            .visibility(weatherData.visibility())
-            .moonPhase(getMoonPhaseIcon())
-            .observationQuality(quality)
-            .observationTime(LocalDateTime.now())
-            .build();
-            
-        return weatherRepository.save(observation);
     }
 
     @SuppressWarnings("unchecked")
@@ -182,27 +199,7 @@ public class WeatherService {
             .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
             .build();
     }
-    
-    private WeatherResponse convertToResponse(WeatherObservation observation) {
-        String recommendation = generateRecommendation(observation.getObservationQuality());
-        
-        return WeatherResponse.builder()
-            .location(observation.getLocation())
-            .latitude(observation.getLatitude())
-            .longitude(observation.getLongitude())
-            .cloudCover(observation.getCloudCover())
-            .visibility(observation.getVisibility())
-            .moonPhase(observation.getMoonPhase())
-            .observationQuality(observation.getObservationQuality())
-            .recommendation(recommendation)
-            .observationTime(observation.getObservationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
-            .build();
-    }
-    
-    private String generateRecommendation(String quality) {
-        return quality; // 프론트엔드에서 i18n 키로 사용
-    }
-    
+
     // 내부 데이터 클래스
     private record WeatherData(String location, double cloudCover, double visibility) {}
 }
