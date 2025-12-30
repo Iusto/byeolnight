@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * 탈퇴 회원 정리 서비스
- * - 탈퇴 후 1년 경과한 회원 완전 삭제
+ * - 탈퇴 후 2년 경과한 회원 완전 삭제
  */
 @Slf4j
 @Service
@@ -23,16 +23,16 @@ public class WithdrawnUserCleanupService {
     private final UserRepository userRepository;
 
     /**
-     * 매일 오전 10시에 탈퇴 후 1년 경과한 회원 완전 삭제
+     * 매일 오전 10시에 탈퇴 후 2년 경과한 회원 완전 삭제
      */
     @Scheduled(cron = "0 0 10 * * *")
     @Transactional
     public void cleanupWithdrawnUsers() {
-        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
-        
-        // 탈퇴 및 밴 계정 모두 1년 후 마스킹 처리
+        LocalDateTime twoYearsAgo = LocalDateTime.now().minusYears(2);
+
+        // 탈퇴 및 밴 계정 모두 2년 후 완전 삭제
         List<User> expiredUsers = userRepository.findByWithdrawnAtBeforeAndStatusIn(
-            oneYearAgo, List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED));
+            twoYearsAgo, List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED));
         
         if (expiredUsers.isEmpty()) {
             log.info("완전 삭제할 탈퇴 회원이 없습니다.");

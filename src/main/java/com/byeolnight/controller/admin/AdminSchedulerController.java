@@ -114,10 +114,10 @@ public class AdminSchedulerController {
             
             LocalDateTime threshold = LocalDateTime.now().minusDays(30);
             int postsToDelete = postRepository.findExpiredDeletedPosts(threshold).size();
-            
-            LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+
+            LocalDateTime twoYearsAgo = LocalDateTime.now().minusYears(2);
             int usersToCleanup = userRepository.findByWithdrawnAtBeforeAndStatusIn(
-                oneYearAgo, java.util.List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)).size();
+                twoYearsAgo, java.util.List.of(User.UserStatus.WITHDRAWN, User.UserStatus.BANNED)).size();
             
             SchedulerStatusDto status = SchedulerStatusDto.builder()
                 .messagesToDelete(messagesToDelete)
@@ -175,7 +175,7 @@ public class AdminSchedulerController {
     @PostMapping("/user-cleanup/manual")
     @Operation(
         summary = "수동 탈퇴 회원 정리",
-        description = "관리자가 수동으로 탈퇴한 지 1년 지난 회원 데이터를 완전 삭제합니다."
+        description = "관리자가 수동으로 탈퇴한 지 2년 지난 회원 데이터를 완전 삭제합니다."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "탈퇴 회원 정리 성공"),
