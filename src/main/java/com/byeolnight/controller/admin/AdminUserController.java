@@ -251,7 +251,7 @@ public class AdminUserController {
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result));
     }
 
-    @Operation(summary = "탈퇴 회원 정리 (수동 실행)", description = "탈퇴 후 5년 경과한 회원의 개인정보를 수동으로 정리합니다.")
+    @Operation(summary = "탈퇴 회원 정리 (수동 실행)", description = "탈퇴 후 2년 경과한 회원의 개인정보를 수동으로 정리합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "정리 완료"),
             @ApiResponse(responseCode = "403", description = "권한 없음")

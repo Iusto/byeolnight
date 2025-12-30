@@ -67,12 +67,12 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm, socialProvid
                 <li>• 소셜 로그인 연동 해제 시 즉시 탈퇴 처리됩니다.</li>
                 <li>• <span className="text-yellow-400">탈퇴 후 30일 내 재로그인으로 복구 가능</span>합니다.</li>
                 <li>• 30일 경과 후 개인정보 마스킹 처리되어 복구 불가능합니다.</li>
-                <li>• <span className="text-red-400">5년 경과 후 계정 완전 삭제</span>됩니다.</li>
+                <li>• <span className="text-red-400">2년 경과 후 계정 완전 삭제</span>됩니다.</li>
               </>
             ) : (
               <>
                 <li>• 탈퇴 시 모든 개인정보가 삭제되며 복구할 수 없습니다.</li>
-                <li>• <span className="text-red-400">5년 경과 후 계정 완전 삭제</span>됩니다.</li>
+                <li>• <span className="text-red-400">2년 경과 후 계정 완전 삭제</span>됩니다.</li>
               </>
             )}
             <li>• 작성한 게시글과 댓글은 삭제되지 않습니다.</li>

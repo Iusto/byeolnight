@@ -1462,7 +1462,7 @@ export default function AdminUserPage() {
                   <div>
                     <h4 className="text-lg font-semibold text-white mb-2">👤 탈퇴 회원 정리 스케줄러</h4>
                     <p className="text-gray-400 text-sm">
-                      매일 오전 10시 - 탈퇴 후 1년 경과한 회원 데이터를 완전 삭제합니다.
+                      매일 오전 10시 - 탈퇴 후 2년 경과한 회원 데이터를 완전 삭제합니다.
                     </p>
                   </div>
                   <div className="text-2xl">🕙</div>
@@ -1544,7 +1544,7 @@ export default function AdminUserPage() {
                     </div>
                     <ul className="text-gray-300 space-y-1">
                       <li>• 탈퇴 회원 정리</li>
-                      <li>• 1년 경과 탈퇴 회원</li>
+                      <li>• 2년 경과 탈퇴 회원</li>
                       <li>• 개인정보 완전 삭제</li>
                     </ul>
                   </div>
