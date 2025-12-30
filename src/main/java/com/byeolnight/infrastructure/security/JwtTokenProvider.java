@@ -1,10 +1,18 @@
 package com.byeolnight.infrastructure.security;
 
+import com.byeolnight.entity.user.User;
+import com.byeolnight.infrastructure.config.ApplicationContextProvider;
+import com.byeolnight.service.user.UserService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -14,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -103,11 +112,11 @@ public class JwtTokenProvider {
         return getUserIdFromToken(token).toString();
     }
 
-    public String createAccessToken(com.byeolnight.entity.user.User user) {
+    public String createAccessToken(User user) {
         return generateAccessToken(user.getId(), UUID.randomUUID().toString());
     }
 
-    public String createRefreshToken(com.byeolnight.entity.user.User user) {
+    public String createRefreshToken(User user) {
         return generateRefreshToken(user.getId(), UUID.randomUUID().toString());
     }
 
@@ -120,19 +129,18 @@ public class JwtTokenProvider {
         return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
 
-    public org.springframework.security.core.Authentication getAuthentication(String token) {
+    public Authentication getAuthentication(String token) {
         try {
             Long userId = getUserIdFromToken(token);
-            
+
             // UserService를 통해 User 조회
-            com.byeolnight.service.user.UserService userService = 
-                com.byeolnight.infrastructure.config.ApplicationContextProvider.getBean(com.byeolnight.service.user.UserService.class);
-            
-            com.byeolnight.entity.user.User user = userService.findById(userId);
-            
+            UserService userService = ApplicationContextProvider.getBean(UserService.class);
+
+            User user = userService.findById(userId);
+
             // UsernamePasswordAuthenticationToken 생성
-            return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                user, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+            return new UsernamePasswordAuthenticationToken(
+                user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
             );
         } catch (Exception e) {
             log.error("토큰에서 Authentication 생성 실패: {}", e.getMessage());
@@ -140,7 +148,7 @@ public class JwtTokenProvider {
         }
     }
 
-    public Long getUserIdFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+    public Long getUserIdFromRequest(HttpServletRequest request) {
         String token = resolveToken(request);
         if (token != null && validate(token)) {
             return getUserIdFromToken(token);
@@ -148,10 +156,10 @@ public class JwtTokenProvider {
         return null;
     }
 
-    private String resolveToken(jakarta.servlet.http.HttpServletRequest request) {
-        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+    private String resolveToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
         if (cookies != null) {
-            for (jakarta.servlet.http.Cookie cookie : cookies) {
+            for (Cookie cookie : cookies) {
                 if ("accessToken".equals(cookie.getName())) {
                     return cookie.getValue();
                 }

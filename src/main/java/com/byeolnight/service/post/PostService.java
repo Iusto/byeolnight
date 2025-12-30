@@ -12,18 +12,18 @@ import com.byeolnight.repository.file.FileRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.repository.post.PostLikeRepository;
+import com.byeolnight.dto.post.PostAdminDto;
 import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
-import com.byeolnight.repository.post.PostReportRepository;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.file.S3Service;
 import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.log.DeleteLogService;
 import com.byeolnight.entity.log.DeleteLog;
-import com.byeolnight.infrastructure.lock.DistributedLockService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,74 +45,68 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final FileRepository fileRepository;
     private final UserRepository userRepository;
-    private final PostReportRepository postReportRepository;
     private final S3Service s3Service;
     private final CertificateService certificateService;
     private final PointService pointService;
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
     private final DeleteLogService deleteLogService;
-    private final DistributedLockService distributedLockService;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
-        String lockKey = "post_create:" + user.getId() + ":" + dto.getTitle().hashCode();
+        validateAdminCategoryWrite(dto.getCategory(), user);
 
-        return distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            validateAdminCategoryWrite(dto.getCategory(), user);
+        // HTML 엔티티 디코딩 처리
+        String decodedTitle = HtmlUtils.htmlUnescape(dto.getTitle());
+        String decodedContent = HtmlUtils.htmlUnescape(dto.getContent());
 
-            // HTML 엔티티 디코딩 처리
-            String decodedTitle = HtmlUtils.htmlUnescape(dto.getTitle());
-            String decodedContent = HtmlUtils.htmlUnescape(dto.getContent());
+        Post post = Post.builder()
+                .title(decodedTitle)
+                .content(decodedContent)
+                .category(dto.getCategory())
+                .writer(user)
+                .build();
 
-            Post post = Post.builder()
-                    .title(decodedTitle)
-                    .content(decodedContent)
-                    .category(dto.getCategory())
-                    .writer(user)
-                    .build();
-
-            if (dto.getOriginTopicId() != null) {
-                Post originTopic = postRepository.findById(dto.getOriginTopicId())
-                        .orElseThrow(() -> new NotFoundException("원본 토론 주제를 찾을 수 없습니다."));
-                if (!originTopic.isDiscussionTopic()) {
-                    throw new IllegalArgumentException("유효하지 않은 토론 주제입니다.");
-                }
-                post.setOriginTopicId(dto.getOriginTopicId());
+        if (dto.getOriginTopicId() != null) {
+            Post originTopic = postRepository.findById(dto.getOriginTopicId())
+                    .orElseThrow(() -> new NotFoundException("원본 토론 주제를 찾을 수 없습니다."));
+            if (!originTopic.isDiscussionTopic()) {
+                throw new IllegalArgumentException("유효하지 않은 토론 주제입니다.");
             }
+            post.setOriginTopicId(dto.getOriginTopicId());
+        }
 
-            postRepository.save(post);
+        postRepository.save(post);
 
-            dto.getImages().forEach(image -> {
-                File file = File.of(post, image.originalName(), image.s3Key(), image.url());
-                fileRepository.save(file);
-            });
-
-            certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POST_WRITE);
-
-            if (dto.getCategory() == Post.Category.IMAGE) {
-                certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.IMAGE_UPLOAD);
-            }
-
-            pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
-
-            // 포인트 달성 인증서 체크
-            try {
-                certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
-            } catch (Exception e) {
-                log.warn("포인트 인증서 발급 실패: {}", e.getMessage());
-            }
-
-            if (dto.getCategory() == Post.Category.NOTICE) {
-                try {
-                    notificationService.notifyNewNotice(post.getId(), dto.getTitle());
-                } catch (Exception e) {
-                log.warn("공지사항 알림 전송 실패: {}", e.getMessage());
-                }
-            }
-
-            return post.getId();
+        dto.getImages().forEach(image -> {
+            File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+            fileRepository.save(file);
         });
+
+        certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POST_WRITE);
+
+        if (dto.getCategory() == Post.Category.IMAGE) {
+            certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.IMAGE_UPLOAD);
+        }
+
+        pointService.awardPostWritePoints(user, post.getId(), dto.getContent());
+
+        // 포인트 달성 인증서 체크
+        try {
+            certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+        } catch (Exception e) {
+            log.warn("포인트 인증서 발급 실패: {}", e.getMessage());
+        }
+
+        if (dto.getCategory() == Post.Category.NOTICE) {
+            try {
+                notificationService.notifyNewNotice(post.getId(), dto.getTitle());
+            } catch (Exception e) {
+                log.warn("공지사항 알림 전송 실패: {}", e.getMessage());
+            }
+        }
+
+        return post.getId();
     }
 
     @Transactional
@@ -313,26 +307,25 @@ public class PostService {
 
     @Transactional
     public void likePost(Long userId, Long postId) {
-        String lockKey = "post_like:" + userId + ":" + postId;
-        
-        distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            Post post = getPostOrThrow(postId);
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        Post post = getPostOrThrow(postId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
-            if (postLikeRepository.existsByUserAndPost(user, post)) {
-                throw new IllegalArgumentException("이미 추천한 글입니다.");
-            }
-
+        // DB 유니크 제약조건(user_id, post_id)이 중복 방지
+        // DataIntegrityViolationException 발생 시 이미 추천한 것으로 처리
+        try {
             PostLike like = PostLike.of(user, post);
             postLikeRepository.save(like);
-            
+
             post.increaseLikeCount();
             postRepository.save(post);
 
             pointService.awardGiveLikePoints(user, postId.toString());
             pointService.awardReceiveLikePoints(post.getWriter(), postId.toString());
-        });
+        } catch (DataIntegrityViolationException e) {
+            log.debug("중복 추천 시도: userId={}, postId={}", userId, postId);
+            throw new IllegalArgumentException("이미 추천한 글입니다.");
+        }
     }
 
     private Post getPostOrThrow(Long postId) {
@@ -424,9 +417,9 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.byeolnight.dto.post.PostAdminDto> getDeletedPosts() {
+    public List<PostAdminDto> getDeletedPosts() {
         return postRepository.findByIsDeletedTrueOrderByCreatedAtDesc().stream()
-                .map(post -> com.byeolnight.dto.post.PostAdminDto.builder()
+                .map(post -> PostAdminDto.builder()
                         .id(post.getId())
                         .title(post.getTitle())
                         .content(post.getContent())
@@ -458,7 +451,7 @@ public class PostService {
     }
 
     @Transactional
-    public void movePostsCategory(java.util.List<Long> postIds, String targetCategory) {
+    public void movePostsCategory(List<Long> postIds, String targetCategory) {
         Post.Category category;
         try {
             category = Post.Category.valueOf(targetCategory.toUpperCase());

@@ -15,16 +15,19 @@ import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.user.PointService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -36,7 +39,6 @@ public class CommentService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final CommentLikeRepository commentLikeRepository;
-    private final com.byeolnight.infrastructure.lock.DistributedLockService distributedLockService;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -197,34 +199,35 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
     
-    // 댓글 좋아요/취소 (분산락 적용)
+    // 댓글 좋아요/취소 (DB 유니크 제약조건 활용)
     @Transactional
     public boolean toggleCommentLike(Long commentId, User user) {
-        String lockKey = "comment_like:" + user.getId() + ":" + commentId;
-        
-        return distributedLockService.executeWithLock(lockKey, 5, 10, () -> {
-            Comment comment = commentRepository.findById(commentId)
-                    .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-            
-            boolean exists = commentLikeRepository.existsByCommentAndUser(comment, user);
-            
-            if (exists) {
-                // 좋아요 취소
-                commentLikeRepository.deleteByCommentAndUser(comment, user);
-                comment.decreaseLikeCount();
-                return false;
-            } else {
-                // 좋아요 추가
-                CommentLike like =
-                    CommentLike.builder()
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+
+        boolean exists = commentLikeRepository.existsByCommentAndUser(comment, user);
+
+        if (exists) {
+            // 좋아요 취소
+            commentLikeRepository.deleteByCommentAndUser(comment, user);
+            comment.decreaseLikeCount();
+            return false;
+        } else {
+            // 좋아요 추가 - DB 유니크 제약조건(comment_id, user_id)이 중복 방지
+            try {
+                CommentLike like = CommentLike.builder()
                         .comment(comment)
                         .user(user)
                         .build();
                 commentLikeRepository.save(like);
                 comment.increaseLikeCount();
                 return true;
+            } catch (DataIntegrityViolationException e) {
+                // 중복 좋아요 시도 - 이미 존재하는 것으로 간주
+                log.debug("중복 좋아요 시도: userId={}, commentId={}", user.getId(), commentId);
+                return true; // 이미 좋아요한 상태
             }
-        });
+        }
     }
 
     // 관리자 기능: 댓글 블라인드 처리

@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;NON_KEYWORDS=USER
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
+    password:
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -19,6 +19,17 @@ spring:
 nasa:
   api:
     key: TEST_API_KEY
+
+# JWT 테스트용 설정
+app:
+  security:
+    jwt:
+      secret: testSecretKeyForJWT12345678901234567890
+      access-token-validity: 3600000
+      refresh-token-validity: 86400000
+    external-api:
+      ai:
+        google-api-key: TEST_GOOGLE_API_KEY
 
 # 로깅 설정 (테스트용)
 logging:

@@ -281,3 +281,5 @@ GEMINI.md
 *.7z
 # 기존 내용 유지하면서 .env 추가
 .env
+CLAUDE.md
+weather-ondemand-plan.md
