@@ -42,14 +42,13 @@ export default function PostList() {
   const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
   
   const { hotPosts, normalPosts } = React.useMemo(() => {
-    const filteredPosts = posts.filter(post => !post.blinded);
-
+    // 백엔드에서 이미 블라인드 필터링을 처리하므로, 프론트엔드에서는 추가 필터링 불필요
     if (sort === 'popular') {
-      return { hotPosts: [], normalPosts: filteredPosts.slice(0, 30) };
+      return { hotPosts: [], normalPosts: posts.slice(0, 30) };
     }
     const hot: Post[] = [];
     const normal: Post[] = [];
-    filteredPosts.forEach(post => {
+    posts.forEach(post => {
       if (post.hot && hot.length < 4) {
         hot.push(post);
       } else if (!post.hot && normal.length < 25) {
@@ -57,7 +56,7 @@ export default function PostList() {
       }
     });
     return { hotPosts: hot, normalPosts: normal };
-  }, [posts, sort, isAdmin, user]);
+  }, [posts, sort]);
 
   useEffect(() => {
     const handleScroll = () => {

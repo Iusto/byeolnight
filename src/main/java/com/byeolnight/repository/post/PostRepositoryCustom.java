@@ -22,7 +22,7 @@ public interface PostRepositoryCustom {
     /**
      * HOT 게시글 조회 (복합 조건)
      */
-    List<Post> findHotPosts(Category category, LocalDateTime threshold, int likeThreshold, int limit);
+    List<Post> findHotPosts(Category category, LocalDateTime threshold, int likeThreshold, int limit, boolean includeBlinded);
     
     /**
      * 사용자 활동 통계 (카테고리별 게시글 수)

@@ -295,9 +295,9 @@ erDiagram
 
 ### 핵심 테이블 스키마
 
-#### Users 테이블
+#### User 테이블
 ```sql
-CREATE TABLE users (
+CREATE TABLE user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
     password VARCHAR(255),
