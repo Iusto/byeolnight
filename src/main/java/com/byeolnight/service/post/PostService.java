@@ -170,7 +170,8 @@ public class PostService {
         }
         
         // 블라인드 처리된 게시글은 관리자만 접근 가능
-        if (post.isBlinded() && (currentUser == null || currentUser.getRole() != User.Role.ADMIN)) {
+        boolean isAdmin = currentUser != null && currentUser.getRole() == User.Role.ADMIN;
+        if (post.isBlinded() && !isAdmin) {
             throw new NotFoundException("블라인드 처리된 게시글입니다.");
         }
 

@@ -42,7 +42,7 @@ export default function PostList() {
   const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
   
   const { hotPosts, normalPosts } = React.useMemo(() => {
-    const filteredPosts = isAdmin ? posts : posts.filter(post => !post.blinded);
+    const filteredPosts = posts.filter(post => !post.blinded);
 
     if (sort === 'popular') {
       return { hotPosts: [], normalPosts: filteredPosts.slice(0, 30) };
