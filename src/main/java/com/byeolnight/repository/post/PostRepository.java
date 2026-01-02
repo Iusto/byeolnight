@@ -53,13 +53,13 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
 
     /**
      * [게시글 상세조회] 게시글 + 작성자 정보 즉시 로딩
-     * - 조건: 삭제되지 않고 블라인드되지 않은 게시글
+     * - 조건: 삭제되지 않고 작성자가 탈퇴하지 않은 게시글 (블라인드 포함, 접근 제어는 Service에서 처리)
      * - 사용처: 게시글 상세 화면
      */
     @Query("""
     SELECT p FROM Post p
-    JOIN FETCH p.writer
-    WHERE p.id = :id AND p.isDeleted = false AND p.blinded = false
+    JOIN FETCH p.writer w
+    WHERE p.id = :id AND p.isDeleted = false AND w.status != 'WITHDRAWN'
     """)
     Optional<Post> findWithWriterById(@Param("id") Long id);
 

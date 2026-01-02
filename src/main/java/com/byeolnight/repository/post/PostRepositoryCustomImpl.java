@@ -65,22 +65,26 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
     }
 
     @Override
-    public List<Post> findHotPosts(Category category, LocalDateTime threshold, int likeThreshold, int limit) {
+    public List<Post> findHotPosts(Category category, LocalDateTime threshold, int likeThreshold, int limit, boolean includeBlinded) {
         BooleanBuilder builder = new BooleanBuilder();
-        
+
         builder.and(post.isDeleted.eq(false))
-               .and(post.blinded.eq(false))
                .and(post.likeCount.goe(likeThreshold))
                .and(post.writer.isNotNull())
                .and(post.writer.status.ne(User.UserStatus.WITHDRAWN));
-        
+
+        // 블라인드 포함 여부 결정 (관리자가 아니면 블라인드 제외)
+        if (!includeBlinded) {
+            builder.and(post.blinded.eq(false));
+        }
+
         if (category != null) {
             builder.and(post.category.eq(category));
         }
         if (threshold != null) {
             builder.and(post.createdAt.goe(threshold));
         }
-        
+
         return queryFactory
                 .selectFrom(post)
                 .join(post.writer, user).fetchJoin()

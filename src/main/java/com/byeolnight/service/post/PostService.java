@@ -185,24 +185,31 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, String searchType, String search, Pageable pageable) {
+    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, String searchType, String search, Pageable pageable, User currentUser) {
         if (search != null && !search.trim().isEmpty()) {
-            return searchPosts(category, searchType, search.trim(), pageable);
+            return searchPosts(category, searchType, search.trim(), pageable, currentUser);
         }
-        return getFilteredPosts(category, sortParam, pageable);
+        return getFilteredPosts(category, sortParam, pageable, currentUser);
+    }
+
+    // 기존 호환성을 위한 오버로드 메서드
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, String searchType, String search, Pageable pageable) {
+        return getFilteredPosts(category, sortParam, searchType, search, pageable, null);
     }
     
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, Pageable pageable) {
+    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, Pageable pageable, User currentUser) {
         Category categoryEnum = parseCategory(category);
         if (categoryEnum == null) throw new IllegalArgumentException("카테고리 누락");
 
+        boolean isAdmin = currentUser != null && currentUser.getRole() == User.Role.ADMIN;
         Post.SortType sort = Post.SortType.from(sortParam);
         LocalDateTime threshold = LocalDateTime.now().minusDays(30);
 
         switch (sort) {
             case RECENT -> {
-                List<Post> hotPosts = postRepository.findHotPosts(categoryEnum, threshold, 5, 4);
+                List<Post> hotPosts = postRepository.findHotPosts(categoryEnum, threshold, 5, 4, isAdmin);
                 Page<Post> recentPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable);
 
                 Set<Long> hotIds = hotPosts.stream().map(Post::getId).collect(Collectors.toSet());
@@ -218,6 +225,7 @@ public class PostService {
                 // 최신 게시글 처리 (이미 작성자 존재 확인된 데이터)
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
+                        .filter(p -> isAdmin || !p.isBlinded())  // 관리자가 아니면 블라인드 제외
                         .forEach(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
@@ -230,6 +238,7 @@ public class PostService {
             case POPULAR -> {
                 Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
                 List<PostResponseDto> dtos = popularPosts.getContent().stream()
+                        .filter(p -> isAdmin || !p.isBlinded())  // 관리자가 아니면 블라인드 제외
                         .map(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
@@ -243,24 +252,39 @@ public class PostService {
 
         throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다.");
     }
+
+    // 기존 호환성을 위한 오버로드 메서드
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getFilteredPosts(String category, String sortParam, Pageable pageable) {
+        return getFilteredPosts(category, sortParam, pageable, null);
+    }
     
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> searchPosts(String category, String searchType, String keyword, Pageable pageable) {
+    public Page<PostResponseDto> searchPosts(String category, String searchType, String keyword, Pageable pageable, User currentUser) {
         Category categoryEnum = parseCategory(category);
         if (categoryEnum == null) throw new IllegalArgumentException("카테고리 누락");
-        
+
+        boolean isAdmin = currentUser != null && currentUser.getRole() == User.Role.ADMIN;
+
         // QueryDSL 동적 검색 사용
         Page<Post> searchResults = postRepository.searchPosts(keyword, categoryEnum, searchType, pageable);
-        
+
         List<PostResponseDto> dtos = searchResults.getContent().stream()
+                .filter(p -> isAdmin || !p.isBlinded())  // 관리자가 아니면 블라인드 제외
                 .map(p -> {
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());
                     return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
                 })
                 .collect(Collectors.toList());
-        
+
         return new PageImpl<>(dtos, pageable, searchResults.getTotalElements());
+    }
+
+    // 기존 호환성을 위한 오버로드 메서드
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> searchPosts(String category, String searchType, String keyword, Pageable pageable) {
+        return searchPosts(category, searchType, keyword, pageable, null);
     }
 
     @Transactional(readOnly = true)
@@ -268,7 +292,8 @@ public class PostService {
         LocalDateTime threshold = LocalDateTime.now().minusDays(30);
         Pageable pageable = PageRequest.of(0, size);
 
-        List<Post> hotPosts = postRepository.findHotPosts(null, threshold, 5, size);
+        // 전체 카테고리 HOT 게시글은 일반 사용자도 볼 수 있으므로 블라인드 제외
+        List<Post> hotPosts = postRepository.findHotPosts(null, threshold, 5, size, false);
 
         return hotPosts.stream()
                 .map(p -> {

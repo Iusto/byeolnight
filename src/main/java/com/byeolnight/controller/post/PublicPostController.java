@@ -54,13 +54,16 @@ public class PublicPostController {
             @RequestParam(defaultValue = "recent") String sort,
             @RequestParam(required = false) String searchType,
             @RequestParam(required = false) String search,
-            @Parameter(hidden = true) Pageable pageableRaw
+            @Parameter(hidden = true) Pageable pageableRaw,
+            @Parameter(hidden = true) @org.springframework.security.core.annotation.AuthenticationPrincipal
+            com.byeolnight.entity.user.User currentUser
     ) {
-        log.debug("API 요청 파라미터 - category: {}, sort: {}, searchType: {}, search: {}", category, sort, searchType, search);
-        
+        log.debug("API 요청 파라미터 - category: {}, sort: {}, searchType: {}, search: {}, user: {}",
+                category, sort, searchType, search, currentUser != null ? currentUser.getEmail() : "anonymous");
+
         Pageable pageable = PageRequest.of(pageableRaw.getPageNumber(), pageableRaw.getPageSize());
-        Page<PostResponseDto> posts = postService.getFilteredPosts(category, sort, searchType, search, pageable);
-        
+        Page<PostResponseDto> posts = postService.getFilteredPosts(category, sort, searchType, search, pageable, currentUser);
+
         log.debug("반환할 게시글 수: {}", posts.getTotalElements());
         return ResponseEntity.ok(CommonResponse.success(posts));
     }

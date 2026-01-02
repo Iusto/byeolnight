@@ -18,7 +18,7 @@ import java.util.Objects;
  * - 일반 로그인 및 소셜 로그인 지원
  */
 @Entity
-@Table(name = "user")
+@Table(name = "`user`")  // H2 호환성을 위해 백틱 사용 (USER는 H2 예약어)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
