@@ -1,6 +1,7 @@
 package com.byeolnight.controller.weather;
 
 import com.byeolnight.dto.weather.AstronomyEventResponse;
+import com.byeolnight.dto.weather.IssObservationResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
 import com.byeolnight.service.weather.AstronomyService;
 import com.byeolnight.service.weather.WeatherService;
@@ -66,22 +67,22 @@ public class WeatherController {
     @GetMapping("/iss")
     @Operation(summary = "ISS 관측 기회 조회", 
                description = "사용자 위치 기반 ISS 관측 기회 정보를 조회합니다.")
-    public ResponseEntity<Map<String, Object>> getIssObservationOpportunity(
+    public ResponseEntity<IssObservationResponse> getIssObservationOpportunity(
             @Parameter(description = "위도 (-90 ~ 90)", example = "37.5665") 
             @RequestParam Double latitude,
             @Parameter(description = "경도 (-180 ~ 180)", example = "126.9780") 
             @RequestParam Double longitude) {
         
         if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-            return ResponseEntity.badRequest().body(Map.of("error", "잘못된 좌표 값"));
+            return ResponseEntity.badRequest().build();
         }
         
         try {
-            Map<String, Object> issData = astronomyService.getIssObservationOpportunity(latitude, longitude);
+            IssObservationResponse issData = astronomyService.getIssObservationOpportunity(latitude, longitude);
             return ResponseEntity.ok(issData);
         } catch (Exception e) {
             log.error("ISS 관측 정보 조회 실패", e);
-            return ResponseEntity.status(500).body(Map.of("error", "ISS 관측 정보 조회 실패"));
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

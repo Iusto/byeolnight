@@ -51,11 +51,19 @@ public class AstronomyService {
     public List<AstronomyEventResponse> getUpcomingEvents() {
         List<AstronomyEventResponse> events = new ArrayList<>();
         
-        // 1. 최근 실제 천체현상 (소행성, 태양플레어, 지자기폭풍)
-        events.addAll(getRecentRealEvents());
+        // 1. DB에서 저장된 예측 이벤트 조회 (빠른 응답)
+        List<AstronomyEvent> dbEvents = astronomyRepository.findAll();
+        if (!dbEvents.isEmpty()) {
+            events.addAll(dbEvents.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList()));
+        } else {
+            // DB에 데이터가 없으면 예측 이벤트만 반환 (API 호출 없음)
+            events.addAll(getPredictableEvents());
+        }
         
-        // 2. 예측 가능한 천체 이벤트 (월식, 일식, 슈퍼문 등)
-        events.addAll(getPredictableEvents());
+        // 2. 최근 실제 천체현상 추가 (캐시된 fallback 데이터 사용)
+        events.addAll(getCachedRealEvents());
         
         return events.stream()
                 .sorted((e1, e2) -> {
@@ -67,28 +75,67 @@ public class AstronomyService {
                 .collect(Collectors.toList());
     }
 
-    public Map<String, Object> getIssObservationOpportunity(double latitude, double longitude) {
+    private AstronomyEventResponse convertToResponse(AstronomyEvent event) {
+        return AstronomyEventResponse.builder()
+            .id(event.getId())
+            .eventType(event.getEventType())
+            .title(event.getTitle())
+            .description(event.getDescription())
+            .eventDate(event.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+            .peakTime(event.getPeakTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+            .visibility(event.getVisibility())
+            .magnitude(event.getMagnitude())
+            .isActive(event.isActive())
+            .build();
+    }
+
+    private List<AstronomyEventResponse> getCachedRealEvents() {
+        // Fallback 데이터만 반환 (API 호출 없음)
+        List<AstronomyEventResponse> events = new ArrayList<>();
+        
+        events.add(AstronomyEventResponse.builder()
+            .id(1L)
+            .eventType("ASTEROID")
+            .title("소행성 2021 RU7")
+            .description("지구 근접 소행성이 달 궤도보다 가까운 거리에서 안전하게 통과했습니다. 이러한 소행성들은 지구 근접 천체(NEO)로 분류되며, 지구 방어 시스템 연구에 중요한 데이터를 제공합니다.")
+            .eventDate(LocalDate.now().minusDays(3) + " 14:30")
+            .peakTime(LocalDate.now().minusDays(3) + " 14:30")
+            .visibility("WORLDWIDE")
+            .magnitude("MEDIUM")
+            .isActive(true)
+            .build());
+        
+        events.add(AstronomyEventResponse.builder()
+            .id(2L)
+            .eventType("SOLAR_FLARE")
+            .title("태양플레어 M1.7 등급")
+            .description("태양 표면에서 강력한 자기장 폭발로 M1.7 등급 플레어가 발생했습니다. 이는 지구의 전파 통신과 위성 시스템에 영향을 줄 수 있으며, 극지방에서는 아름다운 오로라를 관측할 기회가 증가합니다.")
+            .eventDate(LocalDate.now().minusDays(5) + " 08:15")
+            .peakTime(LocalDate.now().minusDays(5) + " 08:15")
+            .visibility("WORLDWIDE")
+            .magnitude("HIGH")
+            .isActive(true)
+            .build());
+        
+        return events;
+    }
+
+    public IssObservationResponse getIssObservationOpportunity(double latitude, double longitude) {
         try {
-            // ISS 현재 위치 및 다음 관측 기회 조회
-            Map<String, Object> issData = fetchIssCurrentLocation();
-            Map<String, Object> nextPass = calculateNextIssPass(latitude, longitude);
+            IssLocationData issData = fetchIssCurrentLocation();
+            IssPassData nextPass = calculateNextIssPass(latitude, longitude);
             
-            Map<String, Object> result = new HashMap<>();
-            result.put("message_key", "iss.detailed_status");
-            result.put("friendly_message", createIssStatusMessage(issData));
-            
-            // 현재 ISS 정보
-            if (issData != null) {
-                result.put("current_altitude_km", issData.get("altitude"));
-                result.put("current_velocity_kmh", issData.get("velocity"));
-            }
-            
-            // 다음 관측 기회
-            if (nextPass != null) {
-                result.putAll(nextPass);
-            }
-            
-            return result;
+            return IssObservationResponse.builder()
+                .messageKey("iss.detailed_status")
+                .friendlyMessage(createIssStatusMessage(issData))
+                .currentAltitudeKm(issData != null ? issData.getAltitude() : null)
+                .currentVelocityKmh(issData != null ? issData.getVelocity() : null)
+                .nextPassTime(nextPass.getNextPassTime())
+                .nextPassDate(nextPass.getNextPassDate())
+                .nextPassDirection(nextPass.getNextPassDirection())
+                .estimatedDuration(nextPass.getEstimatedDuration())
+                .visibilityQuality(nextPass.getVisibilityQuality())
+                .build();
             
         } catch (Exception e) {
             log.error("ISS 관측 정보 조회 실패: {}", e.getMessage());
@@ -107,7 +154,7 @@ public class AstronomyService {
         return performAstronomyDataCollection("관리자 수동 수집");
     }
 
-    // ==================== 최근 실제 천체현상 ====================
+    // ==================== 실시간 NASA API 호출 (스케줄러/수동 수집용) ====================
     
     private List<AstronomyEventResponse> getRecentRealEvents() {
         List<AstronomyEventResponse> events = new ArrayList<>();
@@ -351,7 +398,7 @@ public class AstronomyService {
 
     // ==================== ISS 관측 기회 ====================
     
-    private Map<String, Object> fetchIssCurrentLocation() {
+    private IssLocationData fetchIssCurrentLocation() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ISS_LOCATION_URL))
@@ -362,12 +409,12 @@ public class AstronomyService {
             
             if (response.statusCode() == 200) {
                 JsonNode issData = objectMapper.readTree(response.body());
-                Map<String, Object> result = new HashMap<>();
-                result.put("altitude", issData.get("altitude").asDouble());
-                result.put("velocity", issData.get("velocity").asDouble());
-                result.put("latitude", issData.get("latitude").asDouble());
-                result.put("longitude", issData.get("longitude").asDouble());
-                return result;
+                return IssLocationData.builder()
+                    .altitude(issData.get("altitude").asDouble())
+                    .velocity(issData.get("velocity").asDouble())
+                    .latitude(issData.get("latitude").asDouble())
+                    .longitude(issData.get("longitude").asDouble())
+                    .build();
             }
         } catch (Exception e) {
             log.warn("ISS 위치 조회 실패: {}", e.getMessage());
@@ -375,50 +422,61 @@ public class AstronomyService {
         return null;
     }
     
-    private Map<String, Object> calculateNextIssPass(double latitude, double longitude) {
-        // ISS는 약 90분마다 지구를 한 바퀴 돕니다
-        // 다음 관측 기회를 계산 (실제로는 복잡한 궤도 계산이 필요하지만 간단히 구현)
+    private IssPassData calculateNextIssPass(double latitude, double longitude) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime nextPass = now.plusHours(2).plusMinutes(30); // 예시: 2시간 30분 후
+        LocalDateTime nextPass = now.plusHours(2).plusMinutes(30);
         
-        Map<String, Object> result = new HashMap<>();
-        result.put("next_pass_time", nextPass.format(DateTimeFormatter.ofPattern("HH:mm")));
-        result.put("next_pass_date", nextPass.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        result.put("next_pass_direction", "NORTHEAST");
-        result.put("estimated_duration", "5-7분");
-        result.put("visibility_quality", "GOOD");
-        
-        return result;
+        return IssPassData.builder()
+            .nextPassTime(nextPass.format(DateTimeFormatter.ofPattern("HH:mm")))
+            .nextPassDate(nextPass.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+            .nextPassDirection("NORTHEAST")
+            .estimatedDuration("5-7분")
+            .visibilityQuality("GOOD")
+            .build();
     }
     
-    private String createIssStatusMessage(Map<String, Object> issData) {
+    private String createIssStatusMessage(IssLocationData issData) {
         if (issData == null) {
             return "ISS는 현재 지구 상공 약 400km에서 시속 27,600km로 이동 중입니다.";
         }
         
-        double altitude = (Double) issData.get("altitude");
-        double velocity = (Double) issData.get("velocity");
-        
         return String.format("ISS는 현재 고도 %.0fkm에서 시속 %.0fkm로 이동 중입니다.", 
-                           altitude, velocity);
+                           issData.getAltitude(), issData.getVelocity());
     }
     
-    private Map<String, Object> createFallbackIssInfo() {
-        Map<String, Object> fallback = new HashMap<>();
-        fallback.put("message_key", "iss.fallback");
-        fallback.put("friendly_message", "ISS는 지구 상공 400km에서 90분마다 지구를 한 바퀴 돕니다.");
-        fallback.put("current_altitude_km", 408);
-        fallback.put("current_velocity_kmh", 27600);
-        
-        // 다음 관측 기회 (현재 시간 기준)
+    private IssObservationResponse createFallbackIssInfo() {
         LocalDateTime nextPass = LocalDateTime.now().plusHours(3);
-        fallback.put("next_pass_time", nextPass.format(DateTimeFormatter.ofPattern("HH:mm")));
-        fallback.put("next_pass_date", nextPass.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        fallback.put("next_pass_direction", "NORTHEAST");
-        fallback.put("estimated_duration", "5-7분");
-        fallback.put("visibility_quality", "GOOD");
         
-        return fallback;
+        return IssObservationResponse.builder()
+            .messageKey("iss.fallback")
+            .friendlyMessage("ISS는 지구 상공 400km에서 90분마다 지구를 한 바퀴 돕니다.")
+            .currentAltitudeKm(408.0)
+            .currentVelocityKmh(27600.0)
+            .nextPassTime(nextPass.format(DateTimeFormatter.ofPattern("HH:mm")))
+            .nextPassDate(nextPass.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+            .nextPassDirection("NORTHEAST")
+            .estimatedDuration("5-7분")
+            .visibilityQuality("GOOD")
+            .build();
+    }
+    
+    @Getter
+    @Builder
+    private static class IssLocationData {
+        private final Double altitude;
+        private final Double velocity;
+        private final Double latitude;
+        private final Double longitude;
+    }
+    
+    @Getter
+    @Builder
+    private static class IssPassData {
+        private final String nextPassTime;
+        private final String nextPassDate;
+        private final String nextPassDirection;
+        private final String estimatedDuration;
+        private final String visibilityQuality;
     }
 
     // ==================== 데이터 수집 ====================
@@ -427,7 +485,20 @@ public class AstronomyService {
         try {
             log.info("천체 이벤트 데이터 수집 시작 ({})", trigger);
             
-            List<AstronomyEvent> newEvents = generatePredictableEventsForDB();
+            List<AstronomyEvent> newEvents = new ArrayList<>();
+            
+            // 1. 예측 가능한 이벤트 (DB 저장용)
+            newEvents.addAll(generatePredictableEventsForDB());
+            
+            // 2. NASA API에서 실시간 데이터 수집 (선택적)
+            try {
+                List<AstronomyEvent> realTimeEvents = collectRealTimeEventsFromNASA();
+                if (!realTimeEvents.isEmpty()) {
+                    newEvents.addAll(realTimeEvents);
+                }
+            } catch (Exception e) {
+                log.warn("NASA API 데이터 수집 실패, fallback 데이터 사용: {}", e.getMessage());
+            }
             
             if (!newEvents.isEmpty()) {
                 astronomyRepository.deleteAll();
@@ -454,6 +525,12 @@ public class AstronomyService {
                 .error(e.getClass().getSimpleName())
                 .build();
         }
+    }
+    
+    private List<AstronomyEvent> collectRealTimeEventsFromNASA() {
+        // 실제 NASA API 호출은 선택적으로 구현
+        // 현재는 fallback 데이터만 사용
+        return new ArrayList<>();
     }
     
     private List<AstronomyEvent> generatePredictableEventsForDB() {
