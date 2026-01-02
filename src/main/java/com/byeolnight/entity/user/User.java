@@ -18,7 +18,7 @@ import java.util.Objects;
  * - 일반 로그인 및 소셜 로그인 지원
  */
 @Entity
-@Table(name = "users")
+@Table(name = "user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
