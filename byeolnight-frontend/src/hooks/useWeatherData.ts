@@ -14,18 +14,6 @@ export interface WeatherData {
   observationTime: string;
 }
 
-export interface AstronomyEvent {
-  id: number;
-  eventType: string;
-  title: string;
-  description: string;
-  eventDate: string;
-  peakTime: string;
-  visibility: string;
-  magnitude: string;
-  isActive: boolean;
-}
-
 export interface IssData {
   message_key: string;
   friendly_message: string;
@@ -49,27 +37,9 @@ export const useWeatherObservation = (latitude: number, longitude: number) => {
       });
       return response.data;
     },
-    staleTime: 10 * 60 * 1000, // 10분 - 백엔드 Cache-Control과 동일
-    gcTime: 15 * 60 * 1000, // 15분 - 백엔드 Redis TTL과 비슷
+    staleTime: 10 * 60 * 1000, // 10분
+    gcTime: 15 * 60 * 1000, // 15분
     retry: 2,
-  });
-};
-
-// 천체 이벤트 조회 (매일 오전 9시 수집, 날짜 기반 캐싱)
-export const useAstronomyEvents = () => {
-  // 오늘 날짜를 queryKey에 포함 (날짜가 바뀌면 자동으로 새 쿼리)
-  const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD' 형식
-
-  return useQuery<AstronomyEvent[]>({
-    queryKey: ['weather', 'events', today],
-    queryFn: async () => {
-      const response = await axios.get('/api/weather/events', {
-        timeout: 10000,
-      });
-      return response.data || [];
-    },
-    staleTime: Infinity, // 같은 날짜 내에서는 절대 stale하지 않음
-    gcTime: 24 * 60 * 60 * 1000, // 24시간 - 다음날까지 캐시 유지
   });
 };
 
@@ -84,7 +54,7 @@ export const useIssObservation = (latitude: number, longitude: number) => {
       });
       return response.data;
     },
-    staleTime: 1 * 60 * 1000, // 1분 - 자주 업데이트
+    staleTime: 1 * 60 * 1000, // 1분
     gcTime: 10 * 60 * 1000, // 10분
     refetchInterval: 1 * 60 * 1000, // 1분마다 자동 갱신
     retry: 1,
