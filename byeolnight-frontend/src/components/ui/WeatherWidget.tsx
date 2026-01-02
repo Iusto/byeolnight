@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { useWeatherObservation, useAstronomyEvents, useIssObservation } from '../../hooks/useWeatherData';
+import { useWeatherObservation, useIssObservation } from '../../hooks/useWeatherData';
 
 const WeatherWidget: React.FC = () => {
   const { t } = useTranslation();
@@ -14,7 +14,6 @@ const WeatherWidget: React.FC = () => {
     lon: 126.9780,
   });
   const [locationLoading, setLocationLoading] = useState(true);
-  const [collectingAstronomy, setCollectingAstronomy] = useState(false);
 
   // React Query hooks - 조건부로 활성화
   const {
@@ -23,12 +22,6 @@ const WeatherWidget: React.FC = () => {
     error: weatherError
   } = useWeatherObservation(coordinates.lat, coordinates.lon);
 
-  const {
-    data: events = [],
-    isLoading: eventsLoading,
-    error: eventsError,
-    refetch: refetchEvents
-  } = useAstronomyEvents();
 
   const {
     data: issData,
@@ -78,64 +71,6 @@ const WeatherWidget: React.FC = () => {
     loadPosition();
   }, []);
 
-  const handleCollectAstronomy = async () => {
-    if (!confirm(t('weather.confirm_nasa_update'))) return;
-
-    setCollectingAstronomy(true);
-    try {
-      await axios.post('/api/admin/scheduler/astronomy/manual');
-      alert(t('weather.nasa_update_success'));
-      // React Query의 refetch를 사용하여 데이터 갱신
-      refetchEvents();
-    } catch (error: any) {
-      console.error('천체 데이터 수집 실패:', error);
-      alert(t('weather.nasa_update_failed'));
-    } finally {
-      setCollectingAstronomy(false);
-    }
-  };
-
-  const getEventTypeIcon = (eventType: string) => {
-    switch (eventType) {
-      case 'ASTEROID': return '🪨';
-      case 'SOLAR_FLARE': return '☀️';
-      case 'GEOMAGNETIC_STORM': return '🌍';
-      case 'BLOOD_MOON': return '🔴';
-      case 'SOLAR_ECLIPSE': return '🌑';
-      case 'SUPERMOON': return '🌕';
-      default: return '⭐';
-    }
-  };
-
-  const getEventTypeLabel = (eventType: string) => {
-    return t(`weather.event_types.${eventType}`) || t('weather.event_types.DEFAULT');
-  };
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      const locale = t('common.locale') || 'ko-KR';
-      return date.toLocaleDateString(locale, {
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const formatTime = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      const locale = t('common.locale') || 'ko-KR';
-      return date.toLocaleTimeString(locale, {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
 
   const getMoonPhaseIcon = (moonPhase: string) => {
     return moonPhase;
@@ -215,65 +150,6 @@ const WeatherWidget: React.FC = () => {
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-300">{t('weather.loading_weather')}</p>
-          </div>
-        )}
-      </div>
-
-      {/* 최근 천체 현상 */}
-      <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl p-6 text-white shadow-2xl border border-blue-500/20">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold flex items-center gap-2">
-            🌌 {t('weather.recent_astronomy_events')}
-          </h3>
-          {user?.role === 'ADMIN' && (
-            <button
-              onClick={handleCollectAstronomy}
-              disabled={collectingAstronomy}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
-            >
-              {collectingAstronomy ? t('weather.updating') : t('weather.nasa_update')}
-            </button>
-          )}
-        </div>
-
-        {eventsError ? (
-          <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
-            <p className="text-red-200 text-sm">{t('weather.events_error')}</p>
-          </div>
-        ) : events.length > 0 ? (
-          <div className="space-y-4">
-            {events.map((event, index) => (
-              <div key={`${event.eventType}-${index}`} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{getEventTypeIcon(event.eventType)}</span>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <span className="text-xs px-2 py-1 bg-blue-500/30 text-blue-200 rounded-full">
-                        {getEventTypeLabel(event.eventType)}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-gray-500/30 text-gray-300 rounded-full">
-                        {formatDate(event.eventDate)}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-purple-500/30 text-purple-200 rounded-full">
-                        {formatTime(event.eventDate)}
-                      </span>
-                    </div>
-                    <h4 className="font-semibold text-white mb-2">{event.title}</h4>
-                    <p className="text-sm text-gray-300">{event.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : eventsLoading ? (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-4">🌌</div>
-            <p className="text-purple-200">{t('weather.loading_events')}</p>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-4">🌌</div>
-            <p className="text-purple-200">{t('weather.no_events')}</p>
           </div>
         )}
       </div>

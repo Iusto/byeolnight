@@ -1,6 +1,5 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.service.weather.AstronomyService;
 import com.byeolnight.dto.admin.SchedulerStatusDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.crawler.SpaceNewsScheduler;
@@ -39,7 +38,6 @@ public class AdminSchedulerController {
     private final MessageRepository messageRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final AstronomyService astronomyService;
 
     @PostMapping("/news/manual")
     @Operation(
@@ -80,27 +78,6 @@ public class AdminSchedulerController {
             return CommonResponse.error("토론 주제 생성 실패: " + e.getMessage());
         }
     }
-
-    @PostMapping("/astronomy/manual")
-    @Operation(
-        summary = "수동 천체 이벤트 수집",
-        description = "관리자가 수동으로 실제 천체 이벤트 데이터를 수집합니다."
-    )
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "천체 이벤트 수집 성공"),
-        @ApiResponse(responseCode = "500", description = "천체 이벤트 수집 실패")
-    })
-    public CommonResponse<String> manualAstronomyCollection() {
-        try {
-            log.info("관리자 수동 천체 이벤트 수집 시작");
-            astronomyService.fetchDailyAstronomyEvents();
-            return CommonResponse.success("천체 이벤트 수집이 완료되었습니다.");
-        } catch (Exception e) {
-            log.error("수동 천체 이벤트 수집 실패", e);
-            return CommonResponse.error("천체 이벤트 수집 실패: " + e.getMessage());
-        }
-    }
-
 
     @GetMapping("/status")
     @Operation(
