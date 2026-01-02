@@ -89,8 +89,10 @@ export default function Home() {
 
 
 
-  const filteredPosts = useMemo(() => posts.filter(post => !post.blinded), [posts]);
-  const filteredStarPhotos = useMemo(() => starPhotos.filter(photo => !photo.blinded), [starPhotos]);
+  // 관리자는 블라인드된 게시글도 볼 수 있음
+  const isAdmin = user?.role === 'ADMIN';
+  const filteredPosts = useMemo(() => posts.filter(post => isAdmin || !post.blinded), [posts, isAdmin]);
+  const filteredStarPhotos = useMemo(() => starPhotos.filter(photo => isAdmin || !photo.blinded), [starPhotos, isAdmin]);
 
   if (authLoading || !dataLoaded) {
     return <LoadingSpinner />;
@@ -138,7 +140,7 @@ export default function Home() {
                 borderColor="border-emerald-500/20"
               >
                 <div className="space-y-3">
-                  {boardPosts.NOTICE?.filter(post => !post.blinded).map((post) => (
+                  {boardPosts.NOTICE?.filter(post => isAdmin || !post.blinded).map((post) => (
                     <div key={post.id} className="group bg-emerald-900/20 hover:bg-emerald-900/40 rounded-xl p-4 transition-all duration-300 border border-emerald-700/20 hover:border-emerald-500/50">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between mb-2">
@@ -262,7 +264,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="space-y-3">
-                  {boardPosts.NEWS?.filter(post => !post.blinded).map((post) => (
+                  {boardPosts.NEWS?.filter(post => isAdmin || !post.blinded).map((post) => (
                     <div key={post.id} className="bg-blue-900/20 rounded-lg p-4 hover:bg-blue-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
@@ -291,7 +293,7 @@ export default function Home() {
                 borderColor="border-purple-500/30"
               >
                 <div className="space-y-3">
-                  {boardPosts.REVIEW?.filter(post => !post.blinded).map((post) => (
+                  {boardPosts.REVIEW?.filter(post => isAdmin || !post.blinded).map((post) => (
                     <div key={post.id} className="bg-purple-900/20 rounded-lg p-4 hover:bg-purple-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
@@ -326,7 +328,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="space-y-3">
-                  {boardPosts.DISCUSSION?.filter(post => !post.blinded).map((post) => (
+                  {boardPosts.DISCUSSION?.filter(post => isAdmin || !post.blinded).map((post) => (
                     <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
@@ -355,7 +357,7 @@ export default function Home() {
                 borderColor="border-pink-500/30"
               >
                 <div className="space-y-3">
-                  {boardPosts.FREE?.filter(post => !post.blinded).map((post) => (
+                  {boardPosts.FREE?.filter(post => isAdmin || !post.blinded).map((post) => (
                     <div key={post.id} className="bg-pink-900/20 rounded-lg p-4 hover:bg-pink-900/30 transition-colors">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">
@@ -390,7 +392,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="space-y-3">
-                  {boardPosts.STARLIGHT_CINEMA?.filter(post => !post.blinded).map((post) => (
+                  {boardPosts.STARLIGHT_CINEMA?.filter(post => isAdmin || !post.blinded).map((post) => (
                     <div key={post.id} className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 hover:from-purple-900/30 hover:to-pink-900/30 transition-all duration-300 border border-purple-700/20">
                       <Link to={`/posts/${post.id}`}>
                         <div className="flex items-center justify-between">

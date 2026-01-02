@@ -105,7 +105,7 @@ jobs:
 
     - name: 의존성 설치
       working-directory: ./byeolnight-frontend
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --no-frozen-lockfile
 
     - name: 빌드 테스트
       working-directory: ./byeolnight-frontend

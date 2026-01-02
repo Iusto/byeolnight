@@ -1,156 +1,92 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-
-interface WeatherData {
-  location: string;
-  latitude: number;
-  longitude: number;
-  cloudCover: number;
-  visibility: number;
-  moonPhase: string;
-  observationQuality: string;
-  recommendation: string;
-  observationTime: string;
-}
-
-interface AstronomyEvent {
-  id: number;
-  eventType: string;
-  title: string;
-  description: string;
-  eventDate: string;
-  peakTime: string;
-  visibility: string;
-  magnitude: string;
-  isActive: boolean;
-}
-
-interface IssData {
-  message_key: string;
-  friendly_message: string;
-  current_altitude_km?: number;
-  current_velocity_kmh?: number;
-  next_pass_time?: string;
-  next_pass_date?: string;
-  next_pass_direction?: string;
-  estimated_duration?: string;
-  visibility_quality?: string;
-}
+import { useWeatherObservation, useAstronomyEvents, useIssObservation } from '../../hooks/useWeatherData';
 
 const WeatherWidget: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [events, setEvents] = useState<AstronomyEvent[]>([]);
-  const [issData, setIssData] = useState<IssData | null>(null);
-  
-  const [loading, setLoading] = useState(true);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [eventsError, setEventsError] = useState<string | null>(null);
-  const [issError, setIssError] = useState<string | null>(null);
+
+  // 위치 정보 상태
+  const [coordinates, setCoordinates] = useState<{ lat: number; lon: number }>({
+    lat: 37.5665,
+    lon: 126.9780,
+  });
+  const [locationLoading, setLocationLoading] = useState(true);
   const [collectingAstronomy, setCollectingAstronomy] = useState(false);
 
+  // React Query hooks - 조건부로 활성화
+  const {
+    data: weather,
+    isLoading: weatherLoading,
+    error: weatherError
+  } = useWeatherObservation(coordinates.lat, coordinates.lon);
+
+  const {
+    data: events = [],
+    isLoading: eventsLoading,
+    error: eventsError,
+    refetch: refetchEvents
+  } = useAstronomyEvents();
+
+  const {
+    data: issData,
+    isLoading: issLoading,
+    error: issError
+  } = useIssObservation(coordinates.lat, coordinates.lon);
+
+  // 위치 정보 가져오기 (한 번만 실행)
   useEffect(() => {
-    loadAllData();
-  }, []);
-
-  const loadAllData = async () => {
-    setLoading(true);
-    
-    try {
-      // 위치 정보 가져오기
-      const position = await getCurrentPosition();
-      const lat = position?.coords.latitude || 37.5665;
-      const lon = position?.coords.longitude || 126.9780;
-      
-      // 병렬로 데이터 로드
-      await Promise.allSettled([
-        fetchWeatherData(lat, lon),
-        fetchAstronomyEvents(),
-        fetchIssData(lat, lon)
-      ]);
-    } catch (error) {
-      console.error('데이터 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getCurrentPosition = (): Promise<GeolocationPosition | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
-      }
-
-      const timeoutId = setTimeout(() => {
-        resolve(null);
-      }, 5000);
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          clearTimeout(timeoutId);
-          resolve(position);
-        },
-        () => {
-          clearTimeout(timeoutId);
+    const getCurrentPosition = (): Promise<GeolocationPosition | null> => {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
           resolve(null);
-        },
-        { timeout: 10000, enableHighAccuracy: true, maximumAge: 60000 }
-      );
-    });
-  };
+          return;
+        }
 
-  const fetchWeatherData = async (latitude: number, longitude: number) => {
-    try {
-      setWeatherError(null);
-      const response = await axios.get('/api/weather/observation', {
-        params: { latitude, longitude },
-        timeout: 10000
+        const timeoutId = setTimeout(() => {
+          resolve(null);
+        }, 5000);
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            clearTimeout(timeoutId);
+            resolve(position);
+          },
+          () => {
+            clearTimeout(timeoutId);
+            resolve(null);
+          },
+          { timeout: 10000, enableHighAccuracy: true, maximumAge: 60000 }
+        );
       });
-      setWeather(response.data);
-    } catch (error: any) {
-      console.error('날씨 데이터 조회 실패:', error);
-      setWeatherError(t('weather.weather_error'));
-    }
-  };
+    };
 
-  const fetchAstronomyEvents = async () => {
-    try {
-      setEventsError(null);
-      const response = await axios.get('/api/weather/events', { timeout: 10000 });
-      setEvents(response.data || []);
-    } catch (error: any) {
-      console.error('천체 이벤트 조회 실패:', error);
-      setEventsError(t('weather.events_error'));
-    }
-  };
+    const loadPosition = async () => {
+      setLocationLoading(true);
+      const position = await getCurrentPosition();
+      if (position) {
+        setCoordinates({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+      }
+      setLocationLoading(false);
+    };
 
-  const fetchIssData = async (latitude: number, longitude: number) => {
-    try {
-      setIssError(null);
-      const response = await axios.get('/api/weather/iss', {
-        params: { latitude, longitude },
-        timeout: 10000
-      });
-      setIssData(response.data);
-    } catch (error: any) {
-      console.error('ISS 데이터 조회 실패:', error);
-      setIssError(t('weather.iss_no_data'));
-    }
-  };
+    loadPosition();
+  }, []);
 
   const handleCollectAstronomy = async () => {
     if (!confirm(t('weather.confirm_nasa_update'))) return;
-    
+
     setCollectingAstronomy(true);
     try {
       await axios.post('/api/admin/scheduler/astronomy/manual');
       alert(t('weather.nasa_update_success'));
-      await fetchAstronomyEvents();
+      // React Query의 refetch를 사용하여 데이터 갱신
+      refetchEvents();
     } catch (error: any) {
       console.error('천체 데이터 수집 실패:', error);
       alert(t('weather.nasa_update_failed'));
@@ -201,9 +137,7 @@ const WeatherWidget: React.FC = () => {
     }
   };
 
-  // 백엔드에서 이미 아이콘으로 반환하므로 그대로 사용
   const getMoonPhaseIcon = (moonPhase: string) => {
-    // 백엔드에서 이미 정확한 달의 위상 아이콘을 계산해서 반환
     return moonPhase;
   };
 
@@ -216,6 +150,9 @@ const WeatherWidget: React.FC = () => {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  // 로딩 상태 (위치 정보나 날씨 데이터 로딩 중)
+  const loading = locationLoading || weatherLoading;
 
   if (loading) {
     return (
@@ -247,7 +184,7 @@ const WeatherWidget: React.FC = () => {
 
         {weatherError ? (
           <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
-            <p className="text-red-200 text-sm">{weatherError}</p>
+            <p className="text-red-200 text-sm">{t('weather.weather_error')}</p>
           </div>
         ) : weather ? (
           <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
@@ -301,7 +238,7 @@ const WeatherWidget: React.FC = () => {
 
         {eventsError ? (
           <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
-            <p className="text-red-200 text-sm">{eventsError}</p>
+            <p className="text-red-200 text-sm">{t('weather.events_error')}</p>
           </div>
         ) : events.length > 0 ? (
           <div className="space-y-4">
@@ -328,10 +265,15 @@ const WeatherWidget: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : eventsLoading ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🌌</div>
             <p className="text-purple-200">{t('weather.loading_events')}</p>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">🌌</div>
+            <p className="text-purple-200">{t('weather.no_events')}</p>
           </div>
         )}
       </div>
@@ -346,7 +288,7 @@ const WeatherWidget: React.FC = () => {
 
         {issError ? (
           <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
-            <p className="text-red-200 text-sm">{issError}</p>
+            <p className="text-red-200 text-sm">{t('weather.iss_no_data')}</p>
           </div>
         ) : issData ? (
           <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
@@ -355,7 +297,7 @@ const WeatherWidget: React.FC = () => {
               <div className="flex-1">
                 <h4 className="font-semibold text-white mb-3">{t('weather.iss_current_status')}</h4>
                 <p className="text-sm text-gray-300 mb-4">{issData.friendly_message}</p>
-                
+
                 {issData.current_altitude_km && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div className="flex justify-between p-2 bg-white/5 rounded-lg">
@@ -370,7 +312,7 @@ const WeatherWidget: React.FC = () => {
                     )}
                   </div>
                 )}
-                
+
                 {issData.next_pass_time && (
                   <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
                     <div className="flex items-start gap-2 mb-2">
@@ -396,12 +338,12 @@ const WeatherWidget: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : (
+        ) : issLoading ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🛰️</div>
             <p className="text-gray-200">{t('weather.loading_iss_data')}</p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

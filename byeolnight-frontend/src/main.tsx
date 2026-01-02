@@ -1,10 +1,23 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
 import App from './App'
 import './index.css'
 import './styles/stellar-animations.css'
 import './styles/tui-editor.css'
+
+// React Query 설정
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5분 - 데이터가 5분간 신선(fresh)하다고 간주
+      gcTime: 10 * 60 * 1000, // 10분 - 캐시 유지 시간 (구 cacheTime)
+      retry: 1, // 실패 시 1번만 재시도
+      refetchOnWindowFocus: false, // 윈도우 포커스 시 자동 재요청 비활성화
+    },
+  },
+})
 
 // 정적 파일 경로 확인 함수
 const isStaticFilePath = (pathname: string): boolean => {
@@ -20,10 +33,12 @@ if (isStaticFilePath(window.location.pathname)) {
   // 아무것도 렌더링하지 않고 종료
 } else {
   ReactDOM.createRoot(document.getElementById('root')!).render(
-    <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }

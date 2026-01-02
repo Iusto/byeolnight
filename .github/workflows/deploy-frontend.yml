@@ -28,7 +28,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: byeolnight-frontend
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
       
       - name: Build
         working-directory: byeolnight-frontend
