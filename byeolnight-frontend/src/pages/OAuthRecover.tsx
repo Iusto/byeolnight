@@ -13,16 +13,12 @@ export default function OAuthRecover() {
   const provider = searchParams.get('provider')
 
   useEffect(() => {
-    // URL 파라미터가 로드될 때까지 대기
-    const timer = setTimeout(() => {
-      setIsReady(true)
-      // 파라미터가 없으면 로그인 페이지로 리다이렉트
-      if (!email || !provider) {
-        navigate('/login')
-      }
-    }, 100)
-
-    return () => clearTimeout(timer)
+    // URL 파라미터가 없으면 로그인 페이지로 리다이렉트
+    if (!email || !provider) {
+      navigate('/login')
+      return
+    }
+    setIsReady(true)
   }, [email, provider, navigate])
 
   const getProviderName = (provider: string) => {

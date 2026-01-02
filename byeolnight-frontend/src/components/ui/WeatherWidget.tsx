@@ -172,24 +172,24 @@ const WeatherWidget: React.FC = () => {
               <span className="text-2xl">🛰️</span>
               <div className="flex-1">
                 <h4 className="font-semibold text-white mb-3">{t('weather.iss_current_status')}</h4>
-                <p className="text-sm text-gray-300 mb-4">{issData.friendly_message}</p>
+                <p className="text-sm text-gray-300 mb-4">{issData.friendlyMessage}</p>
 
-                {issData.current_altitude_km && (
+                {issData.currentAltitudeKm && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div className="flex justify-between p-2 bg-white/5 rounded-lg">
                       <span className="text-gray-300 text-sm">🚀 {t('weather.iss_altitude')}</span>
-                      <span className="font-semibold text-white text-sm">{Math.round(issData.current_altitude_km).toLocaleString()}km</span>
+                      <span className="font-semibold text-white text-sm">{Math.round(issData.currentAltitudeKm).toLocaleString()}km</span>
                     </div>
-                    {issData.current_velocity_kmh && (
+                    {issData.currentVelocityKmh && (
                       <div className="flex justify-between p-2 bg-white/5 rounded-lg">
                         <span className="text-gray-300 text-sm">⚡ {t('weather.iss_velocity')}</span>
-                        <span className="font-semibold text-white text-sm">{Math.round(issData.current_velocity_kmh).toLocaleString()}km/h</span>
+                        <span className="font-semibold text-white text-sm">{Math.round(issData.currentVelocityKmh).toLocaleString()}km/h</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {issData.next_pass_time && (
+                {issData.nextPassTime && (
                   <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-lg">🔮</span>
@@ -198,15 +198,15 @@ const WeatherWidget: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-7">
                       <div className="text-sm text-gray-300">
                         <span className="block font-medium text-white">{t('weather.iss_next_time')}</span>
-                        <span>{issData.next_pass_date} {issData.next_pass_time}</span>
+                        <span>{issData.nextPassDate} {issData.nextPassTime}</span>
                       </div>
                       <div className="text-sm text-gray-300">
                         <span className="block font-medium text-white">{t('weather.iss_next_direction')}</span>
-                        <span>{issData.next_pass_direction}</span>
+                        <span>{issData.nextPassDirection}</span>
                       </div>
                       <div className="text-sm text-gray-300 sm:col-span-2">
                         <span className="block font-medium text-white">{t('weather.iss_next_duration')}</span>
-                        <span>{issData.estimated_duration}</span>
+                        <span>{issData.estimatedDuration}</span>
                       </div>
                     </div>
                   </div>

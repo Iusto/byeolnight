@@ -15,15 +15,15 @@ export interface WeatherData {
 }
 
 export interface IssData {
-  message_key: string;
-  friendly_message: string;
-  current_altitude_km?: number;
-  current_velocity_kmh?: number;
-  next_pass_time?: string;
-  next_pass_date?: string;
-  next_pass_direction?: string;
-  estimated_duration?: string;
-  visibility_quality?: string;
+  messageKey: string;
+  friendlyMessage: string;
+  currentAltitudeKm?: number;
+  currentVelocityKmh?: number;
+  nextPassTime?: string;
+  nextPassDate?: string;
+  nextPassDirection?: string;
+  estimatedDuration?: string;
+  visibilityQuality?: string;
 }
 
 // 날씨 관측 조건 조회
@@ -39,6 +39,8 @@ export const useWeatherObservation = (latitude: number, longitude: number) => {
     },
     staleTime: 10 * 60 * 1000, // 10분
     gcTime: 15 * 60 * 1000, // 15분
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     retry: 2,
   });
 };
