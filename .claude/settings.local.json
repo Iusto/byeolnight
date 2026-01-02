@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.\\\\gradlew.bat test:*)",
+      "Bash(cmd /c gradlew.bat test --tests PointServiceAttendanceTest)"
+    ]
+  }
+}
