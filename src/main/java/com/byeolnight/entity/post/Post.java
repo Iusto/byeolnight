@@ -46,8 +46,9 @@ public class Post {
     @Column(nullable = false)
     private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "writer_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "writer_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.NO_ACTION)
     private User writer;
 
     @Column(nullable = false)

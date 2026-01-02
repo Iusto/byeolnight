@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.62.13",
     "@toast-ui/editor": "^3.1.0",
     "@toast-ui/react-editor": "^3.1.0",
     "axios": "^1.7.9",
@@ -42,7 +43,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.0",
     "tailwindcss": "^3.4.1",
     "terser": "^5.36.0",
     "typescript": "~5.8.3",
@@ -52,7 +53,7 @@
   "pnpm": {
     "overrides": {
       "axios": "^1.7.9",
-      "postcss": "^8.5.6",
+      "postcss": "^8.5.0",
       "semver": "^7.6.0",
       "braces": "^3.0.3",
       "micromatch": "^4.0.8",

@@ -111,12 +111,15 @@ export default function PostList() {
   
   // 게시글 분류 (한 번의 순회로 최적화)
   const { hotPosts, normalPosts } = React.useMemo(() => {
+    // 블라인드 필터링: 관리자가 아니면 블라인드된 게시글 제외
+    const filteredPosts = isAdmin ? posts : posts.filter(post => !post.blinded);
+
     if (sort === 'popular') {
-      return { hotPosts: [], normalPosts: posts.slice(0, 30) };
+      return { hotPosts: [], normalPosts: filteredPosts.slice(0, 30) };
     }
     const hot: Post[] = [];
     const normal: Post[] = [];
-    posts.forEach(post => {
+    filteredPosts.forEach(post => {
       if (post.hot && hot.length < 4) {
         hot.push(post);
       } else if (!post.hot && normal.length < 25) {
@@ -124,7 +127,7 @@ export default function PostList() {
       }
     });
     return { hotPosts: hot, normalPosts: normal };
-  }, [posts, sort]);
+  }, [posts, sort, isAdmin]);
   
   // 권한 관련 변수
   const canWrite = user && (USER_WRITABLE_CATEGORIES.includes(category) || user.role === 'ADMIN');
