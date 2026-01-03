@@ -18,6 +18,7 @@ byeolnight-prod.yml
 *.csr
 
 # AWS 및 클라우드 자격증명
+.claude
 .aws/
 aws-credentials
 aws-exports.js
@@ -282,3 +283,4 @@ GEMINI.md
 # 기존 내용 유지하면서 .env 추가
 .env
 CLAUDE.md
+plan.md
