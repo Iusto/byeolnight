@@ -262,13 +262,9 @@ public class User implements UserDetails {
         this.withdrawalReason = reason;
         this.withdrawnAt = LocalDateTime.now();
         this.status = UserStatus.WITHDRAWN;
-        
-        // 일반 사용자: 즉시 마스킹 처리 (복구 불가능)
-        if (!isSocialUser()) {
-            this.email = "withdrawn_" + this.id + "@byeolnight.local";
-            this.nickname = "탈퇴회원_" + this.id;
-        }
-        // 소셜 사용자: 30일 유예기간 (복구 가능)
+
+        // 일반 사용자, 소셜 사용자 모두 1달 유예기간 (복구 가능)
+        // 30일 후 스케줄러가 마스킹 처리 (복구 불가능)
     }
 
     /** 탈퇴 정보 초기화 (복구 시 사용) */

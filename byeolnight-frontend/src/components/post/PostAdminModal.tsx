@@ -8,7 +8,6 @@ interface PostAdminModalProps {
   userId?: number;
   postId: number;
   onPostBlind: () => void;
-  onPostDelete: () => void;
   onUserBan?: (username: string, duration: number) => void;
 }
 
@@ -19,7 +18,6 @@ const PostAdminModal: React.FC<PostAdminModalProps> = ({
   userId,
   postId,
   onPostBlind,
-  onPostDelete,
   onUserBan
 }) => {
   if (!isOpen) return null;
@@ -67,21 +65,7 @@ const PostAdminModal: React.FC<PostAdminModalProps> = ({
             <span className="text-xl">🙈</span>
             <div>
               <div className="font-semibold">게시글 블라인드</div>
-              <div className="text-sm opacity-80">이 게시글을 숨김 처리합니다</div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              onPostDelete();
-              onClose();
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-          >
-            <span className="text-xl">🗑️</span>
-            <div>
-              <div className="font-semibold">게시글 삭제</div>
-              <div className="text-sm opacity-80">이 게시글을 완전히 삭제합니다</div>
+              <div className="text-sm opacity-80">이 게시글을 숨김 처리합니다 (관리자만 조회 가능)</div>
             </div>
           </button>
 

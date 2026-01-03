@@ -10,12 +10,12 @@ services:
       - "8888"
     environment:
       - SPRING_PROFILES_ACTIVE=native
-      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///app/configs/
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/app/config-repo/configs/
       - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$%^&*()
       - GITHUB_USERNAME=${GITHUB_USERNAME}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     volumes:
-      - ./configs/configs:/app/configs
+      - ./config-repo:/app/config-repo:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
       interval: 10s
@@ -25,6 +25,7 @@ services:
     restart: always
     networks:
       - byeolnight-network
+
 
   app:
     expose:

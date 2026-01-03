@@ -71,14 +71,14 @@ git reset --hard origin/main || { echo "❌ git reset 실패"; exit 1; }
 chmod +x ./gradlew
 
 echo "📦 Config 저장소 업데이트..."
-if [ ! -d "configs" ]; then
-  git clone -b main "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git" configs \
+if [ ! -d "config-repo/.git" ]; then
+  git clone -b main "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/Iusto/byeolnight-config.git" config-repo \
     || { echo "❌ Config 저장소 clone 실패"; exit 1; }
 else
-  cd configs || exit 1
+  cd config-repo || exit 1
   git fetch origin main || { echo "❌ Config fetch 실패"; cd ..; exit 1; }
   git reset --hard origin/main || { echo "❌ Config reset 실패"; cd ..; exit 1; }
-  cd ..
+  cd .. || exit 1
 fi
 
 echo "✅ 코드 업데이트 완료"
@@ -120,10 +120,18 @@ docker compose build config-server || { echo "❌ Config Server Docker 빌드 �
 echo "⚙️ Config Server 시작..."
 docker compose up -d config-server || { echo "❌ Config Server 시작 실패"; exit 1; }
 
+# ✅ 컨테이너 ID 동적 조회 (하드코딩 제거)
+CONFIG_CONTAINER=$(docker compose ps -q config-server)
+if [ -z "$CONFIG_CONTAINER" ]; then
+  echo "❌ config-server 컨테이너 ID 조회 실패"
+  docker compose ps
+  exit 1
+fi
+
 echo "⏳ Config Server 헬스체크 (최대 60초)..."
 CONFIG_READY=false
 for i in $(seq 1 30); do
-  if docker exec byeolnight-config-server-1 curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
+  if docker exec "$CONFIG_CONTAINER" curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
     echo "✅ Config Server 준비 완료 (${i}초)"
     CONFIG_READY=true
     break
@@ -134,7 +142,7 @@ done
 
 if [ "$CONFIG_READY" = false ]; then
   echo "❌ Config Server 준비 시간 초과"
-  docker logs byeolnight-config-server-1 2>&1 | tail -50
+  docker logs "$CONFIG_CONTAINER" 2>&1 | tail -50
   exit 1
 fi
 
@@ -145,16 +153,16 @@ echo "🔑 Config Server에서 설정 가져오기..."
 CONFIG_RESPONSE=""
 for attempt in $(seq 1 5); do
   echo "시도 $attempt/5..."
-  CONFIG_RESPONSE=$(docker exec byeolnight-config-server-1 curl -s -f http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
-  
+  CONFIG_RESPONSE=$(docker exec "$CONFIG_CONTAINER" curl -s -f http://localhost:8888/byeolnight/prod 2>/dev/null || echo "")
+
   if [[ -n "$CONFIG_RESPONSE" ]] && echo "$CONFIG_RESPONSE" | jq empty 2>/dev/null; then
     echo "✅ Config 응답 수신"
     break
   fi
-  
+
   if [ $attempt -eq 5 ]; then
     echo "❌ Config Server 응답 실패"
-    docker logs byeolnight-config-server-1 2>&1 | tail -30
+    docker logs "$CONFIG_CONTAINER" 2>&1 | tail -30
     exit 1
   fi
   sleep 3
@@ -192,10 +200,18 @@ docker compose build app || { echo "❌ 이미지 빌드 실패"; exit 1; }
 echo "🚀 백엔드 서비스 시작..."
 docker compose up -d app nginx || { echo "❌ 서비스 시작 실패"; exit 1; }
 
+# ✅ app 컨테이너 ID 동적 조회
+APP_CONTAINER=$(docker compose ps -q app)
+if [ -z "$APP_CONTAINER" ]; then
+  echo "❌ app 컨테이너 ID 조회 실패"
+  docker compose ps
+  exit 1
+fi
+
 echo "⏳ 애플리케이션 헬스체크 (최대 120초)..."
 APP_READY=false
 for i in $(seq 1 60); do
-  if docker exec byeolnight-app-1 curl -s -f http://localhost:8080/actuator/health >/dev/null 2>&1; then
+  if docker exec "$APP_CONTAINER" curl -s -f http://localhost:8080/actuator/health >/dev/null 2>&1; then
     echo "✅ 애플리케이션 준비 완료 (${i}초)"
     APP_READY=true
     break
@@ -207,7 +223,7 @@ done
 if [ "$APP_READY" = false ]; then
   echo "⚠️ 애플리케이션 헬스체크 시간 초과 (백그라운드에서 계속 시작 중)"
   echo "📋 최근 로그:"
-  docker logs --tail 50 byeolnight-app-1 2>&1
+  docker logs --tail 50 "$APP_CONTAINER" 2>&1
 fi
 
 echo "🛑 배포가 완료되었으므로 Config Server 중지..."
@@ -222,7 +238,7 @@ echo "📊 서비스 상태:"
 docker compose ps
 echo ""
 echo "📋 실시간 로그 확인:"
-echo "   docker logs -f byeolnight-app-1"
+echo "   docker logs -f $(docker compose ps -q app)"
 echo ""
 echo "🔍 헬스체크:"
 echo "   curl http://localhost:8080/actuator/health"
