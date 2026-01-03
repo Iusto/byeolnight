@@ -27,10 +27,9 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
     @Override
     public Page<Post> searchPosts(String keyword, Category category, String searchType, Pageable pageable) {
         BooleanBuilder builder = new BooleanBuilder();
-        
+
         builder.and(post.isDeleted.eq(false))
-               .and(post.writer.isNotNull())
-               .and(post.writer.status.ne(User.UserStatus.WITHDRAWN));
+               .and(post.writer.isNotNull());
         
         if (category != null) {
             builder.and(post.category.eq(category));
@@ -70,8 +69,7 @@ public class PostRepositoryCustomImpl implements PostRepositoryCustom {
 
         builder.and(post.isDeleted.eq(false))
                .and(post.likeCount.goe(likeThreshold))
-               .and(post.writer.isNotNull())
-               .and(post.writer.status.ne(User.UserStatus.WITHDRAWN));
+               .and(post.writer.isNotNull());
 
         // 블라인드 포함 여부 결정 (관리자가 아니면 블라인드 제외)
         if (!includeBlinded) {

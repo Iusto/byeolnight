@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
+import static com.byeolnight.infrastructure.util.CoordinateUtils.generateCacheKey;
+
 /**
  * 날씨 데이터 스케줄 수집 서비스
  * - 30분마다 주요 도시 날씨 수집
@@ -47,7 +49,8 @@ public class WeatherScheduler {
         for (WeatherCityConfig.City city : cityConfig.getCities()) {
             try {
                 WeatherResponse weather = fetchWeatherData(city);
-                cacheService.put(city.getCacheKey(), weather);
+                String cacheKey = generateCacheKey(city.latitude(), city.longitude());
+                cacheService.put(cacheKey, weather);
                 successCount++;
 
                 // API 호출 간 짧은 지연 (Rate Limit 방지)

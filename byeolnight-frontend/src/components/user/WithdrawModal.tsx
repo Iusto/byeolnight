@@ -62,19 +62,10 @@ export default function WithdrawModal({ isOpen, onClose, onConfirm, socialProvid
         <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
           <h4 className="text-red-400 font-semibold mb-2">탈퇴 안내사항</h4>
           <ul className="text-sm text-gray-300 space-y-1">
-            {isSocialUser ? (
-              <>
-                <li>• 소셜 로그인 연동 해제 시 즉시 탈퇴 처리됩니다.</li>
-                <li>• <span className="text-yellow-400">탈퇴 후 30일 내 재로그인으로 복구 가능</span>합니다.</li>
-                <li>• 30일 경과 후 개인정보 마스킹 처리되어 복구 불가능합니다.</li>
-                <li>• <span className="text-red-400">2년 경과 후 계정 완전 삭제</span>됩니다.</li>
-              </>
-            ) : (
-              <>
-                <li>• 탈퇴 시 모든 개인정보가 삭제되며 복구할 수 없습니다.</li>
-                <li>• <span className="text-red-400">2년 경과 후 계정 완전 삭제</span>됩니다.</li>
-              </>
-            )}
+            {isSocialUser && <li>• 소셜 로그인 연동 해제 시 즉시 탈퇴 처리됩니다.</li>}
+            <li>• <span className="text-yellow-400">탈퇴 후 30일 내 재로그인으로 복구 가능</span>합니다.</li>
+            <li>• 30일 경과 후 개인정보 마스킹 처리되어 복구 불가능합니다.</li>
+            <li>• <span className="text-red-400">2년 경과 후 계정 완전 삭제</span>됩니다.</li>
             <li>• 작성한 게시글과 댓글은 삭제되지 않습니다.</li>
             <li>• 보유하신 포인트와 인증서는 모두 소멸됩니다.</li>
             <li>• 동일한 이메일로 재가입이 가능합니다.</li>

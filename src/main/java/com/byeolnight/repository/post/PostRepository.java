@@ -29,7 +29,6 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     JOIN p.writer w
     WHERE p.isDeleted = false
       AND p.category = :category
-      AND w.status != 'WITHDRAWN'
     ORDER BY p.createdAt DESC
     """)
     Page<Post> findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(@Param("category") Category category, Pageable pageable);
@@ -46,7 +45,6 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     JOIN p.writer w
     WHERE p.isDeleted = false
       AND p.category = :category
-      AND w.status != 'WITHDRAWN'
     ORDER BY p.likeCount DESC
     """)
     Page<Post> findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(@Param("category") Category category, Pageable pageable);
@@ -59,7 +57,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
     @Query("""
     SELECT p FROM Post p
     JOIN FETCH p.writer w
-    WHERE p.id = :id AND p.isDeleted = false AND w.status != 'WITHDRAWN'
+    WHERE p.id = :id AND p.isDeleted = false
     """)
     Optional<Post> findWithWriterById(@Param("id") Long id);
 

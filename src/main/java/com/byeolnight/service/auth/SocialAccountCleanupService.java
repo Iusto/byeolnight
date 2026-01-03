@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 소셜 계정 정리 서비스
- * - 소셜 사용자 30일 후 마스킹 처리
- * - 소셜 계정 복구 기능
+ * 계정 정리 서비스
+ * - 일반/소셜 사용자 모두 30일 후 마스킹 처리
+ * - 일반/소셜 계정 복구 기능 (30일 이내)
  */
 @Slf4j
 @Service
@@ -27,41 +27,42 @@ public class SocialAccountCleanupService {
 
     
     /**
-     * 소셜 사용자 탈퇴 후 30일 경과 시 마스킹 처리 (복구 불가능)
+     * 탈퇴 후 30일 경과 시 마스킹 처리 (일반/소셜 모두 적용, 복구 불가능)
      */
     @Scheduled(cron = "0 0 12 * * *")
     @Transactional
     public void maskSocialUsersAfterThirtyDays() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-        
-        List<User> expiredSocialUsers = userRepository.findByStatusAndWithdrawnAtBefore(
+
+        List<User> expiredUsers = userRepository.findByStatusAndWithdrawnAtBefore(
             User.UserStatus.WITHDRAWN, thirtyDaysAgo);
-        
-        if (expiredSocialUsers.isEmpty()) {
-            log.info("30일 경과 소셜 탈퇴 사용자가 없습니다.");
+
+        if (expiredUsers.isEmpty()) {
+            log.info("30일 경과 탈퇴 사용자가 없습니다.");
             return;
         }
-        
+
         int processedCount = 0;
-        for (User user : expiredSocialUsers) {
+        for (User user : expiredUsers) {
             try {
-                // 소셜 사용자만 처리, 이미 마스킹된 경우 건너뛰기
-                if (!user.isSocialUser() || user.getEmail().startsWith("withdrawn_")) {
+                // 이미 마스킹된 경우 건너뛰기
+                if (user.getEmail().startsWith("withdrawn_")) {
                     continue;
                 }
-                
+
                 user.maskAfterThirtyDays();
                 processedCount++;
-                log.info("소셜 사용자 마스킹 완료: ID={}, 탈퇴일={}", 
-                    user.getId(), user.getWithdrawnAt());
-                    
+                log.info("사용자 마스킹 완료: ID={}, 이메일={}, 탈퇴일={}, 타입={}",
+                    user.getId(), user.getEmail(), user.getWithdrawnAt(),
+                    user.isSocialUser() ? "소셜" : "일반");
+
             } catch (Exception e) {
-                log.error("소셜 사용자 마스킹 처리 중 오류 발생: ID={}, 오류={}", 
+                log.error("사용자 마스킹 처리 중 오류 발생: ID={}, 오류={}",
                     user.getId(), e.getMessage(), e);
             }
         }
-        
-        log.info("소셜 사용자 30일 경과 마스킹 완료: {}명 처리", processedCount);
+
+        log.info("탈퇴 사용자 30일 경과 마스킹 완료: {}명 처리", processedCount);
     }
 
 
@@ -75,89 +76,78 @@ public class SocialAccountCleanupService {
     }
 
     /**
-     * 소셜 사용자 탈퇴 복구 처리 (30일 내에만 가능)
+     * 탈퇴 계정 복구 처리 (일반/소셜 모두 30일 내에만 가능)
      * @param email 복구할 사용자 이메일
      * @return 복구 성공 여부
      */
     @Transactional
     public boolean recoverWithdrawnAccount(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
-        
+
         if (userOpt.isEmpty()) {
             log.warn("복구 시도 실패: 존재하지 않는 이메일 - {}", email);
             return false;
         }
-        
+
         User user = userOpt.get();
-        
-        // 소셜 사용자가 아니면 복구 불가
-        if (!user.isSocialUser()) {
-            log.warn("복구 시도 실패: 소셜 사용자가 아님 - {}", email);
-            return false;
-        }
-        
+
         // 탈퇴 신청을 하지 않은 경우
         if (!user.isWithdrawalRequested()) {
             log.warn("복구 시도 실패: 탈퇴 신청 이력 없음 - {}", email);
             return false;
         }
-        
+
         // 30일 경과 여부 확인
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         if (user.getWithdrawnAt().isBefore(thirtyDaysAgo)) {
             log.warn("복구 시도 실패: 30일 경과 - 이메일: {}, 탈퇴일: {}", email, user.getWithdrawnAt());
             return false;
         }
-        
+
         // 이미 이메일이 마스킹된 경우 (30일 경과)
         if (user.getEmail().startsWith("withdrawn_")) {
             log.warn("복구 시도 실패: 이미 이메일 마스킹 처리됨 - {}", email);
             return false;
         }
-        
+
         // 복구 처리
         try {
             // 탈퇴 정보 초기화 (상태를 ACTIVE로 변경)
             user.clearWithdrawalInfo();
-            
-            log.info("소셜 계정 복구 완료: 이메일={}, 닉네임={}, 제공자={}", 
-                email, user.getNickname(), user.getSocialProvider());
-            
+
+            log.info("계정 복구 완료: 이메일={}, 닉네임={}, 타입={}",
+                email, user.getNickname(), user.isSocialUser() ? "소셜(" + user.getSocialProvider() + ")" : "일반");
+
             return true;
-            
+
         } catch (Exception e) {
-            log.error("소셜 계정 복구 중 오류 발생: 이메일={}, 오류={}", email, e.getMessage(), e);
+            log.error("계정 복구 중 오류 발생: 이메일={}, 오류={}", email, e.getMessage(), e);
             return false;
         }
     }
     
     /**
-     * 30일 내 복구 가능 여부 확인
+     * 30일 내 복구 가능 여부 확인 (일반/소셜 모두 가능)
      */
     public boolean canRecover(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
-        
+
         if (userOpt.isEmpty()) {
             return false;
         }
-        
+
         User user = userOpt.get();
-        
-        // 소셜 사용자가 아니면 복구 불가
-        if (!user.isSocialUser()) {
-            return false;
-        }
-        
+
         // 탈퇴 신청을 하지 않은 경우
         if (!user.isWithdrawalRequested()) {
             return false;
         }
-        
+
         // 이미 이메일이 마스킹된 경우 (30일 경과)
         if (user.getEmail().startsWith("withdrawn_")) {
             return false;
         }
-        
+
         // 30일 경과 여부 확인
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         return user.getWithdrawnAt().isAfter(thirtyDaysAgo);

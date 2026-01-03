@@ -36,6 +36,7 @@ public class AuthService {
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final UserSecurityService userSecurityService;
     private final CertificateService certificateService;
+    private final SocialAccountCleanupService socialAccountCleanupService;
     /**
      * 로그인 인증 처리
      */
@@ -80,7 +81,18 @@ public class AuthService {
                 });
 
         // 계정 상태 확인
-        if (user.getStatus() != User.UserStatus.ACTIVE) {
+        if (user.getStatus() == User.UserStatus.WITHDRAWN) {
+            // 탈퇴한 계정 - 복구 가능 여부 확인
+            if (socialAccountCleanupService.canRecover(user.getEmail())) {
+                // 복구 가능한 계정
+                auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "탈퇴 계정 복구 가능"));
+                throw new BadCredentialsException("RECOVERABLE_ACCOUNT:" + user.getEmail());
+            } else {
+                // 복구 불가능한 계정 (30일 경과)
+                auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "탈퇴 계정 복구 불가"));
+                throw new BadCredentialsException("탈퇴한 계정입니다.");
+            }
+        } else if (user.getStatus() != User.UserStatus.ACTIVE) {
             auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "비활성 상태: " + user.getStatus()));
             throw new BadCredentialsException("해당 계정은 로그인할 수 없습니다. 현재 상태: " + user.getStatus());
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import axios from '../lib/axios'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -13,6 +14,9 @@ export default function Login() {
   const [language, setLanguage] = useState('ko')
   const [rememberMe, setRememberMe] = useState(false)
   const [loginMessage, setLoginMessage] = useState('')
+  const [showRecoverModal, setShowRecoverModal] = useState(false)
+  const [recoverEmail, setRecoverEmail] = useState('')
+  const [recoverLoading, setRecoverLoading] = useState(false)
 
   useEffect(() => {
     // URL에서 온 경우 적절한 메시지 표시
@@ -29,24 +33,60 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!email || !password) {
       return
     }
-    
+
     setLoading(true)
     setError('')
-    
+
     try {
       await login(email, password, rememberMe)
       navigate('/', { replace: true })
     } catch (err: any) {
       // 서버에서 온 실제 에러 메시지 추출
       const errorMessage = err.response?.data?.message || err.message || '로그인 실패'
-      setError(errorMessage)
+
+      // 복구 가능한 계정인지 확인
+      if (errorMessage.startsWith('RECOVERABLE_ACCOUNT:')) {
+        const emailPart = errorMessage.split(':')[1]
+        setRecoverEmail(emailPart || email)
+        setShowRecoverModal(true)
+        setError('')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRecover = async () => {
+    setRecoverLoading(true)
+    try {
+      const response = await axios.post('/auth/oauth/recover', {
+        email: recoverEmail,
+        provider: null,
+        recover: true
+      })
+
+      alert(response.data.message || '계정이 복구되었습니다. 다시 로그인해주세요.')
+      setShowRecoverModal(false)
+      setRecoverEmail('')
+      // 복구 후 폼 초기화
+      setEmail('')
+      setPassword('')
+    } catch (err: any) {
+      alert(err.response?.data?.message || '복구 처리 중 오류가 발생했습니다.')
+    } finally {
+      setRecoverLoading(false)
+    }
+  }
+
+  const handleCancelRecover = () => {
+    setShowRecoverModal(false)
+    setRecoverEmail('')
   }
 
   // 인앱브라우저 감지 함수
@@ -276,8 +316,50 @@ export default function Login() {
 
         </div>
       </div>
-      
 
+      {/* 계정 복구 모달 */}
+      {showRecoverModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#1f2336] border border-gray-600 rounded-xl shadow-2xl p-6">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">🌌</div>
+              <h3 className="text-2xl font-bold mb-2">계정 복구</h3>
+              <p className="text-gray-300 text-sm">
+                탈퇴한 계정을 복구하시겠습니까?
+              </p>
+            </div>
+
+            <div className="bg-[#2a2d47] p-4 rounded-lg mb-6">
+              <p className="text-sm text-gray-300 mb-2">이메일:</p>
+              <p className="text-white font-medium">{recoverEmail}</p>
+            </div>
+
+            <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+              <p className="text-yellow-300 text-sm text-center">
+                • 30일 이내에만 복구 가능합니다<br />
+                • 복구 시 이전 활동 내역과 포인트가 유지됩니다
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelRecover}
+                disabled={recoverLoading}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleRecover}
+                disabled={recoverLoading}
+                className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {recoverLoading ? '처리 중...' : '복구하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
