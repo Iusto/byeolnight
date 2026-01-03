@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+/**
+ * HTML 이메일 전송 서비스
+ */
 @Service
 @RequiredArgsConstructor
 public class GmailEmailService {
@@ -18,24 +21,9 @@ public class GmailEmailService {
     @Value("${app.security.external-api.email.mail-from}")
     private String fromEmail;
 
-    public void send(String to, String subject, String body) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body, false);
-            helper.setFrom(fromEmail);
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new RuntimeException("이메일 전송 실패: " + e.getMessage(), e);
-        } catch (Exception e) {
-            throw new RuntimeException("이메일 전송 중 예상치 못한 오류 발생: " + e.getMessage(), e);
-        }
-    }
-
+    /**
+     * HTML 이메일 전송
+     */
     public void sendHtml(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -43,7 +31,7 @@ public class GmailEmailService {
 
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(htmlContent, true); // ← HTML 사용 설정
+            helper.setText(htmlContent, true);
             helper.setFrom(fromEmail);
 
             mailSender.send(message);

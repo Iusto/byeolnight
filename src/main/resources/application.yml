@@ -18,6 +18,13 @@ spring:
       enabled: true
   jpa:
     open-in-view: false
+  mail:
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 5000  # 연결 타임아웃 5초
+          timeout: 5000            # 읽기 타임아웃 5초
+          writetimeout: 5000       # 쓰기 타임아웃 5초
 
 # 커스텀 보안 설정
 app:
@@ -25,6 +32,7 @@ app:
     max-login-attempts: 10
     ip-block-duration: 1h
     password-reset-validity: 30m
+    email-verification-secret: ${EMAIL_VERIFICATION_SECRET:byeolnight-email-secret-2025}
     cookie:
       secure: true
       domain: .byeolnight.com

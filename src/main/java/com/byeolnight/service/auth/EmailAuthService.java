@@ -1,12 +1,19 @@
 package com.byeolnight.service.auth;
 
+import com.byeolnight.dto.auth.EmailJob;
 import com.byeolnight.infrastructure.cache.RedissonCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Random;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -14,7 +21,9 @@ import java.util.Random;
 public class EmailAuthService {
 
     private final RedissonCacheService cacheService;
-    private final GmailEmailService gmailEmailService;
+
+    @Value("${app.security.email-verification-secret}")
+    private String verificationSecret;
 
     public void sendCode(String email) {
         // 이미 인증된 이메일인지 확인
@@ -30,18 +39,19 @@ public class EmailAuthService {
         }
         
         String code = generateCode();
-        cacheService.set("email:" + email, code, Duration.ofMinutes(5));
+        String hashedCode = hashCode(email, code);
+        cacheService.set("email:" + email, hashedCode, Duration.ofMinutes(5));
 
-        log.info("이메일 인증 코드 생성 완료");
+        log.info("이메일 인증 코드 생성 및 해시 완료");
 
         String subject = "[별 헤는 밤] 이메일 인증 코드";
         String htmlBody = createEmailTemplate(code);
-        
+
         // 전송 횟수 증가
         incrementSendAttempts(email);
-        
-        // HTML 이메일로 재시도 로직과 함께 전송
-        sendHtmlEmailWithRetry(email, subject, htmlBody, 3);
+
+        // 비동기 메일 전송 작업을 Redis Stream에 추가
+        enqueueEmailJob(email, subject, htmlBody);
     }
 
     public boolean isAlreadyVerified(String email) {
@@ -75,23 +85,26 @@ public class EmailAuthService {
         }
         
         String key = "email:" + email;
-        String saved = cacheService.get(key);
+        String savedHashedCode = cacheService.get(key);
 
         log.info("이메일 인증 검증 요청 처리 중");
 
-        if (saved != null && saved.equals(code)) {
-            cacheService.delete(key);  // 검증 성공 시 삭제
-            // 검증 성공 상태 저장 (10분간 유효)
-            cacheService.set("verified:email:" + email, "true", Duration.ofMinutes(10));
+        if (savedHashedCode != null) {
+            String inputHashedCode = hashCode(email, code);
+            if (savedHashedCode.equals(inputHashedCode)) {
+                cacheService.delete(key);  // 검증 성공 시 삭제
+                // 검증 성공 상태 저장 (10분간 유효)
+                cacheService.set("verified:email:" + email, "true", Duration.ofMinutes(10));
 
-            // 성공 시 시도 횟수 카운터 삭제
-            cacheService.delete("verify_attempts:email:" + email);
-            cacheService.delete("verify_attempts:ip:" + clientIp);
+                // 성공 시 시도 횟수 카운터 삭제
+                cacheService.deleteCounter("verify_attempts:email:" + email);
+                cacheService.deleteCounter("verify_attempts:ip:" + clientIp);
 
-            log.info("이메일 인증 성공 - 검증 상태 저장 완료");
-            return true;
+                log.info("이메일 인증 성공 - 검증 상태 저장 완료");
+                return true;
+            }
         }
-        
+
         // 실패 시 시도 횟수 증가
         incrementVerificationAttempts(email, clientIp);
         log.warn("이메일 인증 실패");
@@ -181,82 +194,90 @@ public class EmailAuthService {
     }
     
     /**
-     * HTML 이메일 재시도 로직과 함께 전송
+     * 이메일 전송 작업을 Redis 큐에 추가 (비동기)
      */
-    private void sendHtmlEmailWithRetry(String email, String subject, String htmlBody, int maxRetries) {
-        int attempt = 1;
-        while (attempt <= maxRetries) {
-            try {
-                gmailEmailService.sendHtml(email, subject, htmlBody);
-                log.info("HTML 이메일 전송 성공 (시도: {}/{})", attempt, maxRetries);
-                return;
-            } catch (Exception e) {
-                log.warn("HTML 이메일 전송 실패 (시도: {}/{}): {}", attempt, maxRetries, e.getMessage());
-                
-                if (attempt == maxRetries) {
-                    log.error("HTML 이메일 전송 최종 실패 - 모든 재시도 소진");
-                    throw new RuntimeException("이메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.");
-                }
-                
-                // 지수 백오프: 1초, 2초, 4초
-                try {
-                    Thread.sleep(1000L * (1L << (attempt - 1)));
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("이메일 전송 중 인터럽트 발생", ie);
-                }
-                
-                attempt++;
-            }
-        }
+    private void enqueueEmailJob(String email, String subject, String htmlBody) {
+        EmailJob emailJob = EmailJob.builder()
+                .jobId(UUID.randomUUID().toString())
+                .email(email)
+                .subject(subject)
+                .htmlBody(htmlBody)
+                .attempt(0)
+                .createdAt(Instant.now().toString())
+                .build();
+
+        cacheService.enqueue("queue:mail", emailJob);
+        log.info("이메일 전송 작업 추가 완료: jobId={}, email={}", emailJob.getJobId(), email);
     }
-    
+
     /**
      * 인증 시도 횟수 제한 확인 (이메일별 + IP별)
      */
     private boolean isVerificationBlocked(String email, String clientIp) {
         String emailKey = "verify_attempts:email:" + email;
         String ipKey = "verify_attempts:ip:" + clientIp;
-        
-        Integer emailAttempts = cacheService.get(emailKey);
-        Integer ipAttempts = cacheService.get(ipKey);
-        
-        return (emailAttempts != null && emailAttempts >= 5) || 
-               (ipAttempts != null && ipAttempts >= 10);
+
+        long emailAttempts = cacheService.getCounter(emailKey);
+        long ipAttempts = cacheService.getCounter(ipKey);
+
+        return emailAttempts >= 5 || ipAttempts >= 10;
     }
-    
+
     /**
-     * 인증 시도 횟수 증가
+     * 인증 시도 횟수 증가 (원자적)
      */
     private void incrementVerificationAttempts(String email, String clientIp) {
         String emailKey = "verify_attempts:email:" + email;
         String ipKey = "verify_attempts:ip:" + clientIp;
-        
-        // 이메일별 시도 횟수 (5회 제한)
-        Integer emailAttempts = cacheService.get(emailKey);
-        cacheService.set(emailKey, (emailAttempts == null ? 1 : emailAttempts + 1), Duration.ofMinutes(10));
-        
-        // IP별 시도 횟수 (10회 제한)
-        Integer ipAttempts = cacheService.get(ipKey);
-        cacheService.set(ipKey, (ipAttempts == null ? 1 : ipAttempts + 1), Duration.ofMinutes(10));
+
+        // 이메일별 시도 횟수 (5회 제한) - 원자적 증가
+        cacheService.incrementAndGet(emailKey, Duration.ofMinutes(10));
+
+        // IP별 시도 횟수 (10회 제한) - 원자적 증가
+        cacheService.incrementAndGet(ipKey, Duration.ofMinutes(10));
     }
-    
+
     /**
      * 인증 코드 전송 횟수 제한 확인 (이메일당 5회, 10분)
      */
     private boolean isSendBlocked(String email) {
         String key = "send_attempts:email:" + email;
-        Integer attempts = cacheService.get(key);
-        return attempts != null && attempts >= 5;
+        long attempts = cacheService.getCounter(key);
+        return attempts >= 5;
     }
-    
+
     /**
-     * 인증 코드 전송 횟수 증가
+     * 인증 코드 전송 횟수 증가 (원자적)
      */
     private void incrementSendAttempts(String email) {
         String key = "send_attempts:email:" + email;
-        Integer attempts = cacheService.get(key);
-        cacheService.set(key, (attempts == null ? 1 : attempts + 1), Duration.ofMinutes(10));
+        cacheService.incrementAndGet(key, Duration.ofMinutes(10));
+    }
+
+    /**
+     * 인증 코드 해싱 (SHA-256)
+     * - email + code + secret을 조합하여 해시
+     * - Redis 유출 시에도 인증 코드 보호
+     */
+    private String hashCode(String email, String code) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String combined = email + ":" + code + ":" + verificationSecret;
+            byte[] hashBytes = digest.digest(combined.getBytes(StandardCharsets.UTF_8));
+
+            // Hex 문자열로 변환
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 알고리즘을 찾을 수 없습니다", e);
+        }
     }
 }
 
