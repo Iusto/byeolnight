@@ -27,7 +27,7 @@ public class RedissonConfig {
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
-        
+
         String address = "redis://" + redisHost + ":" + redisPort;
         config.useSingleServer()
                 .setAddress(address)
@@ -35,12 +35,12 @@ public class RedissonConfig {
                 .setConnectionPoolSize(15)         // 최대 15개 (동시 접속자 100명 기준)
                 .setIdleConnectionTimeout(30000)   // 30초 (빠른 정리)
                 .setConnectTimeout(5000);          // 5초 (빠른 실패)
-        
+
         // 비밀번호가 설정된 경우에만 적용
         if (redisPassword != null && !redisPassword.trim().isEmpty()) {
             config.useSingleServer().setPassword(redisPassword);
         }
-        
+
         return Redisson.create(config);
     }
 }

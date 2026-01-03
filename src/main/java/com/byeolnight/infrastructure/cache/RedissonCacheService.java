@@ -2,12 +2,11 @@ package com.byeolnight.infrastructure.cache;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RBucket;
-import org.redisson.api.RMapCache;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -119,6 +118,90 @@ public class RedissonCacheService {
         RMapCache<Object, Object> map = redissonClient.getMapCache(mapName);
         boolean deleted = map.delete();
         log.debug("분산 맵 전체 삭제: map={}, deleted={}", mapName, deleted);
+        return deleted;
+    }
+
+    /**
+     * 원자적 증가 연산 (INCR)
+     * - 키가 없으면 1로 초기화
+     * - TTL 설정 가능
+     * @return 증가 후 값
+     */
+    public long incrementAndGet(String key, Duration ttl) {
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        long value = atomicLong.incrementAndGet();
+
+        // 첫 증가(value==1)일 때만 TTL 설정
+        if (value == 1 && ttl != null) {
+            atomicLong.expire(ttl);
+        }
+
+        log.debug("원자적 증가: key={}, value={}, ttl={}초", key, value, ttl != null ? ttl.toSeconds() : "없음");
+        return value;
+    }
+
+    /**
+     * 원자적 카운터 값 조회
+     */
+    public long getCounter(String key) {
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        return atomicLong.get();
+    }
+
+    /**
+     * 원자적 카운터 삭제
+     */
+    public boolean deleteCounter(String key) {
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        boolean deleted = atomicLong.delete();
+        log.debug("카운터 삭제: key={}, deleted={}", key, deleted);
+        return deleted;
+    }
+
+    // ============= Redis 메시지 큐 (Blocking Queue) =============
+
+    /**
+     * 메시지 큐에 작업 추가
+     */
+    public <T> void enqueue(String queueName, T job) {
+        RBlockingQueue<T> queue = redissonClient.getBlockingQueue(queueName);
+        queue.offer(job);
+        log.debug("큐에 작업 추가: queue={}", queueName);
+    }
+
+    /**
+     * 메시지 큐에서 작업 가져오기 (블로킹)
+     * @param timeout 대기 시간
+     * @return 작업 (타임아웃 시 null)
+     */
+    public <T> T dequeue(String queueName, Duration timeout) {
+        RBlockingQueue<T> queue = redissonClient.getBlockingQueue(queueName);
+        try {
+            T job = queue.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            log.debug("큐에서 작업 가져옴: queue={}, found={}", queueName, job != null);
+            return job;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("큐 대기 중 인터럽트 발생: queue={}", queueName);
+            return null;
+        }
+    }
+
+    /**
+     * 메시지 큐 크기 조회
+     */
+    public int getQueueSize(String queueName) {
+        RBlockingQueue<Object> queue = redissonClient.getBlockingQueue(queueName);
+        return queue.size();
+    }
+
+    /**
+     * 메시지 큐 전체 삭제
+     */
+    public boolean deleteQueue(String queueName) {
+        RBlockingQueue<Object> queue = redissonClient.getBlockingQueue(queueName);
+        boolean deleted = queue.delete();
+        log.debug("큐 삭제: queue={}, deleted={}", queueName, deleted);
         return deleted;
     }
 }
