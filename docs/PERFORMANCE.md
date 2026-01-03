@@ -34,3 +34,8 @@
 ### 프론트엔드
 - **pnpm**: 설치 속도 70% 향상
 - **Vite 코드 스플리팅**: 초기 로딩 30% 단축
+
+### 캐싱
+- **날씨 데이터 캐싱**: Redis 기반 캐시 키 통일로 실시간 데이터 조회 개선
+  - 캐시 미스 시 자동으로 API 조회 후 캐싱
+  - WeatherScheduler와 WeatherService 캐시 키 통일 (CoordinateUtils 사용)
