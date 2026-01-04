@@ -60,7 +60,7 @@
 
 **데이터 계층:**
 - MySQL 8.0 (주 데이터베이스)
-- Redis 7.0 (캐시 + 세션 + 분산 락)
+- Redis 7.0 (캐시 + 세션 + 메시지 큐)
 
 **AWS 인프라:**
 - S3: 프론트엔드 빌드 파일 + 사용자 업로드 이미지
@@ -88,7 +88,7 @@
 - **JWT + Redis**: Token 자동 갱신 + 블랙리스트
 - **OAuth2**: 3사 소셜 로그인 통합
 - **S3 + CloudFront OAC**: S3 직접 접근 차단 (CloudFront만 허용)
-- **Redisson 분산 락**: 동시성 제어
+- **DB 제약조건 기반 동시성 제어**: UNIQUE 제약조건 + @Transactional
 - **Google Vision API**: 이미지 자동 검열
 
 ### 🔄 실시간 처리

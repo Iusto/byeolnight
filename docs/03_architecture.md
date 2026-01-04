@@ -33,10 +33,9 @@ src/main/java/com/byeolnight
 ├── dto/                # 데이터 전송 객체 (도메인별 패키지 분리)
 ├── config/             # Spring 설정 클래스
 ├── infrastructure/
-│   ├── cache/          # Redis 캐시 서비스
+│   ├── cache/          # Redis 캐시 서비스, 메시지 큐
 │   ├── config/         # 인프라 설정 (Redisson, QueryDSL 등)
 │   ├── security/       # JWT, OAuth2, 보안 필터
-│   ├── lock/           # 분산 락 구현
 │   ├── exception/      # 글로벌 예외 처리
 │   └── util/           # 유틸리티 클래스
 ```
