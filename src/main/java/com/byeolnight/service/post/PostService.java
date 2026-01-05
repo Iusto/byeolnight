@@ -225,7 +225,6 @@ public class PostService {
                 // 최신 게시글 처리 (이미 작성자 존재 확인된 데이터)
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
-                        .filter(p -> isAdmin || !p.isBlinded())  // 관리자가 아니면 블라인드 제외
                         .forEach(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
@@ -238,7 +237,6 @@ public class PostService {
             case POPULAR -> {
                 Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
                 List<PostResponseDto> dtos = popularPosts.getContent().stream()
-                        .filter(p -> isAdmin || !p.isBlinded())  // 관리자가 아니면 블라인드 제외
                         .map(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
@@ -270,7 +268,6 @@ public class PostService {
         Page<Post> searchResults = postRepository.searchPosts(keyword, categoryEnum, searchType, pageable);
 
         List<PostResponseDto> dtos = searchResults.getContent().stream()
-                .filter(p -> isAdmin || !p.isBlinded())  // 관리자가 아니면 블라인드 제외
                 .map(p -> {
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());
