@@ -114,6 +114,7 @@
 ### 기술 상세
 - [🔧 기술 스택 상세](./docs/06_tech-stack.md)
 - [📊 성능 최적화 전략](./docs/PERFORMANCE.md)
+ - [🌤️ 날씨 캐싱 시스템 개선 여정](./docs/13_weather-caching-evolution.md) ⭐ NEW
 - [📁 이미지 업로드 파이프라인](./docs/14_image-upload-pipeline.md)
 - [🏊 풀 설정 전략](./docs/12_pool-configuration-strategy.md)
 - [🧪 테스트 전략](./docs/07_testing.md)

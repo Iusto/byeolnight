@@ -123,4 +123,28 @@ class CoordinateUtilsTest {
         assertThat(key1).isEqualTo(key2);
         assertThat(key1).isEqualTo("wx:37.4:127.0");
     }
+
+    @Test
+    @DisplayName("제주 좌표 반올림 확인")
+    void roundJejuCoordinates() {
+        // Given
+        double lat = 33.4996;
+        double lon = 126.5312;
+
+        // When
+        double roundedLat = CoordinateUtils.roundCoordinate(lat);
+        double roundedLon = CoordinateUtils.roundCoordinate(lon);
+        String cacheKey = CoordinateUtils.generateCacheKey(lat, lon);
+
+        // Then
+        System.out.println("제주 원본: " + lat + ", " + lon);
+        System.out.println("제주 반올림: " + roundedLat + ", " + roundedLon);
+        System.out.println("제주 캐시키: " + cacheKey);
+
+        // 33.4996 / 0.2 = 167.498 → round = 167 → 167 * 0.2 = 33.4
+        assertThat(roundedLat).isEqualTo(33.4);
+        // 126.5312 / 0.2 = 632.56 → round = 633 → 633 * 0.2 = 126.6 (부동소수점 정밀도로 인해 약간의 오차)
+        assertThat(roundedLon).isCloseTo(126.6, org.assertj.core.data.Offset.offset(0.0001));
+        assertThat(cacheKey).isEqualTo("wx:33.4:126.6");
+    }
 }
