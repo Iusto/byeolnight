@@ -22,7 +22,6 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # AWS 자격증명 설정 (지금 보유중인 Access Key/Secret Key 사용)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -30,7 +29,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # SSM으로 EC2에서 deploy.sh 실행
       - name: Deploy via SSM Run Command
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -39,7 +37,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           set -euo pipefail
-          
+
           aws sts get-caller-identity
           aws configure list
 
@@ -58,14 +56,26 @@ jobs:
             --query "Command.CommandId" \
             --output text)
 
+          echo "CommandId=$COMMAND_ID"
+
+          # Waiter가 Failed로 끝나도 결과 로그를 뽑아야 하니까, 여기만 에러 무시하고 진행
+          set +e
           aws ssm wait command-executed \
             --region "$AWS_REGION" \
             --command-id "$COMMAND_ID" \
             --instance-id "$EC2_INSTANCE_ID"
+          WAIT_RC=$?
+          set -e
 
-          aws ssm get-command-invocation \
+          RESULT=$(aws ssm get-command-invocation \
             --region "$AWS_REGION" \
             --command-id "$COMMAND_ID" \
             --instance-id "$EC2_INSTANCE_ID" \
-            --query "{Status:Status,Stdout:StandardOutputContent,Stderr:StandardErrorContent}" \
-            --output json
+            --output json)
+
+          echo "$RESULT"
+
+          # 마지막에 실패로 처리
+          if [ "$WAIT_RC" -ne 0 ]; then
+            exit "$WAIT_RC"
+          fi
