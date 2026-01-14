@@ -62,58 +62,61 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String uri = request.getRequestURI();
-
-        if (isWhitelisted(uri)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        boolean whitelisted = isWhitelisted(uri);
 
         // 쿠키에서 Access Token 추출
         String token = null;
         Cookie[] cookies = request.getCookies();
-        
+
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if ("accessToken".equals(cookie.getName()) && 
+                if ("accessToken".equals(cookie.getName()) &&
                     cookie.getValue() != null && !cookie.getValue().trim().isEmpty()) {
                     token = cookie.getValue();
                     break;
                 }
             }
         }
-        
 
-
+        // 토큰이 없는 경우
         if (token == null) {
+            if (whitelisted) {
+                // 화이트리스트 경로: 인증 없이 통과 허용
+                filterChain.doFilter(request, response);
+                return;
+            }
+            // 보호된 경로: 401 반환
             handleMissingToken(uri, response);
             return;
         }
 
-        if (!jwtTokenProvider.validate(token)) {
-            log.warn("❌ JWT 유효성 검사 실패: {}", uri);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+        // 토큰 검증 및 인증 처리
+        boolean authenticated = false;
+
+        if (jwtTokenProvider.validate(token) && !tokenService.isAccessTokenBlacklisted(token)) {
+            String userId = jwtTokenProvider.getEmail(token);
+            if (userId != null) {
+                try {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
+                    setAuthentication(request, userDetails);
+                    authenticated = true;
+                    log.debug("✅ 인증 성공: {} - {}", userId, uri);
+                } catch (UsernameNotFoundException e) {
+                    log.warn("❌ 사용자 조회 실패: {} - {}", userId, e.getMessage());
+                }
+            }
         }
 
-        if (tokenService.isAccessTokenBlacklisted(token)) {
-            log.warn("❌ 블랙리스트 토큰 차단: {}", uri);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-
-        String userId = jwtTokenProvider.getEmail(token);
-        if (userId == null) {
-            log.error("❌ 토큰에서 사용자 ID 추출 실패: {}", uri);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-
-        try {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
-            setAuthentication(request, userDetails);
-            log.debug("✅ 인증 성공: {} - {}", userId, uri);
-        } catch (UsernameNotFoundException e) {
-            log.error("❌ 사용자 조회 실패: {} - {}", userId, e.getMessage());
+        // 인증 실패 시 처리
+        if (!authenticated) {
+            if (whitelisted) {
+                // 화이트리스트 경로: 인증 없이 통과 허용
+                log.debug("⚠️ 토큰 검증 실패하지만 화이트리스트 경로라 통과: {}", uri);
+                filterChain.doFilter(request, response);
+                return;
+            }
+            // 보호된 경로: 401 반환
+            log.warn("❌ 인증 실패 (보호된 경로): {}", uri);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
