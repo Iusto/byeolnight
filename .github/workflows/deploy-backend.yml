@@ -47,18 +47,15 @@ jobs:
             --instance-ids "$EC2_INSTANCE_ID" \
             --comment "deploy from github actions (ssm)" \
             --parameters "commands=[
-              \"cd /home/ubuntu/byeolnight\",
               \"export GITHUB_USERNAME='$GITHUB_USERNAME'\",
               \"export GITHUB_TOKEN='$GITHUB_TOKEN'\",
-              \"chmod +x deploy.sh\",
-              \"./deploy.sh\"
+              \"sudo -u ubuntu -H bash -lc 'cd /home/ubuntu/byeolnight && chmod +x deploy.sh && ./deploy.sh'\"
             ]" \
             --query "Command.CommandId" \
             --output text)
 
           echo "CommandId=$COMMAND_ID"
 
-          # Waiter가 Failed로 끝나도 결과 로그를 뽑아야 하니까, 여기만 에러 무시하고 진행
           set +e
           aws ssm wait command-executed \
             --region "$AWS_REGION" \
@@ -75,7 +72,6 @@ jobs:
 
           echo "$RESULT"
 
-          # 마지막에 실패로 처리
           if [ "$WAIT_RC" -ne 0 ]; then
             exit "$WAIT_RC"
           fi
