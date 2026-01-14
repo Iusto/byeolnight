@@ -41,17 +41,16 @@ jobs:
           aws sts get-caller-identity
           aws configure list
 
+          REMOTE_CMD="export GITHUB_USERNAME=\"$GITHUB_USERNAME\"; export GITHUB_TOKEN=\"$GITHUB_TOKEN\"; cd /home/ubuntu/byeolnight && chmod +x deploy.sh && ./deploy.sh"
+
           COMMAND_ID=$(aws ssm send-command \
             --region "$AWS_REGION" \
             --document-name "AWS-RunShellScript" \
             --instance-ids "$EC2_INSTANCE_ID" \
             --comment "deploy from github actions (ssm)" \
-            --parameters "commands=[
-              \"sudo -u ubuntu -H bash -lc 'export GITHUB_USERNAME=\\\"$GITHUB_USERNAME\\\"; export GITHUB_TOKEN=\\\"$GITHUB_TOKEN\\\"; cd /home/ubuntu/byeolnight && chmod +x deploy.sh && ./deploy.sh'\"
-            ]" \
+            --parameters commands=["sudo -u ubuntu -H bash -lc '$REMOTE_CMD'"] \
             --query "Command.CommandId" \
             --output text)
-
 
           echo "CommandId=$COMMAND_ID"
 
