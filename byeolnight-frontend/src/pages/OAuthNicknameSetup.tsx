@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '../types/api';
 
 const OAuthNicknameSetup: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -84,8 +85,8 @@ const OAuthNicknameSetup: React.FC = () => {
       // 메인 페이지로 이동
       navigate('/');
       
-    } catch (error: any) {
-      setError(error.response?.data?.message || '닉네임 설정에 실패했습니다.');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { StellaIcon, WithdrawModal } from '../components/user';
 import type { UserIcon, EquippedIcon } from '../types/stellaIcon';
+import { getErrorMessage } from '../types/api';
 
 interface Post {
   id: number;
@@ -61,8 +62,8 @@ export default function MyPage() {
       // 임시로 시뮬레이션 (백엔드 API 구현 전)
       await new Promise(resolve => setTimeout(resolve, 500));
       alert('아이콘을 장착했습니다! (시뮬레이션)');
-    } catch (err: any) {
-      alert('아이콘 장착에 실패했습니다.');
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -81,9 +82,8 @@ export default function MyPage() {
       // 로그아웃 처리 및 홈으로 이동
       await logout();
       
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || '회원 탈퇴에 실패했습니다.';
-      alert(errorMsg);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 

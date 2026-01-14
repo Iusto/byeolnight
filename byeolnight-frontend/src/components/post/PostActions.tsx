@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { getErrorMessage } from "../../types/api";
 
 type Props = {
   postId: number;
@@ -39,8 +40,8 @@ export default function PostActions({ postId }: Props) {
 
       setLiked(!liked);
       setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     }
   };
 
@@ -57,8 +58,8 @@ export default function PostActions({ postId }: Props) {
 
       setReported(true);
       alert("신고가 접수되었습니다.");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     }
   };
 

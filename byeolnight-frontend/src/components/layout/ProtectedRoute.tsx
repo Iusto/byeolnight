@@ -1,5 +1,6 @@
 ﻿import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEffect } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -7,12 +8,12 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
 }
 
-export const ProtectedRoute = ({ 
-  children, 
-  requireAuth = true, 
-  requireAdmin = false 
+export const ProtectedRoute = ({
+  children,
+  requireAuth = true,
+  requireAdmin = false
 }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUserInfo } = useAuth();
   const location = useLocation();
 
   // 로딩 중일 때는 로딩 표시

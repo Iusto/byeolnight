@@ -2,6 +2,7 @@
 import axios from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmojiPicker } from '../chat';
+import { getErrorMessage } from '../../types/api';
 
 interface Props {
   postId: number;
@@ -37,8 +38,8 @@ export default function CommentForm({ postId, onCommentAdded }: Props) {
         onCommentAdded();
       }, 1000);
       
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || '댓글 등록에 실패했습니다.';
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err);
       setError(errorMsg);
       alert(errorMsg);
     } finally {

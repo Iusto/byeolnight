@@ -18,11 +18,12 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import com.byeolnight.dto.file.PresignedUrlResponseDto;
+import com.byeolnight.dto.file.UploadResultDto;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -95,17 +96,17 @@ public class S3Service {
 
     /**
      * S3 Presigned URL 생성 (클라이언트 직접 업로드용)
-     * 
+     *
      * 플로우:
      * 1. 파일 확장자 검증 (jpg, png, gif 등)
      * 2. S3 Presigned URL 생성 (10분 유효)
      * 3. CloudFront URL 반환 (조회용)
-     * 
+     *
      * @param originalFilename 원본 파일명
      * @param contentTypeParam 콘텐츠 타입 (선택적)
      * @return uploadUrl(업로드용), url(조회용), s3Key 등 포함
      */
-    public Map<String, String> generatePresignedUrl(String originalFilename, String contentTypeParam) {
+    public PresignedUrlResponseDto generatePresignedUrl(String originalFilename, String contentTypeParam) {
         if (!isValidImageFile(originalFilename)) {
             throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
         }
@@ -134,23 +135,16 @@ public class S3Service {
             // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
             String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("uploadUrl", presignedUrl);
-            result.put("url", permanentUrl);
-            result.put("s3Key", s3Key);
-            result.put("originalName", originalFilename);
-            result.put("contentType", contentType);
-
             log.info("Presigned URL 생성 완료: {} (영구 URL: {}, Content-Type: {})", s3Key, permanentUrl, contentType);
-            return result;
+            return PresignedUrlResponseDto.of(presignedUrl, permanentUrl, s3Key, originalFilename, contentType);
 
         } catch (Exception e) {
             log.error("Presigned URL 생성 실패: {}", e.getMessage(), e);
             throw new RuntimeException("파일 업로드 URL 생성에 실패했습니다.", e);
         }
     }
-    
-    public Map<String, String> generatePresignedUrl(String originalFilename) {
+
+    public PresignedUrlResponseDto generatePresignedUrl(String originalFilename) {
         return generatePresignedUrl(originalFilename, null);
     }
 
@@ -191,61 +185,53 @@ public class S3Service {
 
     /**
      * 이미지 검열 후 S3 직접 업로드
-     * 
+     *
      * 플로우:
      * 1. 파일 형식/크기 검증
      * 2. Google Vision API 검열
      * 3. 검열 통과 시 S3 업로드
      * 4. CloudFront URL 반환
-     * 
+     *
      * @param file 업로드할 파일
      * @return 업로드 결과 정보
      */
-    public Map<String, String> uploadImageWithValidation(org.springframework.web.multipart.MultipartFile file) {
+    public UploadResultDto uploadImageWithValidation(org.springframework.web.multipart.MultipartFile file) {
         try {
             if (!isValidImageFile(file.getOriginalFilename())) {
                 throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
             }
-            
+
             if (file.getSize() > 10 * 1024 * 1024) {
                 throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
             }
-            
+
             byte[] imageBytes = file.getBytes();
             boolean isSafe = googleVisionService.isImageSafe(imageBytes);
-            
+
             if (!isSafe) {
                 log.warn("부적절한 이미지 업로드 시도 차단: {}", file.getOriginalFilename());
                 throw new IllegalArgumentException("부적절한 콘텐츠가 포함된 이미지입니다. 업로드가 거부되었습니다.");
             }
-            
+
             String s3Key = generateS3Key(file.getOriginalFilename());
             String contentType = getContentType(file.getOriginalFilename());
-            
+
             S3Client s3Client = createS3Client();
-            
+
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(getBucketName())
                     .key(s3Key)
                     .contentType(contentType)
                     .build();
-            
+
             s3Client.putObject(putRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(imageBytes));
-            
+
             // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
             String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
-            
-            Map<String, String> result = new HashMap<>();
-            result.put("url", permanentUrl);
-            result.put("s3Key", s3Key);
-            result.put("originalName", file.getOriginalFilename());
-            result.put("contentType", contentType);
-            result.put("size", String.valueOf(file.getSize()));
-            result.put("validated", "true");
-            
-            log.info("✅ 이미지 검열 통과 및 업로드 완료: {} -> {}", file.getOriginalFilename(), s3Key);
-            return result;
-            
+
+            log.info("이미지 검열 통과 및 업로드 완료: {} -> {}", file.getOriginalFilename(), s3Key);
+            return UploadResultDto.of(permanentUrl, s3Key, file.getOriginalFilename(), contentType, file.getSize());
+
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {

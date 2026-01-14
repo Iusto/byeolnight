@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserIconDisplay } from '../user';
 import { EmojiPicker } from '../chat';
 import { ClickableNickname } from '../user';
+import { getErrorMessage } from '../../types/api';
 
 interface Comment {
   id: number;
@@ -134,8 +135,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       setReportReason('');
       setReportDescription('');
       handleRefresh();
-    } catch (error: any) {
-      alert(error.response?.data?.message || '신고 실패');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error));
     }
   };
 
@@ -159,8 +160,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
       setReplyingTo(null);
       setReplyContent('');
       handleRefresh();
-    } catch (error: any) {
-      alert(error.response?.data?.message || '답글 작성 실패');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error));
     }
   };
 
@@ -177,8 +178,8 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         alert('블라인드 처리되었습니다.');
       }
       handleRefresh();
-    } catch (error: any) {
-      alert(error.response?.data?.message || '블라인드 처리 실패');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error));
     }
   };
 

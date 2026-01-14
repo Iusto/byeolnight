@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Post } from '../types/post';
 import { CATEGORY_LABELS, CATEGORY_ICONS, USER_WRITABLE_CATEGORIES } from '../constants/postConstants';
-import { getCategoryLabel, getCategoryDescription } from '../utils/postHelpers';
+import { getCategoryLabel, getCategoryDescription } from '../constants/categories';
 import CategoryGrid from '../components/post/CategoryGrid';
 import CategoryBanner from '../components/post/CategoryBanner';
 import PostSearchBar from '../components/post/PostSearchBar';

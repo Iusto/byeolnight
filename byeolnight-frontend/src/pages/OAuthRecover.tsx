@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import axios from '../lib/axios'
+import { getErrorMessage } from '../types/api'
 
 export default function OAuthRecover() {
   const navigate = useNavigate()
@@ -44,8 +45,8 @@ export default function OAuthRecover() {
       alert(response.data.message || '계정이 복구되었습니다.')
       // 복구 후 해당 소셜 로그인으로 리다이렉트
       window.location.href = `/oauth2/authorization/${provider}`
-    } catch (err: any) {
-      setError(err.response?.data?.message || '복구 처리 중 오류가 발생했습니다.')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSuggestion, deleteSuggestion, addAdminResponse, updateSuggestionStatus } from '../lib/api/suggestion';
 import { UserIconDisplay } from '../components/user';
 import type { Suggestion } from '../types/suggestion';
+import { getErrorMessage } from '../types/api';
 
 type SuggestionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
 
@@ -115,9 +116,9 @@ export default function SuggestionDetail() {
       await deleteSuggestion(suggestion.id);
       alert(t('suggestion.delete_success'));
       navigate('/suggestions');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('건의사항 삭제 실패:', error);
-      alert(error.response?.data?.message || t('suggestion.delete_failed'));
+      alert(getErrorMessage(error));
     }
   };
 
@@ -137,9 +138,9 @@ export default function SuggestionDetail() {
       setShowAdminResponse(false);
       setAdminResponse('');
       fetchSuggestion();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('관리자 답변 등록 실패:', error);
-      alert(error.response?.data?.message || t('suggestion.response_failed'));
+      alert(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -152,9 +153,9 @@ export default function SuggestionDetail() {
       await updateSuggestionStatus(Number(id), newStatus);
       alert(t('suggestion.status_change_success'));
       fetchSuggestion();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('상태 변경 실패:', error);
-      alert(error.response?.data?.message || t('suggestion.status_change_failed'));
+      alert(getErrorMessage(error));
     }
   };
 
@@ -174,9 +175,9 @@ export default function SuggestionDetail() {
       setEditingResponse(false);
       setEditResponse('');
       fetchSuggestion();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('관리자 답변 수정 실패:', error);
-      alert(error.response?.data?.message || t('suggestion.response_edit_failed'));
+      alert(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import axios from '../lib/axios';
+import { getErrorMessage } from '../types/api';
 
 export default function SuggestionEdit() {
   const { id } = useParams();
@@ -77,9 +78,8 @@ export default function SuggestionEdit() {
       });
       
       navigate(`/suggestions/${id}`);
-    } catch (error: any) {
-      const msg = error?.response?.data?.message || t('suggestion.edit_failed');
-      setError(msg);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     }
   };
 

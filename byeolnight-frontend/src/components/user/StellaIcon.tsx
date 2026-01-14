@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import type { StellaIcon as StellaIconType } from '../types/stellaIcon';
+import type { IconRegistry } from '../../types/icons';
 import * as StellarIcons from '../icons';
 
 interface StellaIconProps {
@@ -74,7 +75,7 @@ const renderStellarIcon = (icon: StellaIconType, size: 'small' | 'medium' | 'lar
   const iconClass = "relative z-10 filter drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-500 group-hover:scale-110";
   
   // iconUrl을 기반으로 동적으로 컴포넌트 선택
-  const IconComponent = (StellarIcons as any)[icon.iconUrl];
+  const IconComponent = (StellarIcons as IconRegistry)[icon.iconUrl];
   
   if (IconComponent) {
     return <IconComponent className={iconClass} size={iconSize} />;

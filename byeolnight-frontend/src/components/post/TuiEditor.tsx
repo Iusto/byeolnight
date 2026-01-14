@@ -8,6 +8,7 @@ import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../../styles/tui-editor.css';
 import { uploadImage } from '../../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '../../types/api';
 
 // 이미지 URL 정규식
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
@@ -97,9 +98,9 @@ const TuiEditor = forwardRef(({
       } else {
         throw new Error('이미지 업로드 실패');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('이미지 업로드 오류:', error);
-      alert(error.message || '이미지 업로드에 실패했습니다.');
+      alert(getErrorMessage(error));
       return false;
     } finally {
       isHandlingImageUpload.current = false;

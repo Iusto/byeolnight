@@ -181,6 +181,17 @@ public class CertificateService {
         return userCertificateRepository.findByUserAndIsRepresentativeTrue(user).orElse(null);
     }
 
+    /**
+     * 대표 인증서 안전 조회 (예외 발생 시 null 반환)
+     */
+    public UserCertificate getRepresentativeCertificateSafe(User user) {
+        try {
+            return getRepresentativeCertificate(user);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // 인증서 보유 여부 확인
     private boolean hasUserCertificate(User user, Certificate.CertificateType certificateType) {
         if (user == null) {

@@ -6,6 +6,7 @@ import { StellaIcon } from '../components/user';
 import type { StellaIcon as StellaIconType, UserIcon } from '../types/stellaIcon';
 
 import axios from '../lib/axios';
+import { getErrorMessage } from '../types/api';
 
 export default function StellaShop() {
   const { user, refreshUserInfo } = useAuth();
@@ -85,8 +86,8 @@ export default function StellaShop() {
       } else {
         alert(response.data.message || t('shop.purchase_failed'));
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || t('shop.purchase_failed'));
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     } finally {
       setPurchasing(null);
     }
@@ -105,8 +106,8 @@ export default function StellaShop() {
       } else {
         alert(response.data.message || t('shop.equip_failed'));
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || t('shop.equip_failed'));
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 

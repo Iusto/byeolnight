@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import { uploadImage } from '../../lib/s3Upload';
 import { isHandlingImageUpload } from './TuiEditor';
+import { getErrorMessage } from '../../types/api';
 
 // 이미지 URL 정규식
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
@@ -78,26 +79,22 @@ export default function ImageUploader({
       });
       
       return imageData;
-    } catch (error: any) {
-      console.error('클립보드 이미지 업로드 오류:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-        response: error.response?.data
-      });
-      
-      let errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error);
+      console.error('클립보드 이미지 업로드 오류:', errorMsg);
+
+      let displayMsg = errorMsg || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
       let alertType: 'error' | 'warning' = 'error';
-      
+
       // 네트워크 오류에 대한 추가 안내
-      if (error.message?.includes('네트워크') || error.message?.includes('브라우저 보안')) {
+      if (displayMsg.includes('네트워크') || displayMsg.includes('브라우저 보안')) {
         alertType = 'warning';
-        errorMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
+        displayMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
       }
-      
+
       // 오류 메시지 표시 (alert 대신 ValidationAlert만 사용)
       setValidationAlert({
-        message: errorMsg,
+        message: displayMsg,
         type: alertType
       });
       throw error;
@@ -169,31 +166,27 @@ export default function ImageUploader({
             setTimeout(() => {
               setValidationAlert(null);
             }, 3000);
-          } catch (error: any) {
-            console.error('클립보드 이미지 업로드 실패:', {
-              message: error.message,
-              name: error.name,
-              stack: error.stack,
-              response: error.response?.data
-            });
-            
+          } catch (error: unknown) {
+            const errorMsg = getErrorMessage(error);
+            console.error('클립보드 이미지 업로드 실패:', errorMsg);
+
             // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
-            
-            let errorMsg = error.message || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
+
+            let displayMsg = errorMsg || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
             let alertType: 'error' | 'warning' = 'error';
-            
+
             // 네트워크 오류에 대한 추가 안내
-            if (error.message?.includes('네트워크') || error.message?.includes('브라우저 보안')) {
+            if (displayMsg.includes('네트워크') || displayMsg.includes('브라우저 보안')) {
               alertType = 'warning';
-              errorMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
+              displayMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
             }
-            
+
             // ValidationAlert로 표시하고 alert 제거
             setValidationAlert({
-              message: errorMsg,
+              message: displayMsg,
               type: alertType
             });
           }
@@ -277,26 +270,22 @@ export default function ImageUploader({
         setValidationAlert(null);
       }, 3000);
       
-    } catch (error: any) {
-      console.error('이미지 업로드 오류:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-        response: error.response?.data
-      });
-      
-      let errorMsg = error.message || '이미지 업로드에 실패했습니다.';
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error);
+      console.error('이미지 업로드 오류:', errorMsg);
+
+      let displayMsg = errorMsg || '이미지 업로드에 실패했습니다.';
       let alertType: 'error' | 'warning' = 'error';
-      
+
       // 네트워크 오류에 대한 추가 안내
-      if (error.message?.includes('네트워크') || error.message?.includes('브라우저 보안')) {
+      if (displayMsg.includes('네트워크') || displayMsg.includes('브라우저 보안')) {
         alertType = 'warning';
-        errorMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
+        displayMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
       }
-      
+
       // 오류 메시지 표시 - alert 제거하고 ValidationAlert만 사용
       setValidationAlert({
-        message: errorMsg,
+        message: displayMsg,
         type: alertType
       });
     } finally {

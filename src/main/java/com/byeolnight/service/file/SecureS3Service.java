@@ -1,10 +1,10 @@
 package com.byeolnight.service.file;
 
+import com.byeolnight.dto.file.PresignedUrlResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -57,11 +57,11 @@ public class SecureS3Service {
      * 
      * @param filename 파일명 (필수, 255자 이하, 위험 문자 불허)
      * @param contentType 콘텐츠 타입 (image/* 형식만 허용)
-     * @return S3Service와 동일한 업로드 정보 맵
+     * @return Presigned URL 응답 DTO
      * @throws IllegalArgumentException 파일명/확장자/타입 검증 실패
      * @throws SecurityException 보안 위험 요소 감지
      */
-    public Map<String, String> generateSecurePresignedUrl(String filename, String contentType) {
+    public PresignedUrlResponseDto generateSecurePresignedUrl(String filename, String contentType) {
         // 파일명 검증
         validateFilename(filename);
         

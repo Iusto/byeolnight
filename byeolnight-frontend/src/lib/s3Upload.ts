@@ -1,13 +1,7 @@
 import axios from './axios';
 import { diagnoseUploadFailure } from '../utils/browserCompatibility';
-
-export interface PresignedUrlResponse {
-  uploadUrl: string;
-  url: string;
-  s3Key: string;
-  originalName: string;
-  contentType: string;
-}
+import { getErrorMessage } from '../types/api';
+import type { PresignedUrlResponse } from '../types/file';
 
 export interface UploadedImageResponse {
   url: string;
@@ -57,41 +51,25 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         timeout: 15000 // 15초 타임아웃
       });
       console.log('Presigned URL 응답:', response.status, response.data);
-    } catch (presignedError: any) {
-      console.error('Presigned URL 요청 실패:', {
-        status: presignedError.response?.status,
-        statusText: presignedError.response?.statusText,
-        data: presignedError.response?.data,
-        message: presignedError.message,
-        code: presignedError.code,
-        config: {
-          url: presignedError.config?.url,
-          method: presignedError.config?.method,
-          baseURL: presignedError.config?.baseURL
-        }
-      });
-      
-      // 네트워크 오류 처리
-      if (presignedError.code === 'NETWORK_ERROR' || presignedError.message === 'Network Error') {
+    } catch (presignedError: unknown) {
+      console.error('Presigned URL 요청 실패:', presignedError);
+
+      const errorMessage = getErrorMessage(presignedError);
+
+      // 에러 메시지 기반 분류
+      if (errorMessage.includes('Network') || errorMessage.includes('네트워크')) {
         throw new Error('네트워크 연결을 확인해주세요. 인터넷 연결이 불안정하거나 서버에 접근할 수 없습니다.');
       }
-      
-      // 타임아웃 오류 처리
-      if (presignedError.code === 'ECONNABORTED' || presignedError.message.includes('timeout')) {
+
+      if (errorMessage.includes('timeout') || errorMessage.includes('시간 초과')) {
         throw new Error('서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
       }
-      
-      // CORS 오류 처리
-      if (presignedError.message.includes('CORS') || presignedError.message === 'Failed to fetch') {
+
+      if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
         throw new Error('브라우저 보안 정책으로 인해 업로드가 차단되었습니다. 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.');
       }
-      
-      // 서버 오류 처리
-      if (presignedError.response?.data?.message) {
-        throw new Error(presignedError.response.data.message);
-      }
-      
-      throw new Error(`업로드 준비 실패: ${presignedError.message || '알 수 없는 오류'}`);
+
+      throw new Error(`업로드 준비 실패: ${errorMessage}`);
     }
 
     const presignedData: PresignedUrlResponse = response.data.data;
@@ -120,24 +98,22 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
       
       clearTimeout(timeoutId);
       console.log('S3 업로드 응답:', uploadResponse.status, uploadResponse.statusText);
-    } catch (uploadError: any) {
-      console.error('S3 업로드 실패:', {
-        name: uploadError.name,
-        message: uploadError.message,
-        stack: uploadError.stack
-      });
-      
+    } catch (uploadError: unknown) {
+      console.error('S3 업로드 실패:', uploadError);
+
       // AbortError (타임아웃)
-      if (uploadError.name === 'AbortError') {
+      if (uploadError instanceof Error && uploadError.name === 'AbortError') {
         throw new Error('파일 업로드 시간이 초과되었습니다. 파일 크기를 줄이거나 네트워크 연결을 확인해주세요.');
       }
-      
+
+      const errorMessage = getErrorMessage(uploadError);
+
       // 네트워크 오류
-      if (uploadError.message === 'Failed to fetch' || uploadError.message.includes('fetch')) {
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('fetch')) {
         throw new Error('파일 업로드 중 네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.');
       }
-      
-      throw new Error(`파일 업로드 실패: ${uploadError.message}`);
+
+      throw new Error(`파일 업로드 실패: ${errorMessage}`);
     }
 
     if (!uploadResponse.ok) {
@@ -172,14 +148,9 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
           // alert 제거하고 오류만 발생시킴 (호출하는 쪽에서 alert 처리)
           throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
-      } catch (err: any) {
-        console.error('이미지 검사 요청 실패:', {
-          status: err.response?.status,
-          data: err.response?.data,
-          message: err.message,
-          code: err.code
-        });
-        
+      } catch (err: unknown) {
+        console.error('이미지 검사 요청 실패:', err);
+
         // S3에서 이미지 삭제 요청
         try {
           await axios.delete('/files/delete', {
@@ -190,16 +161,15 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         } catch (deleteErr) {
           console.error('이미지 삭제 실패:', deleteErr);
         }
-        
+
+        const errorMessage = getErrorMessage(err);
+
         // 네트워크 오류 처리
-        if (err.message === 'Failed to fetch' || err.code === 'NETWORK_ERROR') {
+        if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
           throw new Error('이미지 검열 중 네트워크 오류가 발생했습니다. 이미지가 자동으로 삭제되었습니다. 다른 이미지를 사용해주세요.');
         }
-        
-        if (err.response?.data?.message) {
-          throw new Error(err.response.data.message);
-        }
-        throw new Error('이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
+
+        throw new Error(errorMessage || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
       }
     }
     
@@ -213,39 +183,29 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
       originalName: presignedData.originalName,
       contentType: presignedData.contentType
     };
-  } catch (error: any) {
-    console.error('이미지 업로드 전체 실패:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      response: error.response?.data
-    });
-    
+  } catch (error: unknown) {
+    console.error('이미지 업로드 전체 실패:', error);
+
     // 브라우저 호환성 진단 수행
     try {
       const diagnosis = await diagnoseUploadFailure(error);
       console.warn('이미지 업로드 실패 진단:', diagnosis);
-      
+
       // 진단 결과를 바탕으로 더 상세한 오류 메시지 제공
       if (diagnosis.solutions.length > 0) {
-        const enhancedMessage = `${diagnosis.diagnosis}\n\n💡 해결 방법:\n${diagnosis.solutions.map(s => `• ${s}`).join('\n')}`;
+        const enhancedMessage = `${diagnosis.diagnosis}\n\n해결 방법:\n${diagnosis.solutions.map(s => `- ${s}`).join('\n')}`;
         throw new Error(enhancedMessage);
       }
     } catch (diagnosisError) {
       console.warn('진단 실패:', diagnosisError);
     }
-    
+
     // 이미 처리된 오류 메시지는 그대로 전달
-    if (error.message && !error.response) {
+    if (error instanceof Error) {
       throw error;
     }
-    
-    // 서버 응답이 있는 경우
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    
+
     // 기본 오류 처리
-    throw new Error(error.message || '이미지 업로드 중 알 수 없는 오류가 발생했습니다.');
+    throw new Error(getErrorMessage(error));
   }
 };
