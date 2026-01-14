@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { createSuggestion } from '../lib/api/suggestion';
 import type { SuggestionCategory } from '../types/suggestion';
+import { getErrorMessage, isAxiosError } from '../types/api';
 
 export default function SuggestionCreate() {
   const { user, loading: authLoading } = useAuth();
@@ -62,17 +63,16 @@ export default function SuggestionCreate() {
       alert(t('suggestion.submit_success'));
       navigate('/suggestions');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('건의사항 작성 오류:', error);
-      
-      if (error?.response?.status === 401) {
+
+      if (isAxiosError(error) && error.response?.status === 401) {
         alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
         navigate('/login');
         return;
       }
-      
-      const errorMessage = error.response?.data?.message || t('suggestion.submit_failed');
-      alert(errorMessage);
+
+      alert(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

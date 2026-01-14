@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import axios from '../lib/axios'
+import { getErrorMessage } from '../types/api'
 
 export default function OAuthCallback() {
   const navigate = useNavigate()
@@ -32,9 +33,9 @@ export default function OAuthCallback() {
           setError('로그인 후 사용자 정보를 가져오는데 실패했습니다')
           setStatus('error')
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('OAuth 콜백 처리 오류:', err)
-        setError(err.message || 'OAuth 로그인 처리 중 오류가 발생했습니다')
+        setError(getErrorMessage(err))
         setStatus('error')
       }
     }

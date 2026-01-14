@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { WithdrawModal } from '../components/user';
+import { getErrorMessage } from '../types/api';
 
 type TabType = 'info' | 'edit' | 'password';
 
@@ -108,7 +109,7 @@ export default function ProfilePage() {
         setProfileError('이미 사용 중인 닉네임입니다.');
         setNicknameChecked(false);
       }
-    } catch (err: any) {
+    } catch {
       setProfileError('닉네임 중복 확인 실패');
       setNicknameChecked(false);
     } finally {
@@ -162,9 +163,8 @@ export default function ProfilePage() {
         navigate('/');
       }, 1500);
       
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || '프로필 수정에 실패했습니다.';
-      setProfileError(msg);
+    } catch (err: unknown) {
+      setProfileError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -195,8 +195,8 @@ export default function ProfilePage() {
       alert('비밀번호가 성공적으로 변경되었습니다.');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setActiveTab('info');
-    } catch (err: any) {
-      setPasswordError(err?.response?.data?.message || '비밀번호 변경에 실패했습니다.');
+    } catch (err: unknown) {
+      setPasswordError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -211,9 +211,8 @@ export default function ProfilePage() {
       alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
       logout();
       navigate('/');
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || '회원 탈퇴에 실패했습니다.';
-      alert(errorMsg);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 

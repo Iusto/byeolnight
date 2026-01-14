@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import * as Icons from '../icons';
+import type { IconRegistry } from '../../types/icons';
 
 interface UserIconDisplayProps {
   iconName?: string;
@@ -9,7 +10,7 @@ interface UserIconDisplayProps {
 
 // 기본 소행성 아이콘 (사용자가 아이콘을 장착하지 않았을 때만 사용)
 const DefaultAsteroid = ({ className }: { className?: string }) => {
-  const AsteroidIcon = (Icons as any)['Asteroid'];
+  const AsteroidIcon = (Icons as IconRegistry)['Asteroid'];
   
   if (AsteroidIcon) {
     return <AsteroidIcon className={className} />;
@@ -33,7 +34,7 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
     );
   }
 
-  const IconComponent = (Icons as any)[iconName];
+  const IconComponent = (Icons as IconRegistry)[iconName];
   
   if (!IconComponent) {
     console.warn(`아이콘을 찾을 수 없습니다: ${iconName}`);

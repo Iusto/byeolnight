@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import { getErrorMessage, isAxiosError } from '../types/api';
 
 const reportReasons = [
   { value: 'SPAM', label: '스팸/광고' },
@@ -55,25 +56,25 @@ export default function PostReport() {
       
       alert('신고가 접수되었습니다. 검토 후 조치하겠습니다.');
       navigate(`/posts/${id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('신고 실패:', err);
-      
+
       // 409 에러 (중복 신고) 처리
-      if (err?.response?.status === 409) {
+      if (isAxiosError(err) && err.response?.status === 409) {
         alert('이미 신고한 게시글입니다.');
         navigate(`/posts/${id}`);
         return;
       }
-      
+
       // 500 에러에서도 중복 신고 메시지 체크 (하위 호환성)
-      if (err?.response?.status === 500 && err?.response?.data?.message?.includes('이미 신고한')) {
+      const errorMessage = getErrorMessage(err);
+      if (isAxiosError(err) && err.response?.status === 500 && errorMessage.includes('이미 신고한')) {
         alert('이미 신고한 게시글입니다.');
         navigate(`/posts/${id}`);
         return;
       }
-      
-      const errorMsg = err?.response?.data?.message || '신고 접수에 실패했습니다.';
-      alert(errorMsg);
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

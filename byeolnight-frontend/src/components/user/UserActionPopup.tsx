@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { sendMessage } from '../../lib/api/message';
 import UserProfileModal from './UserProfileModal';
 import axios from '../../lib/axios';
+import { getErrorMessage } from '../../types/api';
 
 interface UserActionPopupProps {
   targetUserId: number;
@@ -56,9 +57,9 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
       setMessageContent('');
       setShowMessageForm(false);
       onClose();
-    } catch (err: any) {
-      console.error('쪽지 전송 오류:', err.response);
-      alert(err.response?.data?.message || '쪽지 전송에 실패했습니다.');
+    } catch (err: unknown) {
+      console.error('쪽지 전송 오류:', err);
+      alert(getErrorMessage(err));
     } finally {
       setSending(false);
     }
@@ -100,8 +101,8 @@ export default function UserActionPopup({ targetUserId, targetNickname, onClose,
       await axios.patch(endpoint, data);
       alert('처리되었습니다.');
       onClose();
-    } catch (err: any) {
-      alert(err.response?.data?.message || '처리에 실패했습니다.');
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 

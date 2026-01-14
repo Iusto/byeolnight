@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MarkdownRenderer } from '../components/post';
 import { ClickableNickname, UserIconDisplay } from '../components/user';
 import { CommentList, CommentForm } from '../components/post';
+import { getErrorMessage, isAxiosError } from '../types/api';
 
 
 interface Post {
@@ -184,9 +185,9 @@ export default function PostDetail() {
       }
       
       setPost(postData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('게시글 조회 실패:', err);
-      if (err.response?.status === 404) {
+      if (isAxiosError(err) && err.response?.status === 404) {
         setError(t('home.post_not_found'));
       } else {
         setError(t('home.cannot_load_post'));
@@ -241,9 +242,9 @@ export default function PostDetail() {
       console.log('처리된 댓글:', enhancedComments);
       
       setComments(enhancedComments);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('댓글 조회 실패:', err);
-      console.error('에러 상세:', err.response);
+      console.error('에러 상세:', isAxiosError(err) ? err.response : err);
       setComments([]);
     }
   };
@@ -269,9 +270,8 @@ export default function PostDetail() {
         likeCount: prev.likeCount + 1,
         likedByMe: true
       } : null);
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || '추천에 실패했습니다.';
-      alert(errorMsg);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -289,10 +289,9 @@ export default function PostDetail() {
       await axios.patch(`/admin/posts/${id}/blind`);
       alert('게시글이 블라인드 처리되었습니다.');
       navigate(`/posts?category=${post?.category || 'FREE'}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('게시글 블라인드 실패:', error);
-      const errorMessage = error.response?.data?.message || '블라인드 처리에 실패했습니다.';
-      alert(errorMessage);
+      alert(getErrorMessage(error));
     }
   };
 

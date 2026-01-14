@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { PostForm } from '../components/post';
+import { getErrorMessage } from '../types/api';
 
 interface FileDto {
   originalName: string;
@@ -67,9 +68,8 @@ export default function PostCreate() {
       
       // 해당 카테고리 게시판으로 이동
       navigate(`/posts?category=${data.category}&sort=recent`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || '게시글 작성 실패';
-      setError(msg);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

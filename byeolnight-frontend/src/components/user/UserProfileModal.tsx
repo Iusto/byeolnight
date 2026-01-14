@@ -2,6 +2,7 @@
 import { useAuth } from '../../contexts/AuthContext';
 import axios from '../../lib/axios';
 import type { SendMessageRequest } from '../types/message';
+import { getErrorMessage, isAxiosError } from '../../types/api';
 
 interface UserProfile {
   id: number;
@@ -73,9 +74,9 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
         console.error('프로필 데이터 없음:', data);
         setProfile(null);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('사용자 프로필 조회 실패:', error);
-      console.error('에러 상세:', error.response?.data);
+      console.error('에러 상세:', isAxiosError(error) ? error.response?.data : error);
       setProfile(null);
     } finally {
       setLoading(false);
@@ -105,10 +106,9 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
       alert('쪽지가 성공적으로 전송되었습니다!');
       setShowMessageForm(false);
       setMessageForm({ title: '', content: '' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('쪽지 전송 실패:', error);
-      const errorMessage = error.response?.data?.message || '쪽지 전송에 실패했습니다.';
-      alert(errorMessage);
+      alert(getErrorMessage(error));
     } finally {
       setSendingMessage(false);
     }

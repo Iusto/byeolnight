@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from '../lib/axios';
 import { AgreementModal, TermsOfService, PrivacyPolicy } from '../components/ui';
+import { getErrorMessage } from '../types/api';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -141,8 +142,8 @@ export default function Signup() {
       alert('이메일 인증 코드가 전송되었습니다.');
       setError('');
       setEmailTimer(300); // 5분 타이머 시작
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '이메일 전송 실패');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || '이메일 전송 실패');
     } finally {
       setLoading(prev => ({ ...prev, emailSend: false }));
     }
@@ -168,8 +169,8 @@ export default function Signup() {
       } else {
         setError('이메일 인증 코드가 유효하지 않습니다.');
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '이메일 인증 실패');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || '이메일 인증 실패');
     } finally {
       setLoading(prev => ({ ...prev, emailVerify: false }));
     }
@@ -200,8 +201,8 @@ export default function Signup() {
       } else {
         setError('이미 사용 중인 닉네임입니다.');
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '닉네임 중복 확인 실패');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || '닉네임 중복 확인 실패');
     } finally {
       setLoading(prev => ({ ...prev, nicknameCheck: false }));
     }

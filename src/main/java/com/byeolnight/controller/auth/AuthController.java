@@ -1,5 +1,6 @@
 package com.byeolnight.controller.auth;
 
+import com.byeolnight.dto.user.CurrentUserResponseDto;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.dto.user.TokenResponseDto;
 
@@ -19,6 +20,7 @@ import com.byeolnight.service.auth.AuthService;
 import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PasswordResetService;
+import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,6 +53,7 @@ public class AuthController {
     private final UserService userService;
     private final EmailAuthService emailAuthService;
     private final PasswordResetService passwordResetService;
+    private final CertificateService certificateService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
     private final SocialAccountCleanupService socialAccountCleanupService;
 
@@ -349,6 +352,31 @@ public class AuthController {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(CommonResponse.fail("인증되지 않음"));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "현재 사용자 정보 조회 (비로그인 허용)")
+    public ResponseEntity<CommonResponse<CurrentUserResponseDto>> getCurrentUser(
+            @AuthenticationPrincipal User user) {
+        if (user == null) {
+            // 비로그인 상태: 401이 아닌 200 OK with null
+            return ResponseEntity.ok(CommonResponse.success(null));
+        }
+
+        try {
+            // 로그인 상태: 사용자 정보 반환
+            User fullUser = userService.findById(user.getId());
+
+            // 대표 인증서 조회 (실패해도 계속 진행)
+            var repCert = certificateService.getRepresentativeCertificateSafe(fullUser);
+
+            CurrentUserResponseDto response = CurrentUserResponseDto.from(fullUser, repCert);
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } catch (Exception e) {
+            log.error("사용자 정보 조회 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("사용자 정보 조회에 실패했습니다."));
+        }
     }
     
     @PostMapping("/oauth/recover")

@@ -1,5 +1,6 @@
 package com.byeolnight.controller.file;
 
+import com.byeolnight.dto.file.PresignedUrlResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.file.CloudFrontService;
 import com.byeolnight.service.file.SecureS3Service;
@@ -36,12 +37,12 @@ public class SecureFileController {
      */
     @PostMapping("/upload-url")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<CommonResponse<Map<String, String>>> getUploadUrl(
+    public ResponseEntity<CommonResponse<PresignedUrlResponseDto>> getUploadUrl(
             @RequestParam("filename") String filename,
             @RequestParam(value = "contentType", required = false) String contentType) {
-        
+
         try {
-            Map<String, String> result = secureS3Service.generateSecurePresignedUrl(filename, contentType);
+            PresignedUrlResponseDto result = secureS3Service.generateSecurePresignedUrl(filename, contentType);
             return ResponseEntity.ok(CommonResponse.success(result));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(CommonResponse.error(e.getMessage()));

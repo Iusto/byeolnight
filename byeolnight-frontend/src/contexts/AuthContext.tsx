@@ -1,21 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from '../lib/axios';
 import { checkServerHealth, redirectToMaintenance } from '../utils/healthCheck';
-
-interface User {
-  id: number;
-  email: string;
-  nickname: string;
-  role: string;
-  points: number;
-  equippedIconId?: number;
-  equippedIconName?: string;
-  socialProvider?: string;
-  representativeCertificate?: {
-    icon: string;
-    name: string;
-  };
-}
+import { getErrorMessage } from '../types/api';
+import type { User } from '../types/user';
 
 interface AuthContextType {
   user: User | null;
@@ -33,31 +20,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchMyInfo = async (): Promise<boolean> => {
     try {
-      const res = await axios.get('/member/users/me');
+      const res = await axios.get('/auth/me');
       const userData = res.data?.success ? res.data.data : null;
-      
+
       if (!userData) {
         setUser(null);
         return false;
       }
-      
-      // 대표 인증서 정보 가져오기 (실패해도 계속 진행)
-      const certRes = await axios.get('/member/certificates/representative').catch(() => null);
-      if (certRes?.data?.data) {
-        userData.representativeCertificate = {
-          icon: certRes.data.data.icon,
-          name: certRes.data.data.name
-        };
-      }
-      
+
       setUser(userData);
       return true;
-    } catch (error: any) {
-      // 401 에러는 정상 (비로그인 상태)
-      if (error.response?.status === 401) {
-        setUser(null);
-        return false;
-      }
+    } catch {
+      // 에러 발생 시 비로그인 상태로 처리
       setUser(null);
       return false;
     }
@@ -72,10 +46,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       await fetchMyInfo();
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 서버에서 온 실제 에러 메시지를 그대로 전달
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
-      throw new Error(errorMessage);
+      throw new Error(getErrorMessage(error));
     }
   };
 

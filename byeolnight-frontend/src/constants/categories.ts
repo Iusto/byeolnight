@@ -1,4 +1,5 @@
 // 카테고리 관련 상수 통합
+import type { TranslationFunction } from '../types/i18n';
 
 export const CATEGORY_ICONS: Record<string, string> = {
   NEWS: '🚀',
@@ -33,7 +34,7 @@ export const BOARD_CONFIGS = [
   { key: 'SUGGESTIONS', icon: '💡', bgClass: 'from-orange-500/60 to-orange-600/60', hoverBgClass: 'hover:from-orange-600/40 hover:to-orange-600/40', borderClass: 'border-orange-400/60', hoverBorderClass: 'hover:border-orange-400/50', shadowClass: 'hover:shadow-orange-500/25', textClass: 'text-orange-100', path: '/suggestions' }
 ];
 
-export const getCategoryLabel = (category: string, t: any): string => {
+export const getCategoryLabel = (category: string, t: TranslationFunction): string => {
   const labels: Record<string, string> = {
     NEWS: t('home.space_news'),
     DISCUSSION: t('home.discussion'),
@@ -46,7 +47,7 @@ export const getCategoryLabel = (category: string, t: any): string => {
   return labels[category] || category;
 };
 
-export const getCategoryDescription = (category: string, t: any): string => {
+export const getCategoryDescription = (category: string, t: TranslationFunction): string => {
   const descriptions: Record<string, string> = {
     NEWS: t('home.news_auto_desc'),
     DISCUSSION: t('home.discussion_auto_desc'),

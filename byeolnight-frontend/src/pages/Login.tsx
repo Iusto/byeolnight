@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import axios from '../lib/axios'
+import { getErrorMessage } from '../types/api'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -44,9 +45,9 @@ export default function Login() {
     try {
       await login(email, password, rememberMe)
       navigate('/', { replace: true })
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 서버에서 온 실제 에러 메시지 추출
-      const errorMessage = err.response?.data?.message || err.message || '로그인 실패'
+      const errorMessage = getErrorMessage(err)
 
       // 복구 가능한 계정인지 확인
       if (errorMessage.startsWith('RECOVERABLE_ACCOUNT:')) {
@@ -77,8 +78,8 @@ export default function Login() {
       // 복구 후 폼 초기화
       setEmail('')
       setPassword('')
-    } catch (err: any) {
-      alert(err.response?.data?.message || '복구 처리 중 오류가 발생했습니다.')
+    } catch (err: unknown) {
+      alert(getErrorMessage(err))
     } finally {
       setRecoverLoading(false)
     }

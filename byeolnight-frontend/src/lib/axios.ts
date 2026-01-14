@@ -24,7 +24,7 @@ let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
 
 // 대기열 처리
-const processQueue = (error: any) => {
+const processQueue = (error: unknown) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);
@@ -82,17 +82,14 @@ instance.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    // 공개 API들은 토큰 재발급 시도하지 않음
-    const publicApis = ['/auth/withdraw', '/auth/password/', '/auth/oauth/recover'];
-    // 공개 건의사항 API는 비로그인 허용
-    const isPublicSuggestionApi = originalRequest.url?.startsWith('/public/suggestions');
-    
-    if (publicApis.some(api => originalRequest.url?.includes(api)) || isPublicSuggestionApi) {
+    // 401 에러가 아니거나 이미 재시도한 경우
+    if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // 401 에러가 아니거나 이미 재시도한 경우
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    // 공개 API들은 토큰 재발급 시도하지 않음 (백엔드에서 이미 permitAll 처리됨)
+    const publicApis = ['/auth/me', '/auth/login', '/auth/signup', '/auth/password/', '/auth/oauth/', '/public/'];
+    if (publicApis.some(api => originalRequest.url?.includes(api))) {
       return Promise.reject(error);
     }
 
@@ -114,33 +111,7 @@ instance.interceptors.response.use(
       return instance(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-      
-      // 회원 전용 API에서만 알림 후 로그인 페이지로 이동
-      const currentPath = window.location.pathname;
-      const isAuthRequiredApi = originalRequest.url?.startsWith('/member/');
-      
-      if (currentPath.includes('/suggestions') && isAuthRequiredApi) {
-        // 중복 알림 방지를 위해 세션스토리지 체크
-        const alertShown = sessionStorage.getItem('auth-alert-shown');
-        if (!alertShown) {
-          sessionStorage.setItem('auth-alert-shown', 'true');
-          alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
-        }
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-      
-      // 공개 페이지에서는 리다이렉트하지 않음
-      const publicPaths = ['/', '/posts', '/login', '/signup', '/reset-password', '/oauth-recover', '/suggestions'];
-      const isPublicPath = publicPaths.some(path => 
-        currentPath === path || currentPath.startsWith('/posts/')
-      );
-      
-      // 비공개 페이지에서만 로그인 페이지로 리다이렉트
-      if (!isPublicPath && currentPath !== '/login') {
-        window.location.href = '/login';
-      }
-      
+      // 토큰 갱신 실패 시 에러만 반환 (각 페이지/컴포넌트에서 처리)
       return Promise.reject(error);
     } finally {
       isRefreshing = false;

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { PostForm } from '../components/post';
+import { getErrorMessage } from '../types/api';
 
 // 이미지 URL 정규식
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
@@ -151,9 +152,8 @@ export default function PostEdit() {
       
       // 게시글 상세 페이지로 이동
       navigate(`/posts/${id}`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || '게시글 수정 실패';
-      setError(msg);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

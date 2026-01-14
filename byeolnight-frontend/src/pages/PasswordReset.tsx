@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
+import { getErrorMessage } from '../types/api';
 
 export default function PasswordReset() {
   const navigate = useNavigate();
@@ -29,9 +30,8 @@ export default function PasswordReset() {
     try {
       await axios.get(`/auth/password/validate-token?token=${token}`);
       setStep('reset');
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || '토큰 검증에 실패했습니다.';
-      setError(errorMessage);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       setStep('request');
     } finally {
       setLoading(false);
@@ -52,8 +52,8 @@ export default function PasswordReset() {
         email: form.email,
       });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '비밀번호 재설정 요청 실패');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false); // 로딩 종료
     }
@@ -77,8 +77,8 @@ export default function PasswordReset() {
       });
       alert('비밀번호가 성공적으로 변경되었습니다.');
       navigate('/login');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || '비밀번호 재설정 실패');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false); // 로딩 종료
     }

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { IpBlockModal, AdminReasonModal, PointAwardModal, ReportDetailModal } from '../components/admin';
 import { grantNicknameChangeTicket } from '../lib/api/admin';
 import { CATEGORY_LABELS } from './PostList';
+import { getErrorMessage } from '../types/api';
 
 interface UserSummary {
   id: number;
@@ -243,10 +244,9 @@ export default function AdminUserPage() {
       const message = response.data?.data || response.data?.message || `${points}포인트가 성공적으로 수여되었습니다.`;
       alert(message);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('포인트 수여 실패:', error);
-      const errorMessage = error.response?.data?.message || '포인트 수여에 실패했습니다.';
-      alert(errorMessage);
+      alert(getErrorMessage(error));
     } finally {
       setShowPointModal(false);
       setSelectedUserId(null);
