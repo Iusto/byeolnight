@@ -47,12 +47,11 @@ jobs:
             --instance-ids "$EC2_INSTANCE_ID" \
             --comment "deploy from github actions (ssm)" \
             --parameters "commands=[
-              \"export GITHUB_USERNAME='$GITHUB_USERNAME'\",
-              \"export GITHUB_TOKEN='$GITHUB_TOKEN'\",
-              \"sudo -u ubuntu -H bash -lc 'cd /home/ubuntu/byeolnight && chmod +x deploy.sh && ./deploy.sh'\"
+              \"sudo -u ubuntu -H bash -lc 'export GITHUB_USERNAME=\\\"$GITHUB_USERNAME\\\"; export GITHUB_TOKEN=\\\"$GITHUB_TOKEN\\\"; cd /home/ubuntu/byeolnight && chmod +x deploy.sh && ./deploy.sh'\"
             ]" \
             --query "Command.CommandId" \
             --output text)
+
 
           echo "CommandId=$COMMAND_ID"
 
