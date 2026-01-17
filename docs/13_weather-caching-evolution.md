@@ -92,13 +92,6 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 ### 운영 관점의 깨달음
 > "사용자가 많아지면 불필요한 외부 API 요청수도 폭증한다"
 
-**확장성 문제:**
-```
-사용자 1,000명 × 평균 5회 접속 = 5,000번 API 호출/일
-→ OpenWeatherMap 무료 플랜 제한 (1,000회/일) 초과
-→ 유료 플랜 전환 필요 ($40/월 ~)
-```
-
 **운영 비용:**
 - 매번 API 호출 = API 비용 증가
 - 트래픽 증가 시 비용 선형 증가
@@ -156,7 +149,7 @@ String cacheKey = String.format("weather:%f:%f", latitude, longitude);
 - Redis 설치, 관리, 모니터링 필요
 - 연결 풀, 타임아웃 설정 등 복잡도 증가
 - **"이 작은 사이트에 Redis가 정말 필요한가?"**
-- 단순히 날씨 정보 캐싱하는데 너무 복잡함
+- 단순히 날씨 정보 캐싱하는데 복잡함
 
 ---
 
@@ -172,7 +165,7 @@ String cacheKey = String.format("weather:%f:%f", latitude, longitude);
 
 2. **사용자는 주요 도시에 몰린다**
    - 서울, 경기도, 부산 등 대도시 집중
-   - 전체 사용자의 90% 이상이 57개 주요 도시
+   - 전체 사용자의 95% 이상이 70개 주요 도시
 
 3. **Redis는 필요 없다**
    - 단일 서버 환경에서 로컬 메모리로 충분
@@ -222,7 +215,7 @@ public class CoordinateUtils {
 ```java
 @Scheduled(initialDelay = 10_000, fixedRate = 1_800_000) // 30분 간격
 public void collectWeatherData() {
-    // 57개 주요 도시 날씨를 미리 수집
+    // 70개 주요 도시 날씨를 미리 수집
     for (City city : cityConfig.getCities()) {
         WeatherResponse weather = fetchWeatherData(city);
         cacheService.put(city.getCacheKey(), weather);
@@ -230,7 +223,7 @@ public void collectWeatherData() {
 }
 ```
 
-**서버 시작 → 10초 후 → 57개 도시 날씨 자동 수집 → 캐시 준비 완료**
+**서버 시작 → 10초 후 → 70개 도시 날씨 자동 수집 → 캐시 준비 완료**
 
 #### On-Demand Caching (온디맨드)
 ```java
@@ -246,16 +239,16 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 }
 ```
 
-### 대상 도시 (57개)
+### 대상 도시 (70개)
 ```yaml
 서울: 1개
-경기도/인천: 24개 (인천, 수원, 성남, 고양, 용인, 부천, 안산, 안양, 평택, 화성,
+경기도/인천: 26개 (인천, 수원, 성남, 고양, 용인, 부천, 안산, 안양, 평택, 화성,
                    광명, 시흥, 의정부, 파주, 김포, 광주시, 하남, 구리, 남양주,
-                   오산, 군포, 의왕, 이천, 안성)
-강원도: 5개 (춘천, 강릉, 원주, 속초, 동해)
-충청도: 6개 (대전, 청주, 천안, 세종, 충주, 아산)
+                   오산, 군포, 의왕, 이천, 안성, 양평, 가평)
+강원도: 9개 (춘천, 강릉, 원주, 속초, 동해, 평창, 정선, 태백, 홍천) - 별 관측 명소 포함
+충청도: 9개 (대전, 청주, 천안, 세종, 충주, 아산, 제천, 공주, 보령)
 전라도: 7개 (전주, 광주, 목포, 순천, 여수, 익산, 군산)
-경상도: 12개 (대구, 부산, 울산, 포항, 경주, 창원, 김해, 구미, 거제, 양산, 진주, 안동)
+경상도: 16개 (대구, 부산, 울산, 포항, 경주, 창원, 김해, 구미, 거제, 양산, 진주, 안동, 통영, 밀양, 영천, 사천)
 제주도: 2개 (제주, 서귀포)
 ```
 
@@ -316,7 +309,7 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 ### 5. **측정의 중요성**
 - 캐시 히트율 20% → 문제 인식
 - 로딩 시간 7초+ → 사용자 경험 저하 확인
-- 개선 후 95% 히트율 → 검증된 성능
+- 개선 후 90% 히트율 → 검증된 성능
 
 ### 6. **운영 관점 사고**
 > "기능만 만들지 말고 비용/확장성/안정성까지 고려하라"
