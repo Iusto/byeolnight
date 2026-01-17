@@ -172,7 +172,7 @@ String cacheKey = String.format("weather:%f:%f", latitude, longitude);
 
 2. **사용자는 주요 도시에 몰린다**
    - 서울, 경기도, 부산 등 대도시 집중
-   - 전체 사용자의 80% 이상이 26개 주요 도시
+   - 전체 사용자의 90% 이상이 57개 주요 도시
 
 3. **Redis는 필요 없다**
    - 단일 서버 환경에서 로컬 메모리로 충분
@@ -192,14 +192,14 @@ public class WeatherLocalCacheService {
 ### 개선 2: 좌표 그리드 시스템
 ```java
 public class CoordinateUtils {
-    private static final double GRID_SIZE = 0.2;  // 약 20km 그리드
+    private static final double GRID_SIZE = 0.01;  // 약 1km 그리드
 
     public static double roundCoordinate(double coordinate) {
         return Math.round(coordinate / GRID_SIZE) * GRID_SIZE;
     }
 
-    // 37.4979 → 37.6
-    // 37.5002 → 37.6
+    // 37.4979 → 37.50
+    // 37.4985 → 37.50
     // 같은 그리드 = 같은 캐시 키 = 캐시 공유!
 }
 ```
@@ -222,7 +222,7 @@ public class CoordinateUtils {
 ```java
 @Scheduled(initialDelay = 10_000, fixedRate = 1_800_000) // 30분 간격
 public void collectWeatherData() {
-    // 26개 주요 도시 날씨를 미리 수집
+    // 57개 주요 도시 날씨를 미리 수집
     for (City city : cityConfig.getCities()) {
         WeatherResponse weather = fetchWeatherData(city);
         cacheService.put(city.getCacheKey(), weather);
@@ -230,7 +230,7 @@ public void collectWeatherData() {
 }
 ```
 
-**서버 시작 → 10초 후 → 26개 도시 날씨 자동 수집 → 캐시 준비 완료**
+**서버 시작 → 10초 후 → 57개 도시 날씨 자동 수집 → 캐시 준비 완료**
 
 #### On-Demand Caching (온디맨드)
 ```java
@@ -246,14 +246,16 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 }
 ```
 
-### 대상 도시 (26개)
+### 대상 도시 (57개)
 ```yaml
 서울: 1개
-경기도: 10개 (인천, 수원, 성남, 고양, 용인, 부천, 안산, 안양, 평택, 화성)
-강원도: 2개 (춘천, 강릉)
-충청도: 3개 (대전, 청주, 천안)
-전라도: 3개 (전주, 광주, 목포)
-경상도: 5개 (대구, 부산, 울산, 포항, 경주)
+경기도/인천: 24개 (인천, 수원, 성남, 고양, 용인, 부천, 안산, 안양, 평택, 화성,
+                   광명, 시흥, 의정부, 파주, 김포, 광주시, 하남, 구리, 남양주,
+                   오산, 군포, 의왕, 이천, 안성)
+강원도: 5개 (춘천, 강릉, 원주, 속초, 동해)
+충청도: 6개 (대전, 청주, 천안, 세종, 충주, 아산)
+전라도: 7개 (전주, 광주, 목포, 순천, 여수, 익산, 군산)
+경상도: 12개 (대구, 부산, 울산, 포항, 경주, 창원, 김해, 구미, 거제, 양산, 진주, 안동)
 제주도: 2개 (제주, 서귀포)
 ```
 
@@ -286,8 +288,8 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 > "날씨는 좁은 영역에서 동일하고, 사용자는 대도시에 몰린다"
 
 - 정밀한 좌표 캐싱은 불필요했음
-- 20km 그리드면 충분
-- 26개 도시만 커버해도 80% 이상 해결
+- 1km 그리드면 충분 (도시 내 정확한 위치 표시)
+- 57개 도시만 커버해도 90% 이상 해결
 
 ### 3. **Lazy Loading → Eager Loading**
 > "첫 방문자를 기다리게 하지 말고, 미리 준비하자"
@@ -356,12 +358,12 @@ public class WeatherLocalCacheService {
 ### 2. 좌표 반올림 유틸
 ```java
 public class CoordinateUtils {
-    private static final double GRID_SIZE = 0.2;  // 약 20km
+    private static final double GRID_SIZE = 0.01;  // 약 1km
 
     public static String generateCacheKey(double lat, double lon) {
         double roundedLat = Math.round(lat / GRID_SIZE) * GRID_SIZE;
         double roundedLon = Math.round(lon / GRID_SIZE) * GRID_SIZE;
-        return String.format("wx:%.1f:%.1f", roundedLat, roundedLon);
+        return String.format("wx:%.2f:%.2f", roundedLat, roundedLon);
     }
 }
 ```
@@ -402,8 +404,9 @@ cache.entrySet().removeIf(entry ->
 
 ### 2. 도시 확장
 사용자 통계 분석 후 추가 도시 확대:
-- 현재 26개 → 필요시 50개까지 확장 가능
-- 메모리 사용량: 도시당 ~2KB → 50개 = 100KB (무시 가능)
+- 현재 57개 → 필요시 100개까지 확장 가능
+- 메모리 사용량: 도시당 ~2KB → 100개 = 200KB (무시 가능)
+- API 호출: 57개 × 48회/일 = 2,736회/일 (무료 플랜 충분)
 
 ### 3. 모니터링 (선택적)
 ```java
