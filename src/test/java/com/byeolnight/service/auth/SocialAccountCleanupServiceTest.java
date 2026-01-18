@@ -102,12 +102,13 @@ class SocialAccountCleanupServiceTest {
         verify(userRepository).findByStatusAndWithdrawnAtBefore(
                 eq(User.UserStatus.WITHDRAWN), any(LocalDateTime.class));
         
-        // 소셜 사용자만 마스킹되었는지 확인
+        // 소셜 사용자 마스킹 확인
         assertTrue(expiredSocialUser.getEmail().startsWith("withdrawn_"));
         assertEquals("탈퇴회원_4", expiredSocialUser.getNickname());
-        
-        // 일반 사용자는 마스킹되지 않음 (이미 탈퇴 시 마스킹됨)
-        assertEquals("regular@test.com", expiredRegularUser.getEmail());
+
+        // 일반 사용자도 마스킹됨 (서비스는 일반/소셜 모두 30일 후 마스킹)
+        assertTrue(expiredRegularUser.getEmail().startsWith("withdrawn_"));
+        assertEquals("탈퇴회원_5", expiredRegularUser.getNickname());
     }
 
     @Test
@@ -161,8 +162,8 @@ class SocialAccountCleanupServiceTest {
     }
 
     @Test
-    @DisplayName("일반 사용자 복구 불가")
-    void recoverWithdrawnAccount_RegularUser_Fail() {
+    @DisplayName("일반 사용자 복구 성공 - 30일 내")
+    void recoverWithdrawnAccount_RegularUser_Within30Days_Success() {
         // given
         User regularUser = User.builder()
                 .id(8L)
@@ -180,7 +181,8 @@ class SocialAccountCleanupServiceTest {
         boolean result = socialAccountCleanupService.recoverWithdrawnAccount("regular@test.com");
 
         // then
-        assertFalse(result); // 일반 사용자는 복구 불가
+        assertTrue(result); // 일반 사용자도 30일 내 복구 가능
+        assertEquals(User.UserStatus.ACTIVE, regularUser.getStatus());
     }
 
     @Test

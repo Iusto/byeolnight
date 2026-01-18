@@ -86,9 +86,9 @@ class WeatherServiceTest {
             // given
             double latitude = 37.5665;
             double longitude = 126.9780;
-            // 0.2 단위로 반올림된 좌표
-            double expectedLat = 37.6;
-            double expectedLon = 127.0;
+            // 0.01 단위로 반올림된 좌표
+            double expectedLat = 37.57;
+            double expectedLon = 126.98;
 
             Map<String, Object> apiResponse = Map.of(
                     "name", "Seoul",
@@ -118,9 +118,9 @@ class WeatherServiceTest {
             // given
             double latitude = 35.1796;
             double longitude = 129.0756;
-            // 0.2 단위로 반올림된 좌표
-            double expectedLat = 35.2;
-            double expectedLon = 129.0;
+            // 0.01 단위로 반올림된 좌표
+            double expectedLat = 35.18;
+            double expectedLon = 129.08;
 
             Map<String, Object> apiResponse = Map.of(
                     "name", "Busan",
@@ -149,9 +149,9 @@ class WeatherServiceTest {
             // given
             double latitude = 33.4996;
             double longitude = 126.5312;
-            // 0.2 단위로 반올림된 좌표
-            double expectedLat = 33.4;
-            double expectedLon = 126.6;
+            // 0.01 단위로 반올림된 좌표
+            double expectedLat = 33.50;
+            double expectedLon = 126.53;
 
             Map<String, Object> apiResponse = Map.of(
                     "name", "Jeju",
@@ -169,8 +169,7 @@ class WeatherServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getLocation()).isEqualTo("Jeju");
             assertThat(result.getLatitude()).isEqualTo(expectedLat);
-            // 부동소수점 정밀도로 인해 126.60000000000001이 될 수 있음
-            assertThat(result.getLongitude()).isCloseTo(expectedLon, org.assertj.core.data.Offset.offset(0.0001));
+            assertThat(result.getLongitude()).isEqualTo(expectedLon);
             assertThat(result.getCloudCover()).isEqualTo(60.0);
             assertThat(result.getVisibility()).isEqualTo(5.0);
         }
@@ -203,8 +202,9 @@ class WeatherServiceTest {
             // given
             double[] latitudes = {37.5665, 35.1796, 33.4996, 36.3504};
             double[] longitudes = {126.9780, 129.0756, 126.5312, 127.3845};
-            double[] expectedLats = {37.6, 35.2, 33.4, 36.4};
-            double[] expectedLons = {127.0, 129.0, 126.6, 127.4};
+            // 0.01 단위로 반올림된 좌표
+            double[] expectedLats = {37.57, 35.18, 33.50, 36.35};
+            double[] expectedLons = {126.98, 129.08, 126.53, 127.38};
             String[] locations = {"Seoul", "Busan", "Jeju", "Daejeon"};
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
@@ -228,8 +228,7 @@ class WeatherServiceTest {
 
                 assertThat(result).isNotNull();
                 assertThat(result.getLocation()).isEqualTo(locations[i]);
-                assertThat(result.getLatitude()).isEqualTo(expectedLats[i]);
-                // 부동소수점 정밀도 문제로 isCloseTo 사용
+                assertThat(result.getLatitude()).isCloseTo(expectedLats[i], org.assertj.core.data.Offset.offset(0.0001));
                 assertThat(result.getLongitude()).isCloseTo(expectedLons[i], org.assertj.core.data.Offset.offset(0.0001));
             }
         }
@@ -238,9 +237,9 @@ class WeatherServiceTest {
         @DisplayName("좌표 반올림이 적용되어 캐시 키가 생성됨")
         void shouldRoundCoordinatesForCacheKey() {
             // given
-            // 37.56과 37.57은 0.2 단위로 반올림하면 같은 37.6이 되어야 함
-            double latitude1 = 37.56;
-            double latitude2 = 37.57;
+            // 37.564와 37.565는 0.01 단위로 반올림하면 같은 37.56이 되어야 함
+            double latitude1 = 37.564;
+            double latitude2 = 37.565;
             double longitude = 126.98;
 
             WeatherResponse cachedResponse = WeatherResponse.builder()

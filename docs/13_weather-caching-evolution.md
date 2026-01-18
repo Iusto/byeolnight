@@ -5,12 +5,12 @@
 ## 📊 성능 개선 결과
 
 | 지표 | 캐싱 없음 | Redis 캐싱 | 로컬 캐시 | 최종 (Proactive) |
-|------|----------|-----------|----------|------------------|
-| 첫 로딩 시간 | 7초+ | 7초+ (미스 시) | 7초+ (미스 시) | **즉시** |
-| 캐시 히트율 | 0% | ~20% | ~60% | **~95%** |
-| API 호출 | 매번 | 80% 요청 시 | 40% 요청 시 | 30분마다 |
-| 인프라 복잡도 | 낮음 | 높음 (Redis) | 낮음 | 낮음 |
-| 사용자 경험 | 😞 매우 느림 | 😐 느림 | 🙂 보통 | 😊 **빠름** |
+|------|----------|-----------|----------|----------------|
+| 첫 로딩 시간 | 7초+ | 7초+ (미스 시) | 7초+ (미스 시) | **즉시**         |
+| 캐시 히트율 | 0% | ~20% | ~60% | **~90%**       |
+| API 호출 | 매번 | 80% 요청 시 | 40% 요청 시 | 30분마다          |
+| 인프라 복잡도 | 낮음 | 높음 (Redis) | 낮음 | 낮음             |
+| 사용자 경험 | 😞 매우 느림 | 😐 느림 | 🙂 보통 | 😊 **빠름**      |
 
 ---
 
@@ -28,15 +28,25 @@
 ### 구현 방식
 ```java
 public WeatherResponse getObservationConditions(Double latitude, Double longitude) {
-    // 매번 OpenWeatherMap API 호출
-    Map<String, Object> apiData = callWeatherAPI(latitude, longitude);
-
-    // 별관측 조건으로 변환
-    WeatherData weather = extractWeatherData(apiData);
-    String quality = calculateObservationQuality(weather);
-
-    return buildResponse(weather, quality);
+    // 매번 OpenWeatherMap API 호출 - 캐싱 없음
+    WeatherResponse weather = fetchWeatherDataFromAPI(latitude, longitude);
+    return weather;  // 7초+ 소요
 }
+
+private WeatherResponse fetchWeatherDataFromAPI(double latitude, double longitude) {
+    Map<String, Object> apiResponse = callWeatherAPI(latitude, longitude);
+    WeatherData weatherData = extractWeatherData(apiResponse);
+    String quality = calculateObservationQuality(weatherData.cloudCover(), weatherData.visibility());
+
+    return WeatherResponse.builder()
+            .location(extractLocationName(apiResponse))
+            .cloudCover(weatherData.cloudCover())
+            .visibility(weatherData.visibility())
+            .observationQuality(quality)
+            .build();
+}
+
+private record WeatherData(double cloudCover, double visibility) {}
 ```
 
 ### 참담한 현실
@@ -91,13 +101,6 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 
 ### 운영 관점의 깨달음
 > "사용자가 많아지면 불필요한 외부 API 요청수도 폭증한다"
-
-**확장성 문제:**
-```
-사용자 1,000명 × 평균 5회 접속 = 5,000번 API 호출/일
-→ OpenWeatherMap 무료 플랜 제한 (1,000회/일) 초과
-→ 유료 플랜 전환 필요 ($40/월 ~)
-```
 
 **운영 비용:**
 - 매번 API 호출 = API 비용 증가
@@ -156,7 +159,7 @@ String cacheKey = String.format("weather:%f:%f", latitude, longitude);
 - Redis 설치, 관리, 모니터링 필요
 - 연결 풀, 타임아웃 설정 등 복잡도 증가
 - **"이 작은 사이트에 Redis가 정말 필요한가?"**
-- 단순히 날씨 정보 캐싱하는데 너무 복잡함
+- 단순히 날씨 정보 캐싱하는데 복잡함
 
 ---
 
@@ -172,7 +175,7 @@ String cacheKey = String.format("weather:%f:%f", latitude, longitude);
 
 2. **사용자는 주요 도시에 몰린다**
    - 서울, 경기도, 부산 등 대도시 집중
-   - 전체 사용자의 80% 이상이 26개 주요 도시
+   - 전체 사용자의 95% 이상이 70개 주요 도시
 
 3. **Redis는 필요 없다**
    - 단일 서버 환경에서 로컬 메모리로 충분
@@ -192,14 +195,14 @@ public class WeatherLocalCacheService {
 ### 개선 2: 좌표 그리드 시스템
 ```java
 public class CoordinateUtils {
-    private static final double GRID_SIZE = 0.2;  // 약 20km 그리드
+    private static final double GRID_SIZE = 0.01;  // 약 1km 그리드
 
     public static double roundCoordinate(double coordinate) {
         return Math.round(coordinate / GRID_SIZE) * GRID_SIZE;
     }
 
-    // 37.4979 → 37.6
-    // 37.5002 → 37.6
+    // 37.4979 → 37.50
+    // 37.4985 → 37.50
     // 같은 그리드 = 같은 캐시 키 = 캐시 공유!
 }
 ```
@@ -222,7 +225,7 @@ public class CoordinateUtils {
 ```java
 @Scheduled(initialDelay = 10_000, fixedRate = 1_800_000) // 30분 간격
 public void collectWeatherData() {
-    // 26개 주요 도시 날씨를 미리 수집
+    // 70개 주요 도시 날씨를 미리 수집
     for (City city : cityConfig.getCities()) {
         WeatherResponse weather = fetchWeatherData(city);
         cacheService.put(city.getCacheKey(), weather);
@@ -230,7 +233,7 @@ public void collectWeatherData() {
 }
 ```
 
-**서버 시작 → 10초 후 → 26개 도시 날씨 자동 수집 → 캐시 준비 완료**
+**서버 시작 → 10초 후 → 70개 도시 날씨 자동 수집 → 캐시 준비 완료**
 
 #### On-Demand Caching (온디맨드)
 ```java
@@ -246,14 +249,16 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 }
 ```
 
-### 대상 도시 (26개)
+### 대상 도시 (70개)
 ```yaml
 서울: 1개
-경기도: 10개 (인천, 수원, 성남, 고양, 용인, 부천, 안산, 안양, 평택, 화성)
-강원도: 2개 (춘천, 강릉)
-충청도: 3개 (대전, 청주, 천안)
-전라도: 3개 (전주, 광주, 목포)
-경상도: 5개 (대구, 부산, 울산, 포항, 경주)
+경기도/인천: 26개 (인천, 수원, 성남, 고양, 용인, 부천, 안산, 안양, 평택, 화성,
+                   광명, 시흥, 의정부, 파주, 김포, 광주시, 하남, 구리, 남양주,
+                   오산, 군포, 의왕, 이천, 안성, 양평, 가평)
+강원도: 9개 (춘천, 강릉, 원주, 속초, 동해, 평창, 정선, 태백, 홍천) - 별 관측 명소 포함
+충청도: 9개 (대전, 청주, 천안, 세종, 충주, 아산, 제천, 공주, 보령)
+전라도: 7개 (전주, 광주, 목포, 순천, 여수, 익산, 군산)
+경상도: 16개 (대구, 부산, 울산, 포항, 경주, 창원, 김해, 구미, 거제, 양산, 진주, 안동, 통영, 밀양, 영천, 사천)
 제주도: 2개 (제주, 서귀포)
 ```
 
@@ -286,8 +291,8 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 > "날씨는 좁은 영역에서 동일하고, 사용자는 대도시에 몰린다"
 
 - 정밀한 좌표 캐싱은 불필요했음
-- 20km 그리드면 충분
-- 26개 도시만 커버해도 80% 이상 해결
+- 1km 그리드면 충분 (도시 내 정확한 위치 표시)
+- 57개 도시만 커버해도 90% 이상 해결
 
 ### 3. **Lazy Loading → Eager Loading**
 > "첫 방문자를 기다리게 하지 말고, 미리 준비하자"
@@ -312,9 +317,21 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 ```
 
 ### 5. **측정의 중요성**
-- 캐시 히트율 20% → 문제 인식
-- 로딩 시간 7초+ → 사용자 경험 저하 확인
-- 개선 후 95% 히트율 → 검증된 성능
+> "측정하지 않으면 개선할 수 없다"
+
+**측정이 문제 발견으로 이어진 과정:**
+1. **Chrome DevTools**로 API 응답 시간 측정 → 7초+ 지연 확인
+2. **로그 분석**으로 캐시 HIT/MISS 비율 집계 → 20% 히트율 확인
+3. **사용자 행동 분석** → 7초 대기 중 이탈 발생 확인
+
+**측정 → 인사이트 → 개선:**
+| 측정 지표 | 측정 결과 | 인사이트 | 개선 방향 |
+|----------|----------|---------|----------|
+| API 응답 시간 | 7초+ | 사용자 이탈 원인 | 캐싱 도입 |
+| 캐시 히트율 | 20% | 좌표 정밀도 과다 | 그리드 시스템 |
+| 주요 도시 접속 비율 | 80%+ | 도시별 캐싱 유효 | 프로액티브 캐싱 |
+
+**교훈:** 감으로 설계하지 말고, 데이터로 검증하자
 
 ### 6. **운영 관점 사고**
 > "기능만 만들지 말고 비용/확장성/안정성까지 고려하라"
@@ -339,51 +356,93 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 
 ### 1. 로컬 캐시 서비스
 ```java
-@Component
+@Slf4j
+@Service
 public class WeatherLocalCacheService {
-    private final Map<String, WeatherResponse> cache = new ConcurrentHashMap<>();
 
-    public Optional<WeatherResponse> get(String key) {
-        return Optional.ofNullable(cache.get(key));
+    private final Map<String, CachedWeather> cache = new ConcurrentHashMap<>();
+
+    public Optional<WeatherResponse> get(String cacheKey) {
+        CachedWeather cached = cache.get(cacheKey);
+        if (cached != null) {
+            log.debug("로컬 캐시 HIT: cacheKey={}", cacheKey);
+            return Optional.of(cached.data());
+        }
+        log.debug("로컬 캐시 MISS: cacheKey={}", cacheKey);
+        return Optional.empty();
     }
 
-    public void put(String key, WeatherResponse value) {
-        cache.put(key, value);
+    public void put(String cacheKey, WeatherResponse data) {
+        cache.put(cacheKey, new CachedWeather(data, LocalDateTime.now()));
+        log.info("로컬 캐시 저장: cacheKey={}, location={}", cacheKey, data.getLocation());
     }
+
+    private record CachedWeather(WeatherResponse data, LocalDateTime cachedAt) {}
 }
 ```
 
-### 2. 좌표 반올림 유틸
+### 2. WeatherResponse DTO
+```java
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class WeatherResponse {
+    private String location;           // 지역명
+    private Double latitude;           // 위도
+    private Double longitude;          // 경도
+    private Double cloudCover;         // 구름량 (%)
+    private Double visibility;         // 시정 (km)
+    private String moonPhase;          // 달 위상 이모지
+    private String observationQuality; // EXCELLENT, GOOD, FAIR, POOR
+    private String recommendation;     // 관측 추천 등급
+    private String observationTime;    // 관측 시간
+}
+```
+
+### 3. 좌표 반올림 유틸
 ```java
 public class CoordinateUtils {
-    private static final double GRID_SIZE = 0.2;  // 약 20km
+    private static final double GRID_SIZE = 0.01;  // 약 1km 그리드
+
+    public static double roundCoordinate(double coordinate) {
+        return Math.round(coordinate / GRID_SIZE) * GRID_SIZE;
+    }
 
     public static String generateCacheKey(double lat, double lon) {
-        double roundedLat = Math.round(lat / GRID_SIZE) * GRID_SIZE;
-        double roundedLon = Math.round(lon / GRID_SIZE) * GRID_SIZE;
-        return String.format("wx:%.1f:%.1f", roundedLat, roundedLon);
+        double roundedLat = roundCoordinate(lat);
+        double roundedLon = roundCoordinate(lon);
+        return String.format("wx:%.2f:%.2f", roundedLat, roundedLon);
+    }
+
+    public static boolean isValidCoordinate(double lat, double lon) {
+        return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
     }
 }
 ```
 
-### 3. 스케줄러
+### 4. 스케줄러
 ```java
-@Scheduled(initialDelay = 10_000, fixedRate = 1_800_000)
+@Scheduled(initialDelay = 10_000, fixedRate = 1_800_000)  // 10초 후 시작, 30분 간격
 public void collectWeatherData() {
     log.info("===== 날씨 데이터 수집 시작 =====");
+    int successCount = 0;
+    int failCount = 0;
 
-    for (City city : cityConfig.getCities()) {
+    for (WeatherCityConfig.City city : cityConfig.getCities()) {
         try {
             WeatherResponse weather = fetchWeatherData(city);
             String cacheKey = generateCacheKey(city.latitude(), city.longitude());
             cacheService.put(cacheKey, weather);
+            successCount++;
             Thread.sleep(200);  // Rate Limit 방지
         } catch (Exception e) {
-            log.error("날씨 수집 실패: city={}", city.name());
+            log.error("날씨 수집 실패: city={}, error={}", city.name(), e.getMessage());
+            failCount++;
         }
     }
 
-    log.info("===== 날씨 데이터 수집 완료 =====");
+    log.info("===== 날씨 데이터 수집 완료 ===== 성공: {}, 실패: {}", successCount, failCount);
 }
 ```
 
@@ -402,8 +461,8 @@ cache.entrySet().removeIf(entry ->
 
 ### 2. 도시 확장
 사용자 통계 분석 후 추가 도시 확대:
-- 현재 26개 → 필요시 50개까지 확장 가능
-- 메모리 사용량: 도시당 ~2KB → 50개 = 100KB (무시 가능)
+- 현재 70개 → 필요시 100개까지 확장 가능
+- 메모리 사용량: 도시당 ~2KB → 100개 = 200KB (무시 가능)
 
 ### 3. 모니터링 (선택적)
 ```java
