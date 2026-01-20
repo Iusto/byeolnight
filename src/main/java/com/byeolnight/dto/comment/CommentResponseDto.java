@@ -1,12 +1,13 @@
 package com.byeolnight.dto.comment;
 
 import com.byeolnight.entity.comment.Comment;
-import com.byeolnight.entity.certificate.UserCertificate;
 import com.byeolnight.entity.user.User;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Builder
@@ -21,64 +22,50 @@ public class CommentResponseDto {
     private Long parentId;
     private String parentWriter;
     private String writerIcon;
-    private java.util.List<String> writerCertificates;
+    private List<String> writerCertificates;
     private int likeCount;
     private int reportCount;
     private boolean isPopular;
 
+    /**
+     * @deprecated Use CommentResponseAssembler.toDto() instead for proper certificate loading
+     */
+    @Deprecated
     public static CommentResponseDto from(Comment comment) {
         return from(comment, null);
     }
-    
+
+    /**
+     * @deprecated Use CommentResponseAssembler.toDto() instead for proper certificate loading
+     */
+    @Deprecated
     public static CommentResponseDto from(Comment comment, User currentUser) {
-        // writer 정보 상세 체크
-        String writerName;
-        if (comment.getWriter() != null) {
-            writerName = comment.getWriter().getNickname();
-        } else {
-            writerName = "알 수 없는 사용자";
-        }
-        
-        // 부모 댓글 정보 처리
+        String writerName = comment.getWriter() != null
+                ? comment.getWriter().getNickname()
+                : "알 수 없는 사용자";
+
         Long parentId = null;
         String parentWriter = null;
         if (comment.getParent() != null) {
             parentId = comment.getParent().getId();
-            parentWriter = (comment.getParent().getWriter() != null) ? 
-                comment.getParent().getWriter().getNickname() : "알 수 없는 사용자";
+            parentWriter = comment.getParent().getWriter() != null
+                    ? comment.getParent().getWriter().getNickname()
+                    : "알 수 없는 사용자";
         }
-        
-        // 사용자 아이콘 정보 가져오기
+
         String writerIcon = null;
-        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
-        
         if (comment.getWriter() != null) {
-            // 장착된 아이콘 정보 가져오기
             writerIcon = comment.getWriter().getEquippedIconName();
-            
-            // 대표 인증서 조회
-            try {
-                com.byeolnight.service.certificate.CertificateService certificateService = 
-                    com.byeolnight.infrastructure.config.ApplicationContextProvider
-                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                UserCertificate repCert =
-                    certificateService.getRepresentativeCertificate(comment.getWriter());
-                if (repCert != null) {
-                    writerCertificates.add(repCert.getCertificateType().getName());
-                }
-            } catch (Exception e) {
-                // 인증서 조회 실패 시 무시
-            }
         }
-        
-        // 관리자는 원본 내용, 일반 사용자는 마스킹 내용
+
         String displayContent = comment.getContent();
-        if (comment.getBlinded() && (currentUser == null || !"ADMIN".equals(currentUser.getRole().name()))) {
+        boolean isAdmin = currentUser != null && "ADMIN".equals(currentUser.getRole().name());
+        if (comment.getBlinded() && !isAdmin) {
             displayContent = "이 댓글은 블라인드 처리되었습니다.";
-        } else if (comment.getDeleted() && (currentUser == null || !"ADMIN".equals(currentUser.getRole().name()))) {
+        } else if (comment.getDeleted() && !isAdmin) {
             displayContent = "이 댓글은 삭제되었습니다.";
         }
-        
+
         return CommentResponseDto.builder()
                 .id(comment.getId())
                 .content(displayContent)
@@ -90,60 +77,39 @@ public class CommentResponseDto {
                 .parentId(parentId)
                 .parentWriter(parentWriter)
                 .writerIcon(writerIcon)
-                .writerCertificates(writerCertificates)
+                .writerCertificates(new ArrayList<>())
                 .likeCount(comment.getLikeCount())
                 .reportCount(comment.getReportCount())
                 .isPopular(comment.isPopular())
                 .build();
     }
-    
+
+    /**
+     * @deprecated Use CommentResponseAssembler.toDto() with forAdmin=true instead
+     */
+    @Deprecated
     public static CommentResponseDto fromForAdmin(Comment comment, User currentUser) {
-        // writer 정보 상세 체크
-        String writerName;
-        if (comment.getWriter() != null) {
-            writerName = comment.getWriter().getNickname();
-        } else {
-            writerName = "알 수 없는 사용자";
-        }
-        
-        // 부모 댓글 정보 처리
+        String writerName = comment.getWriter() != null
+                ? comment.getWriter().getNickname()
+                : "알 수 없는 사용자";
+
         Long parentId = null;
         String parentWriter = null;
         if (comment.getParent() != null) {
             parentId = comment.getParent().getId();
-            parentWriter = (comment.getParent().getWriter() != null) ? 
-                comment.getParent().getWriter().getNickname() : "알 수 없는 사용자";
+            parentWriter = comment.getParent().getWriter() != null
+                    ? comment.getParent().getWriter().getNickname()
+                    : "알 수 없는 사용자";
         }
-        
-        // 사용자 아이콘 정보 가져오기
+
         String writerIcon = null;
-        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
-        
         if (comment.getWriter() != null) {
-            // 장착된 아이콘 정보 가져오기
             writerIcon = comment.getWriter().getEquippedIconName();
-            
-            // 대표 인증서 조회
-            try {
-                com.byeolnight.service.certificate.CertificateService certificateService = 
-                    com.byeolnight.infrastructure.config.ApplicationContextProvider
-                        .getBean(com.byeolnight.service.certificate.CertificateService.class);
-                UserCertificate repCert =
-                    certificateService.getRepresentativeCertificate(comment.getWriter());
-                if (repCert != null) {
-                    writerCertificates.add(repCert.getCertificateType().getName());
-                }
-            } catch (Exception e) {
-                // 인증서 조회 실패 시 무시
-            }
         }
-        
-        // 관리자는 항상 원본 내용을 볼 수 있음
-        String displayContent = comment.getContent();
-        
+
         return CommentResponseDto.builder()
                 .id(comment.getId())
-                .content(displayContent)
+                .content(comment.getContent())
                 .writer(writerName)
                 .writerId(comment.getWriter() != null ? comment.getWriter().getId() : null)
                 .blinded(comment.getBlinded())
@@ -152,7 +118,7 @@ public class CommentResponseDto {
                 .parentId(parentId)
                 .parentWriter(parentWriter)
                 .writerIcon(writerIcon)
-                .writerCertificates(writerCertificates)
+                .writerCertificates(new ArrayList<>())
                 .likeCount(comment.getLikeCount())
                 .reportCount(comment.getReportCount())
                 .isPopular(comment.isPopular())

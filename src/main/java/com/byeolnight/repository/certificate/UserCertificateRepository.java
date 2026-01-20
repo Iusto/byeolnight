@@ -31,4 +31,8 @@ public interface UserCertificateRepository extends JpaRepository<UserCertificate
 
     // 사용자의 특정 인증서 조회
     Optional<UserCertificate> findByUserAndCertificateType(User user, Certificate.CertificateType certificateType);
+
+    // 여러 사용자의 대표 인증서 배치 조회 (N+1 방지)
+    @Query("SELECT uc FROM UserCertificate uc WHERE uc.user IN :users AND uc.isRepresentative = true")
+    List<UserCertificate> findByUserInAndIsRepresentativeTrue(@Param("users") java.util.Set<User> users);
 }

@@ -5,6 +5,7 @@ import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.dto.post.PostResponseDto;
+import com.byeolnight.service.assembler.PostResponseAssembler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,8 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiscussionService {
 
     private final DiscussionTopicScheduler discussionTopicScheduler;
-
     private final PostRepository postRepository;
+    private final PostResponseAssembler postResponseAssembler;
 
     /**
      * 오늘의 토론 주제 조회
@@ -33,7 +34,7 @@ public class DiscussionService {
             return null;
         }
 
-        return PostResponseDto.of(todayTopic, false, todayTopic.getLikeCount(), false, 0);
+        return postResponseAssembler.toDto(todayTopic, false, todayTopic.getLikeCount(), false, 0);
     }
 
     /**
@@ -41,9 +42,9 @@ public class DiscussionService {
      */
     public Page<PostResponseDto> getOpinionPosts(Long topicId, Pageable pageable) {
         Page<Post> opinionPosts = postRepository.findRelatedOpinionPosts(topicId, pageable);
-        
-        return opinionPosts.map(post -> 
-            PostResponseDto.of(post, false, post.getLikeCount(), false, 0)
+
+        return opinionPosts.map(post ->
+            postResponseAssembler.toDto(post, false, post.getLikeCount(), false, 0)
         );
     }
 
@@ -62,8 +63,8 @@ public class DiscussionService {
             Post.Category.DISCUSSION, sortedPageable
         );
 
-        return discussionPosts.map(post -> 
-            PostResponseDto.of(post, false, post.getLikeCount(), false, 0)
+        return discussionPosts.map(post ->
+            postResponseAssembler.toDto(post, false, post.getLikeCount(), false, 0)
         );
     }
 

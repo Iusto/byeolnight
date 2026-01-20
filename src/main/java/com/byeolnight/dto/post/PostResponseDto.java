@@ -2,15 +2,16 @@ package com.byeolnight.dto.post;
 
 import com.byeolnight.entity.file.File;
 import com.byeolnight.entity.post.Post;
-import com.byeolnight.entity.certificate.UserCertificate;
-import com.byeolnight.infrastructure.config.ApplicationContextProvider;
-import com.byeolnight.service.certificate.CertificateService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 게시글 상세 응답 DTO
@@ -29,7 +30,7 @@ public class PostResponseDto {
     private String writer;
     private Long writerId;
     private boolean blinded;
-    private String blindType; // ADMIN_BLIND 또는 REPORT_BLIND
+    private String blindType;
     private long likeCount;
     private boolean likedByMe;
     private boolean hot;
@@ -39,10 +40,10 @@ public class PostResponseDto {
     private LocalDateTime updatedAt;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS", timezone = "Asia/Seoul")
     private LocalDateTime createdAt;
-    private java.util.List<FileDto> images;
+    private List<FileDto> images;
     private String writerIcon;
-    private java.util.List<String> writerCertificates;
-    
+    private List<String> writerCertificates;
+
     @lombok.Data
     @lombok.AllArgsConstructor
     @lombok.NoArgsConstructor
@@ -52,38 +53,23 @@ public class PostResponseDto {
         private String url;
     }
 
-    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount, java.util.List<File> files) {
-        // writer null 체크
-        String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
-        Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
-        
-        // 이미지 목록 변환
-        java.util.List<FileDto> imageDtos = files != null ? files.stream()
+    /**
+     * @deprecated Use PostResponseAssembler.toDto() instead for proper certificate loading
+     */
+    @Deprecated
+    public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount, List<File> files) {
+        String writerName = post.getWriter() != null ? post.getWriter().getNickname() : "알 수 없는 사용자";
+        Long writerId = post.getWriter() != null ? post.getWriter().getId() : null;
+
+        List<FileDto> imageDtos = files != null ? files.stream()
                 .map(file -> new FileDto(file.getId(), file.getOriginalName(), file.getUrl()))
-                .collect(java.util.stream.Collectors.toList()) : java.util.Collections.emptyList();
-        
-        // 사용자 아이콘 및 인증서 정보
+                .collect(Collectors.toList()) : Collections.emptyList();
+
         String writerIcon = null;
-        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
-        
         if (post.getWriter() != null) {
             writerIcon = post.getWriter().getEquippedIconName();
-            
-            // 대표 인증서 조회
-            try {
-                CertificateService certificateService =
-                    ApplicationContextProvider
-                        .getBean(CertificateService.class);
-                UserCertificate repCert =
-                    certificateService.getRepresentativeCertificate(post.getWriter());
-                if (repCert != null) {
-                    writerCertificates.add(repCert.getCertificateType().getName());
-                }
-            } catch (Exception e) {
-                // 인증서 조회 실패 시 무시
-            }
         }
-        
+
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -102,40 +88,31 @@ public class PostResponseDto {
                 .createdAt(post.getCreatedAt())
                 .images(imageDtos)
                 .writerIcon(writerIcon)
-                .writerCertificates(writerCertificates)
+                .writerCertificates(new ArrayList<>())
                 .build();
     }
-    
+
+    /**
+     * @deprecated Use PostResponseAssembler.toDto() instead for proper certificate loading
+     */
+    @Deprecated
     public static PostResponseDto of(Post post, boolean likedByMe, long likeCount, boolean isHot, long commentCount) {
         return of(post, likedByMe, likeCount, isHot, commentCount, null);
     }
 
+    /**
+     * @deprecated Use PostResponseAssembler.toDtoSimple() instead for proper certificate loading
+     */
+    @Deprecated
     public static PostResponseDto from(Post post, boolean isHot, long commentCount) {
-        // writer null 체크
-        String writerName = (post.getWriter() != null) ? post.getWriter().getNickname() : "알 수 없는 사용자";
-        Long writerId = (post.getWriter() != null) ? post.getWriter().getId() : null;
-        
-        // 사용자 아이콘 및 인증서 정보
+        String writerName = post.getWriter() != null ? post.getWriter().getNickname() : "알 수 없는 사용자";
+        Long writerId = post.getWriter() != null ? post.getWriter().getId() : null;
+
         String writerIcon = null;
-        java.util.List<String> writerCertificates = new java.util.ArrayList<>();
-        
         if (post.getWriter() != null) {
             writerIcon = post.getWriter().getEquippedIconName();
-            
-            // 대표 인증서 조회
-            try {
-                CertificateService certificateService =
-                    ApplicationContextProvider.getBean(CertificateService.class);
-                UserCertificate repCert =
-                    certificateService.getRepresentativeCertificate(post.getWriter());
-                if (repCert != null) {
-                    writerCertificates.add(repCert.getCertificateType().getName());
-                }
-            } catch (Exception e) {
-                // 인증서 조회 실패 시 무시
-            }
         }
-        
+
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -153,10 +130,14 @@ public class PostResponseDto {
                 .updatedAt(post.getUpdatedAt())
                 .createdAt(post.getCreatedAt())
                 .writerIcon(writerIcon)
-                .writerCertificates(writerCertificates)
+                .writerCertificates(new ArrayList<>())
                 .build();
     }
 
+    /**
+     * @deprecated Use PostResponseAssembler.toDtoSimple() instead for proper certificate loading
+     */
+    @Deprecated
     public static PostResponseDto from(Post post) {
         return from(post, false, 0);
     }
