@@ -13,7 +13,6 @@ import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.DailyAttendanceRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.certificate.CertificateDto;
-import com.byeolnight.infrastructure.config.ApplicationContextProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +36,7 @@ public class CertificateService {
     private final PostReportRepository postReportRepository;
     private final SuggestionRepository suggestionRepository;
     private final DailyAttendanceRepository dailyAttendanceRepository;
+    private final UserRepository userRepository;
 
     // 인증서 발급 체크 및 발급
     @Transactional
@@ -182,6 +182,26 @@ public class CertificateService {
     }
 
     /**
+     * 여러 사용자의 대표 인증서를 한 번에 조회 (N+1 방지용 배치 조회)
+     * @param users 조회할 사용자 Set
+     * @return userId -> UserCertificate 매핑
+     */
+    public java.util.Map<Long, UserCertificate> getRepresentativeCertificatesForUsers(Set<User> users) {
+        if (users == null || users.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        List<UserCertificate> certificates = userCertificateRepository.findByUserInAndIsRepresentativeTrue(users);
+
+        return certificates.stream()
+                .collect(Collectors.toMap(
+                        cert -> cert.getUser().getId(),
+                        cert -> cert,
+                        (existing, replacement) -> existing // 중복 시 기존 값 유지
+                ));
+    }
+
+    /**
      * 대표 인증서 안전 조회 (예외 발생 시 null 반환)
      */
     public UserCertificate getRepresentativeCertificateSafe(User user) {
@@ -253,7 +273,7 @@ public class CertificateService {
      */
     public List<CertificateDto.Response> getUserPublicCertificates(Long userId, int limit) {
         try {
-            User user = ApplicationContextProvider.getBean(UserRepository.class).findById(userId).orElse(null);
+            User user = userRepository.findById(userId).orElse(null);
             
             if (user == null) {
                 return Collections.emptyList();

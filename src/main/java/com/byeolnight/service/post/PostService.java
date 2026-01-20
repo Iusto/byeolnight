@@ -17,6 +17,7 @@ import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.dto.post.PostDto;
 import com.byeolnight.infrastructure.exception.NotFoundException;
+import com.byeolnight.service.assembler.PostResponseAssembler;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.file.S3Service;
 import com.byeolnight.service.notification.NotificationService;
@@ -51,6 +52,7 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
     private final DeleteLogService deleteLogService;
+    private final PostResponseAssembler postResponseAssembler;
 
     @Transactional
     public Long createPost(PostRequestDto dto, User user) {
@@ -181,7 +183,7 @@ public class PostService {
         long likeCount = postLikeRepository.countByPost(post);
         long commentCount = commentRepository.countByPostId(postId);
 
-        return PostResponseDto.of(post, likedByMe, likeCount, false, commentCount);
+        return postResponseAssembler.toDto(post, likedByMe, likeCount, false, commentCount);
     }
 
     @Transactional(readOnly = true)
@@ -219,7 +221,7 @@ public class PostService {
                 hotPosts.forEach(p -> {
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());
-                    combined.add(PostResponseDto.of(p, false, actualLikeCount, true, commentCount));
+                    combined.add(postResponseAssembler.toDto(p, false, actualLikeCount, true, commentCount));
                 });
 
                 // 최신 게시글 처리 (이미 작성자 존재 확인된 데이터)
@@ -228,7 +230,7 @@ public class PostService {
                         .forEach(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
-                            combined.add(PostResponseDto.of(p, false, actualLikeCount, false, commentCount));
+                            combined.add(postResponseAssembler.toDto(p, false, actualLikeCount, false, commentCount));
                         });
 
                 return new PageImpl<>(combined, pageable, combined.size());
@@ -240,7 +242,7 @@ public class PostService {
                         .map(p -> {
                             long actualLikeCount = postLikeRepository.countByPost(p);
                             long commentCount = commentRepository.countByPostId(p.getId());
-                            return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
+                            return postResponseAssembler.toDto(p, false, actualLikeCount, false, commentCount);
                         })
                         .toList();
 
@@ -271,7 +273,7 @@ public class PostService {
                 .map(p -> {
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());
-                    return PostResponseDto.of(p, false, actualLikeCount, false, commentCount);
+                    return postResponseAssembler.toDto(p, false, actualLikeCount, false, commentCount);
                 })
                 .collect(Collectors.toList());
 
@@ -287,7 +289,6 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponseDto> getTopHotPostsAcrossAllCategories(int size) {
         LocalDateTime threshold = LocalDateTime.now().minusDays(30);
-        Pageable pageable = PageRequest.of(0, size);
 
         // 전체 카테고리 HOT 게시글은 일반 사용자도 볼 수 있으므로 블라인드 제외
         List<Post> hotPosts = postRepository.findHotPosts(null, threshold, 5, size, false);
@@ -296,7 +297,7 @@ public class PostService {
                 .map(p -> {
                     long actualLikeCount = postLikeRepository.countByPost(p);
                     long commentCount = commentRepository.countByPostId(p.getId());
-                    return PostResponseDto.of(p, false, actualLikeCount, true, commentCount);
+                    return postResponseAssembler.toDto(p, false, actualLikeCount, true, commentCount);
                 })
                 .toList();
     }
@@ -371,7 +372,7 @@ public class PostService {
         return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
                 .map(p -> {
                     long commentCount = commentRepository.countByPostId(p.getId());
-                    return PostResponseDto.from(p, false, commentCount);
+                    return postResponseAssembler.toDtoSimple(p, false, commentCount);
                 })
                 .toList();
     }

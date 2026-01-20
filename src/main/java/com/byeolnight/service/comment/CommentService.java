@@ -12,6 +12,7 @@ import com.byeolnight.dto.comment.CommentRequestDto;
 import com.byeolnight.dto.comment.CommentResponseDto;
 import com.byeolnight.dto.comment.CommentDto;
 import com.byeolnight.repository.user.UserRepository;
+import com.byeolnight.service.assembler.CommentResponseAssembler;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.user.PointService;
@@ -39,6 +40,7 @@ public class CommentService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final CommentLikeRepository commentLikeRepository;
+    private final CommentResponseAssembler commentResponseAssembler;
 
     @Transactional
     public Long create(CommentRequestDto dto, User user) {
@@ -124,10 +126,8 @@ public class CommentService {
                 .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
         
         List<Comment> comments = commentRepository.findAllByPostId(postId);
-        
-        return comments.stream()
-                .map(comment -> CommentResponseDto.from(comment, currentUser))
-                .collect(Collectors.toList());
+
+        return commentResponseAssembler.toDtoList(comments, currentUser);
     }
 
     @Transactional
@@ -169,16 +169,14 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getBlindedComments(User currentUser) {
-        return commentRepository.findByBlindedTrueOrderByCreatedAtDesc().stream()
-                .map(comment -> CommentResponseDto.from(comment, currentUser))
-                .toList();
+        List<Comment> comments = commentRepository.findByBlindedTrueOrderByCreatedAtDesc();
+        return commentResponseAssembler.toDtoList(comments, currentUser);
     }
 
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getDeletedComments(User currentUser) {
-        return commentRepository.findByDeletedTrueOrderByCreatedAtDesc().stream()
-                .map(comment -> CommentResponseDto.from(comment, currentUser))
-                .toList();
+        List<Comment> comments = commentRepository.findByDeletedTrueOrderByCreatedAtDesc();
+        return commentResponseAssembler.toDtoList(comments, currentUser);
     }
 
     @Transactional(readOnly = true)
@@ -193,10 +191,8 @@ public class CommentService {
         
         // 관리자는 삭제된 댓글과 블라인드된 댓글도 모두 조회 가능
         List<Comment> comments = commentRepository.findAllByPostIdIncludingDeleted(postId);
-        
-        return comments.stream()
-                .map(comment -> CommentResponseDto.fromForAdmin(comment, currentUser))
-                .collect(Collectors.toList());
+
+        return commentResponseAssembler.toDtoList(comments, currentUser, true);
     }
     
     // 댓글 좋아요/취소 (DB 유니크 제약조건 활용)
