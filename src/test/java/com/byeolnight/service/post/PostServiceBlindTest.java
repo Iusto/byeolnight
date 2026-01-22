@@ -4,8 +4,16 @@ import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.comment.CommentRepository;
+import com.byeolnight.repository.file.FileRepository;
 import com.byeolnight.repository.post.PostLikeRepository;
 import com.byeolnight.repository.post.PostRepository;
+import com.byeolnight.repository.user.UserRepository;
+import com.byeolnight.service.assembler.PostResponseAssembler;
+import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.log.DeleteLogService;
+import com.byeolnight.service.notification.NotificationService;
+import com.byeolnight.service.user.PointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,9 +30,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +45,30 @@ class PostServiceBlindTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private FileRepository fileRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private S3Service s3Service;
+
+    @Mock
+    private CertificateService certificateService;
+
+    @Mock
+    private PointService pointService;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private DeleteLogService deleteLogService;
+
+    @Mock
+    private PostResponseAssembler postResponseAssembler;
 
     @InjectMocks
     private PostService postService;
@@ -116,11 +146,19 @@ class PostServiceBlindTest {
         List<Post> posts = List.of(normalPost); // 블라인드 제외
         Page<Post> postPage = new PageImpl<>(posts, pageable, posts.size());
 
+        PostResponseDto normalPostDto = PostResponseDto.builder()
+                .id(1L)
+                .title("일반 게시글")
+                .blinded(false)
+                .build();
+
         when(postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(
                 eq(Post.Category.FREE), eq(pageable))).thenReturn(postPage);
         when(postRepository.findHotPosts(any(), any(), anyInt(), anyInt(), eq(false))).thenReturn(List.of());
         when(postLikeRepository.countByPost(any())).thenReturn(0L);
         when(commentRepository.countByPostId(any())).thenReturn(0L);
+        when(postResponseAssembler.toDto(eq(normalPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
+                .thenReturn(normalPostDto);
 
         // when
         Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, normalUser);
@@ -139,11 +177,26 @@ class PostServiceBlindTest {
         List<Post> posts = List.of(normalPost, blindedPost); // 블라인드 포함
         Page<Post> postPage = new PageImpl<>(posts, pageable, posts.size());
 
+        PostResponseDto normalPostDto = PostResponseDto.builder()
+                .id(1L)
+                .title("일반 게시글")
+                .blinded(false)
+                .build();
+        PostResponseDto blindedPostDto = PostResponseDto.builder()
+                .id(2L)
+                .title("블라인드 게시글")
+                .blinded(true)
+                .build();
+
         when(postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(
                 eq(Post.Category.FREE), eq(pageable))).thenReturn(postPage);
         when(postRepository.findHotPosts(any(), any(), anyInt(), anyInt(), eq(true))).thenReturn(List.of());
         when(postLikeRepository.countByPost(any())).thenReturn(0L);
         when(commentRepository.countByPostId(any())).thenReturn(0L);
+        when(postResponseAssembler.toDto(eq(normalPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
+                .thenReturn(normalPostDto);
+        when(postResponseAssembler.toDto(eq(blindedPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
+                .thenReturn(blindedPostDto);
 
         // when
         Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, adminUser);
@@ -161,11 +214,19 @@ class PostServiceBlindTest {
         List<Post> posts = List.of(normalPost); // 블라인드 제외
         Page<Post> postPage = new PageImpl<>(posts, pageable, posts.size());
 
+        PostResponseDto normalPostDto = PostResponseDto.builder()
+                .id(1L)
+                .title("일반 게시글")
+                .blinded(false)
+                .build();
+
         when(postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(
                 eq(Post.Category.FREE), eq(pageable))).thenReturn(postPage);
         when(postRepository.findHotPosts(any(), any(), anyInt(), anyInt(), eq(false))).thenReturn(List.of());
         when(postLikeRepository.countByPost(any())).thenReturn(0L);
         when(commentRepository.countByPostId(any())).thenReturn(0L);
+        when(postResponseAssembler.toDto(eq(normalPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
+                .thenReturn(normalPostDto);
 
         // when
         Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, null);

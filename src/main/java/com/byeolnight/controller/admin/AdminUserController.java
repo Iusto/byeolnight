@@ -1,6 +1,7 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.dto.admin.IpBlockRequestDto;
+import com.byeolnight.dto.admin.NicknameDebugDto;
 import com.byeolnight.dto.admin.UserStatusChangeRequestDto;
 import com.byeolnight.dto.admin.PointAwardRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
@@ -231,23 +232,23 @@ public class AdminUserController {
     @Operation(summary = "닉네임 디버깅", description = "특정 닉네임의 존재 여부를 확인합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/debug/nickname/{nickname}")
-    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<java.util.Map<String, Object>>> debugNickname(
+    public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<NicknameDebugDto>> debugNickname(
             @PathVariable String nickname) {
-        
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("inputNickname", nickname);
-        result.put("trimmedNickname", nickname.trim());
-        result.put("exists", userService.isNicknameDuplicated(nickname));
-        
+
         // 데이터베이스에서 비슷한 닉네임들 찾기
-        java.util.List<String> allNicknames = userService.getAllUserSummaries().stream()
+        java.util.List<String> similarNicknames = userService.getAllUserSummaries().stream()
                 .map(UserSummaryDto::getNickname)
-                .filter(n -> n.toLowerCase().contains(nickname.toLowerCase()) || 
+                .filter(n -> n.toLowerCase().contains(nickname.toLowerCase()) ||
                            nickname.toLowerCase().contains(n.toLowerCase()))
                 .collect(java.util.stream.Collectors.toList());
-        
-        result.put("similarNicknames", allNicknames);
-        
+
+        NicknameDebugDto result = NicknameDebugDto.builder()
+                .inputNickname(nickname)
+                .trimmedNickname(nickname.trim())
+                .exists(userService.isNicknameDuplicated(nickname))
+                .similarNicknames(similarNicknames)
+                .build();
+
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(result));
     }
 
