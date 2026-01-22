@@ -1,7 +1,10 @@
 package com.byeolnight.service.file;
 
+import com.byeolnight.entity.file.File;
+import com.byeolnight.entity.file.FileStatus;
 import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.infrastructure.config.SecurityProperties;
+import com.byeolnight.repository.file.FileRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.dto.file.S3StatusDto;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -50,16 +54,19 @@ public class S3Service {
     private final GoogleVisionService googleVisionService;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final FileRepository fileRepository;
     private final SecurityProperties securityProperties;
-    
+
     @Autowired
     public S3Service(GoogleVisionService googleVisionService,
                     @Lazy PostRepository postRepository,
                     @Lazy CommentRepository commentRepository,
+                    @Lazy FileRepository fileRepository,
                     SecurityProperties securityProperties) {
         this.googleVisionService = googleVisionService;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
+        this.fileRepository = fileRepository;
         this.securityProperties = securityProperties;
     }
 
@@ -100,12 +107,14 @@ public class S3Service {
      * 플로우:
      * 1. 파일 확장자 검증 (jpg, png, gif 등)
      * 2. S3 Presigned URL 생성 (10분 유효)
-     * 3. CloudFront URL 반환 (조회용)
+     * 3. File 테이블에 PENDING 상태로 저장
+     * 4. CloudFront URL 반환 (조회용)
      *
      * @param originalFilename 원본 파일명
      * @param contentTypeParam 콘텐츠 타입 (선택적)
      * @return uploadUrl(업로드용), url(조회용), s3Key 등 포함
      */
+    @Transactional
     public PresignedUrlResponseDto generatePresignedUrl(String originalFilename, String contentTypeParam) {
         if (!isValidImageFile(originalFilename)) {
             throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
@@ -134,6 +143,11 @@ public class S3Service {
 
             // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
             String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
+
+            // File 테이블에 PENDING 상태로 저장 (고아 파일 추적용)
+            File pendingFile = File.createPending(originalFilename, s3Key, permanentUrl);
+            fileRepository.save(pendingFile);
+            log.debug("PENDING 상태 파일 저장: s3Key={}", s3Key);
 
             log.info("Presigned URL 생성 완료: {} (영구 URL: {}, Content-Type: {})", s3Key, permanentUrl, contentType);
             return PresignedUrlResponseDto.of(presignedUrl, permanentUrl, s3Key, originalFilename, contentType);
@@ -241,37 +255,17 @@ public class S3Service {
     }
 
     /**
-     * 고아 이미지 개수 조회
-     * 
-     * 고아 이미지: 7일 이상 된 파일 중 게시글/댓글에서 사용되지 않는 이미지
-     * 
-     * @return 고아 이미지 개수 (-1: 권한 부족)
+     * 고아 이미지 개수 조회 (File 테이블 기반)
+     *
+     * 고아 이미지: PENDING 상태이고 7일 이상 경과한 파일
+     *
+     * @return 고아 이미지 개수
      */
     public int getOrphanImageCount() {
         try {
-            S3Client s3Client = createS3Client();
-            ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
-                    .bucket(getBucketName())
-                    .prefix("uploads/")
-                    .build();
-
-            ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
-            List<S3Object> objects = response.contents();
-
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
-            long orphanCount = objects.stream()
-                    .filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant()))
-                    .filter(this::isOrphanFile)
-                    .count();
-
+            long orphanCount = fileRepository.countByStatusAndCreatedAtBefore(FileStatus.PENDING, cutoffDate);
             return (int) orphanCount;
-        } catch (S3Exception e) {
-            if (e.statusCode() == 403) {
-                log.warn("S3 ListBucket 권한 부족 - IAM 정책 확인 필요: {}", e.getMessage());
-                return -1; // 권한 부족을 나타내는 특별한 값
-            }
-            log.error("고아 이미지 개수 조회 실패", e);
-            return 0;
         } catch (Exception e) {
             log.error("고아 이미지 개수 조회 실패", e);
             return 0;
@@ -279,45 +273,76 @@ public class S3Service {
     }
 
     /**
-     * 고아 이미지 자동 정리
-     * 
+     * 고아 이미지 자동 정리 (File 테이블 기반)
+     *
+     * PENDING 상태이고 7일 이상 경과한 파일을 S3에서 삭제하고 DB에서도 제거
+     *
      * @return 삭제된 이미지 개수
      */
+    @Transactional
     public int cleanupOrphanImages() {
         try {
-            S3Client s3Client = createS3Client();
-            ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
-                    .bucket(getBucketName())
-                    .prefix("uploads/")
-                    .build();
-
-            ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
-            List<S3Object> objects = response.contents();
-
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
-            List<S3Object> orphanObjects = objects.stream()
-                    .filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant()))
-                    .filter(this::isOrphanFile)
-                    .collect(Collectors.toList());
+            List<File> orphanFiles = fileRepository.findByStatusAndCreatedAtBefore(FileStatus.PENDING, cutoffDate);
 
+            if (orphanFiles.isEmpty()) {
+                log.info("정리할 고아 파일이 없습니다.");
+                return 0;
+            }
+
+            S3Client s3Client = createS3Client();
             int deletedCount = 0;
-            for (S3Object obj : orphanObjects) {
+
+            for (File orphanFile : orphanFiles) {
                 try {
+                    // S3에서 파일 삭제
                     s3Client.deleteObject(DeleteObjectRequest.builder()
                             .bucket(getBucketName())
-                            .key(obj.key())
+                            .key(orphanFile.getS3Key())
                             .build());
+
+                    // DB에서 파일 레코드 삭제
+                    fileRepository.delete(orphanFile);
+
                     deletedCount++;
-                    log.info("🗑️ 고아 이미지 삭제: {}", obj.key());
+                    log.info("🗑️ 고아 이미지 삭제: {} (id={})", orphanFile.getS3Key(), orphanFile.getId());
                 } catch (Exception e) {
-                    log.error("삭제 실패: {}", obj.key(), e);
+                    log.error("삭제 실패: {} (id={})", orphanFile.getS3Key(), orphanFile.getId(), e);
                 }
             }
+
+            log.info("고아 이미지 정리 완료: {}개 삭제", deletedCount);
             return deletedCount;
         } catch (Exception e) {
             log.error("고아 이미지 정리 실패", e);
             return 0;
         }
+    }
+
+    /**
+     * 파일 상태를 CONFIRMED로 변경
+     *
+     * @param s3Key S3 키
+     */
+    @Transactional
+    public void confirmFile(String s3Key) {
+        fileRepository.findByS3Key(s3Key).ifPresent(file -> {
+            file.confirm();
+            log.debug("파일 상태 CONFIRMED로 변경: s3Key={}", s3Key);
+        });
+    }
+
+    /**
+     * URL로 파일 상태를 CONFIRMED로 변경
+     *
+     * @param url 파일 URL
+     */
+    @Transactional
+    public void confirmFileByUrl(String url) {
+        fileRepository.findByUrl(url).ifPresent(file -> {
+            file.confirm();
+            log.debug("파일 상태 CONFIRMED로 변경: url={}", url);
+        });
     }
 
     /**
@@ -452,34 +477,82 @@ public class S3Service {
     }
 
     /**
-     * 고아 파일 여부 판단
-     * 
+     * [레거시] S3 전체 스캔 방식의 고아 파일 정리
+     *
+     * File 테이블 기반 정리로 전환 전, S3에만 있고 File 테이블에 없는 파일들을 정리하는 용도.
+     * 일회성 실행 후 cleanupOrphanImages()로 전환 권장.
+     *
+     * @return 삭제된 이미지 개수
+     */
+    @Transactional
+    public int cleanupLegacyOrphanImages() {
+        try {
+            S3Client s3Client = createS3Client();
+            ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                    .bucket(getBucketName())
+                    .prefix("uploads/")
+                    .build();
+
+            ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
+            List<S3Object> objects = response.contents();
+
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
+            List<S3Object> orphanObjects = objects.stream()
+                    .filter(obj -> obj.lastModified().isBefore(cutoffDate.atZone(java.time.ZoneId.systemDefault()).toInstant()))
+                    .filter(this::isOrphanFileLegacy)
+                    .collect(Collectors.toList());
+
+            int deletedCount = 0;
+            for (S3Object obj : orphanObjects) {
+                try {
+                    s3Client.deleteObject(DeleteObjectRequest.builder()
+                            .bucket(getBucketName())
+                            .key(obj.key())
+                            .build());
+                    deletedCount++;
+                    log.info("🗑️ [레거시] 고아 이미지 삭제: {}", obj.key());
+                } catch (Exception e) {
+                    log.error("삭제 실패: {}", obj.key(), e);
+                }
+            }
+
+            log.info("[레거시] 고아 이미지 정리 완료: {}개 삭제", deletedCount);
+            return deletedCount;
+        } catch (Exception e) {
+            log.error("[레거시] 고아 이미지 정리 실패", e);
+            return 0;
+        }
+    }
+
+    /**
+     * [레거시] 고아 파일 여부 판단 (S3 스캔 방식)
+     *
      * CloudFront URL, S3 직접 URL, S3 키를 모두 검사하여
      * 게시글이나 댓글에서 사용되지 않는 파일인지 확인
-     * 
+     *
      * @param s3Object S3 객체
      * @return true: 고아 파일, false: 사용 중인 파일
      */
-    private boolean isOrphanFile(S3Object s3Object) {
+    private boolean isOrphanFileLegacy(S3Object s3Object) {
         try {
             String s3Key = s3Object.key();
             // CloudFront URL 사용 (S3 직접 URL과 함께 검사)
             String fileUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
             String s3DirectUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", getBucketName(), getRegion(), s3Key);
-            
+
             // CloudFront URL, S3 직접 URL, S3 키 모두 검사
-            boolean usedInPosts = postRepository.existsByContentContaining(fileUrl) || 
+            boolean usedInPosts = postRepository.existsByContentContaining(fileUrl) ||
                                 postRepository.existsByContentContaining(s3DirectUrl) ||
                                 postRepository.existsByContentContaining(s3Key);
-            
+
             if (usedInPosts) {
                 return false;
             }
-            
+
             boolean usedInComments = commentRepository.existsByContentContaining(fileUrl) ||
                                    commentRepository.existsByContentContaining(s3DirectUrl) ||
                                    commentRepository.existsByContentContaining(s3Key);
-            
+
             return !usedInComments;
         } catch (Exception e) {
             log.warn("고아 파일 검증 중 오류: {}", s3Object.key(), e);

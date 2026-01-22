@@ -73,9 +73,35 @@ public class AdminFileController {
     })
     public CommonResponse<S3StatusDto> getS3Status() {
         log.info("관리자 S3 상태 확인 요청");
-        
+
         S3StatusDto status = s3Service.getS3Status();
-        
+
         return CommonResponse.success(status, "S3 상태 정보를 조회했습니다.");
+    }
+
+    @PostMapping("/cleanup-legacy-orphans")
+    @Operation(
+        summary = "[레거시] S3 스캔 방식 고아 이미지 정리",
+        description = """
+        File 테이블 기반 정리로 전환하기 전, S3에만 있고 File 테이블에 없는 파일들을 정리합니다.
+
+        ⚠️ 일회성 실행 후 /cleanup-orphans 로 전환하세요.
+
+        동작 방식:
+        - S3 전체 스캔 + Post/Comment content LIKE 검색
+        - 7일 이상 지난 미사용 파일 삭제
+        """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "레거시 고아 이미지 정리 성공"),
+        @ApiResponse(responseCode = "500", description = "S3 권한 부족 또는 서버 오류")
+    })
+    public CommonResponse<Integer> cleanupLegacyOrphanImages() {
+        log.info("관리자 레거시 고아 이미지 정리 요청");
+
+        int deletedCount = s3Service.cleanupLegacyOrphanImages();
+
+        return CommonResponse.success(deletedCount,
+            deletedCount + "개의 레거시 고아 이미지를 정리했습니다.");
     }
 }

@@ -80,9 +80,17 @@ public class PostService {
 
         postRepository.save(post);
 
+        // 이미지 파일 처리: PENDING 상태 파일을 CONFIRMED로 변경하거나 새로 생성
         dto.getImages().forEach(image -> {
-            File file = File.of(post, image.originalName(), image.s3Key(), image.url());
-            fileRepository.save(file);
+            Optional<File> existingFile = fileRepository.findByS3Key(image.s3Key());
+            if (existingFile.isPresent()) {
+                // Presigned URL 발급 시 생성된 PENDING 파일을 CONFIRMED로 변경
+                existingFile.get().confirmWithPost(post);
+            } else {
+                // 이전 버전 호환성: PENDING 레코드가 없으면 새로 생성
+                File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+                fileRepository.save(file);
+            }
         });
 
         certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.POST_WRITE);
@@ -148,12 +156,19 @@ public class PostService {
                 .map(File::getUrl)
                 .collect(Collectors.toSet());
         
-        // 새로운 이미지만 추가
+        // 새로운 이미지 처리: PENDING 상태 파일을 CONFIRMED로 변경하거나 새로 생성
         dto.getImages().stream()
                 .filter(image -> !existingUrls.contains(image.url()))
                 .forEach(image -> {
-                    File file = File.of(post, image.originalName(), image.s3Key(), image.url());
-                    fileRepository.save(file);
+                    Optional<File> existingFile = fileRepository.findByS3Key(image.s3Key());
+                    if (existingFile.isPresent()) {
+                        // Presigned URL 발급 시 생성된 PENDING 파일을 CONFIRMED로 변경
+                        existingFile.get().confirmWithPost(post);
+                    } else {
+                        // 이전 버전 호환성: PENDING 레코드가 없으면 새로 생성
+                        File file = File.of(post, image.originalName(), image.s3Key(), image.url());
+                        fileRepository.save(file);
+                    }
                 });
     }
 

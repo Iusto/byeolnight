@@ -1,5 +1,6 @@
 package com.byeolnight.service.cinema;
 
+import com.byeolnight.dto.video.VideoDto;
 import com.byeolnight.entity.Cinema;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.user.User;
@@ -695,80 +696,136 @@ public class CinemaService {
     }
 
     // ================================ 공개 API (기존 호환성) ================================
-    
+
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> searchSpaceVideos() {
+    public List<VideoDto> searchSpaceVideos() {
         try {
             String url = String.format(
                 "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=relevance&regionCode=KR&relevanceLanguage=ko&key=%s",
                 getRandomSpaceQuery(), 12, googleApiKey
             );
-            
+
             log.info("YouTube API 호출: 우주 관련 영상 검색");
-            
+
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-            
+
             if (response != null) {
                 var items = (List<Map<String, Object>>) response.get("items");
                 log.info("YouTube 영상 검색 성공: {}개", items != null ? items.size() : 0);
-                return items != null ? items : List.of();
+                return items != null ? convertToVideoDtoList(items) : List.of();
             }
-            
+
             log.warn("YouTube API 호출 실패");
             return List.of();
-            
+
         } catch (Exception e) {
             log.error("YouTube 영상 검색 중 오류 발생", e);
             return List.of();
         }
     }
-    
+
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> searchVideosByKeyword(String keyword) {
+    public List<VideoDto> searchVideosByKeyword(String keyword) {
         try {
             String url = String.format(
                 "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s 우주&type=video&maxResults=%d&order=relevance&regionCode=KR&relevanceLanguage=ko&key=%s",
                 keyword, 6, googleApiKey
             );
-            
+
             log.info("YouTube API 호출: {} 관련 영상 검색", keyword);
-            
+
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-            
+
             if (response != null) {
                 var items = (List<Map<String, Object>>) response.get("items");
-                return items != null ? items : List.of();
+                return items != null ? convertToVideoDtoList(items) : List.of();
             }
-            
+
             return List.of();
-            
+
         } catch (Exception e) {
             log.error("YouTube 키워드 검색 중 오류 발생: {}", keyword, e);
             return List.of();
         }
     }
-    
-    public List<Map<String, Object>> getUniqueSpaceVideos() {
-        List<Map<String, Object>> allVideos = new ArrayList<>();
+
+    public List<VideoDto> getUniqueSpaceVideos() {
+        List<VideoDto> allVideos = new ArrayList<>();
         Set<String> videoIds = new HashSet<>();
-        
+
         for (int i = 0; i < 3; i++) {
-            List<Map<String, Object>> videos = searchSpaceVideos();
-            for (Map<String, Object> video : videos) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> id = (Map<String, Object>) video.get("id");
-                if (id != null) {
-                    String videoId = (String) id.get("videoId");
-                    if (videoId != null && !videoIds.contains(videoId)) {
-                        videoIds.add(videoId);
-                        allVideos.add(video);
-                    }
+            List<VideoDto> videos = searchSpaceVideos();
+            for (VideoDto video : videos) {
+                String videoId = video.getVideoId();
+                if (videoId != null && !videoIds.contains(videoId)) {
+                    videoIds.add(videoId);
+                    allVideos.add(video);
                 }
             }
         }
-        
+
         log.info("중복 제거 후 YouTube 영상: {}개", allVideos.size());
         return allVideos;
+    }
+
+    /**
+     * YouTube API 응답을 VideoDto 리스트로 변환
+     */
+    @SuppressWarnings("unchecked")
+    private List<VideoDto> convertToVideoDtoList(List<Map<String, Object>> items) {
+        return items.stream()
+            .map(this::convertToVideoDto)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 단일 YouTube API 응답 아이템을 VideoDto로 변환
+     */
+    @SuppressWarnings("unchecked")
+    private VideoDto convertToVideoDto(Map<String, Object> item) {
+        try {
+            Map<String, Object> id = (Map<String, Object>) item.get("id");
+            Map<String, Object> snippet = (Map<String, Object>) item.get("snippet");
+
+            if (id == null || snippet == null) return null;
+
+            String videoId = (String) id.get("videoId");
+            if (videoId == null) return null;
+
+            String thumbnailUrl = extractThumbnailUrl(snippet);
+
+            return VideoDto.builder()
+                .videoId(videoId)
+                .title((String) snippet.get("title"))
+                .description((String) snippet.get("description"))
+                .thumbnailUrl(thumbnailUrl)
+                .publishedAt((String) snippet.get("publishedAt"))
+                .channelTitle((String) snippet.get("channelTitle"))
+                .build();
+        } catch (Exception e) {
+            log.warn("VideoDto 변환 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 썸네일 URL 추출 (고화질 우선)
+     */
+    @SuppressWarnings("unchecked")
+    private String extractThumbnailUrl(Map<String, Object> snippet) {
+        Map<String, Object> thumbnails = (Map<String, Object>) snippet.get("thumbnails");
+        if (thumbnails == null) return null;
+
+        // 고화질 썸네일 우선순위: high > medium > default
+        String[] priorities = {"high", "medium", "default"};
+        for (String priority : priorities) {
+            Map<String, Object> thumbnail = (Map<String, Object>) thumbnails.get(priority);
+            if (thumbnail != null && thumbnail.get("url") != null) {
+                return (String) thumbnail.get("url");
+            }
+        }
+        return null;
     }
     
     private String getRandomSpaceQuery() {
