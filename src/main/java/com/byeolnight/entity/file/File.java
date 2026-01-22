@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(name = "file", indexes = {
+    @Index(name = "idx_file_status_created_at", columnList = "status, createdAt")
+})
 public class File {
 
     @Id
