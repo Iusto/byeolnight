@@ -166,10 +166,10 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
 
       // 검열 결과 확인
       if (moderationResult?.data) {
-        const { status, isSafe, message } = moderationResult.data;
+        const { status, safe, message } = moderationResult.data;
 
-        // 부적절한 이미지인 경우
-        if (status === 'error' || isSafe === false) {
+        // 부적절한 이미지인 경우 (safe 필드 사용 - Java Lombok이 isSafe를 safe로 직렬화)
+        if (status === 'error' || safe === false) {
           throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
       } else {
