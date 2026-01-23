@@ -128,8 +128,10 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
     
     // 3. 검열이 필요한 경우 검사 요청 (결과 기다림)
     if (needsModeration) {
+      console.log('이미지 검열 시작...');
+      let moderationResult;
+
       try {
-        console.log('이미지 검열 시작...');
         // 검열 API 호출 - URL 기반 검열로 변경
         const moderationResponse = await axios.post('/files/moderate-url', null, {
           params: {
@@ -138,22 +140,11 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
           },
           timeout: 20000 // 20초 타임아웃
         });
-        
-        // 검열 결과 확인
-        const moderationResult = moderationResponse.data;
+
+        moderationResult = moderationResponse.data;
         console.log('이미지 검열 결과:', moderationResult);
-
-        // 검열 실패 또는 부적절한 이미지인 경우 에러 처리
-        if (moderationResult.data) {
-          const { status, isSafe, message } = moderationResult.data;
-
-          // 에러 상태이거나 부적절한 이미지인 경우
-          if (status === 'error' || isSafe === false) {
-            throw new Error(message || '부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
-          }
-        }
-      } catch (err: unknown) {
-        console.error('이미지 검사 요청 실패:', err);
+      } catch (networkErr: unknown) {
+        console.error('이미지 검열 네트워크 오류:', networkErr);
 
         // S3에서 이미지 삭제 요청
         try {
@@ -161,19 +152,29 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
             params: { s3Key: presignedData.s3Key },
             timeout: 10000
           });
-          console.log('검열 실패한 이미지 삭제 요청:', presignedData.s3Key);
+          console.log('네트워크 오류로 이미지 삭제 요청:', presignedData.s3Key);
         } catch (deleteErr) {
           console.error('이미지 삭제 실패:', deleteErr);
         }
 
-        const errorMessage = getErrorMessage(err);
-
-        // 네트워크 오류 처리
+        const errorMessage = getErrorMessage(networkErr);
         if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
-          throw new Error('이미지 검열 중 네트워크 오류가 발생했습니다. 이미지가 자동으로 삭제되었습니다. 다른 이미지를 사용해주세요.');
+          throw new Error('이미지 검열 중 네트워크 오류가 발생했습니다. 다른 이미지를 사용해주세요.');
         }
+        throw new Error('이미지 검열 중 오류가 발생했습니다. 다른 이미지를 사용해주세요.');
+      }
 
-        throw new Error(errorMessage || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.');
+      // 검열 결과 확인 - 별도의 try-catch 없이 직접 처리
+      if (moderationResult?.data) {
+        const { status, isSafe, message } = moderationResult.data;
+        console.log('검열 결과 상세:', { status, isSafe, message });
+
+        // 에러 상태이거나 부적절한 이미지인 경우
+        if (status === 'error' || isSafe === false) {
+          console.warn('부적절한 이미지 감지됨:', { status, isSafe, message });
+          // 서버에서 이미 삭제했으므로 클라이언트에서 삭제 요청하지 않음
+          throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+        }
       }
     }
     
