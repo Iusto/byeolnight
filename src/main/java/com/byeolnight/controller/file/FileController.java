@@ -12,15 +12,14 @@ import com.byeolnight.service.file.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/files")
-@RequiredArgsConstructor
 @Slf4j
 @Tag(name = "📁 파일 API", description = "AWS S3 파일 업로드 및 관리 API")
 public class FileController {
@@ -28,6 +27,18 @@ public class FileController {
     private final S3Service s3Service;
     private final CloudFrontService cloudFrontService;
     private final FileUploadRateLimitService rateLimitService;
+    private final String cloudFrontDomain;
+
+    public FileController(
+            S3Service s3Service,
+            CloudFrontService cloudFrontService,
+            FileUploadRateLimitService rateLimitService,
+            @Value("${cloud.aws.cloudfront.domain}") String cloudFrontDomain) {
+        this.s3Service = s3Service;
+        this.cloudFrontService = cloudFrontService;
+        this.rateLimitService = rateLimitService;
+        this.cloudFrontDomain = cloudFrontDomain;
+    }
 
     @Operation(summary = "S3 Presigned URL 생성", description = "파일 업로드를 위한 S3 Presigned URL을 생성합니다.")
     @PostMapping("/presigned-url")
@@ -253,18 +264,26 @@ public class FileController {
     
     /**
      * CloudFront URL 검증 (SSRF 방지)
+     * 설정된 CloudFront 도메인과 *.cloudfront.net 도메인만 허용
      */
     private boolean isCloudFrontUrl(String imageUrl) {
         if (imageUrl == null) return false;
-        
+
         try {
-            java.net.URL url = new java.net.URL(imageUrl);
-            String host = url.getHost().toLowerCase();
-            
-            // HTTPS + CloudFront 도메인만 허용
-            return "https".equals(url.getProtocol()) && 
+            java.net.URI uri = java.net.URI.create(imageUrl);
+            String host = uri.getHost();
+            if (host == null) return false;
+            host = host.toLowerCase();
+
+            // HTTPS만 허용
+            if (!"https".equals(uri.getScheme())) {
+                return false;
+            }
+
+            // 설정된 CloudFront 도메인 또는 *.cloudfront.net 허용
+            return host.equals(cloudFrontDomain.toLowerCase()) ||
                    host.endsWith(".cloudfront.net");
-                   
+
         } catch (Exception e) {
             return false;
         }

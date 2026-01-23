@@ -142,11 +142,15 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         // 검열 결과 확인
         const moderationResult = moderationResponse.data;
         console.log('이미지 검열 결과:', moderationResult);
-        
-        // 부적절한 이미지인 경우 삭제 및 오류 처리 (alert 제거)
-        if (moderationResult.data && moderationResult.data.isSafe === false) {
-          // alert 제거하고 오류만 발생시킴 (호출하는 쪽에서 alert 처리)
-          throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+
+        // 검열 실패 또는 부적절한 이미지인 경우 에러 처리
+        if (moderationResult.data) {
+          const { status, isSafe, message } = moderationResult.data;
+
+          // 에러 상태이거나 부적절한 이미지인 경우
+          if (status === 'error' || isSafe === false) {
+            throw new Error(message || '부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
+          }
         }
       } catch (err: unknown) {
         console.error('이미지 검사 요청 실패:', err);
