@@ -8,7 +8,6 @@ import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../../styles/tui-editor.css';
 import { uploadImage } from '../../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
-import { getErrorMessage } from '../../types/api';
 
 // 이미지 URL 정규식
 const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i;
@@ -18,16 +17,6 @@ const isValidImageUrl = (url: string): boolean => {
 };
 
 export const isHandlingImageUpload = { current: false };
-
-// 부적절한 이미지 관련 에러 메시지 감지
-const isInappropriateImageError = (message: string): boolean => {
-  return message.includes('부적절한') ||
-         message.includes('검열') ||
-         message.includes('inappropriate') ||
-         message.includes('isSafe');
-};
-
-
 
 interface TuiEditorProps {
   value: string;
@@ -69,36 +58,6 @@ const TuiEditor = forwardRef(({
     // 전역 에디터 참조 설정 (커스텀 버튼에서 사용)
     (window as any).currentEditor = instance;
   }, [value]);
-
-  // 이미지 선택 상태에서 삭제 시 확인 다이얼로그
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-
-      const editorEl = editorRef.current?.getRootElement();
-      if (!editorEl) return;
-
-      // 선택된 이미지 확인 (Toast UI Editor는 ProseMirror 기반)
-      const selectedImage = editorEl.querySelector('.toastui-editor-contents img.ProseMirror-selectednode');
-      if (!selectedImage) return;
-
-      // 이미지가 선택된 상태에서 삭제 시도
-      e.preventDefault();
-      e.stopPropagation();
-
-      const confirmed = window.confirm('이미지를 삭제하시겠습니까?');
-      if (confirmed) {
-        selectedImage.remove();
-        const instance = editorRef.current?.getInstance();
-        if (instance) {
-          onChange(instance.getMarkdown());
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [onChange]);
 
   // 마크다운 변경 시 외부 콜백 호출
   const handleChange = () => {
@@ -145,9 +104,7 @@ const TuiEditor = forwardRef(({
       } else {
         throw new Error('이미지 업로드 실패');
       }
-    } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error);
-
+    } catch {
       // 에러 시 에디터에 잘못 삽입된 내용 복원
       const instance = editorRef.current?.getInstance();
       if (instance && previousMarkdownRef.current) {
@@ -157,9 +114,6 @@ const TuiEditor = forwardRef(({
           onChange(previousMarkdownRef.current);
         }
       }
-
-      // 에러 메시지 표시
-      alert(errorMessage || '이미지 업로드에 실패했습니다.');
     } finally {
       isHandlingImageUpload.current = false;
       document.dispatchEvent(new CustomEvent('imageValidating', { detail: { validating: false } }));

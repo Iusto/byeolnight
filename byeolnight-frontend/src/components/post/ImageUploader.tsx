@@ -273,10 +273,7 @@ export default function ImageUploader({
     } catch (error: unknown) {
       const errorMsg = getErrorMessage(error);
 
-      // alert으로 에러 표시
-      alert(errorMsg || '이미지 업로드에 실패했습니다.');
-
-      // ValidationAlert에도 표시
+      // ValidationAlert로 에러 표시
       setValidationAlert({
         message: errorMsg || '이미지 업로드에 실패했습니다.',
         type: 'error'
