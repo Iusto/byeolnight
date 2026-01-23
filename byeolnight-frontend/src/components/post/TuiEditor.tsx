@@ -1,4 +1,4 @@
-﻿// TuiEditor.tsx
+// TuiEditor.tsx
 // Toast UI Editor 커스텀 래퍼 컴포넌트 - 다국어 placeholder 반영 및 이미지 검열 업로드 처리
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
