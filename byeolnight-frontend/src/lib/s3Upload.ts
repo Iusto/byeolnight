@@ -164,17 +164,17 @@ export const uploadImage = async (file: File, needsModeration = true): Promise<U
         throw new Error('이미지 검열 중 오류가 발생했습니다. 다른 이미지를 사용해주세요.');
       }
 
-      // 검열 결과 확인 - 별도의 try-catch 없이 직접 처리
+      // 검열 결과 확인
       if (moderationResult?.data) {
         const { status, isSafe, message } = moderationResult.data;
-        console.log('검열 결과 상세:', { status, isSafe, message });
 
-        // 에러 상태이거나 부적절한 이미지인 경우
+        // 부적절한 이미지인 경우
         if (status === 'error' || isSafe === false) {
-          console.warn('부적절한 이미지 감지됨:', { status, isSafe, message });
-          // 서버에서 이미 삭제했으므로 클라이언트에서 삭제 요청하지 않음
           throw new Error('부적절한 이미지가 감지되었습니다. 다른 이미지를 사용해주세요.');
         }
+      } else {
+        // data가 없으면 에러로 처리
+        throw new Error('이미지 검열 응답이 올바르지 않습니다.');
       }
     }
     

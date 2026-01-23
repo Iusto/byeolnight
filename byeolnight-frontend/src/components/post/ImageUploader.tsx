@@ -272,21 +272,14 @@ export default function ImageUploader({
       
     } catch (error: unknown) {
       const errorMsg = getErrorMessage(error);
-      console.error('이미지 업로드 오류:', errorMsg);
 
-      let displayMsg = errorMsg || '이미지 업로드에 실패했습니다.';
-      let alertType: 'error' | 'warning' = 'error';
+      // alert으로 에러 표시
+      alert(errorMsg || '이미지 업로드에 실패했습니다.');
 
-      // 네트워크 오류에 대한 추가 안내
-      if (displayMsg.includes('네트워크') || displayMsg.includes('브라우저 보안')) {
-        alertType = 'warning';
-        displayMsg += '\n\n💡 해결 방법: 다른 브라우저를 사용하거나 시크릿 모드를 시도해보세요.';
-      }
-
-      // 오류 메시지 표시 - alert 제거하고 ValidationAlert만 사용
+      // ValidationAlert에도 표시
       setValidationAlert({
-        message: displayMsg,
-        type: alertType
+        message: errorMsg || '이미지 업로드에 실패했습니다.',
+        type: 'error'
       });
     } finally {
       setIsImageValidating(false);

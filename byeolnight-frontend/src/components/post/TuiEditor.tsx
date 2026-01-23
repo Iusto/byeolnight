@@ -146,7 +146,6 @@ const TuiEditor = forwardRef(({
         throw new Error('이미지 업로드 실패');
       }
     } catch (error: unknown) {
-      console.error('이미지 업로드 오류:', error);
       const errorMessage = getErrorMessage(error);
 
       // 에러 시 에디터에 잘못 삽입된 내용 복원
@@ -159,12 +158,8 @@ const TuiEditor = forwardRef(({
         }
       }
 
-      // 부적절한 이미지 에러 메시지 표시
-      if (isInappropriateImageError(errorMessage)) {
-        alert('부적절한 이미지가 감지되었습니다.\n\n이 이미지는 업로드할 수 없습니다.');
-      } else {
-        alert(errorMessage || '이미지 업로드에 실패했습니다.');
-      }
+      // 에러 메시지 표시
+      alert(errorMessage || '이미지 업로드에 실패했습니다.');
     } finally {
       isHandlingImageUpload.current = false;
       document.dispatchEvent(new CustomEvent('imageValidating', { detail: { validating: false } }));
