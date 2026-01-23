@@ -4,7 +4,7 @@ import { isHandlingImageUpload } from './TuiEditor';
 import { getErrorMessage } from '../../types/api';
 
 // 이미지 URL 정규식
-const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i;
 
 // 이미지 URL 검증 함수
 const isValidImageUrl = (url: string): boolean => {
@@ -215,10 +215,10 @@ export default function ImageUploader({
     console.log('파일 선택됨:', file.name, file.type);
       
     // 파일 형식 검사
-    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'];
     if (!validImageTypes.includes(file.type)) {
       setValidationAlert({
-        message: '지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp만 허용)',
+        message: '지원되는 이미지 형식이 아닙니다. (jpg, png, gif, webp, svg, bmp만 허용)',
         type: 'error'
       });
       if (fileInputRef.current) {
