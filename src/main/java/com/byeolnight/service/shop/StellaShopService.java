@@ -104,7 +104,7 @@ public class StellaShopService {
                 .orElseThrow(() -> new NotFoundException("보유하지 않은 아이콘입니다."));
 
         userIcon.equip();
-        user.equipIcon(iconId, iconToEquip.getName());
+        user.equipIcon(iconId, iconToEquip.getIconUrl());
     }
 
     /**

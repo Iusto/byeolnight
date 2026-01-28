@@ -18,6 +18,7 @@ import com.byeolnight.service.notification.NotificationService;
 import com.byeolnight.service.user.PointService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -156,15 +157,17 @@ public class CommentService {
      * 내가 작성한 댓글 조회
      */
     @Transactional(readOnly = true)
-    public List<CommentDto.Response> getMyComments(Long userId, Pageable pageable) {
+    public Page<CommentDto.Response> getMyComments(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        
+
         Page<Comment> comments = commentRepository.findByWriterOrderByCreatedAtDesc(user, pageable);
-        
-        return comments.getContent().stream()
+
+        List<CommentDto.Response> dtos = comments.getContent().stream()
                 .map(CommentDto.Response::from)
                 .toList();
+
+        return new PageImpl<>(dtos, pageable, comments.getTotalElements());
     }
 
     @Transactional(readOnly = true)

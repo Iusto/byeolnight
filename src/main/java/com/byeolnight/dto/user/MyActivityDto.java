@@ -23,4 +23,16 @@ public class MyActivityDto {
     private long totalCommentCount;
     private long totalReceivedMessageCount;
     private long totalSentMessageCount;
+
+    // 게시글 페이징 정보
+    private int postsCurrentPage;
+    private int postsTotalPages;
+    private boolean postsHasNext;
+    private boolean postsHasPrevious;
+
+    // 댓글 페이징 정보
+    private int commentsCurrentPage;
+    private int commentsTotalPages;
+    private boolean commentsHasNext;
+    private boolean commentsHasPrevious;
 }

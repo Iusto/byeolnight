@@ -127,41 +127,51 @@ public class UserProfileService {
     public MyActivityDto getMyActivity(Long userId, int page, int size) {
         User user = userQueryService.findById(userId);
         log.debug("내 활동 내역 조회 시작 - userId: {}, nickname: {}", userId, user.getNickname());
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        
+
         try {
-            List<PostDto.Response> myPosts = postService.getMyPosts(userId, pageable);
-            log.debug("내 게시글 조회 완료: {}개", myPosts.size());
-            
-            List<CommentDto.Response> myComments = commentService.getMyComments(userId, pageable);
-            log.debug("내 댓글 조회 완료: {}개", myComments.size());
-            
+            org.springframework.data.domain.Page<PostDto.Response> postsPage = postService.getMyPosts(userId, pageable);
+            log.debug("내 게시글 조회 완료: {}개", postsPage.getContent().size());
+
+            org.springframework.data.domain.Page<CommentDto.Response> commentsPage = commentService.getMyComments(userId, pageable);
+            log.debug("내 댓글 조회 완료: {}개", commentsPage.getContent().size());
+
             MessageDto.ListResponse receivedMessages = messageService.getReceivedMessages(userId, pageable);
             log.debug("받은 쪽지 조회 완료: {}개", receivedMessages.getMessages().size());
-            
+
             MessageDto.ListResponse sentMessages = messageService.getSentMessages(userId, pageable);
             log.debug("보낸 쪽지 조회 완료: {}개", sentMessages.getMessages().size());
-            
+
             long totalPostCount = postRepository.countByWriterAndIsDeletedFalse(user);
             long totalCommentCount = commentRepository.countByWriter(user);
-            
+
             log.debug("전체 게시글 수: {}, 전체 댓글 수: {}", totalPostCount, totalCommentCount);
-            
+
             MyActivityDto result = MyActivityDto.builder()
-                    .myPosts(myPosts)
-                    .myComments(myComments)
+                    .myPosts(postsPage.getContent())
+                    .myComments(commentsPage.getContent())
                     .receivedMessages(receivedMessages)
                     .sentMessages(sentMessages)
                     .totalPostCount(totalPostCount)
                     .totalCommentCount(totalCommentCount)
                     .totalReceivedMessageCount(receivedMessages.getTotalCount())
                     .totalSentMessageCount(sentMessages.getTotalCount())
+                    // 게시글 페이징 정보
+                    .postsCurrentPage(postsPage.getNumber())
+                    .postsTotalPages(postsPage.getTotalPages())
+                    .postsHasNext(postsPage.hasNext())
+                    .postsHasPrevious(postsPage.hasPrevious())
+                    // 댓글 페이징 정보
+                    .commentsCurrentPage(commentsPage.getNumber())
+                    .commentsTotalPages(commentsPage.getTotalPages())
+                    .commentsHasNext(commentsPage.hasNext())
+                    .commentsHasPrevious(commentsPage.hasPrevious())
                     .build();
-            
+
             log.debug("내 활동 내역 조회 완료");
             return result;
-            
+
         } catch (Exception e) {
             log.error("내 활동 내역 조회 중 오류 발생: {}", e.getMessage(), e);
             throw e;
