@@ -46,6 +46,16 @@ interface MyActivityData {
   totalCommentCount: number;
   totalReceivedMessageCount: number;
   totalSentMessageCount: number;
+  // 게시글 페이징 정보
+  postsCurrentPage: number;
+  postsTotalPages: number;
+  postsHasNext: boolean;
+  postsHasPrevious: boolean;
+  // 댓글 페이징 정보
+  commentsCurrentPage: number;
+  commentsTotalPages: number;
+  commentsHasNext: boolean;
+  commentsHasPrevious: boolean;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -97,6 +107,10 @@ export default function Profile() {
   const [notifications, setNotifications] = useState<NotificationListResponse>({ notifications: [], totalCount: 0, currentPage: 0, totalPages: 0, hasNext: false, hasPrevious: false });
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [iconLoading, setIconLoading] = useState<number | null>(null);
+  const [postsPage, setPostsPage] = useState(0);
+  const [commentsPage, setCommentsPage] = useState(0);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -162,6 +176,50 @@ export default function Profile() {
       console.error('프로필 조회 실패:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPostsPage = async (page: number) => {
+    try {
+      setPostsLoading(true);
+      const response = await axios.get(`/member/users/my-activity?page=${page}&size=10`);
+      if (response.data?.success && response.data.data) {
+        setActivity(prev => prev ? {
+          ...prev,
+          myPosts: response.data.data.myPosts,
+          postsCurrentPage: response.data.data.postsCurrentPage,
+          postsTotalPages: response.data.data.postsTotalPages,
+          postsHasNext: response.data.data.postsHasNext,
+          postsHasPrevious: response.data.data.postsHasPrevious,
+        } : response.data.data);
+        setPostsPage(page);
+      }
+    } catch (error) {
+      console.error('게시글 페이지 조회 실패:', error);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  const fetchCommentsPage = async (page: number) => {
+    try {
+      setCommentsLoading(true);
+      const response = await axios.get(`/member/users/my-activity?page=${page}&size=10`);
+      if (response.data?.success && response.data.data) {
+        setActivity(prev => prev ? {
+          ...prev,
+          myComments: response.data.data.myComments,
+          commentsCurrentPage: response.data.data.commentsCurrentPage,
+          commentsTotalPages: response.data.data.commentsTotalPages,
+          commentsHasNext: response.data.data.commentsHasNext,
+          commentsHasPrevious: response.data.data.commentsHasPrevious,
+        } : response.data.data);
+        setCommentsPage(page);
+      }
+    } catch (error) {
+      console.error('댓글 페이지 조회 실패:', error);
+    } finally {
+      setCommentsLoading(false);
     }
   };
 
@@ -555,35 +613,74 @@ export default function Profile() {
 
           {activeTab === 'posts' && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-white mb-6">📝 내게시글</h2>
-              {activity?.myPosts && activity.myPosts.length > 0 ? (
-                <div className="space-y-3">
-                  {activity.myPosts.map((post) => (
-                    <div key={post.id} className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <Link
-                            to={`/posts/${post.id}`}
-                            className="text-white hover:text-purple-300 font-medium block mb-2"
-                          >
-                            {post.title}
-                            {post.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
-                          </Link>
-                          <p className="text-gray-400 text-sm mb-2">
-                            {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
-                          </p>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>🗂 {categoryLabels[post.category] || post.category}</span>
-                            <span>❤️ {post.likeCount}</span>
-                            <span>💬 {post.commentCount}</span>
-                            <span>👁 {post.viewCount}</span>
-                            <span>📅 {formatDate(post.createdAt)}</span>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">📝 내게시글</h2>
+                <span className="text-sm text-gray-400">총 {activity?.totalPostCount || 0}개</span>
+              </div>
+              {postsLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400">로딩 중...</div>
+                </div>
+              ) : activity?.myPosts && activity.myPosts.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    {activity.myPosts.map((post) => (
+                      <div key={post.id} className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <Link
+                              to={`/posts/${post.id}`}
+                              className="text-white hover:text-purple-300 font-medium block mb-2"
+                            >
+                              {post.title}
+                              {post.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
+                            </Link>
+                            <p className="text-gray-400 text-sm mb-2">
+                              {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span>🗂 {categoryLabels[post.category] || post.category}</span>
+                              <span>❤️ {post.likeCount}</span>
+                              <span>💬 {post.commentCount}</span>
+                              <span>👁 {post.viewCount}</span>
+                              <span>📅 {formatDate(post.createdAt)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                  {/* 게시글 페이징 */}
+                  {(activity.postsTotalPages > 1) && (
+                    <div className="flex items-center justify-center gap-2 mt-6">
+                      <button
+                        onClick={() => fetchPostsPage(postsPage - 1)}
+                        disabled={!activity.postsHasPrevious}
+                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                          activity.postsHasPrevious
+                            ? 'bg-slate-700/50 text-white hover:bg-slate-600/50'
+                            : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        이전
+                      </button>
+                      <span className="text-sm text-gray-400 px-3">
+                        {activity.postsCurrentPage + 1} / {activity.postsTotalPages}
+                      </span>
+                      <button
+                        onClick={() => fetchPostsPage(postsPage + 1)}
+                        disabled={!activity.postsHasNext}
+                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                          activity.postsHasNext
+                            ? 'bg-slate-700/50 text-white hover:bg-slate-600/50'
+                            : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        다음
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center text-gray-400 py-8">
                   <div className="text-4xl mb-2">📝</div>
@@ -601,32 +698,71 @@ export default function Profile() {
 
           {activeTab === 'comments' && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-white mb-6">💬 내댓글</h2>
-              {activity?.myComments && activity.myComments.length > 0 ? (
-                <div className="space-y-3">
-                  {activity.myComments.map((comment) => (
-                    <div key={comment.id} className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors">
-                      <div className="mb-2">
-                        <Link
-                          to={`/posts/${comment.postId}`}
-                          className="text-purple-300 hover:text-purple-200 text-sm font-medium"
-                        >
-                          📄 {comment.postTitle}
-                        </Link>
-                        {comment.parentId && (
-                          <span className="text-xs text-gray-500 ml-2">(답글)</span>
-                        )}
-                      </div>
-                      <p className="text-white mb-2">
-                        {comment.content}
-                        {comment.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
-                      </p>
-                      <div className="text-xs text-gray-500">
-                        📅 {formatDate(comment.createdAt)}
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">💬 내댓글</h2>
+                <span className="text-sm text-gray-400">총 {activity?.totalCommentCount || 0}개</span>
+              </div>
+              {commentsLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400">로딩 중...</div>
                 </div>
+              ) : activity?.myComments && activity.myComments.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    {activity.myComments.map((comment) => (
+                      <div key={comment.id} className="bg-[#2a2e45] bg-opacity-60 rounded-lg p-4 hover:bg-[#2a2e45] hover:bg-opacity-80 transition-colors">
+                        <div className="mb-2">
+                          <Link
+                            to={`/posts/${comment.postId}`}
+                            className="text-purple-300 hover:text-purple-200 text-sm font-medium"
+                          >
+                            📄 {comment.postTitle}
+                          </Link>
+                          {comment.parentId && (
+                            <span className="text-xs text-gray-500 ml-2">(답글)</span>
+                          )}
+                        </div>
+                        <p className="text-white mb-2">
+                          {comment.content}
+                          {comment.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
+                        </p>
+                        <div className="text-xs text-gray-500">
+                          📅 {formatDate(comment.createdAt)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 댓글 페이징 */}
+                  {(activity.commentsTotalPages > 1) && (
+                    <div className="flex items-center justify-center gap-2 mt-6">
+                      <button
+                        onClick={() => fetchCommentsPage(commentsPage - 1)}
+                        disabled={!activity.commentsHasPrevious}
+                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                          activity.commentsHasPrevious
+                            ? 'bg-slate-700/50 text-white hover:bg-slate-600/50'
+                            : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        이전
+                      </button>
+                      <span className="text-sm text-gray-400 px-3">
+                        {activity.commentsCurrentPage + 1} / {activity.commentsTotalPages}
+                      </span>
+                      <button
+                        onClick={() => fetchCommentsPage(commentsPage + 1)}
+                        disabled={!activity.commentsHasNext}
+                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                          activity.commentsHasNext
+                            ? 'bg-slate-700/50 text-white hover:bg-slate-600/50'
+                            : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        다음
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center text-gray-400 py-8">
                   <div className="text-4xl mb-2">💬</div>

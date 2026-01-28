@@ -440,19 +440,21 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostDto.Response> getMyPosts(Long userId, Pageable pageable) {
+    public Page<PostDto.Response> getMyPosts(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        
+
         Page<Post> posts = postRepository.findByWriterAndIsDeletedFalseOrderByCreatedAtDesc(user, pageable);
-        
-        return posts.getContent().stream()
+
+        List<PostDto.Response> dtos = posts.getContent().stream()
                 .map(post -> {
                     long likeCount = postLikeRepository.countByPost(post);
                     long commentCount = commentRepository.countByPostId(post.getId());
                     return PostDto.Response.from(post, likeCount, commentCount);
                 })
                 .toList();
+
+        return new PageImpl<>(dtos, pageable, posts.getTotalElements());
     }
 
     @Transactional(readOnly = true)
