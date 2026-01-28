@@ -2,6 +2,8 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
+import { ToastProvider } from './contexts/ToastContext'
+import { ConfirmProvider } from './contexts/ConfirmContext'
 import App from './App'
 import './index.css'
 import './styles/stellar-animations.css'
@@ -36,7 +38,11 @@ if (isStaticFilePath(window.location.pathname)) {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <ToastProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

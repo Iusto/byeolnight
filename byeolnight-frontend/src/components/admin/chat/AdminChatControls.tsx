@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
-import axios from '../../lib/axios';
-import AdminActionModal from './AdminActionModal';
+import axios from '../../../lib/axios';
+import AdminActionModal from '../modals/AdminActionModal';
 
 interface AdminChatControlsProps {
   messageId: string;

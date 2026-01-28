@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState, useCallback } from 'react';
-import axios from '../../lib/axios';
+import axios from '../../../lib/axios';
 
 interface AdminChatStats {
   totalMessages: number;
