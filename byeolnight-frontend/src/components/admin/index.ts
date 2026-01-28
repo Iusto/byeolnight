@@ -1,9 +1,28 @@
-export { default as AdminActionModal } from './AdminActionModal';
-export { default as AdminChatControls } from './AdminChatControls';
-export { default as AdminChatModal } from './AdminChatModal';
-export { default as AdminChatTable } from './AdminChatTable';
+// 공통 UI 컴포넌트
+export {
+  AdminPageHeader,
+  AdminSearchFilter,
+  AdminStatsCard,
+  AdminStatusBadge,
+  AdminTable,
+} from './common';
+export type { Column } from './common';
+
+// 모달 컴포넌트
+export {
+  AdminActionModal,
+  AdminReasonModal,
+  IpBlockModal,
+  PointAwardModal,
+  ReportDetailModal,
+} from './modals';
+
+// 채팅 관련 컴포넌트
+export {
+  AdminChatControls,
+  AdminChatModal,
+  AdminChatTable,
+} from './chat';
+
+// 대시보드 컴포넌트
 export { default as AdminDashboard } from './AdminDashboard';
-export { default as AdminReasonModal } from './AdminReasonModal';
-export { default as IpBlockModal } from './IpBlockModal';
-export { default as PointAwardModal } from './PointAwardModal';
-export { default as ReportDetailModal } from './ReportDetailModal';
