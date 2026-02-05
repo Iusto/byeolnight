@@ -108,7 +108,7 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
                   ? 'bg-red-700/50 border border-red-600/30'
                   : 'bg-slate-700/50'
               }`}>
-                {isBlinded ? '🔒' : <UserIconDisplay iconName={post.writerIcon} size="xsmall" />}
+                {isBlinded ? '🔒' : <UserIconDisplay iconName={post.writerIcon} size="small" />}
               </span>
               <span className="truncate max-w-[60px]">{displayWriter}</span>
             </div>
