@@ -54,6 +54,7 @@ export default function PostListItem({ post, isHot = false, isAdmin, selectedPos
               </h4>
               <div className="flex items-center gap-3 text-sm text-gray-400 flex-shrink-0">
                 {isHot && <span className="bg-orange-500/20 text-orange-300 px-2 py-1 rounded text-xs font-bold">HOT</span>}
+                <span className="flex items-center gap-1">👁️ {isBlinded ? displayStats : (post.viewCount || 0)}</span>
                 <span className="flex items-center gap-1">💬 {isBlinded ? displayStats : (post.commentCount || 0)}</span>
                 <span className="flex items-center gap-1">❤️ {isBlinded ? displayStats : post.likeCount}</span>
               </div>
@@ -65,8 +66,8 @@ export default function PostListItem({ post, isHot = false, isAdmin, selectedPos
             )}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-gray-400">
               <span className="flex items-center gap-2">
-                <span className="bg-slate-700/50 rounded px-2 py-1 border border-slate-600/30 flex items-center justify-center">
-                  {isBlinded ? '🔒' : <UserIconDisplay iconName={post.writerIcon} size="small" />}
+                <span className="bg-slate-700/50 rounded px-1.5 py-0.5 border border-slate-600/30 flex items-center justify-center">
+                  {isBlinded ? '🔒' : <UserIconDisplay iconName={post.writerIcon} size="xsmall" />}
                 </span>
                 <span className="truncate">{displayWriter}</span>
               </span>
