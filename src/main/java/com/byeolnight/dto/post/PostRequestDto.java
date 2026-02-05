@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import com.byeolnight.entity.post.Post.Category;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -26,7 +27,8 @@ public class PostRequestDto {
     @NotNull
     private Category category;
 
-    private List<FileDto> images;
+    @Builder.Default
+    private List<FileDto> images = new ArrayList<>();
     
     private Long originTopicId; // 토론 주제 연결 ID
 }

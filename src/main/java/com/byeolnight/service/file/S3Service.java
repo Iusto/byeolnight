@@ -23,7 +23,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import com.byeolnight.dto.file.PresignedUrlResponseDto;
-import com.byeolnight.dto.file.UploadResultDto;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -194,63 +193,6 @@ public class S3Service {
         } catch (Exception e) {
             log.error("이미지 검열 중 오류 발생", e);
             return true;
-        }
-    }
-
-    /**
-     * 이미지 검열 후 S3 직접 업로드
-     *
-     * 플로우:
-     * 1. 파일 형식/크기 검증
-     * 2. Google Vision API 검열
-     * 3. 검열 통과 시 S3 업로드
-     * 4. CloudFront URL 반환
-     *
-     * @param file 업로드할 파일
-     * @return 업로드 결과 정보
-     */
-    public UploadResultDto uploadImageWithValidation(org.springframework.web.multipart.MultipartFile file) {
-        try {
-            if (!isValidImageFile(file.getOriginalFilename())) {
-                throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
-            }
-
-            if (file.getSize() > 10 * 1024 * 1024) {
-                throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
-            }
-
-            byte[] imageBytes = file.getBytes();
-            boolean isSafe = googleVisionService.isImageSafe(imageBytes);
-
-            if (!isSafe) {
-                log.warn("부적절한 이미지 업로드 시도 차단: {}", file.getOriginalFilename());
-                throw new IllegalArgumentException("부적절한 콘텐츠가 포함된 이미지입니다. 업로드가 거부되었습니다.");
-            }
-
-            String s3Key = generateS3Key(file.getOriginalFilename());
-            String contentType = getContentType(file.getOriginalFilename());
-
-            S3Client s3Client = createS3Client();
-
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(getBucketName())
-                    .key(s3Key)
-                    .contentType(contentType)
-                    .build();
-
-            s3Client.putObject(putRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(imageBytes));
-
-            // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
-            String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
-
-            log.info("이미지 검열 통과 및 업로드 완료: {} -> {}", file.getOriginalFilename(), s3Key);
-            return UploadResultDto.of(permanentUrl, s3Key, file.getOriginalFilename(), contentType, file.getSize());
-
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("이미지 업로드 및 검열 실패: {}", file.getOriginalFilename(), e);
-            throw new RuntimeException("이미지 업로드 중 오류가 발생했습니다.", e);
         }
     }
 

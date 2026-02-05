@@ -2,7 +2,6 @@ package com.byeolnight.controller.file;
 
 import com.byeolnight.dto.file.ModerationResultDto;
 import com.byeolnight.dto.file.PresignedUrlResponseDto;
-import com.byeolnight.dto.file.UploadResultDto;
 import com.byeolnight.dto.file.ViewUrlResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.util.IpUtil;
@@ -170,59 +169,6 @@ public class FileController {
         } catch (Exception e) {
             log.error("URL 기반 이미지 검열 오류: s3Key={}, imageUrl={}, clientIp={}, error={}",
                     s3Key, imageUrl, clientIp, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
-                "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
-            ));
-        }
-    }
-    
-    @Operation(summary = "클립보드 이미지 직접 검열", description = "클립보드에서 붙여넣은 이미지를 직접 검열하고 업로드합니다.")
-    @PostMapping("/moderate-direct")
-    public ResponseEntity<CommonResponse<ModerationResultDto>> moderateDirect(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestParam(value = "needsModeration", defaultValue = "true") boolean needsModeration) {
-
-        try {
-            if (!needsModeration) {
-                return ResponseEntity.ok(CommonResponse.success(
-                        ModerationResultDto.skipped("검열이 요청되지 않았습니다.")
-                ));
-            }
-
-            // 파일 유효성 검사
-            if (file == null || file.isEmpty()) {
-                return ResponseEntity.badRequest().body(CommonResponse.error("파일이 없습니다."));
-            }
-
-            // 이미지 검증
-            byte[] imageBytes = file.getBytes();
-            boolean isSafe = s3Service.validateUploadedImage(imageBytes);
-
-            if (!isSafe) {
-                log.warn("부적절한 이미지 감지: {}", file.getOriginalFilename());
-                return ResponseEntity.ok(CommonResponse.success(
-                        ModerationResultDto.completed(false, "부적절한 이미지가 감지되었습니다.")
-                ));
-            }
-
-            // 안전한 이미지는 S3에 업로드
-            UploadResultDto uploadResult = s3Service.uploadImageWithValidation(file);
-
-            log.info("이미지 직접 검열 및 업로드 성공: {} -> {}", file.getOriginalFilename(), uploadResult.url());
-
-            // 업로드 결과와 함께 검열 결과 반환
-            return ResponseEntity.ok(CommonResponse.success(
-                    ModerationResultDto.completedWithUpload(
-                            true,
-                            "이미지가 안전합니다.",
-                            uploadResult.url(),
-                            uploadResult.s3Key(),
-                            uploadResult.originalName(),
-                            uploadResult.contentType()
-                    )
-            ));
-        } catch (Exception e) {
-            log.error("이미지 직접 검열 오류", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(CommonResponse.error(
                 "이미지 검열 중 오류가 발생했습니다: " + e.getMessage()
             ));
