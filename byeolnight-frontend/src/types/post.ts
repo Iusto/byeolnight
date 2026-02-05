@@ -11,6 +11,7 @@ export interface Post {
   likedByMe: boolean;
   hot: boolean;
   commentCount: number;
+  viewCount: number;
   createdAt: string;
   updatedAt: string;
   dDay?: string;

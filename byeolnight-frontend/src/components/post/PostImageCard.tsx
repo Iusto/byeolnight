@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Post } from '../../types/post';
 import { extractFirstImage } from '../../utils/postHelpers';
+import { UserIconDisplay } from '../user';
 
 interface PostImageCardProps {
   post: Post;
@@ -103,17 +104,17 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
           <div className="flex justify-between items-center text-xs text-gray-400">
             <div className="flex items-center gap-1">
               <span className={`rounded px-1 py-0.5 ${
-                post.blinded 
-                  ? 'bg-red-700/50 border border-red-600/30' 
+                post.blinded
+                  ? 'bg-red-700/50 border border-red-600/30'
                   : 'bg-slate-700/50'
               }`}>
-                {isBlinded ? '🔒' : '👤'}
+                {isBlinded ? '🔒' : <UserIconDisplay iconName={post.writerIcon} size="xsmall" />}
               </span>
               <span className="truncate max-w-[60px]">{displayWriter}</span>
             </div>
             <div className="flex gap-2">
               <span className={isBlinded ? 'text-gray-500' : ''}>
-                💬 {isBlinded ? displayStats : (post.commentCount || 0)}
+                👁️ {isBlinded ? displayStats : (post.viewCount || 0)}
               </span>
               <span className={isBlinded ? 'text-gray-500' : ''}>
                 ❤️ {isBlinded ? displayStats : post.likeCount}
