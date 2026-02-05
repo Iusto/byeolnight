@@ -128,16 +128,17 @@ public class PostService {
         }
 
         validateAdminCategoryWrite(dto.getCategory(), user);
-        
+
         // HTML 엔티티 디코딩 처리
         String decodedTitle = HtmlUtils.htmlUnescape(dto.getTitle());
         String decodedContent = HtmlUtils.htmlUnescape(dto.getContent());
-        
+
         post.update(decodedTitle, decodedContent, dto.getCategory());
 
         // 기존 파일 목록 조회
         List<File> oldFiles = fileRepository.findAllByPost(post);
-        Set<String> newImageUrls = dto.getImages().stream()
+        List<FileDto> images = dto.getImages() != null ? dto.getImages() : List.of();
+        Set<String> newImageUrls = images.stream()
                 .map(FileDto::url)
                 .collect(Collectors.toSet());
         
@@ -157,7 +158,7 @@ public class PostService {
                 .collect(Collectors.toSet());
         
         // 새로운 이미지 처리: PENDING 상태 파일을 CONFIRMED로 변경하거나 새로 생성
-        dto.getImages().stream()
+        images.stream()
                 .filter(image -> !existingUrls.contains(image.url()))
                 .forEach(image -> {
                     Optional<File> existingFile = fileRepository.findByS3Key(image.s3Key());
@@ -197,8 +198,9 @@ public class PostService {
         boolean likedByMe = currentUser != null && postLikeRepository.existsByUserAndPost(currentUser, post);
         long likeCount = postLikeRepository.countByPost(post);
         long commentCount = commentRepository.countByPostId(postId);
+        List<File> files = fileRepository.findAllByPost(post);
 
-        return postResponseAssembler.toDto(post, likedByMe, likeCount, false, commentCount);
+        return postResponseAssembler.toDto(post, likedByMe, likeCount, false, commentCount, files);
     }
 
     @Transactional(readOnly = true)
