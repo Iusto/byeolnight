@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import * as Icons from '../icons';
 import type { IconRegistry } from '../../types/icons';
 
