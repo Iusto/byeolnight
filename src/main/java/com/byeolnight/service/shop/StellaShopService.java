@@ -93,18 +93,22 @@ public class StellaShopService {
      */
     @Transactional
     public void equipIcon(User user, Long iconId) {
+        // User를 영속 상태로 다시 조회 (detached 상태 문제 해결)
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
         // 기존 장착 아이콘 해제
-        userIconRepository.findByUserAndEquippedTrue(user)
+        userIconRepository.findByUserAndEquippedTrue(managedUser)
                 .ifPresent(UserIcon::unequip);
 
         // 새 아이콘 장착
         StellaIcon iconToEquip = stellaIconRepository.findById(iconId)
                 .orElseThrow(() -> new NotFoundException("아이콘을 찾을 수 없습니다."));
-        UserIcon userIcon = userIconRepository.findByUserAndStellaIcon(user, iconToEquip)
+        UserIcon userIcon = userIconRepository.findByUserAndStellaIcon(managedUser, iconToEquip)
                 .orElseThrow(() -> new NotFoundException("보유하지 않은 아이콘입니다."));
 
         userIcon.equip();
-        user.equipIcon(iconId, iconToEquip.getIconUrl());
+        managedUser.equipIcon(iconId, iconToEquip.getIconUrl());
     }
 
     /**
@@ -113,10 +117,14 @@ public class StellaShopService {
      */
     @Transactional
     public void unequipIcon(User user) {
-        userIconRepository.findByUserAndEquippedTrue(user)
+        // User를 영속 상태로 다시 조회 (detached 상태 문제 해결)
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        userIconRepository.findByUserAndEquippedTrue(managedUser)
                 .ifPresent(UserIcon::unequip);
 
-        user.unequipIcon();
+        managedUser.unequipIcon();
     }
 
     /**
