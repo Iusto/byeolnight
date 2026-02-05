@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import * as Icons from '../icons';
 import type { IconRegistry } from '../../types/icons';
 
@@ -55,7 +55,7 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
 
 function getSizeClass(size: 'xsmall' | 'small' | 'medium' | 'large') {
   const sizeClasses = {
-    xsmall: 'w-3 h-3',
+    xsmall: 'w-1.5 h-1.5',
     small: 'w-4 h-4',
     medium: 'w-12 h-12',
     large: 'w-16 h-16'
