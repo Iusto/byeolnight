@@ -57,7 +57,7 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
 
 function getSizeClass(size: 'xsmall' | 'small' | 'medium' | 'large') {
   const sizeClasses = {
-    xsmall: 'w-3.5 h-3.5',
+    xsmall: 'w-4 h-4',
     small: 'w-6 h-6',
     medium: 'w-12 h-12',
     large: 'w-16 h-16'
@@ -67,7 +67,7 @@ function getSizeClass(size: 'xsmall' | 'small' | 'medium' | 'large') {
 
 function getPixelSize(size: 'xsmall' | 'small' | 'medium' | 'large') {
   const pixelSizes = {
-    xsmall: 14,
+    xsmall: 16,
     small: 24,
     medium: 48,
     large: 64
