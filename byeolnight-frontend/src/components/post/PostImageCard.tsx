@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Post } from '../../types/post';
-import { extractFirstImage } from '../../utils/postHelpers';
+import { extractFirstImage } from '../../utils/formatters';
 import { UserIconDisplay } from '../user';
 
 interface PostImageCardProps {
@@ -113,6 +113,9 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
               <span className="truncate max-w-[60px]">{displayWriter}</span>
             </div>
             <div className="flex gap-2">
+              <span className={isBlinded ? 'text-gray-500' : ''}>
+                💬 {isBlinded ? displayStats : (post.commentCount || 0)}
+              </span>
               <span className={isBlinded ? 'text-gray-500' : ''}>
                 👁️ {isBlinded ? displayStats : (post.viewCount || 0)}
               </span>
