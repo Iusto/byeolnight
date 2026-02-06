@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
+import { UserIconDisplay } from '../user';
 
 interface Post {
   id: number;
   title: string;
   writer: string;
+  writerIcon?: string;
   likeCount: number;
   viewCount: number;
   commentCount: number;
@@ -30,7 +32,7 @@ export default function PostCard({ post, showStats = true }: PostCardProps) {
         {showStats && (
           <div className="flex items-center justify-between text-xs text-white mobile-text-secondary group-hover:text-gray-300 transition-colors mobile-caption">
             <span className="flex items-center gap-1 truncate">
-              <span className="text-purple-400">🖊</span> 
+              <UserIconDisplay iconName={post.writerIcon} size="xsmall" />
               <span className="truncate text-white mobile-text" style={{textShadow: '0 1px 2px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.writer}</span>
             </span>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">

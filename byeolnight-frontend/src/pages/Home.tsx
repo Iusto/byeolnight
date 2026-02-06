@@ -7,6 +7,7 @@ import { ChatSidebar } from '../components/chat';
 import { WeatherWidget } from '../components/ui';
 import HeroSection from '../components/home/HeroSection';
 import { BoardNavigation, Section, PostCard, LoadingSpinner } from '../components/common';
+import { UserIconDisplay } from '../components/user';
 import { formatDate, extractFirstImage } from '../utils/formatters';
 
 interface Post {
@@ -21,6 +22,7 @@ interface Post {
   commentCount: number;
   updatedAt: string;
   createdAt?: string;
+  writerIcon?: string;
   blinded: boolean;
   thumbnailUrl?: string;
   dDay?: string;
@@ -157,8 +159,8 @@ export default function Home() {
                             <span>👁 {post.viewCount}</span>
                           </div>
                         </div>
-                        <div className="text-emerald-200/70 text-sm">
-                          🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
+                        <div className="text-emerald-200/70 text-sm flex items-center gap-1">
+                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
                         </div>
                       </Link>
                     </div>
@@ -275,8 +277,8 @@ export default function Home() {
                             <span>👁 {post.viewCount}</span>
                           </div>
                         </div>
-                        <div className="text-blue-200/70 text-sm mt-1">
-                          🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
+                        <div className="text-blue-200/70 text-sm mt-1 flex items-center gap-1">
+                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
                         </div>
                       </Link>
                     </div>
@@ -304,8 +306,8 @@ export default function Home() {
                             <span>👁 {post.viewCount}</span>
                           </div>
                         </div>
-                        <div className="text-purple-200/70 text-sm mt-1">
-                          🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
+                        <div className="text-purple-200/70 text-sm mt-1 flex items-center gap-1">
+                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
                         </div>
                       </Link>
                     </div>
@@ -339,8 +341,8 @@ export default function Home() {
                             <span>👁 {post.viewCount}</span>
                           </div>
                         </div>
-                        <div className="text-green-200/70 text-sm mt-1">
-                          🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
+                        <div className="text-green-200/70 text-sm mt-1 flex items-center gap-1">
+                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
                         </div>
                       </Link>
                     </div>
@@ -368,8 +370,8 @@ export default function Home() {
                             <span>👁 {post.viewCount}</span>
                           </div>
                         </div>
-                        <div className="text-pink-200/70 text-sm mt-1">
-                          🖊 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
+                        <div className="text-pink-200/70 text-sm mt-1 flex items-center gap-1">
+                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
                         </div>
                       </Link>
                     </div>

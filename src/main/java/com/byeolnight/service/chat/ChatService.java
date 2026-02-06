@@ -41,6 +41,7 @@ public class ChatService {
                         .id(entity.getId().toString())
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
+                        .senderIcon(entity.getSenderIcon())
                         .message(entity.getMessage())
                         .ipAddress(entity.getIpAddress())
                         .timestamp(entity.getTimestamp())
@@ -48,7 +49,7 @@ public class ChatService {
                         .build())
                 .toList();
     }
-    
+
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getBlindedMessages(int limit) {
         return chatMessageRepository.findByIsBlindedTrueOrderByBlindedAtDesc(
@@ -58,6 +59,7 @@ public class ChatService {
                         .id(entity.getId().toString())
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
+                        .senderIcon(entity.getSenderIcon())
                         .message(entity.getMessage())
                         .ipAddress(entity.getIpAddress())
                         .timestamp(entity.getTimestamp())
@@ -65,7 +67,7 @@ public class ChatService {
                         .build())
                 .toList();
     }
-    
+
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getMessagesBefore(String roomId, String beforeId, int limit) {
         Long beforeIdLong = Long.parseLong(beforeId);
@@ -76,6 +78,7 @@ public class ChatService {
                         .id(entity.getId().toString())
                         .roomId(entity.getRoomId())
                         .sender(entity.getSender())
+                        .senderIcon(entity.getSenderIcon())
                         .message(entity.getMessage())
                         .ipAddress(entity.getIpAddress())
                         .timestamp(entity.getTimestamp())
@@ -93,6 +96,7 @@ public class ChatService {
         ChatMessage entity = ChatMessage.builder()
                 .roomId(dto.getRoomId())
                 .sender(dto.getSender())
+                .senderIcon(dto.getSenderIcon())
                 .message(dto.getMessage())
                 .ipAddress(ipAddress)
                 .build();
