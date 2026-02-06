@@ -180,8 +180,7 @@ public class SpaceNewsService {
 
     
     private String generateSummary(NewsApiResponseDto.Result result) {
-        String summary = translationService.generateAIAnalysis(result.getTitle(), result.getDescription());
-        return summary.length() > 100 ? summary.substring(0, 97) + "..." : summary;
+        return translationService.generateAIAnalysis(result.getTitle(), result.getDescription());
     }
     
     // NewsDataService에서 이동된 메서드들
