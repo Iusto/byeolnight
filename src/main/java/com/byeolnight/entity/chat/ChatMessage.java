@@ -35,6 +35,9 @@ public class ChatMessage {
     @Column(nullable = false)
     private String sender;
 
+    @Column
+    private String senderIcon;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 

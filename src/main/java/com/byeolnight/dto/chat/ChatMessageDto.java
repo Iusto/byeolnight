@@ -15,6 +15,7 @@ public class ChatMessageDto {
     private String id; // 메시지 ID 추가
     private String roomId;
     private String sender;
+    private String senderIcon;
     private String message;
     private String ipAddress;
     @Builder.Default

@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../contexts/AuthContext';
 import axios from '../../lib/axios';
 import { AdminChatControls, AdminChatModal } from '../admin';
+import { UserIconDisplay } from '../user';
 import EmojiPicker from './EmojiPicker';
 import chatConnector from './ChatConnector';
 
 interface ChatMessage {
   id?: string;
   sender: string;
+  senderIcon?: string;
   message: string;
   timestamp: string;
   isBlinded?: boolean;
@@ -405,7 +407,10 @@ export default function ChatSidebar() {
                     >
                       {!isMe && (
                         <div className="flex items-center justify-between mb-1">
-                          <div className="font-bold text-purple-300">{msg.sender}</div>
+                          <div className="flex items-center gap-1">
+                            <UserIconDisplay iconName={msg.senderIcon} size="xsmall" />
+                            <div className="font-bold text-purple-300">{msg.sender}</div>
+                          </div>
                           {isAdmin && !isMe && (
                             <AdminChatControls
                               messageId={msg.id || `${idx}`}

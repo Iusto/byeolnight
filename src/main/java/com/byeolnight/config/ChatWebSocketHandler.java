@@ -56,6 +56,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         ChatMessageDto chatMessage = objectMapper.readValue(payload, ChatMessageDto.class);
         chatMessage.setSender(user.getNickname());
+        chatMessage.setSenderIcon(user.getEquippedIconName());
 
         // 채팅 금지 확인
         if (adminChatService.isUserBanned(user.getNickname())) {
