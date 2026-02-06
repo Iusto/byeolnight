@@ -25,6 +25,7 @@ public class SuggestionDto {
         private Suggestion.SuggestionStatus status;
         private Long authorId;
         private String authorNickname;
+        private String authorIcon;
         private Boolean isPublic;
         private String adminResponse;
         private LocalDateTime adminResponseAt;
@@ -45,6 +46,7 @@ public class SuggestionDto {
                     .status(suggestion.getStatus())
                     .authorId(suggestion.getAuthor().getId())
                     .authorNickname(suggestion.getAuthor().getNickname())
+                    .authorIcon(suggestion.getAuthor().getEquippedIconName())
                     .isPublic(suggestion.getIsPublic())
                     .adminResponse(suggestion.getAdminResponse())
                     .adminResponseAt(suggestion.getAdminResponseAt())

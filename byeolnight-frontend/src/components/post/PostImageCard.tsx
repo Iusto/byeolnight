@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Post } from '../../types/post';
-import { extractFirstImage } from '../../utils/postHelpers';
+import { extractFirstImage } from '../../utils/formatters';
 import { UserIconDisplay } from '../user';
 
 interface PostImageCardProps {
