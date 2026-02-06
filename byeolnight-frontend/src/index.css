@@ -243,6 +243,7 @@ svg {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .icon-container svg {
