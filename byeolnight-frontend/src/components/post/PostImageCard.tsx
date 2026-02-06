@@ -114,6 +114,9 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
             </div>
             <div className="flex gap-2">
               <span className={isBlinded ? 'text-gray-500' : ''}>
+                💬 {isBlinded ? displayStats : (post.commentCount || 0)}
+              </span>
+              <span className={isBlinded ? 'text-gray-500' : ''}>
                 👁️ {isBlinded ? displayStats : (post.viewCount || 0)}
               </span>
               <span className={isBlinded ? 'text-gray-500' : ''}>
