@@ -161,6 +161,10 @@ public class PostService {
         images.stream()
                 .filter(image -> !existingUrls.contains(image.url()))
                 .forEach(image -> {
+                    // s3Key가 비어있으면 스킵 (콘텐츠에서 추출한 외부/레거시 이미지)
+                    if (image.s3Key() == null || image.s3Key().isBlank()) {
+                        return;
+                    }
                     Optional<File> existingFile = fileRepository.findByS3Key(image.s3Key());
                     if (existingFile.isPresent()) {
                         // Presigned URL 발급 시 생성된 PENDING 파일을 CONFIRMED로 변경
