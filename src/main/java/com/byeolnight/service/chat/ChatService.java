@@ -87,6 +87,7 @@ public class ChatService {
                 .collect(java.util.stream.Collectors.toList());
     }
     
+    @Transactional
     public void save(ChatMessageDto dto, String ipAddress) {
         if (dto.getMessage() == null || dto.getMessage().trim().isEmpty()) {
             log.warn("❌ 저장 거부: message가 null 또는 빈 문자열입니다. dto: {}", dto);
