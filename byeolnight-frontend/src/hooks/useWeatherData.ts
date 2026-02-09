@@ -57,9 +57,9 @@ export const useIssObservation = (latitude: number, longitude: number) => {
       });
       return response.data;
     },
-    staleTime: 1 * 60 * 1000, // 1분
+    staleTime: 5 * 60 * 1000, // 5분
     gcTime: 10 * 60 * 1000, // 10분
-    refetchInterval: 1 * 60 * 1000, // 1분마다 자동 갱신
+    refetchInterval: 5 * 60 * 1000, // 5분마다 자동 갱신
     retry: 1,
   });
 };

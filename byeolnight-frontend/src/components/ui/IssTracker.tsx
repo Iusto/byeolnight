@@ -22,7 +22,7 @@ const qualityConfig: Record<string, { color: string; bg: string; border: string;
   EXCELLENT: { color: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', glow: 'shadow-emerald-500/20', label: '최적' },
   GOOD:      { color: 'text-sky-300',     bg: 'bg-sky-500/15',     border: 'border-sky-500/30',     glow: 'shadow-sky-500/20',     label: '양호' },
   FAIR:      { color: 'text-amber-300',   bg: 'bg-amber-500/15',   border: 'border-amber-500/30',   glow: 'shadow-amber-500/20',   label: '보통' },
-  POOR:      { color: 'text-red-400',     bg: 'bg-red-500/15',     border: 'border-red-500/30',     glow: 'shadow-red-500/20',     label: '불량' },
+  POOR:      { color: 'text-red-400',     bg: 'bg-red-500/15',     border: 'border-red-500/30',     glow: 'shadow-red-500/20',     label: '어려움' },
 };
 
 const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
