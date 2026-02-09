@@ -480,8 +480,8 @@ export default function PostDetail() {
           {/* 작성자 정보 - 모바일 최적화 */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
-                <UserIconDisplay iconName={post.writerIcon} size="large" className="text-xl sm:text-2xl" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-purple-400/50 p-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+                <UserIconDisplay iconName={post.writerIcon} size="small" className="text-xl sm:text-2xl" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
