@@ -30,9 +30,9 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
   // 실제로는 모든 사용자가 소행성 아이콘을 보유하고 장착해야 함
   if (!iconName) {
     return (
-      <div className={`icon-container ${getSizeClass(size)} rounded-lg`}>
-        <DefaultAsteroid className={`w-full h-full text-gray-400 ${className}`} size={pixelSize} />
-      </div>
+      <span className={`icon-container inline-flex items-center leading-none ${getSizeClass(size)} rounded-lg`}>
+        <DefaultAsteroid className={`w-full h-full text-gray-400 block ${className}`} />
+      </span>
     );
   }
 
@@ -49,11 +49,11 @@ export default function UserIconDisplay({ iconName, size = 'small', className = 
   }
 
   return (
-    <div className={`icon-container ${getSizeClass(size)} rounded-lg ${className}`}>
-      <IconComponent className="w-full h-full" size={pixelSize} style={{ display: 'block' }} />
-    </div>
+    <span className={`icon-container inline-flex items-center leading-none ${getSizeClass(size)} rounded-lg ${className}`}>
+      <IconComponent className="w-full h-full block" />
+    </span>
   );
-}
+
 
 function getSizeClass(size: 'xsmall' | 'small' | 'medium' | 'large') {
   const sizeClasses = {
