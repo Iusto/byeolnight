@@ -438,8 +438,8 @@ export default function Profile() {
         <div className="bg-slate-800/50 rounded-xl p-3 sm:p-6 mb-4 sm:mb-6 border border-slate-600/30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 mb-4 sm:mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <UserIconDisplay iconName={user?.equippedIconName} size="medium" className="text-lg sm:text-2xl" />
+              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-slate-700/50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <UserIconDisplay iconName={user?.equippedIconName} size="small" className="text-lg sm:text-2xl" />
               </div>
               <div>
                 <h1 className="text-lg sm:text-2xl font-bold text-white">내 정보</h1>

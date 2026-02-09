@@ -261,7 +261,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
           {/* 사용자 정보 */}
           <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
             {c.writerIcon && ((!c.deleted && !c.blinded) || user?.role === 'ADMIN') && (
-              <div className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+              <div className="w-16 h-16 rounded-full border border-purple-400/50 bg-gradient-to-r from-purple-500/20 to-pink-500/20 flex items-center justify-center overflow-hidden">
                 <UserIconDisplay iconName={c.writerIcon} size="large" />
               </div>
             )}

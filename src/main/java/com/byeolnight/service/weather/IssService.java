@@ -79,11 +79,22 @@ public class IssService {
 
             if (response.statusCode() == 200) {
                 JsonNode issData = objectMapper.readTree(response.body());
+                JsonNode altNode = issData.get("altitude");
+                JsonNode velNode = issData.get("velocity");
+                JsonNode latNode = issData.get("latitude");
+                JsonNode lonNode = issData.get("longitude");
+
+                if (altNode == null || velNode == null || latNode == null || lonNode == null) {
+                    log.warn("ISS API 응답에 필수 필드 누락: alt={}, vel={}, lat={}, lon={}",
+                            altNode, velNode, latNode, lonNode);
+                    return null;
+                }
+
                 return IssLocationData.builder()
-                    .altitude(issData.get("altitude").asDouble())
-                    .velocity(issData.get("velocity").asDouble())
-                    .latitude(issData.get("latitude").asDouble())
-                    .longitude(issData.get("longitude").asDouble())
+                    .altitude(altNode.asDouble())
+                    .velocity(velNode.asDouble())
+                    .latitude(latNode.asDouble())
+                    .longitude(lonNode.asDouble())
                     .build();
             }
         } catch (Exception e) {

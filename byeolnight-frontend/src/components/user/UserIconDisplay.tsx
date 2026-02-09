@@ -59,8 +59,8 @@ export default function UserIconDisplay({
 
 function getSizeClass(size: 'xsmall' | 'small' | 'medium' | 'large') {
   const sizeClasses = {
-    xsmall: 'w-4 h-4',
-    small: 'w-6 h-6',
+    xsmall: 'w-5 h-5',
+    small: 'w-8 h-8',
     medium: 'w-12 h-12',
     large: 'w-16 h-16',
   };
