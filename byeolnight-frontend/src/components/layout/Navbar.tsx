@@ -116,7 +116,7 @@ export default function Navbar() {
                 <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-slate-800/80 to-purple-900/80 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-full border border-purple-500/40 shadow-lg backdrop-blur-sm">
                   {/* 사용자 아이콘 */}
                   {user.equippedIconName ? (
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full border border-purple-400/30">
+                    <div className="w-8 h-8 flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full border border-purple-400/30">
                       <UserIconDisplay
                         iconName={user.equippedIconName}
                         size="small"

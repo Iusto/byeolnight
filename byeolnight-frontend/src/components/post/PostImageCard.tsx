@@ -103,7 +103,7 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
           
           <div className="flex justify-between items-center text-xs text-gray-400">
             <div className="flex items-center gap-1">
-              <span className={`rounded px-1 py-0.5 ${
+              <span className={`rounded px-1 py-0.5 flex items-center justify-center w-9 h-9 flex-shrink-0 overflow-hidden ${
                 post.blinded
                   ? 'bg-red-700/50 border border-red-600/30'
                   : 'bg-slate-700/50'

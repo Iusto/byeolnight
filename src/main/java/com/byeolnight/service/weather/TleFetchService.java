@@ -39,10 +39,15 @@ public class TleFetchService {
     }
 
     /**
-     * 12시간마다 TLE 자동 갱신
+     * 12시간마다 TLE 자동 갱신.
+     * TLE가 없으면 5분마다 재시도, 있으면 12시간 간격 유지.
      */
-    @Scheduled(fixedRate = 12 * 60 * 60 * 1000, initialDelay = 12 * 60 * 60 * 1000)
+    @Scheduled(fixedRate = 5 * 60 * 1000, initialDelay = 5 * 60 * 1000)
     public void scheduledRefresh() {
+        if (cachedTle.get() != null && lastFetchTime != null
+                && java.time.Duration.between(lastFetchTime, LocalDateTime.now()).toHours() < 12) {
+            return; // TLE가 유효하면 12시간 전까지 갱신 안 함
+        }
         refreshTle();
     }
 

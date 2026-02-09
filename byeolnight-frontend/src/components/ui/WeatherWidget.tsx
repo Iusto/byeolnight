@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { useWeatherObservation, useIssObservation } from '../../hooks/useWeatherData';
+import { useWeatherObservation } from '../../hooks/useWeatherData';
+import IssTracker from './IssTracker';
 
 const WeatherWidget: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
 
   // 위치 정보 상태
   const [coordinates, setCoordinates] = useState<{ lat: number; lon: number }>({
@@ -15,19 +13,12 @@ const WeatherWidget: React.FC = () => {
   });
   const [locationLoading, setLocationLoading] = useState(true);
 
-  // React Query hooks - 조건부로 활성화
+  // React Query hooks
   const {
     data: weather,
     isLoading: weatherLoading,
     error: weatherError
   } = useWeatherObservation(coordinates.lat, coordinates.lon);
-
-
-  const {
-    data: issData,
-    isLoading: issLoading,
-    error: issError
-  } = useIssObservation(coordinates.lat, coordinates.lon);
 
   // 위치 정보 가져오기 (한 번만 실행)
   useEffect(() => {
@@ -154,73 +145,8 @@ const WeatherWidget: React.FC = () => {
         )}
       </div>
 
-      {/* ISS 관측 기회 */}
-      <div className="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 rounded-xl p-6 text-white shadow-2xl border border-gray-500/20">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold flex items-center gap-2">
-            🛰️ {t('weather.iss_observation_opportunity')}
-          </h3>
-        </div>
-
-        {issError ? (
-          <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
-            <p className="text-red-200 text-sm">{t('weather.iss_no_data')}</p>
-          </div>
-        ) : issData ? (
-          <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🛰️</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white mb-3">{t('weather.iss_current_status')}</h4>
-                <p className="text-sm text-gray-300 mb-4">{issData.friendlyMessage}</p>
-
-                {issData.currentAltitudeKm && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div className="flex justify-between p-2 bg-white/5 rounded-lg">
-                      <span className="text-gray-300 text-sm">🚀 {t('weather.iss_altitude')}</span>
-                      <span className="font-semibold text-white text-sm">{Math.round(issData.currentAltitudeKm).toLocaleString()}km</span>
-                    </div>
-                    {issData.currentVelocityKmh && (
-                      <div className="flex justify-between p-2 bg-white/5 rounded-lg">
-                        <span className="text-gray-300 text-sm">⚡ {t('weather.iss_velocity')}</span>
-                        <span className="font-semibold text-white text-sm">{Math.round(issData.currentVelocityKmh).toLocaleString()}km/h</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {issData.nextPassTime && (
-                  <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-lg">🔮</span>
-                      <span className="text-sm font-medium text-blue-200">{t('weather.iss_next_observation')}</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-7">
-                      <div className="text-sm text-gray-300">
-                        <span className="block font-medium text-white">{t('weather.iss_next_time')}</span>
-                        <span>{issData.nextPassDate} {issData.nextPassTime}</span>
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        <span className="block font-medium text-white">{t('weather.iss_next_direction')}</span>
-                        <span>{issData.nextPassDirection}</span>
-                      </div>
-                      <div className="text-sm text-gray-300 sm:col-span-2">
-                        <span className="block font-medium text-white">{t('weather.iss_next_duration')}</span>
-                        <span>{issData.estimatedDuration}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : issLoading ? (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-4">🛰️</div>
-            <p className="text-gray-200">{t('weather.loading_iss_data')}</p>
-          </div>
-        ) : null}
-      </div>
+      {/* ISS 실시간 추적 */}
+      <IssTracker latitude={coordinates.lat} longitude={coordinates.lon} />
     </div>
   );
 };

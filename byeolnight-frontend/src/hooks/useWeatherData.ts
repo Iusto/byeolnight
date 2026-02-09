@@ -24,6 +24,7 @@ export interface IssData {
   nextPassDirection?: string;
   estimatedDuration?: string;
   visibilityQuality?: string;
+  maxElevation?: number;
 }
 
 // 날씨 관측 조건 조회
