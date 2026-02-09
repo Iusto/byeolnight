@@ -96,16 +96,16 @@ implementation 'com.github.davidmoten:predict4java:1.3.1'
 ```
 CelesTrak (TLE 제공)
         │
-        │ HTTPS (12시간마다)
+        │ HTTPS (정상: 12시간마다 / TLE 없을 시: 5분마다 재시도)
         ▼
 ┌──────────────────┐
 │  TleFetchService │  TLE 수집 + 메모리 캐싱
-│  (AtomicReference)│
+│  (AtomicReference)│  스케줄러: 5분 주기 체크, 조건부 갱신
 └────────┬─────────┘
          │ TLE 객체
          ▼
 ┌──────────────────┐     ┌─────────────────┐
-│   IssService     │────▶│  wheretheiss.at  │  현재 고도/속도 (기존 유지)
+│   IssService     │────▶│  wheretheiss.at  │  현재 고도/속도 (null safety 적용)
 │                  │     └─────────────────┘
 │  ┌────────────┐  │
 │  │ PassPredict│  │  SGP4 궤도 전파 + 패스 계산
@@ -133,14 +133,23 @@ public class TleFetchService {
         "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE";
 
     private final AtomicReference<TLE> cachedTle = new AtomicReference<>();
+    private volatile LocalDateTime lastFetchTime;
 
     @PostConstruct
     public void init() {
         refreshTle();  // 서버 시작 시 즉시 TLE 가져오기
     }
 
-    @Scheduled(fixedRate = 12 * 60 * 60 * 1000)  // 12시간마다 갱신
+    /**
+     * 5분마다 실행되지만, TLE가 유효하면(12시간 미만) 스킵.
+     * TLE가 없거나 12시간 이상 지났으면 갱신 시도.
+     */
+    @Scheduled(fixedRate = 5 * 60 * 1000, initialDelay = 5 * 60 * 1000)
     public void scheduledRefresh() {
+        if (cachedTle.get() != null && lastFetchTime != null
+                && Duration.between(lastFetchTime, LocalDateTime.now()).toHours() < 12) {
+            return; // TLE가 유효하면 12시간 전까지 갱신 안 함
+        }
         refreshTle();
     }
 
@@ -157,8 +166,17 @@ public class TleFetchService {
 
 설계 결정:
 - **AtomicReference**: 동시 접근에 안전한 TLE 저장소
-- **12시간 갱신 주기**: ISS TLE는 하루에 여러 번 업데이트되지만, 수 시간 이내의 예측에는 12시간 전 TLE로도 충분한 정확도
+- **적응형 갱신 주기**: 스케줄러는 5분마다 실행되지만, TLE가 존재하고 12시간 미만이면 스킵. TLE가 없으면(서버 시작 실패, 네트워크 장애 등) 5분마다 재시도하여 빠르게 복구
+- **volatile lastFetchTime**: 스케줄러 스레드와 요청 스레드 간 가시성 보장
 - **@PostConstruct 즉시 로딩**: 서버 시작 직후부터 예측 가능
+
+```
+TLE 갱신 시나리오:
+
+1. 정상 운영: 서버 시작 → TLE 획득 → 12시간 후 갱신 → 12시간 후 갱신 → ...
+2. 시작 실패: 서버 시작 → TLE 실패 → 5분 후 재시도 → 5분 후 재시도 → TLE 획득 → 12시간 유지
+3. 갱신 실패: ... → 12시간 경과 → 갱신 실패 → 5분 후 재시도 → TLE 획득 → 12시간 유지
+```
 
 ### 2. IssService - SGP4 기반 패스 계산
 
@@ -253,9 +271,11 @@ private String elevationToQuality(double maxElevation) {
 | 항목 | 값 |
 |------|-----|
 | 저장소 | AtomicReference (인메모리) |
-| 갱신 주기 | 12시간 |
+| 정상 갱신 주기 | 12시간 |
+| 실패 시 재시도 | 5분 간격 |
 | 데이터 소스 | CelesTrak (무료, 무제한) |
 | 크기 | TLE 1건 (ISS만) |
+| 스케줄러 | `fixedRate=5분`, 조건부 갱신 (TLE 유효 시 스킵) |
 
 ### 패스 예측 캐시
 
@@ -302,6 +322,33 @@ private IssPassData createFallbackPassData() {
 3. 해당 위치에서 ISS 패스를 찾을 수 없는 경우
 
 폴백 데이터는 캐시에 저장하지 않으므로, 다음 요청 시 재계산을 시도한다.
+
+---
+
+## 외부 API Null Safety
+
+wheretheiss.at API에서 ISS 현재 위치를 가져올 때, 응답 필드가 누락될 수 있다. 모든 필수 필드를 개별적으로 검증하여 NPE를 방지한다.
+
+```java
+private IssLocationData fetchIssCurrentLocation() {
+    // ...
+    JsonNode issData = objectMapper.readTree(response.body());
+    JsonNode altNode = issData.get("altitude");
+    JsonNode velNode = issData.get("velocity");
+    JsonNode latNode = issData.get("latitude");
+    JsonNode lonNode = issData.get("longitude");
+
+    // 필수 필드 중 하나라도 없으면 null 반환 → 폴백 메시지 사용
+    if (altNode == null || velNode == null || latNode == null || lonNode == null) {
+        log.warn("ISS API 응답에 필수 필드 누락: alt={}, vel={}, lat={}, lon={}",
+                altNode, velNode, latNode, lonNode);
+        return null;
+    }
+    // ...
+}
+```
+
+`fetchIssCurrentLocation()`이 null을 반환하면 `getIssObservationOpportunity()`에서 기본 상태 메시지("ISS는 현재 지구 상공 약 400km에서...")를 사용한다. SGP4 패스 계산은 이 API와 독립적이므로 영향 없이 정상 작동한다.
 
 ---
 
