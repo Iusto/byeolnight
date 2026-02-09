@@ -41,7 +41,7 @@ public class NewsBasedDiscussionService {
             return generateNewsBasedFallback(news);
         }
         
-        // GPT-3.5로 뉴스 기반 토론 주제 생성
+        // GPT-4o로 뉴스 기반 토론 주제 생성
         String discussionTopic = generateDiscussionWithGPT(news);
         
         // 토론 주제 생성 성공 시 뉴스를 사용됨으로 표시

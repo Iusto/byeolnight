@@ -37,7 +37,7 @@
 ### 🌌 우주 콘텐츠
 - **우주 뉴스**: 자동 수집 및 분류
 - **날씨 정보**: 실시간 날씨 + 별 관측 가능 여부
-- **ISS 관측 정보**: 국제우주정거장 현재 고도/속도 표시
+- **ISS 관측 예보**: TLE + SGP4 궤도 계산 기반 실제 관측 시간/방향/고도각 예측
 - **우주영상 큐레이터**: NASA, SpaceX 등 우주 관련 영상 큐레이션
 
 ### 🎨 사용자 시스템
@@ -121,6 +121,7 @@
 - [🔧 기술 스택 상세](./docs/06_tech-stack.md)
 - [📊 성능 최적화 전략](./docs/PERFORMANCE.md)
  - [🌤️ 날씨 캐싱 시스템 개선 여정](./docs/13_weather-caching-evolution.md) ⭐ NEW
+- [🛰️ ISS 관측 예보 시스템](./docs/15_iss-pass-prediction.md)
 - [📁 이미지 업로드 파이프라인](./docs/14_image-upload-pipeline.md)
 - [🏊 풀 설정 전략](./docs/12_pool-configuration-strategy.md)
 - [🧪 테스트 전략](./docs/07_testing.md)

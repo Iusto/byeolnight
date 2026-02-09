@@ -19,4 +19,5 @@ public class IssObservationResponse {
     private String nextPassDirection;
     private String estimatedDuration;
     private String visibilityQuality;
+    private Double maxElevation;
 }
