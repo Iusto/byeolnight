@@ -34,7 +34,7 @@ public class ChatService {
     
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getRecentMessages(String roomId, int limit) {
-        return chatMessageRepository.findRecentByRoomIdOrderByIdAsc(roomId,
+        List<ChatMessageDto> messages = chatMessageRepository.findRecentByRoomIdOrderByIdDesc(roomId,
                 org.springframework.data.domain.PageRequest.of(0, limit))
                 .stream()
                 .map(entity -> ChatMessageDto.builder()
@@ -47,7 +47,9 @@ public class ChatService {
                         .timestamp(entity.getTimestamp())
                         .isBlinded(entity.getIsBlinded())
                         .build())
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
+        java.util.Collections.reverse(messages);
+        return messages;
     }
 
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
