@@ -1,6 +1,7 @@
 package com.byeolnight.service.weather;
 
 import com.byeolnight.config.WeatherCityConfig;
+import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 import static com.byeolnight.infrastructure.util.CoordinateUtils.generateCacheKey;
 
@@ -69,17 +69,16 @@ public class WeatherScheduler {
      */
     private WeatherResponse fetchWeatherData(WeatherCityConfig.City city) {
         try {
-            Map<String, Object> apiResponse = callWeatherAPI(city.latitude(), city.longitude());
-            WeatherData weatherData = extractWeatherData(apiResponse);
-            String quality = calculateObservationQuality(weatherData.cloudCover(), weatherData.visibility());
+            OpenWeatherResponse apiResponse = callWeatherAPI(city.latitude(), city.longitude());
+            String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
             String moonPhase = getMoonPhaseIcon();
 
             return WeatherResponse.builder()
                     .location(city.name()) // 설정된 한글 이름 사용
                     .latitude(city.latitude())
                     .longitude(city.longitude())
-                    .cloudCover(weatherData.cloudCover())
-                    .visibility(weatherData.visibility())
+                    .cloudCover(apiResponse.getCloudCover())
+                    .visibility(apiResponse.getVisibilityKm())
                     .moonPhase(moonPhase)
                     .observationQuality(quality)
                     .recommendation(quality)
@@ -92,35 +91,18 @@ public class WeatherScheduler {
         }
     }
 
-    private Map<String, Object> callWeatherAPI(double latitude, double longitude) {
+    private OpenWeatherResponse callWeatherAPI(double latitude, double longitude) {
         String url = String.format(
                 java.util.Locale.US,
                 "%s/weather?lat=%f&lon=%f&appid=%s&units=metric",
                 apiUrl, latitude, longitude, apiKey
         );
 
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        OpenWeatherResponse response = restTemplate.getForObject(url, OpenWeatherResponse.class);
         if (response == null) {
             throw new RuntimeException("API 응답이 null입니다");
         }
         return response;
-    }
-
-    @SuppressWarnings("unchecked")
-    private WeatherData extractWeatherData(Map<String, Object> apiData) {
-        Map<String, Object> clouds = (Map<String, Object>) apiData.get("clouds");
-
-        double cloudCover = 50.0;
-        if (clouds != null) {
-            Object all = clouds.get("all");
-            if (all instanceof Number n) cloudCover = n.doubleValue();
-        }
-
-        double visibilityKm = 10.0;
-        Object vis = apiData.get("visibility");
-        if (vis instanceof Number n) visibilityKm = n.doubleValue() / 1000.0;
-
-        return new WeatherData(cloudCover, visibilityKm);
     }
 
     private String calculateObservationQuality(double cloudCover, double visibilityKm) {
@@ -179,6 +161,4 @@ public class WeatherScheduler {
                 .build();
     }
 
-    private record WeatherData(double cloudCover, double visibility) {
-    }
 }

@@ -1,7 +1,9 @@
 package com.byeolnight.service.weather;
 
 import com.byeolnight.config.WeatherCityConfig;
+import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,7 @@ class WeatherSchedulerTest {
 
     private static final String TEST_API_KEY = "test-api-key";
     private static final String TEST_API_URL = "https://api.openweathermap.org/data/2.5";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
@@ -63,16 +66,16 @@ class WeatherSchedulerTest {
         given(cityConfig.getCities()).willReturn(testCities);
 
         // Mock API 응답
-        given(restTemplate.getForObject(anyString(), eq(Map.class))).willAnswer(invocation -> {
+        given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willAnswer(invocation -> {
             String url = invocation.getArgument(0);
             if (url.contains("lat=37.6")) {
-                return createMockApiResponse("Seoul", 20, 10000);
+                return createMockOpenWeatherResponse("Seoul", 20, 10000);
             } else if (url.contains("lat=35.2")) {
-                return createMockApiResponse("Busan", 30, 9000);
+                return createMockOpenWeatherResponse("Busan", 30, 9000);
             } else if (url.contains("lat=33.4")) {
-                return createMockApiResponse("Jeju", 40, 8000);
+                return createMockOpenWeatherResponse("Jeju", 40, 8000);
             }
-            return createMockApiResponse("Unknown", 50, 10000);
+            return createMockOpenWeatherResponse("Unknown", 50, 10000);
         });
 
         // when
@@ -102,8 +105,8 @@ class WeatherSchedulerTest {
         ReflectionTestUtils.setField(weatherScheduler, "cityConfig", realConfig);
 
         // Mock API 응답
-        given(restTemplate.getForObject(anyString(), eq(Map.class)))
-                .willReturn(createMockApiResponse("TestCity", 30, 10000));
+        given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
+                .willReturn(createMockOpenWeatherResponse("TestCity", 30, 10000));
 
         // when
         weatherScheduler.collectWeatherData();
@@ -124,8 +127,8 @@ class WeatherSchedulerTest {
         );
 
         given(cityConfig.getCities()).willReturn(testCities);
-        given(restTemplate.getForObject(anyString(), eq(Map.class)))
-                .willReturn(createMockApiResponse("TestCity", 30, 10000));
+        given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
+                .willReturn(createMockOpenWeatherResponse("TestCity", 30, 10000));
 
         // when
         weatherScheduler.collectWeatherData();
@@ -156,12 +159,12 @@ class WeatherSchedulerTest {
 
         // 첫 번째 도시는 실패, 두 번째는 성공
         boolean[] firstCall = {true};
-        given(restTemplate.getForObject(anyString(), eq(Map.class))).willAnswer(invocation -> {
+        given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willAnswer(invocation -> {
             if (firstCall[0]) {
                 firstCall[0] = false;
                 throw new RuntimeException("API 호출 실패");
             }
-            return createMockApiResponse("Busan", 30, 10000);
+            return createMockOpenWeatherResponse("Busan", 30, 10000);
         });
 
         // when
@@ -195,8 +198,8 @@ class WeatherSchedulerTest {
         );
 
         given(cityConfig.getCities()).willReturn(testCities);
-        given(restTemplate.getForObject(anyString(), eq(Map.class)))
-                .willReturn(createMockApiResponse("Seoul", 30, 10000));
+        given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
+                .willReturn(createMockOpenWeatherResponse("Seoul", 30, 10000));
 
         // when
         weatherScheduler.collectWeatherData();
@@ -212,11 +215,11 @@ class WeatherSchedulerTest {
         assertThat(cachedWeathers.get(1).getLocation()).isEqualTo("부산");
     }
 
-    private Map<String, Object> createMockApiResponse(String name, int cloudCover, int visibility) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("name", name);
-        response.put("clouds", Map.of("all", cloudCover));
-        response.put("visibility", visibility);
-        return response;
+    private OpenWeatherResponse createMockOpenWeatherResponse(String name, int cloudCover, int visibility) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", name);
+        data.put("clouds", Map.of("all", cloudCover));
+        data.put("visibility", visibility);
+        return objectMapper.convertValue(data, OpenWeatherResponse.class);
     }
 }

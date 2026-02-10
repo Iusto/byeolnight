@@ -1,5 +1,9 @@
 package com.byeolnight.service.cinema;
 
+import com.byeolnight.dto.external.openai.OpenAiChatRequest;
+import com.byeolnight.dto.external.openai.OpenAiChatResponse;
+import com.byeolnight.dto.external.openai.OpenAiMessage;
+import com.byeolnight.dto.external.youtube.*;
 import com.byeolnight.dto.video.VideoDto;
 import com.byeolnight.entity.Cinema;
 import com.byeolnight.entity.post.Post;
@@ -152,50 +156,48 @@ public class CinemaService {
     
     private Map<String, Object> searchYouTube(String[] keywords) {
         String query = getRandomKeywords(keywords, cinemaConfig.getCollection().getKeywordCount());
-        
+
         String url = buildYouTubeSearchUrl(query, "viewCount");
         log.info("YouTube API 호출 (조회수 순): {}", query);
-        
-        List<Map<String, Object>> qualityVideos = getQualityVideos(url);
-        
+
+        List<YouTubeVideoItem> qualityVideos = getQualityVideos(url);
+
         if (qualityVideos.isEmpty()) {
             log.warn("고품질 영상을 찾지 못함, 관련도 순으로 재검색");
             return searchYouTubeByRelevance(query);
         }
-        
-        Map<String, Object> selectedVideo = selectRandomFromTopVideos(qualityVideos);
+
+        YouTubeVideoItem selectedVideo = selectRandomFromTopVideos(qualityVideos);
         logSelectedVideo(selectedVideo);
-        
+
         return parseVideoData(selectedVideo);
     }
-    
+
     private Map<String, Object> searchYouTubeByRelevance(String query) {
         String url = buildYouTubeSearchUrl(query, "relevance");
-        List<Map<String, Object>> qualityVideos = getQualityVideos(url);
-        
+        List<YouTubeVideoItem> qualityVideos = getQualityVideos(url);
+
         if (qualityVideos.isEmpty()) return null;
-        
-        Map<String, Object> selectedVideo = qualityVideos.get(new Random().nextInt(qualityVideos.size()));
+
+        YouTubeVideoItem selectedVideo = qualityVideos.get(new Random().nextInt(qualityVideos.size()));
         return parseVideoData(selectedVideo);
     }
-    
+
     private String buildYouTubeSearchUrl(String query, String order) {
         return String.format(
             "https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&maxResults=%d&order=%s&publishedAfter=%s&videoDuration=%s&videoDefinition=%s&key=%s",
-            query, cinemaConfig.getQuality().getMaxResults(), order, getPublishedAfterDate(), 
+            query, cinemaConfig.getQuality().getMaxResults(), order, getPublishedAfterDate(),
             cinemaConfig.getQuality().getVideoDuration(), cinemaConfig.getQuality().getVideoDefinition(), googleApiKey
         );
     }
-    
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> getQualityVideos(String url) {
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null) return List.of();
-        
-        List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
-        if (items == null || items.isEmpty()) return List.of();
-        
-        return items.stream()
+
+    private List<YouTubeVideoItem> getQualityVideos(String url) {
+        YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
+        if (response == null || response.getItems() == null || response.getItems().isEmpty()) {
+            return List.of();
+        }
+
+        return response.getItems().stream()
             .filter(this::isQualityVideo)
             .map(this::enrichWithVideoStats)
             .filter(Objects::nonNull)
@@ -203,53 +205,55 @@ public class CinemaService {
             .sorted(this::compareVideoQuality)
             .collect(Collectors.toList());
     }
-    
-    private Map<String, Object> selectRandomFromTopVideos(List<Map<String, Object>> qualityVideos) {
+
+    private YouTubeVideoItem selectRandomFromTopVideos(List<YouTubeVideoItem> qualityVideos) {
         int topCount = Math.max(1, qualityVideos.size() / 3);
-        List<Map<String, Object>> topVideos = qualityVideos.subList(0, topCount);
+        List<YouTubeVideoItem> topVideos = qualityVideos.subList(0, topCount);
         return topVideos.get(new Random().nextInt(topVideos.size()));
     }
-    
-    private void logSelectedVideo(Map<String, Object> selectedVideo) {
-        log.info("선택된 영상: {} (조회수: {}, 좋아요: {})", 
-                getVideoTitle(selectedVideo), 
-                getVideoViewCount(selectedVideo),
-                getVideoLikeCount(selectedVideo));
+
+    private void logSelectedVideo(YouTubeVideoItem selectedVideo) {
+        YouTubeStatistics stats = selectedVideo.getStatistics();
+        log.info("선택된 영상: {} (조회수: {}, 좋아요: {})",
+                selectedVideo.getSnippet().getTitle(),
+                stats != null ? stats.getViewCountAsLong() : 0,
+                stats != null ? stats.getLikeCountAsLong() : 0);
     }
 
     // ================================ 영상 품질 검증 ================================
     
-    private boolean isQualityVideo(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        String title = (String) snippet.get("title");
-        String description = (String) snippet.get("description");
-        String channelTitle = (String) snippet.get("channelTitle");
-        
+    private boolean isQualityVideo(YouTubeVideoItem video) {
+        YouTubeSnippet snippet = video.getSnippet();
+        if (snippet == null) return false;
+
+        String title = snippet.getTitle();
+        String description = snippet.getDescription();
+        String channelTitle = snippet.getChannelTitle();
+
         if (title == null || description == null) return false;
-        
+
         String titleLower = title.toLowerCase();
         String descLower = description.toLowerCase();
-        
+
         // 기본 품질 체크
         if (!passesBasicQualityCheck(titleLower, title, description)) {
             return false;
         }
-        
+
         // 음악/상업적/드라마 콘텐츠 필터링
-        if (ContentFilter.isKPopOrMusicContent(titleLower, descLower) || 
+        if (ContentFilter.isKPopOrMusicContent(titleLower, descLower) ||
             ContentFilter.isCommercialContent(titleLower, descLower) ||
             ContentFilter.isDramaOrEntertainmentContent(titleLower, descLower)) {
             log.debug("음악/상업적/드라마 콘텐츠로 제외: {}", title);
             return false;
         }
-        
+
         // 전문 채널 우선순위
         if (channelTitle != null && isProfessionalChannel(channelTitle)) {
             log.info("고품질 채널 발견: {}", channelTitle);
             return true;
         }
-        
+
         // 우주 콘텐츠 검증
         return ContentValidator.hasValidSpaceContent(titleLower, descLower);
     }
@@ -280,98 +284,73 @@ public class CinemaService {
 
     // ================================ 영상 통계 및 품질 평가 ================================
     
-    private Map<String, Object> enrichWithVideoStats(Map<String, Object> video) {
+    private YouTubeVideoItem enrichWithVideoStats(YouTubeVideoItem video) {
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> videoId = (Map<String, Object>) video.get("id");
-            String id = (String) videoId.get("videoId");
-            
-            if (id == null) return null;
-            
+            YouTubeVideoId videoId = video.getId();
+            if (videoId == null || videoId.getVideoId() == null) return null;
+
             String statsUrl = String.format(
                 "https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=%s&key=%s",
-                id, googleApiKey
+                videoId.getVideoId(), googleApiKey
             );
-            
-            @SuppressWarnings("unchecked")
-            Map<String, Object> statsResponse = restTemplate.getForObject(statsUrl, Map.class);
-            
-            if (statsResponse != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> items = (List<Map<String, Object>>) statsResponse.get("items");
-                
-                if (items != null && !items.isEmpty()) {
-                    Map<String, Object> videoStats = items.get(0);
-                    video.put("statistics", videoStats.get("statistics"));
-                    video.put("contentDetails", videoStats.get("contentDetails"));
-                }
+
+            YouTubeVideoListResponse statsResponse = restTemplate.getForObject(statsUrl, YouTubeVideoListResponse.class);
+
+            if (statsResponse != null && statsResponse.getItems() != null && !statsResponse.getItems().isEmpty()) {
+                video.setStatistics(statsResponse.getItems().get(0).getStatistics());
             }
-            
+
             return video;
         } catch (Exception e) {
             log.warn("영상 통계 조회 실패: {}", e.getMessage());
             return video;
         }
     }
-    
-    private boolean hasMinimumEngagement(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
-        
+
+    private boolean hasMinimumEngagement(YouTubeVideoItem video) {
+        YouTubeStatistics statistics = video.getStatistics();
         if (statistics == null) return true;
-        
+
         try {
-            if (!hasMinimumViews(statistics, video)) return false;
-            if (!hasMinimumLikes(statistics, video)) return false;
+            long viewCount = statistics.getViewCountAsLong();
+            if (viewCount > 0 && viewCount < 10000) {
+                log.debug("조회수 부족으로 제외: {} ({}회)", video.getSnippet().getTitle(), viewCount);
+                return false;
+            }
+
+            long likeCount = statistics.getLikeCountAsLong();
+            if (likeCount > 0 && likeCount < 100) {
+                log.debug("좋아요 부족으로 제외: {} ({}개)", video.getSnippet().getTitle(), likeCount);
+                return false;
+            }
+
             return true;
         } catch (NumberFormatException e) {
             return true;
         }
     }
-    
-    private boolean hasMinimumViews(Map<String, Object> statistics, Map<String, Object> video) {
-        String viewCountStr = (String) statistics.get("viewCount");
-        if (viewCountStr != null) {
-            long viewCount = Long.parseLong(viewCountStr);
-            if (viewCount < 10000) {
-                log.debug("조회수 부족으로 제외: {} ({}회)", getVideoTitle(video), viewCount);
-                return false;
-            }
-        }
-        return true;
-    }
-    
-    private boolean hasMinimumLikes(Map<String, Object> statistics, Map<String, Object> video) {
-        String likeCountStr = (String) statistics.get("likeCount");
-        if (likeCountStr != null) {
-            long likeCount = Long.parseLong(likeCountStr);
-            if (likeCount < 100) {
-                log.debug("좋아요 부족으로 제외: {} ({}개)", getVideoTitle(video), likeCount);
-                return false;
-            }
-        }
-        return true;
-    }
-    
-    private int compareVideoQuality(Map<String, Object> v1, Map<String, Object> v2) {
+
+    private int compareVideoQuality(YouTubeVideoItem v1, YouTubeVideoItem v2) {
         // 전문 채널 우선순위
-        boolean v1Professional = isProfessionalChannel(getChannelTitle(v1));
-        boolean v2Professional = isProfessionalChannel(getChannelTitle(v2));
-        
+        boolean v1Professional = isProfessionalChannel(v1.getSnippet().getChannelTitle());
+        boolean v2Professional = isProfessionalChannel(v2.getSnippet().getChannelTitle());
+
         if (v1Professional != v2Professional) {
             return v1Professional ? -1 : 1;
         }
-        
+
         // 조회수 비교
-        long v1Views = getVideoViewCount(v1);
-        long v2Views = getVideoViewCount(v2);
-        
+        long v1Views = v1.getStatistics() != null ? v1.getStatistics().getViewCountAsLong() : 0;
+        long v2Views = v2.getStatistics() != null ? v2.getStatistics().getViewCountAsLong() : 0;
+
         if (v1Views != v2Views) {
             return Long.compare(v2Views, v1Views);
         }
-        
+
         // 좋아요 비교
-        return Long.compare(getVideoLikeCount(v2), getVideoLikeCount(v1));
+        long v1Likes = v1.getStatistics() != null ? v1.getStatistics().getLikeCountAsLong() : 0;
+        long v2Likes = v2.getStatistics() != null ? v2.getStatistics().getLikeCountAsLong() : 0;
+        return Long.compare(v2Likes, v1Likes);
     }
 
     // ================================ 유틸리티 메서드 ================================
@@ -434,17 +413,16 @@ public class CinemaService {
 
     // ================================ 데이터 변환 ================================
     
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseVideoData(Map<String, Object> video) {
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        Map<String, Object> videoId = (Map<String, Object>) video.get("id");
-        
+    private Map<String, Object> parseVideoData(YouTubeVideoItem video) {
+        YouTubeSnippet snippet = video.getSnippet();
+        YouTubeVideoId videoId = video.getId();
+
         return formatVideoData(
-            (String) snippet.get("title"),
-            (String) snippet.get("description"),
-            (String) videoId.get("videoId"),
-            (String) snippet.get("channelTitle"),
-            parsePublishedDateTime((String) snippet.get("publishedAt"))
+            snippet.getTitle(),
+            snippet.getDescription(),
+            videoId.getVideoId(),
+            snippet.getChannelTitle(),
+            parsePublishedDateTime(snippet.getPublishedAt())
         );
     }
     
@@ -537,27 +515,20 @@ public class CinemaService {
                 - 번역문만 반환 (설명 없이)
                 """, englishText);
             
-            Map<String, Object> requestBody = Map.of(
-                "model", "gpt-4o-mini",
-                "messages", List.of(
-                    Map.of("role", "user", "content", prompt)
-                ),
-                "max_tokens", 200,
-                "temperature", 0.3
-            );
-            
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.postForObject(
-                "https://api.openai.com/v1/chat/completions", entity, Map.class);
-            
+            OpenAiChatRequest requestBody = OpenAiChatRequest.builder()
+                .model("gpt-4o-mini")
+                .messages(List.of(OpenAiMessage.user(prompt)))
+                .maxTokens(200)
+                .temperature(0.3)
+                .build();
+
+            HttpEntity<OpenAiChatRequest> entity = new HttpEntity<>(requestBody, headers);
+            OpenAiChatResponse response = restTemplate.postForObject(
+                "https://api.openai.com/v1/chat/completions", entity, OpenAiChatResponse.class);
+
             if (response != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-                if (!choices.isEmpty()) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    String translatedText = (String) message.get("content");
+                String translatedText = response.getFirstContent();
+                if (translatedText != null) {
                     log.info("번역 성공: {} -> {}", englishText, translatedText);
                     return translatedText.trim();
                 }
@@ -613,50 +584,6 @@ public class CinemaService {
 
     // ================================ 헬퍼 메서드 ================================
     
-    private String getVideoTitle(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        return snippet != null ? (String) snippet.get("title") : "";
-    }
-    
-    private String getChannelTitle(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snippet = (Map<String, Object>) video.get("snippet");
-        return snippet != null ? (String) snippet.get("channelTitle") : "";
-    }
-    
-    private long getVideoViewCount(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
-        if (statistics != null) {
-            String viewCountStr = (String) statistics.get("viewCount");
-            if (viewCountStr != null) {
-                try {
-                    return Long.parseLong(viewCountStr);
-                } catch (NumberFormatException e) {
-                    return 0;
-                }
-            }
-        }
-        return 0;
-    }
-    
-    private long getVideoLikeCount(Map<String, Object> video) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> statistics = (Map<String, Object>) video.get("statistics");
-        if (statistics != null) {
-            String likeCountStr = (String) statistics.get("likeCount");
-            if (likeCountStr != null) {
-                try {
-                    return Long.parseLong(likeCountStr);
-                } catch (NumberFormatException e) {
-                    return 0;
-                }
-            }
-        }
-        return 0;
-    }
-    
     private Map<String, Object> createMockVideoData() {
         String[] mockTitles = {
             "우주의 신비: 블랙홀의 비밀",
@@ -697,7 +624,6 @@ public class CinemaService {
 
     // ================================ 공개 API (기존 호환성) ================================
 
-    @SuppressWarnings("unchecked")
     public List<VideoDto> searchSpaceVideos() {
         try {
             String url = String.format(
@@ -707,12 +633,11 @@ public class CinemaService {
 
             log.info("YouTube API 호출: 우주 관련 영상 검색");
 
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
 
-            if (response != null) {
-                var items = (List<Map<String, Object>>) response.get("items");
-                log.info("YouTube 영상 검색 성공: {}개", items != null ? items.size() : 0);
-                return items != null ? convertToVideoDtoList(items) : List.of();
+            if (response != null && response.getItems() != null) {
+                log.info("YouTube 영상 검색 성공: {}개", response.getItems().size());
+                return convertToVideoDtoList(response.getItems());
             }
 
             log.warn("YouTube API 호출 실패");
@@ -724,7 +649,6 @@ public class CinemaService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public List<VideoDto> searchVideosByKeyword(String keyword) {
         try {
             String url = String.format(
@@ -734,11 +658,10 @@ public class CinemaService {
 
             log.info("YouTube API 호출: {} 관련 영상 검색", keyword);
 
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            YouTubeSearchResponse response = restTemplate.getForObject(url, YouTubeSearchResponse.class);
 
-            if (response != null) {
-                var items = (List<Map<String, Object>>) response.get("items");
-                return items != null ? convertToVideoDtoList(items) : List.of();
+            if (response != null && response.getItems() != null) {
+                return convertToVideoDtoList(response.getItems());
             }
 
             return List.of();
@@ -768,64 +691,37 @@ public class CinemaService {
         return allVideos;
     }
 
-    /**
-     * YouTube API 응답을 VideoDto 리스트로 변환
-     */
-    @SuppressWarnings("unchecked")
-    private List<VideoDto> convertToVideoDtoList(List<Map<String, Object>> items) {
+    private List<VideoDto> convertToVideoDtoList(List<YouTubeVideoItem> items) {
         return items.stream()
             .map(this::convertToVideoDto)
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     }
 
-    /**
-     * 단일 YouTube API 응답 아이템을 VideoDto로 변환
-     */
-    @SuppressWarnings("unchecked")
-    private VideoDto convertToVideoDto(Map<String, Object> item) {
+    private VideoDto convertToVideoDto(YouTubeVideoItem item) {
         try {
-            Map<String, Object> id = (Map<String, Object>) item.get("id");
-            Map<String, Object> snippet = (Map<String, Object>) item.get("snippet");
+            YouTubeVideoId id = item.getId();
+            YouTubeSnippet snippet = item.getSnippet();
 
             if (id == null || snippet == null) return null;
 
-            String videoId = (String) id.get("videoId");
+            String videoId = id.getVideoId();
             if (videoId == null) return null;
 
-            String thumbnailUrl = extractThumbnailUrl(snippet);
+            String thumbnailUrl = snippet.getThumbnails() != null ? snippet.getThumbnails().getBestUrl() : null;
 
             return VideoDto.builder()
                 .videoId(videoId)
-                .title((String) snippet.get("title"))
-                .description((String) snippet.get("description"))
+                .title(snippet.getTitle())
+                .description(snippet.getDescription())
                 .thumbnailUrl(thumbnailUrl)
-                .publishedAt((String) snippet.get("publishedAt"))
-                .channelTitle((String) snippet.get("channelTitle"))
+                .publishedAt(snippet.getPublishedAt())
+                .channelTitle(snippet.getChannelTitle())
                 .build();
         } catch (Exception e) {
             log.warn("VideoDto 변환 실패: {}", e.getMessage());
             return null;
         }
-    }
-
-    /**
-     * 썸네일 URL 추출 (고화질 우선)
-     */
-    @SuppressWarnings("unchecked")
-    private String extractThumbnailUrl(Map<String, Object> snippet) {
-        Map<String, Object> thumbnails = (Map<String, Object>) snippet.get("thumbnails");
-        if (thumbnails == null) return null;
-
-        // 고화질 썸네일 우선순위: high > medium > default
-        String[] priorities = {"high", "medium", "default"};
-        for (String priority : priorities) {
-            Map<String, Object> thumbnail = (Map<String, Object>) thumbnails.get(priority);
-            if (thumbnail != null && thumbnail.get("url") != null) {
-                return (String) thumbnail.get("url");
-            }
-        }
-        return null;
     }
     
     private String getRandomSpaceQuery() {

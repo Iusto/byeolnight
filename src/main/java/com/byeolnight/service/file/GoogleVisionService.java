@@ -1,15 +1,15 @@
 package com.byeolnight.service.file;
 
-import lombok.RequiredArgsConstructor;
+import com.byeolnight.dto.external.vision.VisionRequest;
+import com.byeolnight.dto.external.vision.VisionResponse;
+import com.byeolnight.dto.external.vision.VisionResponse.SafeSearchAnnotation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -38,27 +38,18 @@ public class GoogleVisionService {
             log.info("🔍 Google Vision API로 이미지 검열 시작 (크기: {}KB)", imageBytes.length / 1024);
             
             String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-            
-            Map<String, Object> request = Map.of(
-                "requests", new Object[]{
-                    Map.of(
-                        "image", Map.of("content", base64Image),
-                        "features", new Object[]{
-                            Map.of("type", "SAFE_SEARCH_DETECTION", "maxResults", 1)
-                        }
-                    )
-                }
-            );
-            
+
+            VisionRequest request = VisionRequest.safeSearchDetection(base64Image);
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             String url = VISION_API_URL + "?key=" + googleApiKey;
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
-            
+            HttpEntity<VisionRequest> entity = new HttpEntity<>(request, headers);
+
             log.info("🌐 Google Vision API 호출: {}", VISION_API_URL);
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
-            
+            ResponseEntity<VisionResponse> response = restTemplate.postForEntity(url, entity, VisionResponse.class);
+
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 log.info("✅ Google Vision API 응답 수신 성공");
                 return analyzeSafeSearchResult(response.getBody());
@@ -83,30 +74,23 @@ public class GoogleVisionService {
         }
     }
     
-    @SuppressWarnings("unchecked")
-    private boolean analyzeSafeSearchResult(Map<String, Object> response) {
+    private boolean analyzeSafeSearchResult(VisionResponse response) {
         try {
-            var responses = (java.util.List<Map<String, Object>>) response.get("responses");
-            if (responses == null || responses.isEmpty()) {
-                log.warn("Google Vision API 응답이 비어있습니다.");
-                return false;
-            }
-            
-            var safeSearchAnnotation = (Map<String, String>) responses.get(0).get("safeSearchAnnotation");
-            if (safeSearchAnnotation == null) {
+            SafeSearchAnnotation annotation = response.getFirstSafeSearchAnnotation();
+            if (annotation == null) {
                 log.warn("SafeSearch 주석이 없습니다.");
                 return false;
             }
-            
-            String adult = safeSearchAnnotation.getOrDefault("adult", "UNKNOWN");
-            String violence = safeSearchAnnotation.getOrDefault("violence", "UNKNOWN");
-            String racy = safeSearchAnnotation.getOrDefault("racy", "UNKNOWN");
-            String spoof = safeSearchAnnotation.getOrDefault("spoof", "UNKNOWN");
-            String medical = safeSearchAnnotation.getOrDefault("medical", "UNKNOWN");
-            
-            boolean isSafe = isLevelSafe(adult) && isLevelSafe(violence) && 
+
+            String adult = annotation.getAdultOrDefault();
+            String violence = annotation.getViolenceOrDefault();
+            String racy = annotation.getRacyOrDefault();
+            String spoof = annotation.getSpoofOrDefault();
+            String medical = annotation.getMedicalOrDefault();
+
+            boolean isSafe = isLevelSafe(adult) && isLevelSafe(violence) &&
                            isLevelSafe(racy) && isLevelSafe(spoof) && isLevelSafe(medical);
-            
+
             log.info("🔍 이미지 검열 상세 결과:");
             log.info("  - Adult: {} ({})", adult, isLevelSafe(adult) ? "✅" : "❌");
             log.info("  - Violence: {} ({})", violence, isLevelSafe(violence) ? "✅" : "❌");
@@ -114,9 +98,9 @@ public class GoogleVisionService {
             log.info("  - Spoof: {} ({})", spoof, isLevelSafe(spoof) ? "✅" : "❌");
             log.info("  - Medical: {} ({})", medical, isLevelSafe(medical) ? "✅" : "❌");
             log.info("  - 최종 결과: {} {}", isSafe ? "안전" : "부적절", isSafe ? "✅" : "🚫");
-            
+
             return isSafe;
-            
+
         } catch (Exception e) {
             log.error("Safe Search 결과 분석 중 오류", e);
             return false;

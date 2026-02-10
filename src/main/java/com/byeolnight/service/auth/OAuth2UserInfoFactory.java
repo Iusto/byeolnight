@@ -55,20 +55,17 @@ public class OAuth2UserInfoFactory {
 
         @Override
         public String getEmail() {
-            Map<String, Object> account = (Map<String, Object>) attributes.get("kakao_account");
-            return account != null ? (String) account.get("email") : null;
+            return getNestedString(attributes, "kakao_account", "email");
         }
 
         @Override
         public String getName() {
-            Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
-            return properties != null ? (String) properties.get("nickname") : null;
+            return getNestedString(attributes, "properties", "nickname");
         }
 
         @Override
         public String getImageUrl() {
-            Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
-            return properties != null ? (String) properties.get("profile_image") : null;
+            return getNestedString(attributes, "properties", "profile_image");
         }
     }
 
@@ -81,20 +78,27 @@ public class OAuth2UserInfoFactory {
 
         @Override
         public String getEmail() {
-            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
-            return response != null ? (String) response.get("email") : null;
+            return getNestedString(attributes, "response", "email");
         }
 
         @Override
         public String getName() {
-            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
-            return response != null ? (String) response.get("name") : null;
+            return getNestedString(attributes, "response", "name");
         }
 
         @Override
         public String getImageUrl() {
-            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
-            return response != null ? (String) response.get("profile_image") : null;
+            return getNestedString(attributes, "response", "profile_image");
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String getNestedString(Map<String, Object> attributes, String outerKey, String innerKey) {
+        Object nested = attributes.get(outerKey);
+        if (nested instanceof Map<?, ?> nestedMap) {
+            Object value = ((Map<String, Object>) nestedMap).get(innerKey);
+            return value instanceof String s ? s : null;
+        }
+        return null;
     }
 }

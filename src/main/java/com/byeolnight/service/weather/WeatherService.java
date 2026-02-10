@@ -1,5 +1,6 @@
 package com.byeolnight.service.weather;
 
+import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
 import com.byeolnight.infrastructure.util.CoordinateUtils;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -67,18 +67,16 @@ public class WeatherService {
      * 외부 API에서 실시간 날씨 데이터 조회
      */
     private WeatherResponse fetchWeatherDataFromAPI(double latitude, double longitude) {
-        Map<String, Object> apiResponse = callWeatherAPI(latitude, longitude);
-        WeatherData weatherData = extractWeatherData(apiResponse);
-        String locationName = extractLocationName(apiResponse);
-        String quality = calculateObservationQuality(weatherData.cloudCover(), weatherData.visibility());
+        OpenWeatherResponse apiResponse = callWeatherAPI(latitude, longitude);
+        String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
         String moonPhase = getMoonPhaseIcon();
 
         return WeatherResponse.builder()
-                .location(locationName)
+                .location(apiResponse.getLocationName())
                 .latitude(latitude)
                 .longitude(longitude)
-                .cloudCover(weatherData.cloudCover())
-                .visibility(weatherData.visibility())
+                .cloudCover(apiResponse.getCloudCover())
+                .visibility(apiResponse.getVisibilityKm())
                 .moonPhase(moonPhase)
                 .observationQuality(quality)
                 .recommendation(quality)
@@ -86,52 +84,18 @@ public class WeatherService {
                 .build();
     }
 
-    /**
-     * OpenWeatherMap API 호출
-     */
-    private Map<String, Object> callWeatherAPI(double latitude, double longitude) {
+    private OpenWeatherResponse callWeatherAPI(double latitude, double longitude) {
         String url = String.format(
                 java.util.Locale.US,
                 "%s/weather?lat=%f&lon=%f&appid=%s&units=metric",
                 apiUrl, latitude, longitude, apiKey
         );
 
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        OpenWeatherResponse response = restTemplate.getForObject(url, OpenWeatherResponse.class);
         if (response == null) {
             throw new RuntimeException("API 응답이 null입니다");
         }
         return response;
-    }
-
-    /**
-     * API 응답에서 날씨 데이터 추출
-     */
-    @SuppressWarnings("unchecked")
-    private WeatherData extractWeatherData(Map<String, Object> apiData) {
-        Map<String, Object> clouds = (Map<String, Object>) apiData.get("clouds");
-
-        double cloudCover = 50.0;
-        if (clouds != null) {
-            Object all = clouds.get("all");
-            if (all instanceof Number n) cloudCover = n.doubleValue();
-        }
-
-        double visibilityKm = 10.0;
-        Object vis = apiData.get("visibility");
-        if (vis instanceof Number n) visibilityKm = n.doubleValue() / 1000.0;
-
-        return new WeatherData(cloudCover, visibilityKm);
-    }
-
-    /**
-     * API 응답에서 지역명 추출
-     */
-    private String extractLocationName(Map<String, Object> apiData) {
-        Object name = apiData.get("name");
-        if (name instanceof String locationName && !locationName.isEmpty()) {
-            return locationName;
-        }
-        return "알 수 없음";
     }
 
     /**
@@ -200,6 +164,4 @@ public class WeatherService {
                 .build();
     }
 
-    private record WeatherData(double cloudCover, double visibility) {
-    }
 }
