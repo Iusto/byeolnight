@@ -73,7 +73,7 @@ public class ChatService {
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getMessagesBefore(String roomId, String beforeId, int limit) {
         Long beforeIdLong = Long.parseLong(beforeId);
-        return chatMessageRepository.findByRoomIdAndIdLessThanOrderByTimestampDesc(roomId, beforeIdLong,
+        List<ChatMessageDto> messages = chatMessageRepository.findByRoomIdAndIdLessThanOrderByTimestampDesc(roomId, beforeIdLong,
                 org.springframework.data.domain.PageRequest.of(0, limit))
                 .stream()
                 .map(entity -> ChatMessageDto.builder()
@@ -87,6 +87,8 @@ public class ChatService {
                         .isBlinded(entity.getIsBlinded())
                         .build())
                 .collect(java.util.stream.Collectors.toList());
+        java.util.Collections.reverse(messages);
+        return messages;
     }
     
     @Transactional
