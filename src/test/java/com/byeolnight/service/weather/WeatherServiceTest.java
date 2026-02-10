@@ -1,6 +1,8 @@
 package com.byeolnight.service.weather;
 
+import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +39,7 @@ class WeatherServiceTest {
 
     private static final String TEST_API_KEY = "test-api-key";
     private static final String TEST_API_URL = "https://api.openweathermap.org/data/2.5";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
@@ -77,7 +80,7 @@ class WeatherServiceTest {
             assertThat(result.getLocation()).isEqualTo("서울");
             assertThat(result.getCloudCover()).isEqualTo(30.0);
             verify(localCacheService, times(1)).get(anyString());
-            verify(restTemplate, never()).getForObject(anyString(), eq(Map.class));
+            verify(restTemplate, never()).getForObject(anyString(), eq(OpenWeatherResponse.class));
         }
 
         @Test
@@ -90,14 +93,10 @@ class WeatherServiceTest {
             double expectedLat = 37.57;
             double expectedLon = 126.98;
 
-            Map<String, Object> apiResponse = Map.of(
-                    "name", "Seoul",
-                    "clouds", Map.of("all", 20),
-                    "visibility", 10000
-            );
+            OpenWeatherResponse apiResponse = createMockApiResponse("Seoul", 20, 10000);
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(Map.class))).willReturn(apiResponse);
+            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
 
             // when
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -122,14 +121,10 @@ class WeatherServiceTest {
             double expectedLat = 35.18;
             double expectedLon = 129.08;
 
-            Map<String, Object> apiResponse = Map.of(
-                    "name", "Busan",
-                    "clouds", Map.of("all", 40),
-                    "visibility", 8000
-            );
+            OpenWeatherResponse apiResponse = createMockApiResponse("Busan", 40, 8000);
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(Map.class))).willReturn(apiResponse);
+            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
 
             // when
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -153,14 +148,10 @@ class WeatherServiceTest {
             double expectedLat = 33.50;
             double expectedLon = 126.53;
 
-            Map<String, Object> apiResponse = Map.of(
-                    "name", "Jeju",
-                    "clouds", Map.of("all", 60),
-                    "visibility", 5000
-            );
+            OpenWeatherResponse apiResponse = createMockApiResponse("Jeju", 60, 5000);
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(Map.class))).willReturn(apiResponse);
+            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
 
             // when
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -182,7 +173,7 @@ class WeatherServiceTest {
             double longitude = 126.9780;
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(Map.class)))
+            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
                     .willThrow(new RuntimeException("API 호출 실패"));
 
             // when
@@ -208,18 +199,14 @@ class WeatherServiceTest {
             String[] locations = {"Seoul", "Busan", "Jeju", "Daejeon"};
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(Map.class))).willAnswer(invocation -> {
+            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willAnswer(invocation -> {
                 String url = invocation.getArgument(0);
                 for (int i = 0; i < locations.length; i++) {
                     if (url.contains(String.format("lat=%f", expectedLats[i]))) {
-                        return Map.of(
-                                "name", locations[i],
-                                "clouds", Map.of("all", 20 + (i * 10)),
-                                "visibility", 10000
-                        );
+                        return createMockApiResponse(locations[i], 20 + (i * 10), 10000);
                     }
                 }
-                return Map.of("name", "Unknown", "clouds", Map.of("all", 50), "visibility", 10000);
+                return createMockApiResponse("Unknown", 50, 10000);
             });
 
             // when & then
@@ -266,5 +253,14 @@ class WeatherServiceTest {
             assertThat(result2).isNotNull();
             verify(localCacheService, atLeastOnce()).get(anyString());
         }
+    }
+
+    private static OpenWeatherResponse createMockApiResponse(String name, int cloudCover, int visibility) {
+        Map<String, Object> data = Map.of(
+                "name", name,
+                "clouds", Map.of("all", cloudCover),
+                "visibility", visibility
+        );
+        return objectMapper.convertValue(data, OpenWeatherResponse.class);
     }
 }

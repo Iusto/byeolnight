@@ -11,9 +11,9 @@ import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
-    // 특정 방의 최근 메시지 조회
-    @Query("SELECT c FROM ChatMessage c WHERE c.roomId = :roomId ORDER BY c.id ASC")
-    List<ChatMessage> findRecentByRoomIdOrderByIdAsc(@Param("roomId") String roomId, Pageable pageable);
+    // 특정 방의 최근 메시지 조회 (최신 N개를 가져온 뒤, 서비스에서 시간순 정렬)
+    @Query("SELECT c FROM ChatMessage c WHERE c.roomId = :roomId ORDER BY c.id DESC")
+    List<ChatMessage> findRecentByRoomIdOrderByIdDesc(@Param("roomId") String roomId, Pageable pageable);
 
     // 블라인드된 메시지 수 조회
     long countByIsBlindedTrue();

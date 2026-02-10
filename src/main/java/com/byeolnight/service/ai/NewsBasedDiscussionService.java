@@ -1,5 +1,8 @@
 package com.byeolnight.service.ai;
 
+import com.byeolnight.dto.external.openai.OpenAiChatRequest;
+import com.byeolnight.dto.external.openai.OpenAiChatResponse;
+import com.byeolnight.dto.external.openai.OpenAiMessage;
 import com.byeolnight.entity.News;
 import com.byeolnight.repository.NewsRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +14,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -99,29 +101,25 @@ public class NewsBasedDiscussionService {
                 내용: [내용]
                 """, news.getTitle(), news.getDescription());
             
-            Map<String, Object> requestBody = Map.of(
-                "model", "gpt-4o-mini",
-                "messages", List.of(
-                    Map.of("role", "user", "content", prompt)
-                ),
-                "max_tokens", 300,
-                "temperature", 0.7
-            );
-            
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<Map> response = restTemplate.exchange(
+            OpenAiChatRequest requestBody = OpenAiChatRequest.builder()
+                .model("gpt-4o-mini")
+                .messages(List.of(OpenAiMessage.user(prompt)))
+                .maxTokens(300)
+                .temperature(0.7)
+                .build();
+
+            HttpEntity<OpenAiChatRequest> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<OpenAiChatResponse> response = restTemplate.exchange(
                 "https://api.openai.com/v1/chat/completions",
                 HttpMethod.POST,
                 entity,
-                Map.class
+                OpenAiChatResponse.class
             );
-            
+
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                Map<String, Object> responseBody = response.getBody();
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
-                if (!choices.isEmpty()) {
-                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    return (String) message.get("content");
+                String content = response.getBody().getFirstContent();
+                if (content != null) {
+                    return content;
                 }
             }
         } catch (Exception e) {
