@@ -3,9 +3,11 @@ package com.byeolnight.infrastructure.security;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 인증 요청 Rate Limiting 서비스
@@ -24,6 +26,35 @@ public class AuthRateLimitService {
     private static final int DAY_MINUTES = 1440;
     
     private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String CHECK_RATE_LIMIT_SCRIPT = """
+        local key = KEYS[1]
+        local blockedKey = KEYS[2]
+        local limit = tonumber(ARGV[1])
+        local windowSeconds = tonumber(ARGV[2])
+        local blockSeconds = tonumber(ARGV[3])
+
+        if redis.call('EXISTS', blockedKey) == 1 then
+            return -1
+        end
+
+        local current = tonumber(redis.call('GET', key) or '0')
+
+        if current >= limit then
+            if blockSeconds > 0 then
+                redis.call('SET', blockedKey, '1', 'EX', blockSeconds)
+            end
+            return -1
+        end
+
+        if current == 0 then
+            redis.call('SET', key, '1', 'EX', windowSeconds)
+        else
+            redis.call('INCR', key)
+        end
+
+        return current + 1
+        """;
     
     public boolean isEmailAuthAllowed(String email, String clientIp) {
         return checkEmailLimit(email) && checkIpAuthLimit(clientIp);
@@ -42,23 +73,17 @@ public class AuthRateLimitService {
     private boolean checkRateLimit(String key, int limit, int windowMinutes, int blockMinutes) {
         try {
             String blockedKey = key + ":blocked";
-            if (Boolean.TRUE.equals(redisTemplate.hasKey(blockedKey))) {
+            List<String> keys = Arrays.asList(key, blockedKey);
+
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(CHECK_RATE_LIMIT_SCRIPT, Long.class);
+            Long result = redisTemplate.execute(script, keys,
+                    String.valueOf(limit),
+                    String.valueOf(windowMinutes * 60L),
+                    String.valueOf(blockMinutes * 60L));
+
+            if (result != null && result == -1L) {
+                log.warn("Rate limit exceeded for key: {}", key);
                 return false;
-            }
-            
-            String countStr = redisTemplate.opsForValue().get(key);
-            int currentCount = countStr != null ? Integer.parseInt(countStr) : 0;
-            
-            if (currentCount >= limit) {
-                redisTemplate.opsForValue().set(blockedKey, "1", Duration.ofMinutes(blockMinutes));
-                log.warn("Rate limit exceeded for key: {}, count: {}", key, currentCount);
-                return false;
-            }
-            
-            if (currentCount == 0) {
-                redisTemplate.opsForValue().set(key, "1", Duration.ofMinutes(windowMinutes));
-            } else {
-                redisTemplate.opsForValue().increment(key);
             }
             return true;
         } catch (Exception e) {

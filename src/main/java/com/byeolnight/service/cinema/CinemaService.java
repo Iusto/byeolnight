@@ -1,5 +1,6 @@
 package com.byeolnight.service.cinema;
 
+import com.byeolnight.dto.cinema.CinemaVideoData;
 import com.byeolnight.dto.external.openai.OpenAiChatRequest;
 import com.byeolnight.dto.external.openai.OpenAiChatResponse;
 import com.byeolnight.dto.external.openai.OpenAiMessage;
@@ -104,43 +105,40 @@ public class CinemaService {
     @Transactional
     public void collectAndSaveSpaceVideo(User user) {
         log.info("우주 영상 수집 시작");
-        
-        Map<String, Object> videoData = fetchSpaceVideo();
+
+        CinemaVideoData videoData = fetchSpaceVideo();
         if (videoData == null) {
             log.warn("영상 데이터를 가져올 수 없습니다");
             return;
         }
-        
-        String videoId = (String) videoData.get("videoId");
-        String title = (String) videoData.get("title");
-        
-        if (isDuplicateVideo(videoId, title)) {
-            log.info("중복 영상으로 스킵: {}", title);
+
+        if (isDuplicateVideo(videoData.videoId(), videoData.title())) {
+            log.info("중복 영상으로 스킵: {}", videoData.title());
             return;
         }
-        
+
         Cinema cinema = convertToCinema(videoData);
         cinemaRepository.save(cinema);
-        
+
         Post post = convertToPost(videoData, user);
         Post savedPost = postRepository.save(post);
-        
+
         log.info("새 별빛시네마 게시글 저장: {}", savedPost.getTitle());
     }
 
     // ================================ YouTube 검색 ================================
     
-    private Map<String, Object> fetchSpaceVideo() {
+    private CinemaVideoData fetchSpaceVideo() {
         if (googleApiKey == null || googleApiKey.isEmpty()) {
             return createMockVideoData();
         }
 
         String[][] keywordSets = {KeywordConstants.KOREAN_KEYWORDS, KeywordConstants.ENGLISH_KEYWORDS};
-        
+
         for (String[] keywords : keywordSets) {
             for (int attempt = 0; attempt < cinemaConfig.getCollection().getRetryCount(); attempt++) {
                 try {
-                    Map<String, Object> video = searchYouTube(keywords);
+                    CinemaVideoData video = searchYouTube(keywords);
                     if (video != null && !isSimilarToExistingVideos(video)) {
                         return video;
                     }
@@ -150,11 +148,11 @@ public class CinemaService {
                 }
             }
         }
-        
+
         return createMockVideoData();
     }
     
-    private Map<String, Object> searchYouTube(String[] keywords) {
+    private CinemaVideoData searchYouTube(String[] keywords) {
         String query = getRandomKeywords(keywords, cinemaConfig.getCollection().getKeywordCount());
 
         String url = buildYouTubeSearchUrl(query, "viewCount");
@@ -173,7 +171,7 @@ public class CinemaService {
         return parseVideoData(selectedVideo);
     }
 
-    private Map<String, Object> searchYouTubeByRelevance(String query) {
+    private CinemaVideoData searchYouTubeByRelevance(String query) {
         String url = buildYouTubeSearchUrl(query, "relevance");
         List<YouTubeVideoItem> qualityVideos = getQualityVideos(url);
 
@@ -376,12 +374,12 @@ public class CinemaService {
         return cinemaRepository.existsByVideoId(videoId) || cinemaRepository.existsByTitle(title);
     }
     
-    private boolean isSimilarToExistingVideos(Map<String, Object> videoData) {
+    private boolean isSimilarToExistingVideos(CinemaVideoData videoData) {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(cinemaConfig.getCollection().getSimilarityCheckDays());
         List<Cinema> recentVideos = cinemaRepository.findByCreatedAtAfter(cutoffDate);
-        
-        String newTitle = (String) videoData.get("title");
-        
+
+        String newTitle = videoData.title();
+
         for (Cinema cinema : recentVideos) {
             double similarity = calculateTitleSimilarity(newTitle, cinema.getTitle());
             if (similarity > cinemaConfig.getCollection().getSimilarityThreshold()) {
@@ -413,7 +411,7 @@ public class CinemaService {
 
     // ================================ 데이터 변환 ================================
     
-    private Map<String, Object> parseVideoData(YouTubeVideoItem video) {
+    private CinemaVideoData parseVideoData(YouTubeVideoItem video) {
         YouTubeSnippet snippet = video.getSnippet();
         YouTubeVideoId videoId = video.getId();
 
@@ -425,46 +423,44 @@ public class CinemaService {
             parsePublishedDateTime(snippet.getPublishedAt())
         );
     }
-    
-    private Cinema convertToCinema(Map<String, Object> videoData) {
+
+    private Cinema convertToCinema(CinemaVideoData videoData) {
         return Cinema.builder()
-                .title((String) videoData.get("title"))
-                .description((String) videoData.get("description"))
-                .videoId((String) videoData.get("videoId"))
-                .videoUrl((String) videoData.get("videoUrl"))
-                .channelTitle((String) videoData.get("channelTitle"))
-                .publishedAt((LocalDateTime) videoData.get("publishedAt"))
-                .summary((String) videoData.get("summary"))
-                .hashtags((String) videoData.get("hashtags"))
+                .title(videoData.title())
+                .description(videoData.description())
+                .videoId(videoData.videoId())
+                .videoUrl(videoData.videoUrl())
+                .channelTitle(videoData.channelTitle())
+                .publishedAt(videoData.publishedAt())
+                .summary(videoData.summary())
+                .hashtags(videoData.hashtags())
                 .build();
     }
-    
-    private Post convertToPost(Map<String, Object> videoData, User writer) {
+
+    private Post convertToPost(CinemaVideoData videoData, User writer) {
         return Post.builder()
-                .title((String) videoData.get("title"))
-                .content((String) videoData.get("content"))
+                .title(videoData.title())
+                .content(videoData.content())
                 .category(Post.Category.STARLIGHT_CINEMA)
                 .writer(writer)
                 .build();
     }
-    
-    private Map<String, Object> formatVideoData(String title, String description, String videoId, String channelTitle, LocalDateTime publishedAt) {
-        Map<String, Object> data = new HashMap<>();
-        
+
+    private CinemaVideoData formatVideoData(String title, String description, String videoId, String channelTitle, LocalDateTime publishedAt) {
         String translatedTitle = translateIfNeeded(title);
         String translatedDescription = translateIfNeeded(description);
-        
-        data.put("title", translatedTitle);
-        data.put("description", translatedDescription);
-        data.put("videoId", videoId);
-        data.put("videoUrl", "https://www.youtube.com/watch?v=" + videoId);
-        data.put("channelTitle", channelTitle);
-        data.put("publishedAt", publishedAt);
-        data.put("summary", generateSummary(translatedTitle));
-        data.put("hashtags", generateHashtags(translatedTitle));
-        data.put("content", formatVideoContent(translatedTitle, translatedDescription, videoId, channelTitle, publishedAt));
-        
-        return data;
+
+        return new CinemaVideoData(
+            translatedTitle,
+            translatedDescription,
+            videoId,
+            "https://www.youtube.com/watch?v=" + videoId,
+            channelTitle,
+            publishedAt,
+            generateSummary(translatedTitle),
+            generateHashtags(translatedTitle),
+            formatVideoContent(translatedTitle, translatedDescription, videoId, channelTitle, publishedAt)
+        );
     }
 
     // ================================ 번역 및 콘텐츠 생성 ================================
@@ -584,13 +580,13 @@ public class CinemaService {
 
     // ================================ 헬퍼 메서드 ================================
     
-    private Map<String, Object> createMockVideoData() {
+    private CinemaVideoData createMockVideoData() {
         String[] mockTitles = {
             "우주의 신비: 블랙홀의 비밀",
             "은하수 너머의 세계",
             "화성 탐사의 최신 소식"
         };
-        
+
         String[] mockDescriptions = {
             "우주의 가장 신비로운 천체인 블랙홀에 대해 알아봅시다.",
             "우리 은하 너머에 존재하는 놀라운 우주의 모습을 탐험해보세요.",
@@ -599,7 +595,7 @@ public class CinemaService {
 
         Random random = new Random();
         int index = random.nextInt(mockTitles.length);
-        
+
         return formatVideoData(
             mockTitles[index],
             mockDescriptions[index],

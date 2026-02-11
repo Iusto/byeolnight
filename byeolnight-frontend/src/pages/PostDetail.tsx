@@ -558,41 +558,6 @@ export default function PostDetail() {
           
 
         
-        {/* S3 이미지 표시 */}
-        {post.images && post.images.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3 text-purple-300 flex items-center gap-2">
-              🖼️ 첨부된 이미지
-              <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
-                ✓ 안전한 이미지만 표시됨
-              </span>
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {post.images.map((image) => (
-                <div key={image.id} className="relative group">
-                  <img
-                    src={image.url}
-                    alt={image.originalName}
-                    className="w-full h-auto rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-                    onClick={() => window.open(image.url, '_blank')}
-                    onLoad={() => console.log('이미지 로드 성공:', image.url)}
-                    onError={(e) => {
-                      console.error('이미지 로드 실패:', image.url);
-                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPuydtOuvuOyngCDroZzrk5zsl5Ag7Iuk7YyoPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIj7wn5OMPC90ZXh0Pgo8L3N2Zz4K';
-                      e.currentTarget.onerror = null;
-                    }}
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    {image.originalName}
-                  </div>
-                  <div className="absolute top-2 left-2 bg-green-600/80 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                    ✓ 안전한 이미지
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
         
         {/* 크롤링 이미지 표시 (외부 URL) */}
         {(() => {
