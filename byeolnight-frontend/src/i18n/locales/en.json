@@ -438,6 +438,10 @@
 
     "iss_current_location": "ISS Real-time Location",
     "iss_position_desc": "International Space Station current position",
+    "iss_realtime_tracking": "ISS Real-time Tracking",
+    "iss_duration_label": "Duration",
+    "iss_unit_minutes": "min",
+    "iss_unit_degrees": "°",
 
     "observation_quality": {
       "EXCELLENT": "Excellent",

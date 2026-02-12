@@ -94,7 +94,8 @@ private IssPassData calculateNextIssPass(double latitude, double longitude) {
 | **AtomicReference** | Java의 원자적 참조 변수. 여러 스레드가 동시에 TLE를 읽고 쓸 때 동기화 없이 안전하게 접근할 수 있다 |
 | **ConcurrentHashMap** | Java의 스레드 안전 해시맵. 패스 예측 결과를 저장하는 인메모리 캐시로 사용 중 |
 | **1도 그리드 캐싱** | 위도/경도를 1도 단위로 반올림하여 같은 격자 안의 요청을 하나의 캐시 키로 합치는 전략. 한국 전체가 약 25개 키로 커버된다 |
-| **TTL (Time To Live)** | 캐시 데이터의 유효 기간. TLE 캐시는 12시간, 패스 예측 캐시는 2시간 |
+| **volatile** | Java의 변수 가시성 보장 키워드. 한 스레드가 변경한 값을 다른 스레드가 즉시 읽을 수 있도록 한다. 위치 캐시처럼 단일 값을 여러 스레드가 공유할 때 사용 |
+| **TTL (Time To Live)** | 캐시 데이터의 유효 기간. TLE 캐시는 12시간, 패스 예측 캐시는 2시간, 위치 캐시는 30초 |
 
 ---
 
@@ -158,18 +159,20 @@ CelesTrak (TLE 제공)
 └────────┬─────────┘
          │ TLE 객체
          ▼
-┌──────────────────┐     ┌─────────────────┐
-│   IssService     │────▶│  wheretheiss.at  │  현재 고도/속도 (null safety 적용)
-│                  │     └─────────────────┘
-│  ┌────────────┐  │
-│  │ PassPredict│  │  SGP4 궤도 전파 + 패스 계산
-│  │ or (lib)   │  │
-│  └────────────┘  │
-│                  │
-│  ┌────────────┐  │
-│  │ Pass Cache │  │  ConcurrentHashMap (1도 그리드, TTL 2시간)
-│  └────────────┘  │
-└──────────────────┘
+┌──────────────────────┐     ┌─────────────────┐
+│   IssService         │────▶│  wheretheiss.at  │  현재 고도/속도
+│                      │     └─────────────────┘
+│  ┌────────────────┐  │
+│  │ Location Cache │  │  volatile 필드 (TTL 30초)
+│  └────────────────┘  │
+│  ┌────────────────┐  │
+│  │ PassPredictor  │  │  SGP4 궤도 전파 + 패스 계산
+│  │ (predict4java) │  │
+│  └────────────────┘  │
+│  ┌────────────────┐  │
+│  │ Pass Cache     │  │  ConcurrentHashMap (1도 그리드, TTL 2시간)
+│  └────────────────┘  │
+└──────────────────────┘
          │
          ▼
     API 응답 (IssObservationResponse)
@@ -320,22 +323,50 @@ private String elevationToQuality(double maxElevation) {
 
 ## 캐싱 전략
 
-### TLE 캐시
+ISS 기능은 3단계 로컬 캐싱을 적용하여 외부 API 호출을 최소화한다.
+
+```
+요청 흐름과 캐시 히트 포인트:
+
+사용자 요청 ──→ fetchIssCurrentLocation()
+                    │
+                    ├─ [HIT] volatile 캐시 (30초 이내) → 즉시 반환
+                    └─ [MISS] wheretheiss.at API 호출 → 캐시 갱신
+
+              ──→ calculateNextIssPass()
+                    │
+                    ├─ [HIT] ConcurrentHashMap (2시간 이내, 같은 그리드) → 즉시 반환
+                    └─ [MISS] SGP4 계산
+                                │
+                                ├─ TleFetchService.getIssTle()
+                                │     ├─ [HIT] AtomicReference (12시간 이내) → 즉시 반환
+                                │     └─ [MISS] CelesTrak API 호출 → 캐시 갱신
+                                │
+                                └─ predict4java SGP4 계산 → 캐시 저장
+```
+
+### 1. TLE 캐시
 
 | 항목 | 값 |
 |------|-----|
-| 저장소 | AtomicReference (인메모리) |
+| 저장소 | `AtomicReference<TLE>` (인메모리) |
 | 정상 갱신 주기 | 12시간 |
 | 실패 시 재시도 | 5분 간격 |
 | 데이터 소스 | CelesTrak (무료, 무제한) |
 | 크기 | TLE 1건 (ISS만) |
 | 스케줄러 | `fixedRate=5분`, 조건부 갱신 (TLE 유효 시 스킵) |
 
-### 패스 예측 캐시
+설계 결정:
+
+- **TTL 12시간**: CelesTrak은 ISS TLE를 하루 수회 업데이트한다. TLE는 에포크(측정 시점)에서 멀어질수록 예측 오차가 커지는데, ISS 저궤도(400km) 기준 12시간 이내면 위치 오차가 수 km 이내로 패스 예측 정확도에 실질적 영향이 없다. 더 자주 갱신해도 CelesTrak 데이터 자체가 수시간 단위로 바뀌므로 실익이 없다
+- **AtomicReference**: TLE는 서버 전체에서 1건만 유지하므로 Map 구조가 필요 없다. `AtomicReference`로 lock-free 읽기/쓰기를 보장하면서 오버헤드를 최소화한다
+- **적응형 재시도 (5분)**: 서버 시작 시 CelesTrak이 다운되어 있을 수 있다. 12시간을 기다리는 대신 5분마다 재시도하여 빠르게 복구한다. TLE가 확보되면 자동으로 12시간 주기로 전환된다
+
+### 2. 패스 예측 캐시
 
 | 항목 | 값 |
 |------|-----|
-| 저장소 | ConcurrentHashMap |
+| 저장소 | `ConcurrentHashMap<String, CachedPassData>` |
 | 캐시 키 | `iss:{위도(1도단위)}:{경도(1도단위)}` |
 | TTL | 2시간 |
 | 한국 내 캐시 키 수 | 약 25개 (위도 33-38, 경도 126-130) |
@@ -349,7 +380,59 @@ private String elevationToQuality(double maxElevation) {
   제주 (33.50, 126.53) → iss:34:127
 ```
 
-ISS 궤도 주기가 약 90분이므로, 2시간 TTL이면 최소 1회의 패스 변경을 반영한다.
+설계 결정:
+
+- **TTL 2시간**: ISS 궤도 주기가 약 90분이므로, 2시간이면 최소 1회의 새로운 패스가 발생한다. 너무 짧으면 SGP4 계산이 빈번해지고, 너무 길면 이미 지나간 패스를 보여줄 수 있다. 2시간은 "다음 패스"가 변경되는 시점을 적절히 반영하는 균형점이다
+- **1도 그리드**: 위도 1도는 약 111km, 경도 1도는 한국 위도 기준 약 88km에 해당한다. 같은 그리드 안의 두 지점에서 ISS 패스 시각 차이는 수 초~수십 초 이내로, 사용자가 인지할 수 없는 수준이다. 더 세밀한 그리드(0.1도)로 하면 캐시 키가 2,500개로 늘어나 캐시 히트율이 급락한다
+- **ConcurrentHashMap**: 위치별로 키가 여러 개 필요하고, 서블릿 스레드에서 동시 접근이 발생하므로 스레드 안전한 Map이 필요하다. 읽기 위주 워크로드에서 `ConcurrentHashMap`이 `synchronized Map`보다 성능이 좋다
+
+### 3. ISS 위치 캐시
+
+| 항목 | 값 |
+|------|-----|
+| 저장소 | `volatile IssLocationData` + `volatile long` (인메모리) |
+| TTL | 30초 |
+| 데이터 소스 | wheretheiss.at API |
+| 크기 | 1건 (고도, 속도, 위도, 경도) |
+
+ISS 현재 위치(고도/속도)를 반환하는 `fetchIssCurrentLocation()`에 30초 TTL 로컬 캐싱을 적용한다.
+
+```java
+private volatile IssLocationData cachedLocation;
+private volatile long locationCachedAt;
+private static final long LOCATION_CACHE_TTL_MS = TimeUnit.SECONDS.toMillis(30);
+
+private IssLocationData fetchIssCurrentLocation() {
+    // 캐시 확인 (30초 TTL)
+    IssLocationData cached = cachedLocation;
+    if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
+        return cached;  // 30초 이내 → 외부 호출 없이 반환
+    }
+
+    try {
+        // wheretheiss.at API 호출
+        // ... 성공 시 캐시 갱신
+        cachedLocation = location;
+        locationCachedAt = System.currentTimeMillis();
+        return location;
+    } catch (Exception e) {
+        return cached;  // 실패 시 이전 캐시 반환 (없으면 null)
+    }
+}
+```
+
+설계 결정:
+
+- **TTL 30초**: ISS는 시속 27,600km로 이동하므로 30초 동안 약 230km 이동한다. 고도/속도 표시 용도로는 30초 오차가 무시할 수 있는 수준이다
+- **volatile 필드**: 패스 예측 캐시(`ConcurrentHashMap`)와 달리 키가 1개뿐이므로 `volatile` 필드로 충분하다. `ConcurrentHashMap`보다 메모리/오버헤드가 적다
+- **Graceful degradation**: API 실패 시 `null` 대신 이전 캐시 데이터를 반환하여, 일시적 네트워크 오류에도 사용자에게 데이터를 보여줄 수 있다
+- **프론트엔드 연동**: 프론트엔드가 5분(`refetchInterval: 5 * 60 * 1000`)마다 자동 갱신하므로, 동시 접속 사용자가 많아도 30초당 최대 1회만 외부 API를 호출한다
+
+```
+캐시 효과 (동시 접속 100명, 5분 내):
+  Before: 100회 외부 API 호출
+  After:  최대 10회 외부 API 호출 (5분 ÷ 30초 = 10)
+```
 
 ---
 
@@ -381,28 +464,39 @@ private IssPassData createFallbackPassData() {
 
 ## 외부 API Null Safety
 
-wheretheiss.at API에서 ISS 현재 위치를 가져올 때, 응답 필드가 누락될 수 있다. 모든 필수 필드를 개별적으로 검증하여 NPE를 방지한다.
+wheretheiss.at API에서 ISS 현재 위치를 가져올 때, 응답 필드가 누락되거나 API 호출이 실패할 수 있다. 3단계 방어 전략을 적용한다.
+
+```
+방어 단계:
+
+1단계: 캐시 히트 (30초 TTL) → 외부 호출 자체를 하지 않음
+2단계: API 응답 필드 검증 → 필드 누락 시 이전 캐시 데이터 반환
+3단계: API 호출 실패 → 이전 캐시 데이터 반환 (없으면 null → 폴백 메시지)
+```
 
 ```java
 private IssLocationData fetchIssCurrentLocation() {
-    // ...
-    JsonNode issData = objectMapper.readTree(response.body());
-    JsonNode altNode = issData.get("altitude");
-    JsonNode velNode = issData.get("velocity");
-    JsonNode latNode = issData.get("latitude");
-    JsonNode lonNode = issData.get("longitude");
-
-    // 필수 필드 중 하나라도 없으면 null 반환 → 폴백 메시지 사용
-    if (altNode == null || velNode == null || latNode == null || lonNode == null) {
-        log.warn("ISS API 응답에 필수 필드 누락: alt={}, vel={}, lat={}, lon={}",
-                altNode, velNode, latNode, lonNode);
-        return null;
+    // 1단계: 캐시 확인
+    IssLocationData cached = cachedLocation;
+    if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
+        return cached;
     }
-    // ...
+
+    try {
+        // ...
+        // 2단계: 응답 필드 검증
+        if (altNode == null || velNode == null || latNode == null || lonNode == null) {
+            return cached;  // 이전 캐시 반환 (null일 수 있음)
+        }
+        // ...
+    } catch (Exception e) {
+        // 3단계: 호출 실패 시 이전 캐시 반환
+        return cached;
+    }
 }
 ```
 
-`fetchIssCurrentLocation()`이 null을 반환하면 `getIssObservationOpportunity()`에서 기본 상태 메시지("ISS는 현재 지구 상공 약 400km에서...")를 사용한다. SGP4 패스 계산은 이 API와 독립적이므로 영향 없이 정상 작동한다.
+`fetchIssCurrentLocation()`이 최종적으로 null을 반환하면(캐시도 없는 초기 상태) `getIssObservationOpportunity()`에서 기본 상태 메시지("ISS는 현재 지구 상공 약 400km에서...")를 사용한다. SGP4 패스 계산은 이 API와 독립적이므로 영향 없이 정상 작동한다.
 
 ---
 

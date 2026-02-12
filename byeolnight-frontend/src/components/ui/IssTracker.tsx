@@ -7,30 +7,36 @@ interface IssTrackerProps {
   longitude: number;
 }
 
-const directionMap: Record<string, { arrow: string; label: string }> = {
-  NORTH:     { arrow: '↑', label: '북쪽' },
-  NORTHEAST: { arrow: '↗', label: '북동쪽' },
-  EAST:      { arrow: '→', label: '동쪽' },
-  SOUTHEAST: { arrow: '↘', label: '남동쪽' },
-  SOUTH:     { arrow: '↓', label: '남쪽' },
-  SOUTHWEST: { arrow: '↙', label: '남서쪽' },
-  WEST:      { arrow: '←', label: '서쪽' },
-  NORTHWEST: { arrow: '↖', label: '북서쪽' },
+const directionArrows: Record<string, string> = {
+  NORTH: '↑', NORTHEAST: '↗', EAST: '→', SOUTHEAST: '↘',
+  SOUTH: '↓', SOUTHWEST: '↙', WEST: '←', NORTHWEST: '↖',
 };
 
-const qualityConfig: Record<string, { color: string; bg: string; border: string; glow: string; label: string }> = {
-  EXCELLENT: { color: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', glow: 'shadow-emerald-500/20', label: '최적' },
-  GOOD:      { color: 'text-sky-300',     bg: 'bg-sky-500/15',     border: 'border-sky-500/30',     glow: 'shadow-sky-500/20',     label: '양호' },
-  FAIR:      { color: 'text-amber-300',   bg: 'bg-amber-500/15',   border: 'border-amber-500/30',   glow: 'shadow-amber-500/20',   label: '보통' },
-  POOR:      { color: 'text-red-400',     bg: 'bg-red-500/15',     border: 'border-red-500/30',     glow: 'shadow-red-500/20',     label: '어려움' },
+const directionI18nKeys: Record<string, string> = {
+  NORTH: 'weather.compass_north', NORTHEAST: 'weather.compass_northeast',
+  EAST: 'weather.compass_east', SOUTHEAST: 'weather.compass_southeast',
+  SOUTH: 'weather.compass_south', SOUTHWEST: 'weather.compass_southwest',
+  WEST: 'weather.compass_west', NORTHWEST: 'weather.compass_northwest',
+};
+
+const qualityStyles: Record<string, { color: string; bg: string; border: string; glow: string }> = {
+  EXCELLENT: { color: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', glow: 'shadow-emerald-500/20' },
+  GOOD:      { color: 'text-sky-300',     bg: 'bg-sky-500/15',     border: 'border-sky-500/30',     glow: 'shadow-sky-500/20' },
+  FAIR:      { color: 'text-amber-300',   bg: 'bg-amber-500/15',   border: 'border-amber-500/30',   glow: 'shadow-amber-500/20' },
+  POOR:      { color: 'text-red-400',     bg: 'bg-red-500/15',     border: 'border-red-500/30',     glow: 'shadow-red-500/20' },
+};
+
+const qualityI18nKeys: Record<string, string> = {
+  EXCELLENT: 'weather.visibility_excellent', GOOD: 'weather.visibility_good',
+  FAIR: 'weather.visibility_fair', POOR: 'weather.visibility_poor',
 };
 
 const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
   const { t } = useTranslation();
   const { data: iss, isLoading, error } = useIssObservation(latitude, longitude);
 
-  const quality = iss?.visibilityQuality ? qualityConfig[iss.visibilityQuality] : null;
-  const direction = iss?.nextPassDirection ? directionMap[iss.nextPassDirection] : null;
+  const qualityStyle = iss?.visibilityQuality ? qualityStyles[iss.visibilityQuality] : null;
+  const arrow = iss?.nextPassDirection ? directionArrows[iss.nextPassDirection] : null;
 
   // 로딩 상태
   if (isLoading) {
@@ -89,13 +95,13 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
               <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-tight">ISS 실시간 추적</h3>
+              <h3 className="text-base font-bold text-white leading-tight">{t('weather.iss_realtime_tracking')}</h3>
               <p className="text-[11px] text-cyan-400/50 leading-tight">International Space Station</p>
             </div>
           </div>
-          {quality && (
-            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${quality.bg} ${quality.color} ${quality.border} border`}>
-              {quality.label}
+          {qualityStyle && iss?.visibilityQuality && (
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${qualityStyle.bg} ${qualityStyle.color} ${qualityStyle.border} border`}>
+              {t(qualityI18nKeys[iss.visibilityQuality])}
             </span>
           )}
         </div>
@@ -111,7 +117,7 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
         <div className="relative px-5 pb-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg p-3 text-center">
-              <div className="text-[11px] text-gray-500 mb-1 tracking-wide uppercase">고도</div>
+              <div className="text-[11px] text-gray-500 mb-1 tracking-wide uppercase">{t('weather.iss_altitude')}</div>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-xl font-bold text-cyan-300">{Math.round(iss.currentAltitudeKm).toLocaleString()}</span>
                 <span className="text-[11px] text-gray-500">km</span>
@@ -119,7 +125,7 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
             </div>
             {iss.currentVelocityKmh && (
               <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg p-3 text-center">
-                <div className="text-[11px] text-gray-500 mb-1 tracking-wide uppercase">속도</div>
+                <div className="text-[11px] text-gray-500 mb-1 tracking-wide uppercase">{t('weather.iss_velocity')}</div>
                 <div className="flex items-baseline justify-center gap-1">
                   <span className="text-xl font-bold text-cyan-300">{Math.round(iss.currentVelocityKmh).toLocaleString()}</span>
                   <span className="text-[11px] text-gray-500">km/h</span>
@@ -136,7 +142,7 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
           {/* 카드 헤더 */}
           <div className="px-4 py-2.5 bg-cyan-500/[0.08] border-b border-cyan-500/10 flex items-center gap-2">
             <span className="text-sm">🔭</span>
-            <span className="text-[13px] font-semibold text-cyan-200">다음 관측 기회</span>
+            <span className="text-[13px] font-semibold text-cyan-200">{t('weather.iss_next_observation')}</span>
           </div>
 
           {/* 카드 본문 */}
@@ -156,11 +162,11 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
             <div className="grid grid-cols-3 gap-2">
               {/* 방향 */}
               <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">방향</div>
-                {direction ? (
+                <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">{t('weather.iss_direction')}</div>
+                {arrow && iss.nextPassDirection ? (
                   <>
-                    <div className="text-lg leading-none mb-0.5">{direction.arrow}</div>
-                    <div className="text-[11px] font-medium text-gray-300">{direction.label}</div>
+                    <div className="text-lg leading-none mb-0.5">{arrow}</div>
+                    <div className="text-[11px] font-medium text-gray-300">{t(directionI18nKeys[iss.nextPassDirection])}</div>
                   </>
                 ) : (
                   <div className="text-xs text-gray-400">{iss.nextPassDirection}</div>
@@ -169,18 +175,18 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
 
               {/* 관측 시간 */}
               <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">지속</div>
+                <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">{t('weather.iss_duration_label')}</div>
                 <div className="text-lg font-bold text-white leading-none mb-0.5">{iss.estimatedDuration?.replace('분', '')}</div>
-                <div className="text-[11px] text-gray-400">분</div>
+                <div className="text-[11px] text-gray-400">{t('weather.iss_unit_minutes')}</div>
               </div>
 
               {/* 최대 고도각 */}
               <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">고도각</div>
+                <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">{t('weather.iss_elevation')}</div>
                 {iss.maxElevation != null ? (
                   <>
                     <div className="text-lg font-bold text-white leading-none mb-0.5">{iss.maxElevation.toFixed(0)}</div>
-                    <div className="text-[11px] text-gray-400">도</div>
+                    <div className="text-[11px] text-gray-400">{t('weather.iss_unit_degrees')}</div>
                   </>
                 ) : (
                   <div className="text-xs text-gray-500">-</div>

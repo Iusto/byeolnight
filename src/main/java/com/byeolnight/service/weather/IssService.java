@@ -40,6 +40,11 @@ public class IssService {
     private final Map<String, CachedPassData> passCache = new ConcurrentHashMap<>();
     private static final long PASS_CACHE_TTL_MS = TimeUnit.HOURS.toMillis(2);
 
+    // ISS 현재 위치 캐시 (TTL 30초)
+    private volatile IssLocationData cachedLocation;
+    private volatile long locationCachedAt;
+    private static final long LOCATION_CACHE_TTL_MS = TimeUnit.SECONDS.toMillis(30);
+
     public IssService(TleFetchService tleFetchService) {
         this.tleFetchService = tleFetchService;
     }
@@ -69,6 +74,13 @@ public class IssService {
     }
 
     private IssLocationData fetchIssCurrentLocation() {
+        // 캐시 확인 (30초 TTL)
+        IssLocationData cached = cachedLocation;
+        if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
+            log.debug("ISS 위치 캐시 HIT");
+            return cached;
+        }
+
         try {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ISS_LOCATION_URL))
@@ -87,20 +99,25 @@ public class IssService {
                 if (altNode == null || velNode == null || latNode == null || lonNode == null) {
                     log.warn("ISS API 응답에 필수 필드 누락: alt={}, vel={}, lat={}, lon={}",
                             altNode, velNode, latNode, lonNode);
-                    return null;
+                    return cached; // 캐시된 이전 데이터 반환 (없으면 null)
                 }
 
-                return IssLocationData.builder()
+                IssLocationData location = IssLocationData.builder()
                     .altitude(altNode.asDouble())
                     .velocity(velNode.asDouble())
                     .latitude(latNode.asDouble())
                     .longitude(lonNode.asDouble())
                     .build();
+
+                // 캐시 갱신
+                cachedLocation = location;
+                locationCachedAt = System.currentTimeMillis();
+                return location;
             }
         } catch (Exception e) {
             log.warn("ISS 위치 조회 실패: {}", e.getMessage());
         }
-        return null;
+        return cached; // 실패 시 캐시된 이전 데이터 반환 (없으면 null)
     }
 
     /**
