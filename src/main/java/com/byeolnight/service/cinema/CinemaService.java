@@ -1,5 +1,6 @@
 package com.byeolnight.service.cinema;
 
+import com.byeolnight.dto.admin.CinemaStatusDto;
 import com.byeolnight.dto.cinema.CinemaVideoData;
 import com.byeolnight.dto.external.openai.OpenAiChatRequest;
 import com.byeolnight.dto.external.openai.OpenAiChatResponse;
@@ -734,12 +735,12 @@ public class CinemaService {
         return query;
     }
     
-    public com.byeolnight.dto.admin.CinemaStatusDto getCinemaStatus() {
+    public CinemaStatusDto getCinemaStatus() {
         try {
             long totalCinemaPosts = postRepository.countByCategory(Post.Category.STARLIGHT_CINEMA);
             Optional<Post> latestPost = postRepository.findFirstByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA);
             
-            com.byeolnight.dto.admin.CinemaStatusDto.CinemaStatusDtoBuilder builder = com.byeolnight.dto.admin.CinemaStatusDto.builder()
+            CinemaStatusDto.CinemaStatusDtoBuilder builder = CinemaStatusDto.builder()
                 .totalCinemaPosts(totalCinemaPosts)
                 .latestPostExists(latestPost.isPresent());
             

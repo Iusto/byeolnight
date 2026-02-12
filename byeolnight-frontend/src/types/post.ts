@@ -4,6 +4,7 @@ export interface Post {
   content: string;
   category: string;
   writer: string;
+  writerId?: number;
   writerIcon?: string;
   blinded: boolean;
   blindType?: string;

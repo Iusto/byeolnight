@@ -5,20 +5,8 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { PostForm } from '../components/post';
 import { getErrorMessage } from '../types/api';
-
-// 이미지 URL 정규식
-const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
-
-// 이미지 URL 검증 함수
-const isValidImageUrl = (url: string): boolean => {
-  return IMAGE_URL_REGEX.test(url);
-};
-
-interface FileDto {
-  originalName: string;
-  s3Key: string;
-  url: string;
-}
+import { isValidImageUrl } from '../utils/imageUtils';
+import type { FileDto } from '../types/file';
 
 export default function PostEdit() {
   const { id } = useParams();
@@ -54,8 +42,8 @@ export default function PostEdit() {
           return;
         }
         
-        // 작성자 또는 관리자만 수정 가능
-        if (post.writer !== user?.nickname && user?.role !== 'ADMIN') {
+        // 작성자 또는 관리자만 수정 가능 (ID 기반 비교)
+        if (post.writerId !== user?.id && user?.role !== 'ADMIN') {
           setError('수정 권한이 없습니다.');
           setLoading(false);
           return;
@@ -97,10 +85,7 @@ export default function PostEdit() {
           images: allImages
         });
         
-        console.log('로드된 이미지:', allImages);
-        
       } catch (err) {
-        console.error('게시글 로드 실패:', err);
         setError('게시글을 불러오지 못했습니다.');
       } finally {
         setLoading(false);
@@ -138,15 +123,13 @@ export default function PostEdit() {
       // 실제 사용된 이미지만 필터링
       const usedImages = data.images.filter(img => usedImageUrls.has(img.url));
       
-      const response = await axios.put(`/member/posts/${id}`, {
+      await axios.put(`/member/posts/${id}`, {
         title: data.title,
         content: data.content,
         category: data.category,
         images: usedImages
       });
-      
-      console.log('게시글 수정 완료:', response.data);
-      
+
       // 사용자 정보 새로고침 (포인트 업데이트)
       await refreshUserInfo();
       

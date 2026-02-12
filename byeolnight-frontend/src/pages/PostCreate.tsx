@@ -5,12 +5,7 @@ import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { PostForm } from '../components/post';
 import { getErrorMessage } from '../types/api';
-
-interface FileDto {
-  originalName: string;
-  s3Key: string;
-  url: string;
-}
+import type { FileDto } from '../types/file';
 
 export default function PostCreate() {
   const navigate = useNavigate();
@@ -24,7 +19,7 @@ export default function PostCreate() {
   
   // URL 파라미터에서 고정 카테고리 설정
   const fixedCategory = searchParams.get('fixedCategory');
-  const isFixedCategory = fixedCategory && ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE', 'NOTICE', 'NEWS', 'STARLIGHT_CINEMA'].includes(fixedCategory);
+  const isFixedCategory = !!(fixedCategory && ['DISCUSSION', 'IMAGE', 'REVIEW', 'FREE', 'NOTICE', 'NEWS', 'STARLIGHT_CINEMA'].includes(fixedCategory));
   const handleSubmit = async (data: {
     title: string;
     content: string;
@@ -40,28 +35,13 @@ export default function PostCreate() {
         return;
       }
       
-      const response = await axios.post('/member/posts', {
+      await axios.post('/member/posts', {
         title: data.title,
         content: data.content,
         category: data.category,
         images: data.images,
         originTopicId: originTopicId ? parseInt(originTopicId) : null
       });
-      
-      console.log('게시글 작성 완료:', response.data);
-      
-      // 공지글인 경우 알림 생성 확인
-      if (data.category === 'NOTICE') {
-        console.log('공지글 작성 완료 - 알림 생성 대기 중...');
-        setTimeout(async () => {
-          try {
-            const notificationResponse = await axios.get('/member/notifications/unread/count');
-            console.log('공지글 작성 후 알림 개수:', notificationResponse.data);
-          } catch (err) {
-            console.error('알림 확인 실패:', err);
-          }
-        }, 3000);
-      }
       
       // 사용자 정보 새로고침 (포인트 업데이트)
       await refreshUserInfo();

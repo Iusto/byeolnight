@@ -8,13 +8,7 @@ import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../../styles/tui-editor.css';
 import { uploadImage } from '../../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
-
-// 이미지 URL 정규식
-const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i;
-
-const isValidImageUrl = (url: string): boolean => {
-  return IMAGE_URL_REGEX.test(url);
-};
+import { isValidImageUrl } from '../../utils/imageUtils';
 
 export const isHandlingImageUpload = { current: false };
 
@@ -55,8 +49,6 @@ const TuiEditor = forwardRef(({
     if (instance && value !== instance.getMarkdown()) {
       instance.setMarkdown(value);
     }
-    // 전역 에디터 참조 설정 (커스텀 버튼에서 사용)
-    (window as any).currentEditor = instance;
   }, [value]);
 
   // 마크다운 변경 시 외부 콜백 호출

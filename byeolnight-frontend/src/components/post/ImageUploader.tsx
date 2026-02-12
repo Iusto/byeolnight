@@ -1,21 +1,9 @@
-﻿import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { uploadImage } from '../../lib/s3Upload';
 import { isHandlingImageUpload } from './TuiEditor';
 import { getErrorMessage } from '../../types/api';
-
-// 이미지 URL 정규식
-const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i;
-
-// 이미지 URL 검증 함수
-const isValidImageUrl = (url: string): boolean => {
-  return IMAGE_URL_REGEX.test(url);
-};
-
-interface FileDto {
-  originalName: string;
-  s3Key: string;
-  url: string;
-}
+import { isValidImageUrl } from '../../utils/imageUtils';
+import type { FileDto } from '../../types/file';
 
 interface ValidationAlert {
   message: string;
@@ -53,35 +41,27 @@ export default function ImageUploader({
   const uploadClipboardImage = async (file: File) => {
     setIsImageValidating(true);
     try {
-      console.log('클립보드 이미지 업로드 및 검열 시작...');
-      
-      // 파일 크기 체크 (10MB 제한으로 변경)
+      // 파일 크기 체크 (10MB 제한)
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('이미지 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
       }
       
       // 통합된 s3Upload 유틸리티 사용 (검열 과정 포함)
       const imageData = await uploadImage(file);
-      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
-      
+
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
-      
+
       // 검열 통과한 이미지만 목록에 추가 (중복 방지)
       setUploadedImages(prev => {
         const exists = prev.some(img => img.url === imageData.url);
-        if (!exists) {
-          console.log('검열 통과된 클립보드 이미지 추가:', imageData.originalName);
-          return [...prev, imageData];
-        }
-        return prev;
+        return exists ? prev : [...prev, imageData];
       });
       
       return imageData;
     } catch (error: unknown) {
       const errorMsg = getErrorMessage(error);
-      console.error('클립보드 이미지 업로드 오류:', errorMsg);
 
       let displayMsg = errorMsg || '이미지 검열 실패: 부적절한 이미지가 감지되었습니다.';
       let alertType: 'error' | 'warning' = 'error';
@@ -103,8 +83,11 @@ export default function ImageUploader({
     }
   };
 
+  // ref로 최신 handlePaste를 유지하여 stale closure 방지
+  const handlePasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
+
   // 클립보드 붙여넣기 이벤트 핸들러
-  const handlePaste = async (event: ClipboardEvent) => {
+  const handlePaste = useCallback(async (event: ClipboardEvent) => {
     // TUI Editor가 자체적으로 클립보드 이벤트를 처리하도록 허용
     if (document.activeElement?.closest('.toastui-editor-ww-container')) {
       return;
@@ -168,7 +151,6 @@ export default function ImageUploader({
             }, 3000);
           } catch (error: unknown) {
             const errorMsg = getErrorMessage(error);
-            console.error('클립보드 이미지 업로드 실패:', errorMsg);
 
             // 파일 입력 초기화 (동일한 파일 재선택 가능하도록)
             if (fileInputRef.current) {
@@ -193,11 +175,15 @@ export default function ImageUploader({
           break;
         }
       }
-    } catch (error) {
-      console.error('클립보드 처리 중 오류:', error);
+    } catch {
       setIsImageValidating(false);
     }
-  };
+  }, [onImageInsert, setIsImageValidating, setUploadedImages, setValidationAlert]);
+
+  // ref를 최신 핸들러로 갱신
+  useEffect(() => {
+    handlePasteRef.current = handlePaste;
+  }, [handlePaste]);
 
   const handleImageUpload = () => {
     if (fileInputRef.current) {
@@ -211,9 +197,7 @@ export default function ImageUploader({
     if (!file) {
       return;
     }
-    
-    console.log('파일 선택됨:', file.name, file.type);
-      
+
     // 파일 형식 검사
     const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'];
     if (!validImageTypes.includes(file.type)) {
@@ -229,17 +213,13 @@ export default function ImageUploader({
       
     setIsImageValidating(true);
     try {
-      console.log('이미지 업로드 및 검열 시작...');
-      
-      // 파일 크기 체크 (10MB 제한으로 변경)
+      // 파일 크기 체크 (10MB 제한)
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('이미지 크기는 10MB를 초과할 수 없습니다. 이미지를 압축하거나 크기를 줄여주세요.');
       }
       
-      // 통합된 s3Upload 유틸리티 사용 (검열 과정 포함)
       const imageData = await uploadImage(file);
-      console.log('이미지 업로드 완료:', imageData?.url ? '성공' : '실패');
-      
+
       if (!imageData || !imageData.url) {
         throw new Error('이미지 URL을 받지 못했습니다.');
       }
@@ -254,7 +234,6 @@ export default function ImageUploader({
         const exists = prev.some(img => img.url === imageData.url);
         return exists ? prev : [...prev, imageData];
       });
-      console.log('검열 통과된 이미지 목록 업데이트');
 
       // 이미지를 에디터에 삽입
       onImageInsert(imageData, imageData.originalName || '검열 통과된 이미지');
@@ -289,23 +268,24 @@ export default function ImageUploader({
 
 
 
-  // 컴포넌트 마운트 시 이벤트 리스너 등록
+  // 컴포넌트 마운트 시 이벤트 리스너 등록 (ref를 통해 항상 최신 핸들러 호출)
   useEffect(() => {
-    document.addEventListener('paste', handlePaste);
-    
+    const pasteListener = (e: ClipboardEvent) => handlePasteRef.current(e);
+    document.addEventListener('paste', pasteListener);
+
     // TUI Editor에서 발생하는 이미지 검열 이벤트 수신
     const handleImageValidating = (e: CustomEvent) => {
       const { validating } = e.detail;
       setIsImageValidating(validating);
     };
-    
+
     document.addEventListener('imageValidating', handleImageValidating as EventListener);
-    
+
     return () => {
-      document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('paste', pasteListener);
       document.removeEventListener('imageValidating', handleImageValidating as EventListener);
     };
-  }, []);
+  }, [setIsImageValidating]);
 
   return (
     <div className="space-y-4">

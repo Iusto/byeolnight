@@ -21,7 +21,7 @@ public class PostRequestDto {
     private String title;
 
     @NotBlank
-    @Size(max = 50000, message = "내용은 50,000자를 초과할 수 없습니다.")
+    @Size(max = 10000, message = "내용은 10,000자를 초과할 수 없습니다.")
     private String content;
 
     @NotNull
