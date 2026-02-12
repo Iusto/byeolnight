@@ -44,6 +44,61 @@ private IssPassData calculateNextIssPass(double latitude, double longitude) {
 
 ---
 
+## 용어 정리
+
+### 데이터 소스 & 표준
+
+| 용어 | 설명 |
+|------|------|
+| **NORAD** | 북미항공우주방위사령부. 지구 궤도의 인공위성과 우주 파편을 추적·관리하는 기관. 각 위성에 고유 카탈로그 번호를 부여한다 (ISS = 25544) |
+| **CelesTrak** | NORAD가 추적하는 위성의 궤도 데이터(TLE)를 무료로 배포하는 웹사이트. API 호출 제한이 없어 소규모 서비스에서 쓰기 적합하다 |
+| **TLE (Two-Line Element Set)** | 인공위성의 궤도를 2줄의 숫자로 압축한 표준 형식. 이름 1줄 + 데이터 2줄로 구성되며, SGP4 알고리즘의 입력값으로 사용된다. 대기 항력 등으로 시간이 지나면 정확도가 떨어지기 때문에 주기적 갱신이 필요하다 |
+
+### TLE 내부 필드
+
+| 용어 | 설명 |
+|------|------|
+| **에포크 (Epoch)** | TLE가 측정된 기준 시각. 이 시점에서 멀어질수록 예측 오차가 커진다. 12시간마다 갱신하는 이유 |
+| **궤도 경사각 (Inclination)** | 위성 궤도면이 적도면과 이루는 각도. ISS는 51.6°로, 남위 51.6°~북위 51.6° 사이를 지나간다. 한국(북위 33~38°)에서 관측 가능한 이유 |
+| **이심률 (Eccentricity)** | 궤도가 원에 얼마나 가까운지를 나타내는 값. 0이면 완전한 원, 1에 가까우면 길쭉한 타원. ISS는 약 0.0007로 거의 원궤도 |
+| **승교점 적경 (RAAN)** | 위성이 남반구에서 북반구로 올라가며 적도를 지나는 지점의 방향. 궤도면의 회전 위치를 결정한다 |
+| **평균 운동 (Mean Motion)** | 위성이 하루에 지구를 도는 횟수. ISS는 약 15.5 rev/day → 90분에 1바퀴 |
+| **BSTAR 항력계수** | 대기 항력에 의한 궤도 감쇠율. ISS는 저궤도(400km)라 대기 저항을 받아 서서히 고도가 낮아지며, 이 값으로 보정한다 |
+
+### 궤도 예측 알고리즘
+
+| 용어 | 설명 |
+|------|------|
+| **SGP4 (Simplified General Perturbations 4)** | NORAD가 개발한 궤도 전파 알고리즘. TLE를 입력받아 임의 시각의 위성 위치를 계산한다. 지구 중력장의 비균일성, 대기 항력, 달/태양 중력 등을 반영한다. 알고리즘 자체는 공개 표준이고, 이를 구현한 오픈소스가 여러 언어로 존재한다 |
+| **SDP4 (Simplified Deep-space Perturbations 4)** | SGP4의 심우주 버전. 궤도 주기가 225분 이상인 고궤도 위성에 사용된다. ISS는 저궤도(90분)이므로 SGP4를 사용 |
+| **predict4java** | SGP4/SDP4를 Java로 구현한 오픈소스 라이브러리 (`com.github.davidmoten:predict4java:1.3.1`). TLE 파싱, 궤도 전파, 관측자 기준 패스 예측까지 제공한다 |
+| **궤도 전파 (Propagation)** | TLE의 에포크 시점 궤도를 미래(또는 과거) 시점으로 수학적으로 "외삽"하여 위성 위치를 예측하는 과정 |
+| **ECI 좌표 (Earth-Centered Inertial)** | 지구 중심 관성 좌표계. SGP4가 위성 위치를 출력하는 좌표계로, 이후 관측자 기준 수평 좌표(방위각/고도각)로 변환된다 |
+
+### 패스 예측 관련
+
+| 용어 | 설명 |
+|------|------|
+| **패스 (Pass)** | 위성이 관측자의 지평선 위로 올라왔다가 내려가는 한 번의 통과. ISS 기준 보통 3~10분 정도 지속된다 |
+| **AOS (Acquisition of Signal)** | 패스 시작 시점. 위성이 관측자의 지평선 위로 올라오는 순간. 코드에서 `passTime.getStartTime()` |
+| **LOS (Loss of Signal)** | 패스 종료 시점. 위성이 지평선 아래로 내려가는 순간. 코드에서 `passTime.getEndTime()` |
+| **방위각 (Azimuth)** | 북쪽(0°)을 기준으로 시계 방향으로 잰 수평 방향 각도. 동쪽=90°, 남쪽=180°, 서쪽=270°. 코드에서 이를 8방향(N/NE/E/SE/S/SW/W/NW)으로 변환한다 |
+| **고도각 (Elevation)** | 지평선(0°)부터 천정(90°)까지의 수직 각도. 최대 고도각이 높을수록 밝고 오래 보인다. 60° 이상이면 거의 머리 위를 지나가는 것 |
+| **최대 고도각 (Max Elevation)** | 한 패스 동안 위성이 도달하는 가장 높은 고도각. 관측 품질(EXCELLENT/GOOD/FAIR/POOR)을 결정하는 핵심 지표 |
+| **GroundStationPosition** | predict4java에서 관측자 위치(위도, 경도, 해발고도)를 표현하는 클래스. 코드에서 해발고도는 0으로 고정 |
+
+### 캐싱 관련
+
+| 용어 | 설명 |
+|------|------|
+| **AtomicReference** | Java의 원자적 참조 변수. 여러 스레드가 동시에 TLE를 읽고 쓸 때 동기화 없이 안전하게 접근할 수 있다 |
+| **ConcurrentHashMap** | Java의 스레드 안전 해시맵. 패스 예측 결과를 저장하는 인메모리 캐시로 사용 중 |
+| **1도 그리드 캐싱** | 위도/경도를 1도 단위로 반올림하여 같은 격자 안의 요청을 하나의 캐시 키로 합치는 전략. 한국 전체가 약 25개 키로 커버된다 |
+| **volatile** | Java의 변수 가시성 보장 키워드. 한 스레드가 변경한 값을 다른 스레드가 즉시 읽을 수 있도록 한다. 위치 캐시처럼 단일 값을 여러 스레드가 공유할 때 사용 |
+| **TTL (Time To Live)** | 캐시 데이터의 유효 기간. TLE 캐시는 12시간, 패스 예측 캐시는 2시간, 위치 캐시는 30초 |
+
+---
+
 ## 구현 방식: TLE + SGP4
 
 ### TLE (Two-Line Element Set)
@@ -104,18 +159,20 @@ CelesTrak (TLE 제공)
 └────────┬─────────┘
          │ TLE 객체
          ▼
-┌──────────────────┐     ┌─────────────────┐
-│   IssService     │────▶│  wheretheiss.at  │  현재 고도/속도 (null safety 적용)
-│                  │     └─────────────────┘
-│  ┌────────────┐  │
-│  │ PassPredict│  │  SGP4 궤도 전파 + 패스 계산
-│  │ or (lib)   │  │
-│  └────────────┘  │
-│                  │
-│  ┌────────────┐  │
-│  │ Pass Cache │  │  ConcurrentHashMap (1도 그리드, TTL 2시간)
-│  └────────────┘  │
-└──────────────────┘
+┌──────────────────────┐     ┌─────────────────┐
+│   IssService         │────▶│  wheretheiss.at  │  현재 고도/속도
+│                      │     └─────────────────┘
+│  ┌────────────────┐  │
+│  │ Location Cache │  │  volatile 필드 (TTL 30초)
+│  └────────────────┘  │
+│  ┌────────────────┐  │
+│  │ PassPredictor  │  │  SGP4 궤도 전파 + 패스 계산
+│  │ (predict4java) │  │
+│  └────────────────┘  │
+│  ┌────────────────┐  │
+│  │ Pass Cache     │  │  ConcurrentHashMap (1도 그리드, TTL 2시간)
+│  └────────────────┘  │
+└──────────────────────┘
          │
          ▼
     API 응답 (IssObservationResponse)
@@ -266,22 +323,50 @@ private String elevationToQuality(double maxElevation) {
 
 ## 캐싱 전략
 
-### TLE 캐시
+ISS 기능은 3단계 로컬 캐싱을 적용하여 외부 API 호출을 최소화한다.
+
+```
+요청 흐름과 캐시 히트 포인트:
+
+사용자 요청 ──→ fetchIssCurrentLocation()
+                    │
+                    ├─ [HIT] volatile 캐시 (30초 이내) → 즉시 반환
+                    └─ [MISS] wheretheiss.at API 호출 → 캐시 갱신
+
+              ──→ calculateNextIssPass()
+                    │
+                    ├─ [HIT] ConcurrentHashMap (2시간 이내, 같은 그리드) → 즉시 반환
+                    └─ [MISS] SGP4 계산
+                                │
+                                ├─ TleFetchService.getIssTle()
+                                │     ├─ [HIT] AtomicReference (12시간 이내) → 즉시 반환
+                                │     └─ [MISS] CelesTrak API 호출 → 캐시 갱신
+                                │
+                                └─ predict4java SGP4 계산 → 캐시 저장
+```
+
+### 1. TLE 캐시
 
 | 항목 | 값 |
 |------|-----|
-| 저장소 | AtomicReference (인메모리) |
+| 저장소 | `AtomicReference<TLE>` (인메모리) |
 | 정상 갱신 주기 | 12시간 |
 | 실패 시 재시도 | 5분 간격 |
 | 데이터 소스 | CelesTrak (무료, 무제한) |
 | 크기 | TLE 1건 (ISS만) |
 | 스케줄러 | `fixedRate=5분`, 조건부 갱신 (TLE 유효 시 스킵) |
 
-### 패스 예측 캐시
+설계 결정:
+
+- **TTL 12시간**: CelesTrak은 ISS TLE를 하루 수회 업데이트한다. TLE는 에포크(측정 시점)에서 멀어질수록 예측 오차가 커지는데, ISS 저궤도(400km) 기준 12시간 이내면 위치 오차가 수 km 이내로 패스 예측 정확도에 실질적 영향이 없다. 더 자주 갱신해도 CelesTrak 데이터 자체가 수시간 단위로 바뀌므로 실익이 없다
+- **AtomicReference**: TLE는 서버 전체에서 1건만 유지하므로 Map 구조가 필요 없다. `AtomicReference`로 lock-free 읽기/쓰기를 보장하면서 오버헤드를 최소화한다
+- **적응형 재시도 (5분)**: 서버 시작 시 CelesTrak이 다운되어 있을 수 있다. 12시간을 기다리는 대신 5분마다 재시도하여 빠르게 복구한다. TLE가 확보되면 자동으로 12시간 주기로 전환된다
+
+### 2. 패스 예측 캐시
 
 | 항목 | 값 |
 |------|-----|
-| 저장소 | ConcurrentHashMap |
+| 저장소 | `ConcurrentHashMap<String, CachedPassData>` |
 | 캐시 키 | `iss:{위도(1도단위)}:{경도(1도단위)}` |
 | TTL | 2시간 |
 | 한국 내 캐시 키 수 | 약 25개 (위도 33-38, 경도 126-130) |
@@ -295,7 +380,59 @@ private String elevationToQuality(double maxElevation) {
   제주 (33.50, 126.53) → iss:34:127
 ```
 
-ISS 궤도 주기가 약 90분이므로, 2시간 TTL이면 최소 1회의 패스 변경을 반영한다.
+설계 결정:
+
+- **TTL 2시간**: ISS 궤도 주기가 약 90분이므로, 2시간이면 최소 1회의 새로운 패스가 발생한다. 너무 짧으면 SGP4 계산이 빈번해지고, 너무 길면 이미 지나간 패스를 보여줄 수 있다. 2시간은 "다음 패스"가 변경되는 시점을 적절히 반영하는 균형점이다
+- **1도 그리드**: 위도 1도는 약 111km, 경도 1도는 한국 위도 기준 약 88km에 해당한다. 같은 그리드 안의 두 지점에서 ISS 패스 시각 차이는 수 초~수십 초 이내로, 사용자가 인지할 수 없는 수준이다. 더 세밀한 그리드(0.1도)로 하면 캐시 키가 2,500개로 늘어나 캐시 히트율이 급락한다
+- **ConcurrentHashMap**: 위치별로 키가 여러 개 필요하고, 서블릿 스레드에서 동시 접근이 발생하므로 스레드 안전한 Map이 필요하다. 읽기 위주 워크로드에서 `ConcurrentHashMap`이 `synchronized Map`보다 성능이 좋다
+
+### 3. ISS 위치 캐시
+
+| 항목 | 값 |
+|------|-----|
+| 저장소 | `volatile IssLocationData` + `volatile long` (인메모리) |
+| TTL | 30초 |
+| 데이터 소스 | wheretheiss.at API |
+| 크기 | 1건 (고도, 속도, 위도, 경도) |
+
+ISS 현재 위치(고도/속도)를 반환하는 `fetchIssCurrentLocation()`에 30초 TTL 로컬 캐싱을 적용한다.
+
+```java
+private volatile IssLocationData cachedLocation;
+private volatile long locationCachedAt;
+private static final long LOCATION_CACHE_TTL_MS = TimeUnit.SECONDS.toMillis(30);
+
+private IssLocationData fetchIssCurrentLocation() {
+    // 캐시 확인 (30초 TTL)
+    IssLocationData cached = cachedLocation;
+    if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
+        return cached;  // 30초 이내 → 외부 호출 없이 반환
+    }
+
+    try {
+        // wheretheiss.at API 호출
+        // ... 성공 시 캐시 갱신
+        cachedLocation = location;
+        locationCachedAt = System.currentTimeMillis();
+        return location;
+    } catch (Exception e) {
+        return cached;  // 실패 시 이전 캐시 반환 (없으면 null)
+    }
+}
+```
+
+설계 결정:
+
+- **TTL 30초**: ISS는 시속 27,600km로 이동하므로 30초 동안 약 230km 이동한다. 고도/속도 표시 용도로는 30초 오차가 무시할 수 있는 수준이다
+- **volatile 필드**: 패스 예측 캐시(`ConcurrentHashMap`)와 달리 키가 1개뿐이므로 `volatile` 필드로 충분하다. `ConcurrentHashMap`보다 메모리/오버헤드가 적다
+- **Graceful degradation**: API 실패 시 `null` 대신 이전 캐시 데이터를 반환하여, 일시적 네트워크 오류에도 사용자에게 데이터를 보여줄 수 있다
+- **프론트엔드 연동**: 프론트엔드가 5분(`refetchInterval: 5 * 60 * 1000`)마다 자동 갱신하므로, 동시 접속 사용자가 많아도 30초당 최대 1회만 외부 API를 호출한다
+
+```
+캐시 효과 (동시 접속 100명, 5분 내):
+  Before: 100회 외부 API 호출
+  After:  최대 10회 외부 API 호출 (5분 ÷ 30초 = 10)
+```
 
 ---
 
@@ -327,28 +464,39 @@ private IssPassData createFallbackPassData() {
 
 ## 외부 API Null Safety
 
-wheretheiss.at API에서 ISS 현재 위치를 가져올 때, 응답 필드가 누락될 수 있다. 모든 필수 필드를 개별적으로 검증하여 NPE를 방지한다.
+wheretheiss.at API에서 ISS 현재 위치를 가져올 때, 응답 필드가 누락되거나 API 호출이 실패할 수 있다. 3단계 방어 전략을 적용한다.
+
+```
+방어 단계:
+
+1단계: 캐시 히트 (30초 TTL) → 외부 호출 자체를 하지 않음
+2단계: API 응답 필드 검증 → 필드 누락 시 이전 캐시 데이터 반환
+3단계: API 호출 실패 → 이전 캐시 데이터 반환 (없으면 null → 폴백 메시지)
+```
 
 ```java
 private IssLocationData fetchIssCurrentLocation() {
-    // ...
-    JsonNode issData = objectMapper.readTree(response.body());
-    JsonNode altNode = issData.get("altitude");
-    JsonNode velNode = issData.get("velocity");
-    JsonNode latNode = issData.get("latitude");
-    JsonNode lonNode = issData.get("longitude");
-
-    // 필수 필드 중 하나라도 없으면 null 반환 → 폴백 메시지 사용
-    if (altNode == null || velNode == null || latNode == null || lonNode == null) {
-        log.warn("ISS API 응답에 필수 필드 누락: alt={}, vel={}, lat={}, lon={}",
-                altNode, velNode, latNode, lonNode);
-        return null;
+    // 1단계: 캐시 확인
+    IssLocationData cached = cachedLocation;
+    if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
+        return cached;
     }
-    // ...
+
+    try {
+        // ...
+        // 2단계: 응답 필드 검증
+        if (altNode == null || velNode == null || latNode == null || lonNode == null) {
+            return cached;  // 이전 캐시 반환 (null일 수 있음)
+        }
+        // ...
+    } catch (Exception e) {
+        // 3단계: 호출 실패 시 이전 캐시 반환
+        return cached;
+    }
 }
 ```
 
-`fetchIssCurrentLocation()`이 null을 반환하면 `getIssObservationOpportunity()`에서 기본 상태 메시지("ISS는 현재 지구 상공 약 400km에서...")를 사용한다. SGP4 패스 계산은 이 API와 독립적이므로 영향 없이 정상 작동한다.
+`fetchIssCurrentLocation()`이 최종적으로 null을 반환하면(캐시도 없는 초기 상태) `getIssObservationOpportunity()`에서 기본 상태 메시지("ISS는 현재 지구 상공 약 400km에서...")를 사용한다. SGP4 패스 계산은 이 API와 독립적이므로 영향 없이 정상 작동한다.
 
 ---
 

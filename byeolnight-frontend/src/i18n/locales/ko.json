@@ -440,6 +440,10 @@
 
     "iss_current_location": "ISS 실시간 위치",
     "iss_position_desc": "국제우주정거장 현재 위치",
+    "iss_realtime_tracking": "ISS 실시간 추적",
+    "iss_duration_label": "지속",
+    "iss_unit_minutes": "분",
+    "iss_unit_degrees": "도",
 
     "observation_quality": {
       "EXCELLENT": "최적",

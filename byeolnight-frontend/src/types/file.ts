@@ -1,4 +1,13 @@
 /**
+ * 게시글 이미지 파일 DTO
+ */
+export interface FileDto {
+  originalName: string;
+  s3Key: string;
+  url: string;
+}
+
+/**
  * S3 Presigned URL 응답
  */
 export interface PresignedUrlResponse {

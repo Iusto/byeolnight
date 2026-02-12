@@ -39,12 +39,11 @@ export default function MarkdownRenderer({
       rehypePlugins={[
         rehypeRaw,
         [rehypeSanitize, {
-          tagNames: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'u', 's', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li', 'br', 'hr', 'a', 'img', 'iframe'],
+          tagNames: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'u', 's', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li', 'br', 'hr', 'a', 'img'],
           attributes: {
             '*': ['className', 'style'],
             'a': ['href', 'target', 'rel'],
-            'img': ['src', 'alt', 'width', 'height'],
-            'iframe': ['src', 'width', 'height', 'frameBorder', 'allowFullScreen']
+            'img': ['src', 'alt', 'width', 'height']
           }
         }]
       ]}

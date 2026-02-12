@@ -1,23 +1,11 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import TuiEditor from './TuiEditor';
 import ImageUploader from './ImageUploader';
 import MarkdownRenderer from './MarkdownRenderer';
-
-// 이미지 URL 정규식
-const IMAGE_URL_REGEX = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
-
-// 이미지 URL 검증 함수
-const isValidImageUrl = (url: string): boolean => {
-  return IMAGE_URL_REGEX.test(url);
-};
-
-interface FileDto {
-  originalName: string;
-  s3Key: string;
-  url: string;
-}
+import { isValidImageUrl } from '../../utils/imageUtils';
+import type { FileDto } from '../../types/file';
 
 interface PostFormProps {
   initialTitle?: string;
@@ -61,6 +49,39 @@ export default function PostForm({
   const [isImageValidating, setIsImageValidating] = useState(false);
   const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
   const editorRef = useRef<any>(null);
+  const imageSyncTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // 이미지 동기화를 debounce (300ms)하여 빠른 입력 시 성능 저하 방지
+  const syncImagesDebounced = useCallback((newContent: string) => {
+    if (imageSyncTimerRef.current) {
+      clearTimeout(imageSyncTimerRef.current);
+    }
+    imageSyncTimerRef.current = setTimeout(() => {
+      try {
+        const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
+          .map(match => {
+            const urlMatch = match.match(/\(([^)]+)\)/);
+            return urlMatch ? urlMatch[1] : null;
+          })
+          .filter(Boolean);
+
+        setUploadedImages(prev =>
+          prev.filter(image => currentImageUrls.includes(image.url))
+        );
+      } catch (error) {
+        console.error('이미지 동기화 중 오류:', error);
+      }
+    }, 300);
+  }, []);
+
+  // cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (imageSyncTimerRef.current) {
+        clearTimeout(imageSyncTimerRef.current);
+      }
+    };
+  }, []);
 
   // 초기값 설정
   useEffect(() => {
@@ -71,13 +92,8 @@ export default function PostForm({
 
 
 
-  // 메모이제이션된 컨텐츠 길이 계산
-  const contentLength = useMemo(() => {
-    if (!content) return 0;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, 'text/html');
-    return (doc.body.textContent || '').length;
-  }, [content]);
+  // 백엔드 @Size 검증과 동일하게 raw 마크다운 길이 사용
+  const contentLength = content.length;
 
   // 에디터에 이미지 삽입 함수
   const insertImageToEditor = (imageData: FileDto | string, altText: string) => {
@@ -152,10 +168,9 @@ export default function PostForm({
       return;
     }
     
-    const maxContentLength = isEdit ? 50000 : 10000;
-    if (content.length > maxContentLength) {
+    if (content.length > 10000) {
       setValidationAlert({
-        message: `내용은 ${maxContentLength.toLocaleString()}자를 초과할 수 없습니다.`,
+        message: '내용은 10,000자를 초과할 수 없습니다.',
         type: 'error'
       });
       return;
@@ -209,34 +224,19 @@ export default function PostForm({
               value={content}
               onChange={(newContent) => {
                 setContent(newContent);
-                
-                // 에디터에서 삭제된 이미지 감지 및 썸네일 목록에서 제거
-                try {
-                  const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
-                    .map(match => {
-                      const urlMatch = match.match(/\(([^)]+)\)/);
-                      return urlMatch ? urlMatch[1] : null;
-                    })
-                    .filter(Boolean);
-                  
-                  setUploadedImages(prev => 
-                    prev.filter(image => currentImageUrls.includes(image.url))
-                  );
-                } catch (error) {
-                  console.error('이미지 동기화 중 오류:', error);
-                }
+                syncImagesDebounced(newContent);
               }}
               placeholder={t('home.content_placeholder')}
               height={window.innerWidth <= 768 ? '350px' : '500px'}
               handleImageUpload={() => {}}
             />
             <div className="text-right text-xs sm:text-sm mt-1">
-              <span className={`mobile-caption ${contentLength > (isEdit ? 45000 : 9000) ? (contentLength > (isEdit ? 50000 : 10000) ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
-                {contentLength}/{isEdit ? '50,000' : '10,000'}자
-                {contentLength > (isEdit ? 45000 : 9000) && contentLength <= (isEdit ? 50000 : 10000) && (
+              <span className={`mobile-caption ${contentLength > 9000 ? (contentLength > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>
+                {contentLength}/10,000자
+                {contentLength > 9000 && contentLength <= 10000 && (
                   <span className="text-yellow-400 ml-1">(제한에 근접함)</span>
                 )}
-                {contentLength > (isEdit ? 50000 : 10000) && (
+                {contentLength > 10000 && (
                   <span className="text-red-400 ml-1">(제한 초과)</span>
                 )}
               </span>

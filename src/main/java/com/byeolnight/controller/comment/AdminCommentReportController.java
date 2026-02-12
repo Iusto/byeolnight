@@ -57,9 +57,16 @@ public class AdminCommentReportController {
     @PostMapping("/comment-reports/{reportId}/reject")
     public ResponseEntity<CommonResponse<Void>> rejectReport(
             @PathVariable Long reportId,
-            @RequestParam String reason,
+            @RequestBody RejectReasonRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal User admin) {
-        commentReportService.processCommentReport(reportId, admin, false, reason);
+        commentReportService.processCommentReport(reportId, admin, false, request.getReason());
         return ResponseEntity.ok(CommonResponse.success());
+    }
+
+    public static class RejectReasonRequest {
+        private String reason;
+
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
     }
 }

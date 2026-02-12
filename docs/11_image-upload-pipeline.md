@@ -2,18 +2,18 @@
 
 > S3 Presigned URL + CloudFront + Google Vision API를 활용한 보안 강화된 이미지 업로드 시스템
 
-## 📋 목차
-- [🔄 전체 파이프라인 플로우](#-전체-파이프라인-플로우)
-- [🛡️ 보안 검열 시스템](#️-보안-검열-시스템)
-- [⚡ 성능 최적화](#-성능-최적화)
-- [🔧 기술 구현 세부사항](#-기술-구현-세부사항)
-- [🚨 에러 처리 및 복구](#-에러-처리-및-복구)
+## 목차
+- [전체 파이프라인 플로우](#전체-파이프라인-플로우)
+- [보안 검열 시스템](#보안-검열-시스템)
+- [성능 최적화](#성능-최적화)
+- [기술 구현 세부사항](#기술-구현-세부사항)
+- [에러 처리 및 복구](#에러-처리-및-복구)
 
 ---
 
-## 🔄 전체 파이프라인 플로우
+## 전체 파이프라인 플로우
 
-### 📤 **이미지 업로드 프로세스**
+### 이미지 업로드 프로세스
 
 ```mermaid
 sequenceDiagram
@@ -23,116 +23,124 @@ sequenceDiagram
     participant CF as CloudFront
     participant GV as Google Vision API
 
-    C->>B: 1. 이미지 업로드 요청 (/api/files/presigned-url)
-    B->>B: 2. 파일 확장자/크기 검증
-    B->>S3: 3. Presigned URL 생성 요청
-    S3->>B: 4. Presigned URL 반환
-    B->>C: 5. Presigned URL + CloudFront URL 반환
-    
-    C->>S3: 6. 이미지 직접 업로드 (PUT)
-    S3->>C: 7. 업로드 완료 응답
-    
-    C->>B: 8. 이미지 검열 요청 (/api/files/moderate-url)
-    B->>GV: 9. Google Vision API 검열 요청
-    GV->>B: 10. 검열 결과 반환
-    
+    C->>B: 1. Presigned URL 요청 (POST /api/files/presigned-url)
+    B->>B: 2. 확장자 검증 + Redis Rate Limit 확인
+    B->>B: 3. File 엔티티 PENDING 상태로 DB 저장
+    B->>S3: 4. Presigned URL 생성 요청 (10분 만료)
+    S3->>B: 5. Presigned URL 반환
+    B->>C: 6. PresignedUrlResponseDto 반환
+
+    C->>S3: 7. 이미지 직접 업로드 (PUT, 30초 타임아웃)
+    S3->>C: 8. 업로드 완료 응답
+
+    C->>B: 9. 이미지 검열 요청 (POST /api/files/moderate-url)
+    B->>B: 10. SSRF 검증 (CloudFront URL만 허용)
+    B->>CF: 11. 이미지 다운로드
+    CF->>B: 12. 이미지 바이트 반환
+    B->>GV: 13. Vision API SafeSearch 요청
+    GV->>B: 14. 검열 결과 반환
+
     alt 부적절한 이미지
-        B->>S3: 11a. 이미지 자동 삭제
-        B->>C: 12a. 검열 실패 응답
+        B->>S3: 15a. 이미지 자동 삭제
+        B->>C: 16a. ModerationResultDto (isSafe=false)
     else 안전한 이미지
-        B->>C: 12b. 검열 통과 응답
+        B->>B: 15b. File 상태 PENDING → CONFIRMED
+        B->>C: 16b. ModerationResultDto (isSafe=true)
     end
-    
-    C->>B: 13. 게시글 작성 (Markdown + CloudFront URL)
-    C->>CF: 14. 이미지 조회 요청
-    CF->>S3: 15. OAI 인증으로 이미지 조회
-    S3->>CF: 16. 이미지 데이터 반환
-    CF->>C: 17. CDN 캐시된 이미지 반환
+
+    C->>B: 17. 게시글 작성 (Markdown + CloudFront URL)
+    C->>CF: 18. 이미지 조회 요청
+    CF->>S3: 19. OAI 인증으로 이미지 조회
+    S3->>CF: 20. 이미지 데이터 반환
+    CF->>C: 21. CDN 캐시된 이미지 반환
 ```
 
-### 🔍 **단계별 상세 설명**
+### 단계별 상세 설명
 
 #### 1단계: Presigned URL 생성
+
+`FileController.getPresignedUrl()` - 모든 응답은 타입 안전 DTO 사용.
+
 ```java
 @PostMapping("/presigned-url")
-public ResponseEntity<CommonResponse<Map<String, String>>> getPresignedUrl(
+public ResponseEntity<CommonResponse<PresignedUrlResponseDto>> getPresignedUrl(
         @RequestParam("filename") String filename,
-        @RequestParam(value = "contentType", required = false) String contentType) {
-    
+        @RequestParam(value = "contentType", required = false) String contentType,
+        HttpServletRequest request) {
+
     // 파일 확장자 검증
     if (!extension.matches("jpg|jpeg|png|gif|bmp|webp|svg")) {
         return ResponseEntity.badRequest().body(
             CommonResponse.error("지원되지 않는 이미지 형식입니다.")
         );
     }
-    
-    // Rate Limiting 확인
+
+    // Redis 기반 Rate Limiting (IP당 20회/시간, 100회/일)
     if (!rateLimitService.isPresignedUrlAllowed(clientIp)) {
         return ResponseEntity.status(429).body(
             CommonResponse.error("Presigned URL 생성 한도를 초과했습니다.")
         );
     }
-    
-    Map<String, String> result = s3Service.generatePresignedUrl(filename, contentType);
+
+    PresignedUrlResponseDto result = s3Service.generatePresignedUrl(filename, contentType);
     return ResponseEntity.ok(CommonResponse.success(result));
 }
 ```
 
 #### 2단계: S3 직접 업로드
 ```typescript
-// 클라이언트에서 S3에 직접 업로드
+// 클라이언트에서 S3에 직접 업로드 (30초 타임아웃)
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 30000);
+
 const uploadResponse = await fetch(presignedData.uploadUrl, {
     method: 'PUT',
     body: file,
     headers: {
-        'Content-Type': presignedData.contentType || file.type
+        'Content-Type': file.type
     },
-    signal: controller.signal // 30초 타임아웃
+    signal: controller.signal
 });
 ```
 
-#### 3단계: Google Vision API 검열
+#### 3단계: Google Vision API 검열 (동기 처리)
 ```java
 @PostMapping("/moderate-url")
-public ResponseEntity<CommonResponse<Map<String, Object>>> moderateUrl(
+public ResponseEntity<CommonResponse<ModerationResultDto>> moderateUrl(
         @RequestParam("imageUrl") String imageUrl,
-        @RequestParam("s3Key") String s3Key) {
-    
+        @RequestParam("s3Key") String s3Key,
+        HttpServletRequest request) {
+
     // CloudFront URL만 허용 (SSRF 방지)
     if (!isCloudFrontUrl(imageUrl)) {
         throw new SecurityException("허용되지 않는 URL입니다.");
     }
-    
-    // 이미지 검증
+
+    byte[] imageBytes = downloadImage(imageUrl);
     boolean isSafe = s3Service.validateUploadedImage(imageBytes);
-    
+
     if (!isSafe) {
-        // 부적절한 이미지 자동 삭제
         s3Service.deleteObject(s3Key);
-        return ResponseEntity.ok(CommonResponse.success(Map.of(
-            "status", "completed",
-            "isSafe", false,
-            "message", "부적절한 이미지가 감지되어 삭제되었습니다."
-        )));
+        return ResponseEntity.ok(CommonResponse.success(
+            ModerationResultDto.completed(false, "부적절한 이미지가 감지되어 삭제되었습니다.")
+        ));
     }
-    
-    return ResponseEntity.ok(CommonResponse.success(Map.of(
-        "status", "completed",
-        "isSafe", true,
-        "message", "이미지 검증이 완료되었습니다."
-    )));
+
+    return ResponseEntity.ok(CommonResponse.success(
+        ModerationResultDto.completed(true, "이미지 검증이 완료되었습니다.")
+    ));
 }
 ```
 
 ---
 
-## 🛡️ 보안 검열 시스템
+## 보안 검열 시스템
 
-### 🔍 **다층 보안 검증**
+### 다층 보안 검증
 
 #### 1단계: 클라이언트 사이드 검증
 ```typescript
-// 파일 형식 검사
+// 파일 형식 검사 (MIME 타입)
 const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 if (!validImageTypes.includes(file.type)) {
     throw new Error('지원되는 이미지 형식이 아닙니다.');
@@ -144,190 +152,175 @@ if (file.size > 10 * 1024 * 1024) {
 }
 ```
 
-#### 2단계: 서버 사이드 검증
+#### 2단계: 서버 사이드 검증 (일반)
 ```java
-// 파일 확장자 검사
+// FileController - 파일 확장자 검사
 if (!extension.matches("jpg|jpeg|png|gif|bmp|webp|svg")) {
     return ResponseEntity.badRequest().body(
         CommonResponse.error("지원되지 않는 이미지 형식입니다.")
     );
 }
-
-// Rate Limiting (IP 기반)
-if (!rateLimitService.isPresignedUrlAllowed(clientIp)) {
-    return ResponseEntity.status(429).body(
-        CommonResponse.error("Presigned URL 생성 한도를 초과했습니다.")
-    );
-}
 ```
 
-#### 3단계: Google Vision API 콘텐츠 검열
+#### 2단계 (강화): SecureS3Service 추가 검증
 ```java
-public boolean validateUploadedImage(byte[] imageBytes) {
-    try {
-        // Google Vision API 호출
-        AnnotateImageRequest request = AnnotateImageRequest.newBuilder()
-            .addFeatures(Feature.newBuilder().setType(Feature.Type.SAFE_SEARCH_DETECTION))
-            .setImage(Image.newBuilder().setContent(ByteString.copyFrom(imageBytes)))
-            .build();
-            
-        BatchAnnotateImagesResponse response = imageAnnotatorClient.batchAnnotateImages(
-            BatchAnnotateImagesRequest.newBuilder().addRequests(request).build()
-        );
-        
-        SafeSearchAnnotation annotation = response.getResponses(0).getSafeSearchAnnotation();
-        
-        // 부적절한 콘텐츠 감지 기준
-        return annotation.getAdult().getNumber() <= Likelihood.POSSIBLE.getNumber() &&
-               annotation.getViolence().getNumber() <= Likelihood.POSSIBLE.getNumber() &&
-               annotation.getRacy().getNumber() <= Likelihood.POSSIBLE.getNumber();
-               
-    } catch (Exception e) {
-        log.error("이미지 검증 실패", e);
-        return false; // 검증 실패 시 안전하지 않다고 판단
-    }
-}
+// SecureS3Service - 인증된 사용자 전용, 더 엄격한 검증
+// 허용 확장자: jpg, jpeg, png, gif, webp, bmp (SVG 제외)
+// 파일명 검증: 최대 255자, '..' / '/' / '\' 차단 (경로 순회 방지)
+// Content-Type 검증: image/ 로 시작 + 확장자-MIME 매칭 (예: .jpg → image/jpeg)
 ```
 
-### 🚨 **SSRF 취약점 방지**
+#### 3단계: Google Vision API SafeSearch (REST API 방식)
+```java
+// GoogleVisionService.isImageSafe()
+// REST 호출: POST https://vision.googleapis.com/v1/images:annotate
+// 요청: Base64 인코딩된 이미지 + SAFE_SEARCH_DETECTION feature
+
+// 검사 카테고리: adult, violence, racy, spoof, medical
+// 차단 기준: LIKELY 또는 VERY_LIKELY → 부적절 판정
+// 허용: UNKNOWN, POSSIBLE (우주/과학 이미지 오탐 방지)
+// API 실패 시: true 반환 (허용적 폴백)
+```
+
+### SSRF 취약점 방지
 
 ```java
 private boolean isCloudFrontUrl(String imageUrl) {
     if (imageUrl == null) return false;
-    
+
     try {
-        URL url = new URL(imageUrl);
-        String host = url.getHost().toLowerCase();
-        
-        // HTTPS + CloudFront 도메인만 허용
-        return "https".equals(url.getProtocol()) && 
-               host.endsWith(".cloudfront.net");
-               
+        URI uri = new URI(imageUrl);
+        String host = uri.getHost().toLowerCase();
+
+        // HTTPS 프로토콜 + CloudFront 도메인만 허용
+        return "https".equals(uri.getScheme()) &&
+               (host.endsWith(".cloudfront.net") || host.equals(configuredCloudFrontDomain));
     } catch (Exception e) {
         return false;
     }
 }
 ```
 
-### 🔐 **자동 삭제 시스템**
+### 파일 상태 추적 (Orphan 방지)
 
 ```java
-// 부적절한 이미지 감지 시 자동 삭제
-if (!isSafe) {
-    log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
-    s3Service.deleteObject(s3Key);
-    log.info("부적절한 이미지 삭제 완료: {}", s3Key);
-    
-    return ResponseEntity.ok(CommonResponse.success(Map.of(
-        "status", "completed",
-        "isSafe", false,
-        "message", "부적절한 이미지가 감지되어 삭제되었습니다."
-    )));
+// File 엔티티 상태 관리
+public enum FileStatus {
+    PENDING,    // Presigned URL 발급됨, 확인 대기 중
+    CONFIRMED   // 게시글 저장 완료, 파일 확정
 }
+
+// Presigned URL 생성 시 → PENDING 상태로 DB 저장
+// 검열 통과 시 → CONFIRMED 상태로 변경
+// 7일 이상 PENDING 상태 → Orphan으로 판정, 관리자 수동 정리
 ```
 
 ---
 
-## ⚡ 성능 최적화
+## 성능 최적화
 
-### 🚀 **서버 부하 분산**
+### S3 직접 업로드로 서버 부하 감소
 
-#### S3 직접 업로드로 서버 부하 33% 감소
-```typescript
-// 기존: 서버를 거치는 업로드
-// Client → Server → S3 (서버 메모리/CPU 사용)
-
-// 개선: 직접 업로드
-// Client → S3 (서버 부하 없음)
-const uploadResponse = await fetch(presignedData.uploadUrl, {
-    method: 'PUT',
-    body: file, // 파일이 서버를 거치지 않음
-    headers: { 'Content-Type': presignedData.contentType }
-});
+```
+기존: Client → Server → S3 (서버 메모리/CPU 소모)
+개선: Client → S3 직접 (서버는 URL 생성만 담당)
 ```
 
-### 🌐 **CloudFront CDN 활용**
+### CloudFront CDN 활용
 
-#### 전 세계 엣지 캐싱으로 이미지 로딩 속도 향상
-```java
-// CloudFront 설정
+```
 - Origin Access Identity (OAI)로 S3 직접 접근 차단
-- 전 세계 엣지 로케이션에서 캐싱
-- 압축 및 최적화 자동 적용
+- 전 세계 엣지 로케이션 캐싱
 - HTTPS 강제 적용
+- Signed URL 발급 (1시간 만료)
 ```
 
-### ⏱️ **Rate Limiting**
+### Redis 기반 Rate Limiting
 
 ```java
 @Service
 public class FileUploadRateLimitService {
-    
+
     private final RedisTemplate<String, String> redisTemplate;
-    
-    public boolean isPresignedUrlAllowed(String clientIp) {
-        String key = "presigned_url_limit:" + clientIp;
-        String count = redisTemplate.opsForValue().get(key);
-        
-        if (count == null) {
-            redisTemplate.opsForValue().set(key, "1", Duration.ofMinutes(10));
-            return true;
-        }
-        
-        int currentCount = Integer.parseInt(count);
-        if (currentCount >= 10) { // 10분에 10회 제한
-            return false;
-        }
-        
-        redisTemplate.opsForValue().increment(key);
-        return true;
-    }
-}
-```
 
-### 🧵 **비동기 이미지 검증**
+    // Presigned URL: IP당 20회/시간, 100회/일
+    public boolean isPresignedUrlAllowed(String clientIp) { ... }
 
-```java
-@Async("imageValidationExecutor")
-public CompletableFuture<Boolean> checkImageInBackground(String imageUrl) {
-    try {
-        // 백그라운드에서 이미지 검증 수행
-        boolean isSafe = validateUploadedImage(downloadImage(imageUrl));
-        
-        if (!isSafe) {
-            // 부적절한 이미지 자동 삭제
-            deleteImageFromUrl(imageUrl);
-        }
-        
-        return CompletableFuture.completedFuture(isSafe);
-    } catch (Exception e) {
-        log.error("백그라운드 이미지 검증 실패", e);
-        return CompletableFuture.completedFuture(false);
-    }
+    // 파일 업로드: IP당 10회/시간, 50회/일
+    public boolean isUploadAllowed(String clientIp, long fileSize) { ... }
+
+    // 동시 업로드: 최대 3개
+    public void startUpload(String clientIp) { ... }
+    public void finishUpload(String clientIp) { ... }
+
+    // 파일 크기: IP당 50MB/시간
+    // 슬라이딩 윈도우 + Redis key 만료
+    // 초과 시 :blocked 접미사 키로 차단
+    // clearIpLimit()으로 수동 초기화 가능
 }
 ```
 
 ---
 
-## 🔧 기술 구현 세부사항
+## 기술 구현 세부사항
 
-### 📱 **클립보드 이미지 지원**
+### 타입 안전 DTO 체계
+
+모든 파일 관련 엔드포인트는 `Map<String, Object>` 대신 타입 안전 DTO를 사용:
+
+```java
+// Presigned URL 응답
+public record PresignedUrlResponseDto(
+    String uploadUrl,       // S3 Presigned URL (10분 만료)
+    String url,             // CloudFront URL
+    String s3Key,
+    String originalName,
+    String contentType
+) {}
+
+// 검열 결과 응답
+@Getter @Builder
+public class ModerationResultDto {
+    private String status;      // "completed", "error"
+    private boolean isSafe;
+    private String message;
+}
+
+// CloudFront Signed URL 응답
+public record ViewUrlResponseDto(
+    String viewUrl,         // Signed CloudFront URL (1시간 만료)
+    String s3Key
+) {}
+
+// 파일 정보
+public record FileDto(
+    String originalName,
+    String s3Key,
+    String url
+) {}
+
+// 공통 래퍼
+public class CommonResponse<T> {
+    private boolean success;
+    private String message;
+    private T data;
+}
+```
+
+### 클립보드 이미지 지원
 
 ```typescript
-// 클립보드 붙여넣기 이벤트 핸들러
 const handlePaste = async (event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
     if (!items) return;
-    
+
     for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        
-        if (item.type.indexOf('image') !== -1) {
+        if (items[i].type.indexOf('image') !== -1) {
             event.preventDefault();
-            const file = item.getAsFile();
+            const file = items[i].getAsFile();
             if (!file) continue;
-            
-            // 모바일 환경 제한 처리
+
+            // 모바일 환경 제한 (브라우저 한계)
             if (isMobile()) {
                 setValidationAlert({
                     message: '모바일에서는 이미지 붙여넣기가 제한될 수 있습니다.',
@@ -335,8 +328,7 @@ const handlePaste = async (event: ClipboardEvent) => {
                 });
                 return;
             }
-            
-            // 이미지 업로드 및 검열
+
             const imageData = await uploadClipboardImage(file);
             onImageInsert(imageData, '클립보드 이미지');
             break;
@@ -345,178 +337,136 @@ const handlePaste = async (event: ClipboardEvent) => {
 };
 ```
 
-### 🎨 **ReactMarkdown 렌더링**
+### 프론트엔드 업로드 유틸리티 (`s3Upload.ts`)
 
 ```typescript
-// 안전한 HTML 렌더링
-<ReactMarkdown
-    rehypePlugins={[
-        rehypeRaw, // 제한적 raw HTML 허용
-        [rehypeSanitize, {
-            tagNames: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'u', 's', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li', 'br', 'hr', 'a', 'img', 'iframe'],
-            attributes: {
-                '*': ['className', 'style'],
-                'a': ['href', 'target', 'rel'],
-                'img': ['src', 'alt', 'width', 'height'],
-                'iframe': ['src', 'width', 'height', 'frameBorder', 'allowFullScreen']
-            }
-        }]
-    ]}
-    components={{
-        img: ({ src, alt, ...props }) => (
-            <img 
-                src={src} 
-                alt={alt} 
-                {...props}
-                style={{
-                    maxWidth: '100%',
-                    height: 'auto',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                    cursor: 'pointer'
-                }}
-                onClick={() => src && window.open(src, '_blank')}
-                loading="lazy"
-            />
-        )
-    }}
->
-    {content}
-</ReactMarkdown>
+export const uploadImage = async (
+    file: File,
+    needsModeration = true
+): Promise<UploadedImageResponse> => {
+    // 1. Presigned URL 요청 (15초 타임아웃)
+    const presignedData = await axios.post('/api/files/presigned-url', ...);
+
+    // 2. S3 직접 업로드 (30초 타임아웃, AbortController)
+    await fetch(presignedData.uploadUrl, { method: 'PUT', body: file });
+
+    // 3. 이미지 검열 (20초 타임아웃)
+    if (needsModeration) {
+        const result = await axios.post('/api/files/moderate-url', ...);
+        // Lombok @Getter: isSafe → JSON "safe" 필드로 직렬화
+        if (!result.data.data.safe) {
+            throw new Error('부적절한 이미지');
+        }
+    }
+
+    // 4. 성공 시 반환
+    return { url, s3Key, originalName, contentType };
+};
 ```
 
-### 🔄 **재사용 가능한 ImageUploader 컴포넌트**
+### 관리자 파일 관리 엔드포인트
 
-```typescript
-interface ImageUploaderProps {
-    uploadedImages: FileDto[];
-    setUploadedImages: React.Dispatch<React.SetStateAction<FileDto[]>>;
-    onImageInsert: (imageData: FileDto | string, altText: string) => void;
-    isImageValidating: boolean;
-    setIsImageValidating: React.Dispatch<React.SetStateAction<boolean>>;
-    validationAlert: ValidationAlert | null;
-    setValidationAlert: React.Dispatch<React.SetStateAction<ValidationAlert | null>>;
-}
+```java
+// AdminFileController (@PreAuthorize("hasRole('ADMIN')"))
 
-export default function ImageUploader({
-    uploadedImages,
-    setUploadedImages,
-    onImageInsert,
-    isImageValidating,
-    setIsImageValidating,
-    validationAlert,
-    setValidationAlert
-}: ImageUploaderProps) {
-    // 파일 선택 및 클립보드 붙여넣기 지원
-    // 이미지 검열 및 업로드 처리
-    // 에러 처리 및 사용자 피드백
+GET  /api/admin/files/orphan-count     → CommonResponse<Integer>
+POST /api/admin/files/cleanup-orphans  → CommonResponse<Integer>  // 7일 이상 PENDING 삭제
+GET  /api/admin/files/s3-status        → CommonResponse<S3StatusDto>
+```
+
+```java
+// S3StatusDto - S3 연결 상태 진단
+@Getter @Builder
+public class S3StatusDto {
+    private String bucketName;
+    private String configuredRegion;
+    private ConnectionStatus connectionStatus;  // SUCCESS, ERROR
+    private boolean bucketExists;
+    private boolean regionMatch;
+    private String actualRegion;
+    private String error;
+    private String suggestion;
 }
 ```
 
 ---
 
-## 🚨 에러 처리 및 복구
+## 에러 처리 및 복구
 
-### 🔧 **네트워크 오류 처리**
+### 프론트엔드 에러 처리
 
 ```typescript
 try {
     const response = await axios.post('/files/presigned-url', ...);
-} catch (presignedError: any) {
-    // 네트워크 오류 처리
-    if (presignedError.code === 'NETWORK_ERROR') {
+} catch (error: any) {
+    if (error.code === 'NETWORK_ERROR') {
         throw new Error('네트워크 연결을 확인해주세요.');
     }
-    
-    // 타임아웃 오류 처리
-    if (presignedError.code === 'ECONNABORTED') {
+    if (error.code === 'ECONNABORTED') {
         throw new Error('서버 응답 시간이 초과되었습니다.');
     }
-    
-    // CORS 오류 처리
-    if (presignedError.message.includes('CORS')) {
+    if (error.message.includes('CORS')) {
         throw new Error('브라우저 보안 정책으로 인해 업로드가 차단되었습니다.');
     }
 }
-```
 
-### 🔄 **자동 재시도 로직**
-
-```typescript
-const uploadWithRetry = async (file: File, maxRetries = 3) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            return await uploadImage(file);
-        } catch (error) {
-            if (attempt === maxRetries) {
-                throw error;
-            }
-            
-            // 지수 백오프로 재시도
-            const delay = Math.pow(2, attempt) * 1000;
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-};
-```
-
-### 🧹 **자동 정리 시스템**
-
-```java
-@Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시
-public void cleanupOrphanImages() {
-    // 7일 이상 된 orphan 이미지 삭제
-    List<String> orphanImages = s3Service.findOrphanImages(7);
-    
-    for (String s3Key : orphanImages) {
-        try {
-            s3Service.deleteObject(s3Key);
-            log.info("Orphan 이미지 삭제: {}", s3Key);
-        } catch (Exception e) {
-            log.error("Orphan 이미지 삭제 실패: {}", s3Key, e);
-        }
-    }
+// 검열 네트워크 실패 시 → S3 업로드 파일 자동 삭제
+try {
+    await axios.post('/api/files/moderate-url', ...);
+} catch (moderationError) {
+    await axios.delete('/api/files/delete', { params: { s3Key } });
+    throw moderationError;
 }
 ```
 
-### 📊 **모니터링 및 로깅**
+### Orphan 이미지 정리 (관리자 수동)
 
 ```java
-// 상세한 로깅으로 문제 추적
-log.info("Presigned URL 요청: filename={}, contentType={}, clientIp={}, userAgent={}", 
-        filename, contentType, clientIp, userAgent);
+// S3Service.cleanupOrphanImages() - @Transactional
+// 관리자가 POST /api/admin/files/cleanup-orphans 호출 시 실행
+// 자동 스케줄링은 없음 (수동 트리거 전용)
 
-log.info("이미지 검열 결과: {} -> {}", imageUrl, isSafe ? "안전" : "부적절");
+public int cleanupOrphanImages() {
+    // 7일 이상 PENDING 상태인 File 레코드 조회
+    List<File> orphans = fileRepository.findByStatusAndCreatedAtBefore(
+        FileStatus.PENDING, LocalDateTime.now().minusDays(7));
 
-log.warn("부적절한 이미지 감지: {} - 자동 삭제 시작", s3Key);
+    for (File orphan : orphans) {
+        deleteObject(orphan.getS3Key());  // S3에서 삭제
+        fileRepository.delete(orphan);    // DB에서 삭제
+    }
+    return orphans.size();
+}
+```
+
+### IP 추출 (프록시/CDN 대응)
+
+```java
+// IpUtil - 다중 헤더 기반 IP 추출
+// 우선순위: X-Client-IP → X-Forwarded-For → X-Real-IP → Proxy-Client-IP → RemoteAddr
+// localhost, 127.0.0.1, IPv6 루프백 필터링
+// X-Forwarded-For 다중 IP 시 첫 번째 사용
 ```
 
 ---
 
-## 📈 성능 지표
+## 성능 지표
 
-### 🎯 **측정된 개선 효과**
-
-| 항목 | 기존 | 개선 후 | 개선율 |
-|------|------|---------|--------|
-| 서버 부하 | 100% | 67% | **33% 감소** |
-| 업로드 속도 | 기준 | 1.67배 | **67% 향상** |
-| 이미지 로딩 | 기준 | CDN 캐시 | **전 세계 최적화** |
-| 보안 검열 | 수동 | 자동 | **100% 자동화** |
-| SSRF 방지 | 취약 | 차단 | **100% 방지** |
-
-### 📊 **시스템 안정성**
-
-- **업로드 성공률**: 99.5%
-- **검열 정확도**: 95%+ (Google Vision API 기준)
-- **자동 삭제**: 부적절 이미지 100% 자동 처리
-- **Rate Limiting**: 10분/10회 제한으로 남용 방지
+| 항목 | 기존 | 현재 | 비고 |
+|------|------|------|------|
+| 서버 부하 | 100% (서버 경유) | 67% | S3 직접 업로드 |
+| 이미지 로딩 | S3 직접 | CloudFront CDN | 전 세계 엣지 캐싱 |
+| 보안 검열 | - | Google Vision API | SafeSearch 동기 처리 |
+| Rate Limit | - | Redis 기반 | 20회/시간, 100회/일, 동시 3개 |
+| SSRF 방지 | - | CloudFront URL 화이트리스트 | HTTPS + 도메인 검증 |
+| Orphan 정리 | - | 관리자 수동 | 7일 이상 PENDING 대상 |
+| 응답 타입 | Map<String, Object> | 타입 안전 DTO | PresignedUrlResponseDto 등 |
 
 ---
 
-## 🔗 관련 문서
+## 관련 문서
 
-- [🏗️ 아키텍처 가이드](./03_architecture.md)
-- [🚀 성능 최적화 전략](./05_optimizations.md)
-- [🔧 기술 스택 상세](./06_TECH-STACK.md)
-- [🧪 테스트 전략](./07_testing.md)
+- [아키텍처 가이드](./03_architecture.md)
+- [성능 최적화 전략](./05_optimizations.md)
+- [기술 스택 상세](./06_TECH-STACK.md)
+- [테스트 전략](./07_testing.md)

@@ -6,7 +6,7 @@ import org.redisson.api.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +21,17 @@ import java.util.concurrent.TimeUnit;
 public class RedissonCacheService {
 
     private final RedissonClient redissonClient;
+
+    private static final String INCREMENT_AND_GET_SCRIPT = """
+        local key = KEYS[1]
+        local ttl = tonumber(ARGV[1])
+
+        local value = redis.call('INCR', key)
+        if value == 1 and ttl > 0 then
+            redis.call('EXPIRE', key, ttl)
+        end
+        return value
+        """;
 
     /**
      * 값 저장 (TTL 포함)
@@ -128,15 +139,18 @@ public class RedissonCacheService {
      * @return 증가 후 값
      */
     public long incrementAndGet(String key, Duration ttl) {
-        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
-        long value = atomicLong.incrementAndGet();
+        long ttlSeconds = (ttl != null) ? ttl.toSeconds() : 0;
 
-        // 첫 증가(value==1)일 때만 TTL 설정
-        if (value == 1 && ttl != null) {
-            atomicLong.expire(ttl);
-        }
+        RScript script = redissonClient.getScript();
+        long value = script.eval(
+                RScript.Mode.READ_WRITE,
+                INCREMENT_AND_GET_SCRIPT,
+                RScript.ReturnType.INTEGER,
+                Collections.singletonList(key),
+                ttlSeconds
+        );
 
-        log.debug("원자적 증가: key={}, value={}, ttl={}초", key, value, ttl != null ? ttl.toSeconds() : "없음");
+        log.debug("원자적 증가: key={}, value={}, ttl={}초", key, value, ttlSeconds > 0 ? ttlSeconds : "없음");
         return value;
     }
 

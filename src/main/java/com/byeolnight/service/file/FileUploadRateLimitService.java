@@ -3,9 +3,12 @@ package com.byeolnight.service.file;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 파일 업로드 Rate Limiting 서비스
@@ -17,11 +20,77 @@ import java.time.Duration;
 public class FileUploadRateLimitService {
     
     private final RedisTemplate<String, String> redisTemplate;
-    
+
+    private static final String CHECK_RATE_LIMIT_SCRIPT = """
+        local key = KEYS[1]
+        local blockedKey = KEYS[2]
+        local limit = tonumber(ARGV[1])
+        local windowSeconds = tonumber(ARGV[2])
+        local blockSeconds = tonumber(ARGV[3])
+
+        if redis.call('EXISTS', blockedKey) == 1 then
+            return -1
+        end
+
+        local current = tonumber(redis.call('GET', key) or '0')
+
+        if current >= limit then
+            if blockSeconds > 0 then
+                redis.call('SET', blockedKey, '1', 'EX', blockSeconds)
+            end
+            return -1
+        end
+
+        if current == 0 then
+            redis.call('SET', key, '1', 'EX', windowSeconds)
+        else
+            redis.call('INCR', key)
+        end
+
+        return current + 1
+        """;
+
+    private static final String CHECK_FILE_SIZE_LIMIT_SCRIPT = """
+        local key = KEYS[1]
+        local fileSize = tonumber(ARGV[1])
+        local maxSize = tonumber(ARGV[2])
+        local windowSeconds = tonumber(ARGV[3])
+
+        local current = tonumber(redis.call('GET', key) or '0')
+
+        if current + fileSize > maxSize then
+            return -1
+        end
+
+        if current == 0 then
+            redis.call('SET', key, tostring(fileSize), 'EX', windowSeconds)
+        else
+            redis.call('INCRBY', key, fileSize)
+        end
+
+        return current + fileSize
+        """;
+
+    private static final String TRY_ACQUIRE_CONCURRENT_SLOT_SCRIPT = """
+        local key = KEYS[1]
+        local maxConcurrent = tonumber(ARGV[1])
+        local ttlSeconds = tonumber(ARGV[2])
+
+        local current = tonumber(redis.call('GET', key) or '0')
+
+        if current >= maxConcurrent then
+            return -1
+        end
+
+        redis.call('INCR', key)
+        redis.call('EXPIRE', key, ttlSeconds)
+        return current + 1
+        """;
+
     public boolean isUploadAllowed(String clientIp, long fileSize) {
-        return checkUploadLimit(clientIp) && 
-               checkFileSizeLimit(clientIp, fileSize) && 
-               checkConcurrentUpload(clientIp);
+        return checkUploadLimit(clientIp) &&
+               checkFileSizeLimit(clientIp, fileSize) &&
+               tryAcquireConcurrentSlot(clientIp);
     }
     
     public boolean isPresignedUrlAllowed(String clientIp) {
@@ -35,30 +104,34 @@ public class FileUploadRateLimitService {
     }
     
     private boolean checkFileSizeLimit(String clientIp, long fileSize) {
-        String sizeKey = "file_size_1h:" + clientIp;
-        String currentSizeStr = redisTemplate.opsForValue().get(sizeKey);
-        long currentSize = currentSizeStr != null ? Long.parseLong(currentSizeStr) : 0;
-        
-        if (currentSize + fileSize > 50 * 1024 * 1024) return false;
-        
-        if (currentSize == 0) {
-            redisTemplate.opsForValue().set(sizeKey, String.valueOf(fileSize), Duration.ofMinutes(60));
-        } else {
-            redisTemplate.opsForValue().increment(sizeKey, fileSize);
+        try {
+            String sizeKey = "file_size_1h:" + clientIp;
+
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(CHECK_FILE_SIZE_LIMIT_SCRIPT, Long.class);
+            Long result = redisTemplate.execute(script, Collections.singletonList(sizeKey),
+                    String.valueOf(fileSize),
+                    String.valueOf(50L * 1024 * 1024),
+                    String.valueOf(3600));
+
+            return result != null && result != -1L;
+        } catch (Exception e) {
+            return true;
         }
-        return true;
     }
-    
-    private boolean checkConcurrentUpload(String clientIp) {
-        String concurrentKey = "concurrent_upload:" + clientIp;
-        String currentCount = redisTemplate.opsForValue().get(concurrentKey);
-        return currentCount == null || Integer.parseInt(currentCount) < 3;
-    }
-    
-    public void startUpload(String clientIp) {
-        String key = "concurrent_upload:" + clientIp;
-        redisTemplate.opsForValue().increment(key);
-        redisTemplate.expire(key, Duration.ofMinutes(10));
+
+    private boolean tryAcquireConcurrentSlot(String clientIp) {
+        try {
+            String key = "concurrent_upload:" + clientIp;
+
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(TRY_ACQUIRE_CONCURRENT_SLOT_SCRIPT, Long.class);
+            Long result = redisTemplate.execute(script, Collections.singletonList(key),
+                    String.valueOf(3),
+                    String.valueOf(600));
+
+            return result != null && result != -1L;
+        } catch (Exception e) {
+            return true;
+        }
     }
     
     public void finishUpload(String clientIp) {
@@ -67,24 +140,16 @@ public class FileUploadRateLimitService {
     
     private boolean checkRateLimit(String key, int limit, int windowMinutes, int blockMinutes) {
         try {
-            if (redisTemplate.hasKey(key + ":blocked")) return false;
-            
-            String countStr = redisTemplate.opsForValue().get(key);
-            int currentCount = countStr != null ? Integer.parseInt(countStr) : 0;
-            
-            if (currentCount >= limit) {
-                if (blockMinutes > 0) {
-                    redisTemplate.opsForValue().set(key + ":blocked", "1", Duration.ofMinutes(blockMinutes));
-                }
-                return false;
-            }
-            
-            if (currentCount == 0) {
-                redisTemplate.opsForValue().set(key, "1", Duration.ofMinutes(windowMinutes));
-            } else {
-                redisTemplate.opsForValue().increment(key);
-            }
-            return true;
+            String blockedKey = key + ":blocked";
+            List<String> keys = Arrays.asList(key, blockedKey);
+
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(CHECK_RATE_LIMIT_SCRIPT, Long.class);
+            Long result = redisTemplate.execute(script, keys,
+                    String.valueOf(limit),
+                    String.valueOf(windowMinutes * 60L),
+                    String.valueOf(blockMinutes * 60L));
+
+            return result != null && result != -1L;
         } catch (Exception e) {
             return true;
         }

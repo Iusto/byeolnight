@@ -110,17 +110,7 @@ public class SpaceNewsService {
     private boolean isDuplicateNews(NewsApiResponseDto.Result result) {
         return newsRepository.existsByUrl(result.getLink());
     }
-    
 
-    
-
-    
-
-    
-
-    
-
-    
     private Post convertToPost(NewsApiResponseDto.Result result, User writer) {
         String content = formatter.formatNewsContent(result);
         String title = translationService.translateTitle(result.getTitle());
@@ -136,11 +126,7 @@ public class SpaceNewsService {
                 .writer(writer)
                 .build();
     }
-    
 
-    
-
-    
     private News convertToNews(NewsApiResponseDto.Result result) {
         String title = translationService.translateTitle(result.getTitle());
         
@@ -171,14 +157,10 @@ public class SpaceNewsService {
         }
     }
     
-
-    
     private String getDefaultSpaceImage() {
         return "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=800&h=600&fit=crop";
     }
-    
 
-    
     private String generateSummary(NewsApiResponseDto.Result result) {
         return translationService.generateAIAnalysis(result.getTitle(), result.getDescription());
     }

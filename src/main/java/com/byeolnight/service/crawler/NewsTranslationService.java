@@ -78,7 +78,7 @@ public class NewsTranslationService {
             OpenAiChatRequest requestBody = OpenAiChatRequest.builder()
                 .model("gpt-4o-mini")
                 .messages(List.of(OpenAiMessage.user(prompt)))
-                .maxTokens(300)
+                .maxTokens(800)
                 .temperature(0.4)
                 .build();
 
