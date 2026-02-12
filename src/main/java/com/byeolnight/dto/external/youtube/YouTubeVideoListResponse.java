@@ -8,5 +8,5 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class YouTubeVideoListResponse {
-    private List<YouTubeVideoDetailItem> items;
+    private List<YouTubeVideoItem> items;
 }

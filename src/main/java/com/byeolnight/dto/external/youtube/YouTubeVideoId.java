@@ -6,6 +6,5 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class YouTubeVideoId {
-    private String kind;
     private String videoId;
 }
