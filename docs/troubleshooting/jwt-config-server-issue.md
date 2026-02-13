@@ -90,27 +90,26 @@ docker-compose restart app
 
 ## 🔧 근본 해결: Config Server로 재암호화
 
-### "encrypt-simple.bat, 너가 내 구원자다!"
+### "EC2 서버에 직접 접속해서 해결하자!"
 
-평문으로 임시 해결한 후, 보안을 위해 **제대로 된 암호화**를 진행했다.
+평문으로 임시 해결한 후, 보안을 위해 **EC2 서버에 직접 접속하여 Config Server의 암호화 엔드포인트를 호출**하는 방식으로 재암호화를 진행했다.
 
 ```bash
-# 1단계: Config Server 시작
-cd config-server
-gradlew.bat bootRun
+# 1단계: EC2 서버에 SSH 접속
+ssh -i byeolnight-key.pem ec2-user@<EC2-IP>
 
-# 2단계: JWT 시크릿 재암호화
-encrypt-simple.bat "byeolnight-jwt-secret-key-2025-very-long-and-secure-key-for-production-use-only"
+# 2단계: Config Server가 실행 중인 상태에서 직접 암호화 요청
+curl -X POST http://localhost:8888/encrypt \
+  -H "Content-Type: text/plain" \
+  -d "byeolnight-jwt-secret-key-2025-very-long-and-secure-key-for-production-use-only"
 ```
 
 **터미널 출력:**
 ```
-Encrypting: "byeolnight-jwt-secret-key-2025-very-long-and-secure-key-for-production-use-only"
-
 8bab426a814eb620e297d3a336d22ebf6ede3b285003154b24898d87ba743416***[새로운 암호화 키 생성됨]
 ```
 
-> "새로운 암호화 키가 생성되었다! 이제 이걸로 교체하자."
+> "EC2 서버에서 직접 암호화하니 확실하고 안전하다!"
 
 ### 최종 해결: 새 암호화 키 적용
 
@@ -157,14 +156,12 @@ encrypt:
   fail-on-error: false
 ```
 
-### 암호화 스크립트 (encrypt-simple.bat)
-```batch
-@echo off
-echo Encrypting: "%1"
-curl -u config-admin:config-secret-2024 ^
-  "http://localhost:8888/encrypt" ^
-  -d "%1" ^
-  -H "Content-Type: text/plain"
+### 암호화 방식 (EC2 서버 직접 접속)
+```bash
+# EC2 서버에 SSH 접속 후 Config Server의 /encrypt 엔드포인트를 직접 호출
+curl -X POST http://localhost:8888/encrypt \
+  -H "Content-Type: text/plain" \
+  -d "암호화할 값"
 ```
 
 ### JWT 설정 구조
