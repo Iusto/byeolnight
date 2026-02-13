@@ -2,6 +2,7 @@ package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
+import com.byeolnight.infrastructure.common.CacheResult;
 import com.byeolnight.infrastructure.util.CoordinateUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ public class WeatherService {
      * - 로컬 캐시에서 조회 (스케줄러가 30분마다 갱신)
      * - 캐시에 없으면 실시간 API 호출 후 캐시 저장
      */
-    public WeatherResponse getObservationConditions(Double latitude, Double longitude) {
+    public CacheResult<WeatherResponse> getObservationConditions(Double latitude, Double longitude) {
         // 좌표 반올림 & 캐시 키 생성
         double roundedLat = CoordinateUtils.roundCoordinate(latitude);
         double roundedLon = CoordinateUtils.roundCoordinate(longitude);
@@ -48,7 +49,7 @@ public class WeatherService {
         Optional<WeatherResponse> cached = localCacheService.get(cacheKey);
         if (cached.isPresent()) {
             log.debug("캐시에서 날씨 반환: cacheKey={}", cacheKey);
-            return cached.get();
+            return new CacheResult<>(cached.get(), true);
         }
 
         // 캐시에 없으면 실시간 API 호출
@@ -56,10 +57,10 @@ public class WeatherService {
         try {
             WeatherResponse realTimeData = fetchWeatherDataFromAPI(roundedLat, roundedLon);
             localCacheService.put(cacheKey, realTimeData);
-            return realTimeData;
+            return new CacheResult<>(realTimeData, false);
         } catch (Exception e) {
             log.error("실시간 날씨 API 호출 실패: lat={}, lon={}, error={}", latitude, longitude, e.getMessage());
-            return createFallbackResponse(latitude, longitude);
+            return new CacheResult<>(createFallbackResponse(latitude, longitude), false);
         }
     }
 

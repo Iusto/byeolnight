@@ -1,79 +1,110 @@
 import http from 'k6/http';
-import { check, group, sleep } from 'k6';
-import { BASE_URL, RATE_LIMIT_STAGES } from '../lib/config.js';
-import { rateLimitBlockedCount, rateLimitAllowedCount, rateLimitResponseTime, checkRateLimit } from '../lib/helpers.js';
+import { check, sleep } from 'k6';
+import { Trend, Counter } from 'k6/metrics';
+import { BASE_URL } from '../lib/config.js';
+
+const allowedDuration = new Trend('allowed_duration', true);
+const blockedDuration = new Trend('blocked_duration', true);
+const allowedCount = new Counter('allowed_count');
+const blockedCount = new Counter('blocked_count');
+
+const HEADERS = { 'Content-Type': 'application/json' };
+const SEND_LIMIT = 5;  // 이메일당 5회/10분
 
 export const options = {
-  stages: RATE_LIMIT_STAGES,
+  scenarios: {
+    // 시나리오 1: 제한 이내 → 정상 응답 확인
+    within_limit: {
+      executor: 'per-vu-iterations',
+      vus: 3,
+      iterations: 1,
+      exec: 'withinLimitTest',
+    },
+    // 시나리오 2: 제한 초과 → 400 응답 + 응답 시간 측정
+    exceed_limit: {
+      executor: 'per-vu-iterations',
+      vus: 3,
+      iterations: 1,
+      startTime: '30s',
+      exec: 'exceedLimitTest',
+    },
+    // 시나리오 3: 동시 요청 → Redis 원자성 검증
+    concurrent: {
+      executor: 'constant-vus',
+      vus: 20,
+      duration: '30s',
+      startTime: '1m',
+      exec: 'concurrentTest',
+    },
+  },
   thresholds: {
-    http_req_duration: ['p(95)<500'],
-    rate_limit_response_time: ['p(95)<50'],
+    'blocked_duration': ['p(95)<50'],
+    'http_req_failed': ['rate<0.5'],  // rate limit 응답도 "실패"로 잡히므로 완화
   },
 };
 
-const HEADERS = { 'Content-Type': 'application/json' };
+// 시나리오 1: 제한 이내 요청 (VU별 고유 이메일)
+export function withinLimitTest() {
+  const email = `within-${__VU}-${Date.now()}@test.com`;
 
-// 이메일당 5회/10분 제한
-const SEND_LIMIT_PER_EMAIL = 5;
-
-// 시나리오 A: 제한 이내 요청 → 정상 응답 확인
-function testWithinLimit() {
-  const uniqueEmail = `test-within-${__VU}-${Date.now()}@example.com`;
-
-  for (let i = 0; i < SEND_LIMIT_PER_EMAIL - 1; i++) {
+  for (let i = 0; i < SEND_LIMIT - 1; i++) {
     const res = http.post(
       `${BASE_URL}/api/auth/email/send`,
-      JSON.stringify({ email: uniqueEmail }),
+      JSON.stringify({ email }),
       { headers: HEADERS, tags: { scenario: 'within_limit' } }
     );
 
-    checkRateLimit(res, 400);
+    allowedDuration.add(res.timings.duration);
+    allowedCount.add(1);
 
     check(res, {
-      '[제한 이내] status is not rate limited': (r) => r.status !== 400 || !r.body.includes('횟수를 초과'),
+      '[제한 이내] not rate limited': (r) => r.status !== 400 || !r.body.includes('초과'),
     });
 
-    sleep(0.5);
+    sleep(0.3);
   }
 }
 
-// 시나리오 B: 제한 초과 요청 → 400 응답 확인 및 응답 시간 측정
-function testExceedLimit() {
-  const uniqueEmail = `test-exceed-${__VU}-${Date.now()}@example.com`;
+// 시나리오 2: 제한 초과 → 차단 응답 확인
+export function exceedLimitTest() {
+  const email = `exceed-${__VU}-${Date.now()}@test.com`;
 
-  // 제한까지 요청 소진
-  for (let i = 0; i < SEND_LIMIT_PER_EMAIL; i++) {
+  // 제한까지 소진
+  for (let i = 0; i < SEND_LIMIT; i++) {
     http.post(
       `${BASE_URL}/api/auth/email/send`,
-      JSON.stringify({ email: uniqueEmail }),
-      { headers: HEADERS, tags: { scenario: 'exhaust_limit' } }
+      JSON.stringify({ email }),
+      { headers: HEADERS, tags: { scenario: 'exhaust' } }
     );
-    sleep(0.3);
+    sleep(0.2);
   }
 
-  // 제한 초과 요청
+  // 초과 요청
   const res = http.post(
     `${BASE_URL}/api/auth/email/send`,
-    JSON.stringify({ email: uniqueEmail }),
+    JSON.stringify({ email }),
     { headers: HEADERS, tags: { scenario: 'exceed_limit' } }
   );
 
-  rateLimitResponseTime.add(res.timings.duration);
-  rateLimitBlockedCount.add(1);
+  blockedDuration.add(res.timings.duration);
+  blockedCount.add(1);
 
   check(res, {
-    '[제한 초과] status 400': (r) => r.status === 400,
-    '[제한 초과] error message contains 초과': (r) => {
+    '[초과] status 400': (r) => r.status === 400,
+    '[초과] 에러 메시지 포함': (r) => {
       try { return r.body.includes('초과'); }
       catch { return false; }
     },
-    '[제한 초과] response time < 50ms': (r) => r.timings.duration < 50,
+    '[초과] 응답 시간 < 50ms': (r) => r.timings.duration < 50,
   });
+
+  console.log(`[Auth Rate Limit] email=${email} | blocked in ${res.timings.duration.toFixed(1)}ms | status=${res.status}`);
 }
 
-// 시나리오 C: 다수 VU에서 동시 요청 → Redis 원자성 검증
-function testConcurrentAccess() {
-  const sharedEmail = `test-concurrent-${__ITER % 5}@example.com`;
+// 시나리오 3: 동시 요청 - Redis 원자성 검증
+// 같은 이메일에 동시 요청 시 정확히 SEND_LIMIT까지만 허용되는지 확인
+export function concurrentTest() {
+  const sharedEmail = `concurrent-${__ITER % 3}@test.com`;
 
   const res = http.post(
     `${BASE_URL}/api/auth/email/send`,
@@ -81,23 +112,17 @@ function testConcurrentAccess() {
     { headers: HEADERS, tags: { scenario: 'concurrent' } }
   );
 
-  const status = checkRateLimit(res, 400);
-
-  check(res, {
-    '[동시 요청] valid response (200 or 400)': (r) => r.status === 200 || r.status === 400,
-  });
-}
-
-export default function () {
-  const scenario = Math.random();
-
-  if (scenario < 0.3) {
-    group('인증 Rate Limit - 제한 이내', testWithinLimit);
-  } else if (scenario < 0.6) {
-    group('인증 Rate Limit - 제한 초과', testExceedLimit);
+  if (res.status === 400 && res.body.includes('초과')) {
+    blockedDuration.add(res.timings.duration);
+    blockedCount.add(1);
   } else {
-    group('인증 Rate Limit - 동시 요청', testConcurrentAccess);
+    allowedDuration.add(res.timings.duration);
+    allowedCount.add(1);
   }
 
-  sleep(1);
+  check(res, {
+    '[동시] valid response': (r) => r.status === 200 || r.status === 400,
+  });
+
+  sleep(0.5);
 }

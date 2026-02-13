@@ -1,6 +1,7 @@
 package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.weather.IssObservationResponse;
+import com.byeolnight.infrastructure.common.CacheResult;
 import com.github.amsacode.predict4java.TLE;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -137,10 +138,11 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            IssObservationResponse result = cacheResult.data();
             assertThat(result.getNextPassTime()).matches("\\d{2}:\\d{2}");
             assertThat(result.getNextPassDate()).matches("\\d{4}-\\d{2}-\\d{2}");
             assertThat(result.getNextPassDirection()).isIn(
@@ -160,10 +162,11 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(35.1796, 129.0756);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(35.1796, 129.0756);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            IssObservationResponse result = cacheResult.data();
             assertThat(result.getNextPassTime()).isNotBlank();
             assertThat(result.getNextPassDirection()).isNotBlank();
         }
@@ -176,10 +179,11 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(33.4996, 126.5312);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(33.4996, 126.5312);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            IssObservationResponse result = cacheResult.data();
             assertThat(result.getNextPassTime()).isNotBlank();
             assertThat(result.getNextPassDate()).isNotBlank();
         }
@@ -192,12 +196,12 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when - 서로 다른 위치에서 조회
-            IssObservationResponse seoulResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
-            IssObservationResponse jejuResult = issService.getIssObservationOpportunity(33.4996, 126.5312);
+            CacheResult<IssObservationResponse> seoulCacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> jejuCacheResult = issService.getIssObservationOpportunity(33.4996, 126.5312);
 
             // then - 최소한 결과가 생성됨 (다른 위치이므로 다른 그리드)
-            assertThat(seoulResult).isNotNull();
-            assertThat(jejuResult).isNotNull();
+            assertThat(seoulCacheResult).isNotNull();
+            assertThat(jejuCacheResult).isNotNull();
             // SGP4로 계산되었다면 "5-7분" 같은 하드코딩 값이 아님
             // 폴백인 경우도 허용 (오래된 TLE로 인해)
         }
@@ -215,11 +219,15 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when - 동일 좌표로 두 번 호출
-            IssObservationResponse result1 = issService.getIssObservationOpportunity(37.5665, 126.9780);
-            IssObservationResponse result2 = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult1 = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult2 = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then - TLE는 한 번만 요청 (두 번째는 캐시)
             verify(tleFetchService, times(1)).getIssTle();
+            assertThat(cacheResult1.cacheHit()).isFalse();
+            assertThat(cacheResult2.cacheHit()).isTrue();
+            IssObservationResponse result1 = cacheResult1.data();
+            IssObservationResponse result2 = cacheResult2.data();
             assertThat(result1.getNextPassTime()).isEqualTo(result2.getNextPassTime());
             assertThat(result1.getNextPassDirection()).isEqualTo(result2.getNextPassDirection());
             assertThat(result1.getEstimatedDuration()).isEqualTo(result2.getEstimatedDuration());
@@ -272,10 +280,12 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(null);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then - 폴백 기본값 확인
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            assertThat(cacheResult.cacheHit()).isFalse();
+            IssObservationResponse result = cacheResult.data();
             assertThat(result.getNextPassDirection()).isEqualTo("NORTHEAST");
             assertThat(result.getEstimatedDuration()).isEqualTo("5-7분");
             assertThat(result.getVisibilityQuality()).isEqualTo("GOOD");
@@ -289,10 +299,11 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willThrow(new RuntimeException("CelesTrak 연결 실패"));
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            IssObservationResponse result = cacheResult.data();
             assertThat(result.getNextPassTime()).isNotBlank();
             assertThat(result.getEstimatedDuration()).isEqualTo("5-7분");
         }
@@ -304,10 +315,10 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(null);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then
-            assertThat(result.getFriendlyMessage()).contains("ISS");
+            assertThat(cacheResult.data().getFriendlyMessage()).contains("ISS");
         }
 
         @Test
@@ -339,10 +350,10 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then
-            assertThat(result.getMessageKey()).isNotBlank();
+            assertThat(cacheResult.data().getMessageKey()).isNotBlank();
         }
 
         @Test
@@ -353,9 +364,10 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then
+            IssObservationResponse result = cacheResult.data();
             assertThat(result.getFriendlyMessage()).isNotBlank();
             assertThat(result.getFriendlyMessage()).contains("ISS");
         }
@@ -368,9 +380,10 @@ class IssServiceTest {
             given(tleFetchService.getIssTle()).willReturn(tle);
 
             // when
-            IssObservationResponse result = issService.getIssObservationOpportunity(37.5665, 126.9780);
+            CacheResult<IssObservationResponse> cacheResult = issService.getIssObservationOpportunity(37.5665, 126.9780);
 
             // then - SGP4 성공 시 maxElevation > 0, 폴백 시 null
+            IssObservationResponse result = cacheResult.data();
             if (!"5-7분".equals(result.getEstimatedDuration())) {
                 // SGP4로 실제 계산된 경우
                 assertThat(result.getMaxElevation()).isNotNull();
