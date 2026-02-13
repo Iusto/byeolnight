@@ -49,10 +49,13 @@ export function cacheHitTest() {
   );
 
   hitDuration.add(res.timings.duration);
-  hitRate.add(res.status === 200);
+
+  const isHit = res.headers['X-Cache'] === 'HIT';
+  hitRate.add(isHit);
 
   check(res, {
     '[히트] status 200': (r) => r.status === 200,
+    '[히트] X-Cache: HIT': (r) => r.headers['X-Cache'] === 'HIT',
     '[히트] has observationQuality': (r) => {
       try { return JSON.parse(r.body).observationQuality !== undefined; }
       catch { return false; }
@@ -77,6 +80,6 @@ export function cacheMissTest() {
 
   check(res, {
     '[미스] status 200': (r) => r.status === 200,
-    '[미스] response time > 100ms': (r) => r.timings.duration > 100,
+    '[미스] X-Cache: MISS': (r) => r.headers['X-Cache'] === 'MISS',
   });
 }

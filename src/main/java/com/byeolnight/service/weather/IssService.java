@@ -1,6 +1,7 @@
 package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.weather.IssObservationResponse;
+import com.byeolnight.infrastructure.common.CacheResult;
 import com.github.amsacode.predict4java.GroundStationPosition;
 import com.github.amsacode.predict4java.PassPredictor;
 import com.github.amsacode.predict4java.SatPassTime;
@@ -49,12 +50,13 @@ public class IssService {
         this.tleFetchService = tleFetchService;
     }
 
-    public IssObservationResponse getIssObservationOpportunity(double latitude, double longitude) {
+    public CacheResult<IssObservationResponse> getIssObservationOpportunity(double latitude, double longitude) {
         try {
             IssLocationData issData = fetchIssCurrentLocation();
-            IssPassData nextPass = calculateNextIssPass(latitude, longitude);
+            CacheResult<IssPassData> passResult = calculateNextIssPass(latitude, longitude);
+            IssPassData nextPass = passResult.data();
 
-            return IssObservationResponse.builder()
+            IssObservationResponse response = IssObservationResponse.builder()
                 .messageKey("iss.detailed_status")
                 .friendlyMessage(createIssStatusMessage(issData))
                 .currentAltitudeKm(issData != null ? issData.getAltitude() : null)
@@ -67,9 +69,11 @@ public class IssService {
                 .maxElevation(nextPass.getMaxElevation())
                 .build();
 
+            return new CacheResult<>(response, passResult.cacheHit());
+
         } catch (Exception e) {
             log.error("ISS 관측 정보 조회 실패: {}", e.getMessage());
-            return createFallbackIssInfo();
+            return new CacheResult<>(createFallbackIssInfo(), false);
         }
     }
 
@@ -124,7 +128,7 @@ public class IssService {
      * TLE + SGP4를 사용하여 실제 ISS 패스를 계산.
      * 위도/경도를 1도 단위로 그리드화하여 캐싱 (한국 내 사용자는 대부분 같은 캐시 히트).
      */
-    private IssPassData calculateNextIssPass(double latitude, double longitude) {
+    private CacheResult<IssPassData> calculateNextIssPass(double latitude, double longitude) {
         // 1도 단위 그리드 캐시 키
         String cacheKey = String.format("iss:%d:%d", Math.round(latitude), Math.round(longitude));
 
@@ -132,7 +136,7 @@ public class IssService {
         CachedPassData cached = passCache.get(cacheKey);
         if (cached != null && !cached.isExpired()) {
             log.debug("ISS 패스 캐시 HIT: {}", cacheKey);
-            return cached.getData();
+            return new CacheResult<>(cached.getData(), true);
         }
 
         // TLE 기반 실제 계산
@@ -140,7 +144,7 @@ public class IssService {
             TLE tle = tleFetchService.getIssTle();
             if (tle == null) {
                 log.warn("TLE 데이터 없음, 폴백 사용");
-                return createFallbackPassData();
+                return new CacheResult<>(createFallbackPassData(), false);
             }
 
             GroundStationPosition observer = new GroundStationPosition(latitude, longitude, 0);
@@ -149,7 +153,7 @@ public class IssService {
 
             if (passTime == null) {
                 log.warn("다음 ISS 패스를 찾을 수 없음: lat={}, lon={}", latitude, longitude);
-                return createFallbackPassData();
+                return new CacheResult<>(createFallbackPassData(), false);
             }
 
             // 패스 시작/종료 시간으로 지속 시간 계산
@@ -184,11 +188,11 @@ public class IssService {
                     cacheKey, passStart.format(DateTimeFormatter.ofPattern("HH:mm")),
                     passTime.getAosAzimuth(), durationMinutes, String.format("%.1f", maxEl));
 
-            return passData;
+            return new CacheResult<>(passData, false);
 
         } catch (Exception e) {
             log.error("SGP4 패스 계산 실패: {}", e.getMessage(), e);
-            return createFallbackPassData();
+            return new CacheResult<>(createFallbackPassData(), false);
         }
     }
 

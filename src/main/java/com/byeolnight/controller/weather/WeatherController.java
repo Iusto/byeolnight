@@ -2,6 +2,7 @@ package com.byeolnight.controller.weather;
 
 import com.byeolnight.dto.weather.IssObservationResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
+import com.byeolnight.infrastructure.common.CacheResult;
 import com.byeolnight.service.weather.IssService;
 import com.byeolnight.service.weather.WeatherService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,10 +45,11 @@ public class WeatherController {
         }
 
         try {
-            WeatherResponse response = weatherService.getObservationConditions(latitude, longitude);
+            CacheResult<WeatherResponse> result = weatherService.getObservationConditions(latitude, longitude);
             return ResponseEntity.ok()
+                    .header("X-Cache", result.cacheHit() ? "HIT" : "MISS")
                     .header("Cache-Control", "public, max-age=600")
-                    .body(response);
+                    .body(result.data());
         } catch (Exception e) {
             log.error("날씨 데이터 조회 실패", e);
             return ResponseEntity.internalServerError().build();
@@ -69,8 +71,10 @@ public class WeatherController {
         }
         
         try {
-            IssObservationResponse issData = issService.getIssObservationOpportunity(latitude, longitude);
-            return ResponseEntity.ok(issData);
+            CacheResult<IssObservationResponse> result = issService.getIssObservationOpportunity(latitude, longitude);
+            return ResponseEntity.ok()
+                    .header("X-Cache", result.cacheHit() ? "HIT" : "MISS")
+                    .body(result.data());
         } catch (Exception e) {
             log.error("ISS 관측 정보 조회 실패", e);
             return ResponseEntity.internalServerError().build();
