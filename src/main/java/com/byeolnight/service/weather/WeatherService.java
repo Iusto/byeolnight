@@ -2,9 +2,8 @@ package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
-import com.byeolnight.infrastructure.common.CacheResult;
 import com.byeolnight.infrastructure.util.CoordinateUtils;
-import lombok.RequiredArgsConstructor;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,11 +20,11 @@ import java.util.Optional;
  * - 캐시에 없으면 실시간 API 호출
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class WeatherService {
 
     private final WeatherLocalCacheService localCacheService;
+    private final MeterRegistry meterRegistry;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${weather.api.key}")
@@ -34,12 +33,17 @@ public class WeatherService {
     @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
     private String apiUrl;
 
+    public WeatherService(WeatherLocalCacheService localCacheService, MeterRegistry meterRegistry) {
+        this.localCacheService = localCacheService;
+        this.meterRegistry = meterRegistry;
+    }
+
     /**
      * 별관측 날씨 조회
      * - 로컬 캐시에서 조회 (스케줄러가 30분마다 갱신)
      * - 캐시에 없으면 실시간 API 호출 후 캐시 저장
      */
-    public CacheResult<WeatherResponse> getObservationConditions(Double latitude, Double longitude) {
+    public WeatherResponse getObservationConditions(Double latitude, Double longitude) {
         // 좌표 반올림 & 캐시 키 생성
         double roundedLat = CoordinateUtils.roundCoordinate(latitude);
         double roundedLon = CoordinateUtils.roundCoordinate(longitude);
@@ -49,18 +53,20 @@ public class WeatherService {
         Optional<WeatherResponse> cached = localCacheService.get(cacheKey);
         if (cached.isPresent()) {
             log.debug("캐시에서 날씨 반환: cacheKey={}", cacheKey);
-            return new CacheResult<>(cached.get(), true);
+            meterRegistry.counter("cache.weather.hit").increment();
+            return cached.get();
         }
 
         // 캐시에 없으면 실시간 API 호출
         log.info("캐시 MISS: cacheKey={} - 실시간 API 호출", cacheKey);
+        meterRegistry.counter("cache.weather.miss").increment();
         try {
             WeatherResponse realTimeData = fetchWeatherDataFromAPI(roundedLat, roundedLon);
             localCacheService.put(cacheKey, realTimeData);
-            return new CacheResult<>(realTimeData, false);
+            return realTimeData;
         } catch (Exception e) {
             log.error("실시간 날씨 API 호출 실패: lat={}, lon={}, error={}", latitude, longitude, e.getMessage());
-            return new CacheResult<>(createFallbackResponse(latitude, longitude), false);
+            return createFallbackResponse(latitude, longitude);
         }
     }
 
