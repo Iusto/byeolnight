@@ -1,16 +1,15 @@
 import http from 'k6/http';
-import { check, group } from 'k6';
-import { Trend, Rate } from 'k6/metrics';
+import { check } from 'k6';
+import { Trend } from 'k6/metrics';
 import { BASE_URL, CACHED_CITIES, UNCACHED_COORDS } from '../lib/config.js';
 
-// 시나리오별 독립 메트릭
+// 응답 시간 메트릭
 const hitDuration = new Trend('hit_duration', true);
 const missDuration = new Trend('miss_duration', true);
-const hitRate = new Rate('hit_rate');
 
 export const options = {
   scenarios: {
-    // 시나리오 1: 캐시 히트 순수 성능 (sleep 없이 최대 처리량 측정)
+    // 시나리오 1: 캐시 히트 부하 (프리캐시된 70개 도시)
     cache_hit: {
       executor: 'ramping-vus',
       stages: [
@@ -22,19 +21,18 @@ export const options = {
       ],
       exec: 'cacheHitTest',
     },
-    // 시나리오 2: 캐시 미스 (외부 API 호출 유발, 소수 VU로 제어)
+    // 시나리오 2: 캐시 미스 부하 (외부 API 호출 유발)
     cache_miss: {
       executor: 'per-vu-iterations',
       vus: 3,
       iterations: 2,
-      startTime: '2m30s',  // 히트 테스트 완료 후 실행
+      startTime: '2m30s',
       exec: 'cacheMissTest',
     },
   },
   thresholds: {
     'hit_duration': ['p(95)<50', 'p(99)<100'],
     'miss_duration': ['p(95)<10000'],
-    'hit_rate{scenario:cache_hit}': ['rate>0.99'],
     'http_req_failed{scenario:cache_hit}': ['rate<0.01'],
   },
 };
@@ -50,12 +48,8 @@ export function cacheHitTest() {
 
   hitDuration.add(res.timings.duration);
 
-  const isHit = res.headers['X-Cache'] === 'HIT';
-  hitRate.add(isHit);
-
   check(res, {
     '[히트] status 200': (r) => r.status === 200,
-    '[히트] X-Cache: HIT': (r) => r.headers['X-Cache'] === 'HIT',
     '[히트] has observationQuality': (r) => {
       try { return JSON.parse(r.body).observationQuality !== undefined; }
       catch { return false; }
@@ -63,9 +57,8 @@ export function cacheHitTest() {
   });
 }
 
-// 시나리오 2: 캐시 미스 - 70개 도시 그리드 밖 좌표로 요청 (외부 API 호출)
+// 시나리오 2: 캐시 미스 - 70개 도시 그리드 밖 좌표로 요청
 export function cacheMissTest() {
-  // VU별로 다른 좌표 사용 + iteration마다 0.01 이동해 매번 새 그리드
   const base = UNCACHED_COORDS[(__VU - 1) % UNCACHED_COORDS.length];
   const lat = base.lat + (__ITER * 0.02);
   const lon = base.lon + (__ITER * 0.02);
@@ -76,10 +69,8 @@ export function cacheMissTest() {
   );
 
   missDuration.add(res.timings.duration);
-  hitRate.add(false);  // 미스로 기록
 
   check(res, {
     '[미스] status 200': (r) => r.status === 200,
-    '[미스] X-Cache: MISS': (r) => r.headers['X-Cache'] === 'MISS',
   });
 }

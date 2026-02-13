@@ -49,7 +49,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, metrics
   health:
     mail:
       enabled: false
