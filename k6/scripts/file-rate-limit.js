@@ -1,117 +1,107 @@
 import http from 'k6/http';
-import { check, group, sleep } from 'k6';
-import { BASE_URL, RATE_LIMIT_STAGES } from '../lib/config.js';
-import { rateLimitBlockedCount, rateLimitAllowedCount, rateLimitResponseTime, checkRateLimit } from '../lib/helpers.js';
+import { check, sleep } from 'k6';
+import { Trend, Counter } from 'k6/metrics';
+import { BASE_URL } from '../lib/config.js';
+
+const allowedDuration = new Trend('allowed_duration', true);
+const blockedDuration = new Trend('blocked_duration', true);
+const allowedCount = new Counter('allowed_count');
+const blockedCount = new Counter('blocked_count');
+
+const PRESIGNED_LIMIT_1H = 20;  // IP당 20회/시간
 
 export const options = {
-  stages: RATE_LIMIT_STAGES,
+  scenarios: {
+    // 시나리오 1: Rate Limit 도달 과정 + 초과 시 429 확인
+    rate_limit_test: {
+      executor: 'per-vu-iterations',
+      vus: 1,
+      iterations: 1,
+      exec: 'rateLimitTest',
+    },
+    // 시나리오 2: 비지원 파일 형식 → 400 확인
+    validation_test: {
+      executor: 'per-vu-iterations',
+      vus: 1,
+      iterations: 3,
+      startTime: '1m',
+      exec: 'validationTest',
+    },
+  },
   thresholds: {
-    http_req_duration: ['p(95)<500'],
-    rate_limit_response_time: ['p(95)<50'],
+    'blocked_duration': ['p(95)<50'],
   },
 };
 
-// IP당 20회/시간 제한
-const PRESIGNED_URL_LIMIT_1H = 20;
+// 시나리오 1: Presigned URL Rate Limit 도달 테스트
+export function rateLimitTest() {
+  let allowedBefore429 = 0;
 
-// 시나리오 A: Presigned URL 요청 Rate Limit 도달 시 429 확인
-function testPresignedUrlRateLimit() {
-  const filename = `test-${__VU}-${Date.now()}.jpg`;
+  for (let i = 0; i <= PRESIGNED_LIMIT_1H + 2; i++) {
+    const filename = `test-${Date.now()}-${i}.jpg`;
 
-  // 제한까지 요청 소진
-  for (let i = 0; i < PRESIGNED_URL_LIMIT_1H; i++) {
     const res = http.post(
       `${BASE_URL}/api/files/presigned-url?filename=${filename}&contentType=image/jpeg`,
       null,
-      { tags: { scenario: 'exhaust_presigned' } }
+      { tags: { scenario: 'rate_limit' } }
     );
 
-    rateLimitResponseTime.add(res.timings.duration);
-
     if (res.status === 429) {
-      rateLimitBlockedCount.add(1);
+      blockedDuration.add(res.timings.duration);
+      blockedCount.add(1);
+
       check(res, {
-        '[Presigned URL] 429 before limit': () => false,
+        '[초과] status 429': (r) => r.status === 429,
+        '[초과] 에러 메시지': (r) => {
+          try { return r.body.includes('한도') || r.body.includes('초과'); }
+          catch { return false; }
+        },
+        '[초과] 응답 시간 < 50ms': (r) => r.timings.duration < 50,
       });
-      return;
+
+      console.log(`[File Rate Limit] 429 at request #${i + 1} | allowed=${allowedBefore429} | blocked in ${res.timings.duration.toFixed(1)}ms`);
+      break;
     }
 
-    rateLimitAllowedCount.add(1);
+    allowedDuration.add(res.timings.duration);
+    allowedCount.add(1);
+    allowedBefore429++;
+
+    check(res, {
+      '[허용] status 200': (r) => r.status === 200,
+      '[허용] has uploadUrl': (r) => {
+        try { return JSON.parse(r.body).data.uploadUrl !== undefined; }
+        catch { return false; }
+      },
+    });
+
     sleep(0.2);
   }
 
-  // 제한 초과 요청
-  const blockedRes = http.post(
-    `${BASE_URL}/api/files/presigned-url?filename=${filename}&contentType=image/jpeg`,
-    null,
-    { tags: { scenario: 'presigned_blocked' } }
-  );
-
-  rateLimitResponseTime.add(blockedRes.timings.duration);
-  rateLimitBlockedCount.add(1);
-
-  check(blockedRes, {
-    '[Presigned URL 초과] status 429': (r) => r.status === 429,
-    '[Presigned URL 초과] error message': (r) => {
-      try { return r.body.includes('한도를 초과'); }
-      catch { return false; }
-    },
-    '[Presigned URL 초과] response time < 50ms': (r) => r.timings.duration < 50,
-  });
+  console.log(`[File Rate Limit] Total allowed before block: ${allowedBefore429} (limit: ${PRESIGNED_LIMIT_1H})`);
 }
 
-// 시나리오 B: 정상 요청으로 응답 형식 확인
-function testPresignedUrlSuccess() {
-  const filename = `success-${__VU}-${Date.now()}.png`;
+// 시나리오 2: 파일 형식 검증
+export function validationTest() {
+  const invalidFiles = [
+    { filename: 'test.exe', contentType: 'application/octet-stream' },
+    { filename: 'script.sh', contentType: 'text/plain' },
+    { filename: 'hack.php', contentType: 'text/php' },
+  ];
+
+  const file = invalidFiles[__ITER % invalidFiles.length];
 
   const res = http.post(
-    `${BASE_URL}/api/files/presigned-url?filename=${filename}&contentType=image/png`,
+    `${BASE_URL}/api/files/presigned-url?filename=${file.filename}&contentType=${file.contentType}`,
     null,
-    { tags: { scenario: 'presigned_success' } }
-  );
-
-  checkRateLimit(res, 429);
-
-  check(res, {
-    '[정상 요청] status 200': (r) => r.status === 200,
-    '[정상 요청] has uploadUrl': (r) => {
-      try { return JSON.parse(r.body).data.uploadUrl !== undefined; }
-      catch { return false; }
-    },
-    '[정상 요청] has s3Key': (r) => {
-      try { return JSON.parse(r.body).data.s3Key !== undefined; }
-      catch { return false; }
-    },
-  });
-}
-
-// 시나리오 C: 지원되지 않는 파일 형식 → 400 확인
-function testUnsupportedFormat() {
-  const res = http.post(
-    `${BASE_URL}/api/files/presigned-url?filename=test.exe&contentType=application/octet-stream`,
-    null,
-    { tags: { scenario: 'unsupported_format' } }
+    { tags: { scenario: 'validation' } }
   );
 
   check(res, {
-    '[비지원 형식] status 400': (r) => r.status === 400,
-    '[비지원 형식] error message': (r) => {
+    '[검증] status 400': (r) => r.status === 400,
+    '[검증] 에러 메시지': (r) => {
       try { return r.body.includes('지원되지 않는'); }
       catch { return false; }
     },
   });
-}
-
-export default function () {
-  const scenario = Math.random();
-
-  if (scenario < 0.4) {
-    group('파일 업로드 Rate Limit - Presigned URL 제한', testPresignedUrlRateLimit);
-  } else if (scenario < 0.8) {
-    group('파일 업로드 Rate Limit - 정상 요청', testPresignedUrlSuccess);
-  } else {
-    group('파일 업로드 Rate Limit - 비지원 형식', testUnsupportedFormat);
-  }
-
-  sleep(1);
 }

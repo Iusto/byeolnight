@@ -1,99 +1,103 @@
 import http from 'k6/http';
-import { check, group, sleep } from 'k6';
-import { BASE_URL, CACHED_CITIES, DEFAULT_STAGES } from '../lib/config.js';
-import { cacheHitDuration, cacheMissDuration, cacheHitRate, randomItem } from '../lib/helpers.js';
+import { check, sleep } from 'k6';
+import { Trend, Rate, Counter } from 'k6/metrics';
+import { BASE_URL, ISS_UNIQUE_GRIDS, ISS_HIT_CITIES } from '../lib/config.js';
+
+// 시나리오별 독립 메트릭
+const firstAccessDuration = new Trend('first_access_duration', true);
+const cachedAccessDuration = new Trend('cached_access_duration', true);
+const lazyLoadSpeedup = new Rate('lazy_load_speedup');
+const hitDuration = new Trend('hit_duration', true);
 
 export const options = {
-  stages: DEFAULT_STAGES,
+  scenarios: {
+    // 시나리오 1: Lazy loading 검증 (고유 그리드 좌표로 미스 → 히트 순차 측정)
+    lazy_loading: {
+      executor: 'per-vu-iterations',
+      vus: 5,
+      iterations: 2,
+      exec: 'lazyLoadingTest',
+    },
+    // 시나리오 2: 캐시 히트 부하 테스트 (lazy loading으로 워밍업된 후)
+    cache_hit: {
+      executor: 'ramping-vus',
+      stages: [
+        { duration: '15s', target: 10 },
+        { duration: '30s', target: 50 },
+        { duration: '1m',  target: 50 },
+        { duration: '30s', target: 100 },
+        { duration: '15s', target: 0 },
+      ],
+      startTime: '1m',  // lazy loading 완료 후 실행
+      exec: 'cacheHitTest',
+    },
+  },
   thresholds: {
-    http_req_duration: ['p(95)<500', 'p(99)<1000'],
-    http_req_failed: ['rate<0.01'],
-    cache_hit_duration: ['p(95)<100'],
-    cache_hit_rate: ['rate>0.8'],
+    'hit_duration': ['p(95)<50'],
+    'cached_access_duration': ['p(95)<50'],
+    'http_req_failed': ['rate<0.01'],
   },
 };
 
-// ISS 캐시 키는 1도 그리드 (iss:LAT:LON) → 같은 그리드 내 좌표는 캐시 히트
-const ISS_PRECACHED_CITIES = CACHED_CITIES.slice(0, 10);
+// 시나리오 1: Lazy loading - 첫 요청(미스) → 재요청(히트) 비교
+export function lazyLoadingTest() {
+  // VU * iteration 조합으로 고유 그리드 보장
+  const idx = ((__VU - 1) * 2 + __ITER) % ISS_UNIQUE_GRIDS.length;
+  const coord = ISS_UNIQUE_GRIDS[idx];
 
-// 캐시 미스 좌표 (프리캐시되지 않은 1도 그리드)
-const ISS_UNCACHED_COORDS = [
-  { lat: 33.12, lon: 125.45 },
-  { lat: 38.90, lon: 130.12 },
-  { lat: 34.22, lon: 131.55 },
-];
-
-// 시나리오 A: 프리캐시된 도시 좌표 반복 요청
-function testPreCachedCity() {
-  const city = randomItem(ISS_PRECACHED_CITIES);
-  const res = http.get(
-    `${BASE_URL}/api/weather/iss?latitude=${city.lat}&longitude=${city.lon}`,
-    { tags: { scenario: 'iss_cache_hit', city: city.name } }
-  );
-
-  const duration = res.timings.duration;
-  const isHit = duration < 200;
-  cacheHitRate.add(isHit);
-
-  if (isHit) {
-    cacheHitDuration.add(duration);
-  } else {
-    cacheMissDuration.add(duration);
-  }
-
-  check(res, {
-    '[ISS 캐시 히트] status 200': (r) => r.status === 200,
-    '[ISS 캐시 히트] has messageKey': (r) => {
-      try { return JSON.parse(r.body).messageKey !== undefined; }
-      catch { return false; }
-    },
-  });
-}
-
-// 시나리오 B: 캐시 미등록 좌표 요청 후 재요청 (lazy loading 검증)
-function testLazyLoading() {
-  const coord = ISS_UNCACHED_COORDS[Math.floor(Math.random() * ISS_UNCACHED_COORDS.length)];
-
-  // 첫 번째 요청: 캐시 미스 (lazy loading 트리거)
+  // 1st 요청: 캐시 미스 (TLE 궤도 계산 발생)
   const res1 = http.get(
     `${BASE_URL}/api/weather/iss?latitude=${coord.lat}&longitude=${coord.lon}`,
-    { tags: { scenario: 'iss_lazy_first' }, timeout: '15s' }
+    { tags: { scenario: 'lazy_first' }, timeout: '30s' }
   );
 
-  cacheMissDuration.add(res1.timings.duration);
+  firstAccessDuration.add(res1.timings.duration);
 
   check(res1, {
     '[Lazy 1st] status 200': (r) => r.status === 200,
   });
 
-  sleep(1);
+  sleep(0.5);
 
-  // 두 번째 요청: 캐시 히트 (lazy loaded 데이터)
+  // 2nd 요청: 캐시 히트 (동일 그리드)
   const res2 = http.get(
     `${BASE_URL}/api/weather/iss?latitude=${coord.lat}&longitude=${coord.lon}`,
-    { tags: { scenario: 'iss_lazy_second' } }
+    { tags: { scenario: 'lazy_second' } }
   );
 
-  const isHit = res2.timings.duration < 200;
-  cacheHitRate.add(isHit);
-  if (isHit) {
-    cacheHitDuration.add(res2.timings.duration);
-  }
+  cachedAccessDuration.add(res2.timings.duration);
+
+  const isFaster = res2.timings.duration < res1.timings.duration * 0.5;
+  lazyLoadSpeedup.add(isFaster);
 
   check(res2, {
     '[Lazy 2nd] status 200': (r) => r.status === 200,
-    '[Lazy 2nd] faster than 1st': () => res2.timings.duration < res1.timings.duration,
+    '[Lazy 2nd] 50% 이상 빨라짐': () => isFaster,
   });
+
+  console.log(
+    `[ISS Lazy] grid=${coord.name} | 1st=${res1.timings.duration.toFixed(1)}ms → 2nd=${res2.timings.duration.toFixed(1)}ms | speedup=${(res1.timings.duration / res2.timings.duration).toFixed(1)}x`
+  );
 }
 
-export default function () {
-  group('ISS 캐시 테스트', () => {
-    if (Math.random() < 0.8) {
-      testPreCachedCity();
-    } else {
-      testLazyLoading();
-    }
-  });
+// 시나리오 2: 캐시 히트 부하 테스트
+export function cacheHitTest() {
+  // lazy loading 테스트에서 워밍업된 도시 좌표 사용
+  const city = ISS_HIT_CITIES[Math.floor(Math.random() * ISS_HIT_CITIES.length)];
 
-  sleep(Math.random() * 2 + 0.5);
+  // 먼저 한번 요청해서 캐시 적재 보장 (이미 적재되어 있으면 무시됨)
+  const res = http.get(
+    `${BASE_URL}/api/weather/iss?latitude=${city.lat}&longitude=${city.lon}`,
+    { tags: { scenario: 'cache_hit' } }
+  );
+
+  hitDuration.add(res.timings.duration);
+
+  check(res, {
+    '[히트] status 200': (r) => r.status === 200,
+    '[히트] has messageKey': (r) => {
+      try { return JSON.parse(r.body).messageKey !== undefined; }
+      catch { return false; }
+    },
+  });
 }
