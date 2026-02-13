@@ -2,6 +2,7 @@ package com.byeolnight.service.weather;
 
 import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
+import com.byeolnight.infrastructure.common.CacheResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -77,10 +78,12 @@ class WeatherServiceTest {
             given(localCacheService.get(anyString())).willReturn(Optional.of(cachedResponse));
 
             // when
-            WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
+            CacheResult<WeatherResponse> cacheResult = weatherService.getObservationConditions(latitude, longitude);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            assertThat(cacheResult.cacheHit()).isTrue();
+            WeatherResponse result = cacheResult.data();
             assertThat(result.getLocation()).isEqualTo("서울");
             assertThat(result.getCloudCover()).isEqualTo(30.0);
             verify(localCacheService, times(1)).get(anyString());
@@ -103,10 +106,12 @@ class WeatherServiceTest {
             given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
 
             // when
-            WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
+            CacheResult<WeatherResponse> cacheResult = weatherService.getObservationConditions(latitude, longitude);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            assertThat(cacheResult.cacheHit()).isFalse();
+            WeatherResponse result = cacheResult.data();
             assertThat(result.getLocation()).isEqualTo("Seoul");
             assertThat(result.getLatitude()).isEqualTo(expectedLat);
             assertThat(result.getLongitude()).isEqualTo(expectedLon);
@@ -131,10 +136,12 @@ class WeatherServiceTest {
             given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
 
             // when
-            WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
+            CacheResult<WeatherResponse> cacheResult = weatherService.getObservationConditions(latitude, longitude);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            assertThat(cacheResult.cacheHit()).isFalse();
+            WeatherResponse result = cacheResult.data();
             assertThat(result.getLocation()).isEqualTo("Busan");
             assertThat(result.getLatitude()).isEqualTo(expectedLat);
             assertThat(result.getLongitude()).isEqualTo(expectedLon);
@@ -158,10 +165,12 @@ class WeatherServiceTest {
             given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
 
             // when
-            WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
+            CacheResult<WeatherResponse> cacheResult = weatherService.getObservationConditions(latitude, longitude);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            assertThat(cacheResult.cacheHit()).isFalse();
+            WeatherResponse result = cacheResult.data();
             assertThat(result.getLocation()).isEqualTo("Jeju");
             assertThat(result.getLatitude()).isEqualTo(expectedLat);
             assertThat(result.getLongitude()).isEqualTo(expectedLon);
@@ -181,10 +190,12 @@ class WeatherServiceTest {
                     .willThrow(new RuntimeException("API 호출 실패"));
 
             // when
-            WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
+            CacheResult<WeatherResponse> cacheResult = weatherService.getObservationConditions(latitude, longitude);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(cacheResult).isNotNull();
+            assertThat(cacheResult.cacheHit()).isFalse();
+            WeatherResponse result = cacheResult.data();
             assertThat(result.getLocation()).isEqualTo("알 수 없음");
             assertThat(result.getObservationQuality()).isEqualTo("UNKNOWN");
             assertThat(result.getCloudCover()).isEqualTo(50.0);
@@ -215,9 +226,10 @@ class WeatherServiceTest {
 
             // when & then
             for (int i = 0; i < locations.length; i++) {
-                WeatherResponse result = weatherService.getObservationConditions(latitudes[i], longitudes[i]);
+                CacheResult<WeatherResponse> cacheResult = weatherService.getObservationConditions(latitudes[i], longitudes[i]);
 
-                assertThat(result).isNotNull();
+                assertThat(cacheResult).isNotNull();
+                WeatherResponse result = cacheResult.data();
                 assertThat(result.getLocation()).isEqualTo(locations[i]);
                 assertThat(result.getLatitude()).isCloseTo(expectedLats[i], org.assertj.core.data.Offset.offset(0.0001));
                 assertThat(result.getLongitude()).isCloseTo(expectedLons[i], org.assertj.core.data.Offset.offset(0.0001));
@@ -248,13 +260,15 @@ class WeatherServiceTest {
             given(localCacheService.get(anyString())).willReturn(Optional.of(cachedResponse));
 
             // when
-            WeatherResponse result1 = weatherService.getObservationConditions(latitude1, longitude);
-            WeatherResponse result2 = weatherService.getObservationConditions(latitude2, longitude);
+            CacheResult<WeatherResponse> result1 = weatherService.getObservationConditions(latitude1, longitude);
+            CacheResult<WeatherResponse> result2 = weatherService.getObservationConditions(latitude2, longitude);
 
             // then
             // 두 결과 모두 캐시에서 가져와야 함
             assertThat(result1).isNotNull();
+            assertThat(result1.cacheHit()).isTrue();
             assertThat(result2).isNotNull();
+            assertThat(result2.cacheHit()).isTrue();
             verify(localCacheService, atLeastOnce()).get(anyString());
         }
     }
