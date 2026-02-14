@@ -30,8 +30,9 @@ public final class AuthWhitelist {
             "/v3/api-docs/**",
             "/swagger-resources/**",
             
-            // 헬스체크
+            // 헬스체크 & 메트릭
             "/actuator/health",
+            "/actuator/metrics/**",
             
             // 정적 리소스
             "/favicon.ico",
