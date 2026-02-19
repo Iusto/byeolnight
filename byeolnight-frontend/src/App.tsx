@@ -27,6 +27,7 @@ import MessagesPage from './pages/MessagesPage';
 import OAuthCallback from './pages/OAuthCallback';
 import OAuthNicknameSetup from './pages/OAuthNicknameSetup';
 import OAuthRecover from './pages/OAuthRecover';
+import NotFound from './pages/NotFound';
 
 // 정적 파일 경로 확인 함수
 const isStaticFilePath = (pathname: string): boolean => {
@@ -88,6 +89,7 @@ function App() {
         <Route path="/suggestions/:id" element={<SuggestionDetail />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )
