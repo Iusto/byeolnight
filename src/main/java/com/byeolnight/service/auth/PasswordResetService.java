@@ -3,13 +3,14 @@ package com.byeolnight.service.auth;
 import com.byeolnight.entity.token.PasswordResetToken;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.PasswordResetTokenRepository;
-import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.UserQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.byeolnight.infrastructure.exception.EmailSendException;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.mail.MessagingException;
@@ -21,34 +22,40 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class PasswordResetService {
 
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final UserService userService;
+    private final UserQueryService userQueryService;
     private final JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
 
+    // 트랜잭션 없이 토큰 저장 후 이메일 발송 — 이메일 실패가 DB 롤백으로 이어지지 않음
+    @Transactional
+    public void saveResetToken(String email, String token) {
+        PasswordResetToken resetToken = PasswordResetToken.create(email, token, Duration.ofMinutes(30));
+        passwordResetTokenRepository.save(resetToken);
+    }
+
     public void sendPasswordResetEmail(String email) {
-        Optional<User> userOpt = userService.findByEmail(email);
+        Optional<User> userOpt = userQueryService.findByEmail(email);
         if (userOpt.isEmpty()) {
             log.warn("비밀번호 재설정 요청 - 존재하지 않는 이메일: {}", email);
             return; // 보안상 이메일 존재 여부를 노출하지 않음
         }
 
         String token = UUID.randomUUID().toString();
-        PasswordResetToken resetToken = PasswordResetToken.create(email, token, Duration.ofMinutes(30));
-        passwordResetTokenRepository.save(resetToken);
+        saveResetToken(email, token); // 트랜잭션 커밋 완료 후 이메일 발송
 
         try {
             sendResetEmail(email, token);
             log.info("비밀번호 재설정 이메일 전송 완료: {}", email);
         } catch (MessagingException e) {
             log.error("비밀번호 재설정 이메일 전송 실패: {}", email, e);
-            throw new RuntimeException("이메일 전송에 실패했습니다.");
+            throw new EmailSendException("이메일 전송에 실패했습니다.");
         }
     }
 
+    @Transactional(readOnly = true)
     public PasswordResetToken validateToken(String token) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
@@ -60,6 +67,7 @@ public class PasswordResetService {
         return resetToken;
     }
 
+    @Transactional
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
@@ -68,7 +76,7 @@ public class PasswordResetService {
             throw new IllegalArgumentException("만료되었거나 이미 사용된 토큰입니다.");
         }
 
-        User user = userService.findByEmail(resetToken.getEmail())
+        User user = userQueryService.findByEmail(resetToken.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
         // 소셜 로그인 사용자 체크

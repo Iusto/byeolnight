@@ -100,7 +100,7 @@ public class WeatherScheduler {
 
         OpenWeatherResponse response = restTemplate.getForObject(url, OpenWeatherResponse.class);
         if (response == null) {
-            throw new RuntimeException("API 응답이 null입니다");
+            throw new IllegalStateException("날씨 API 응답이 null입니다");
         }
         return response;
     }

@@ -179,6 +179,26 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 이메일 전송 실패 예외
+     */
+    @ExceptionHandler(EmailSendException.class)
+    public ResponseEntity<CommonResponse<?>> handleEmailSend(EmailSendException ex) {
+        log.error("[이메일 전송 실패] {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(CommonResponse.fail("이메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요."));
+    }
+
+    /**
+     * 파일 처리 실패 예외 (S3 업로드, Presigned URL 생성 등)
+     */
+    @ExceptionHandler(FileProcessingException.class)
+    public ResponseEntity<CommonResponse<?>> handleFileProcessing(FileProcessingException ex) {
+        log.error("[파일 처리 실패] {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(CommonResponse.fail("파일 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."));
+    }
+
+    /**
      * 그 외 알 수 없는 서버 에러
      */
     @ExceptionHandler(Exception.class)

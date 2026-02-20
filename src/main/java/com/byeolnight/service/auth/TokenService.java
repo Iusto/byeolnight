@@ -70,7 +70,8 @@ public class TokenService {
             byte[] hash = digest.digest(token.getBytes());
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Token 해싱 실패", e);
+            // SHA-256은 JVM에서 항상 지원되므로 실질적으로 도달 불가능한 경로
+            throw new IllegalStateException("SHA-256 알고리즘을 사용할 수 없습니다.", e);
         }
     }
 }

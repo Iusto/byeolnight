@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import com.byeolnight.infrastructure.exception.FileProcessingException;
 import com.byeolnight.dto.file.PresignedUrlResponseDto;
 
 import java.time.Duration;
@@ -153,7 +154,7 @@ public class S3Service {
 
         } catch (Exception e) {
             log.error("Presigned URL 생성 실패: {}", e.getMessage(), e);
-            throw new RuntimeException("파일 업로드 URL 생성에 실패했습니다.", e);
+            throw new FileProcessingException("파일 업로드 URL 생성에 실패했습니다.", e);
         }
     }
 
@@ -414,7 +415,7 @@ public class S3Service {
                     .build();
         } catch (Exception e) {
             log.error("S3 클라이언트 생성 실패", e);
-            throw new RuntimeException("S3 연결에 실패했습니다: " + e.getMessage(), e);
+            throw new FileProcessingException("S3 연결에 실패했습니다: " + e.getMessage(), e);
         }
     }
 
