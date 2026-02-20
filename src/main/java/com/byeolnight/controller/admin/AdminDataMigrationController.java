@@ -1,8 +1,6 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.service.user.UserService;
 import com.byeolnight.service.shop.StellaShopService;
-import com.byeolnight.service.post.PostService;
 import com.byeolnight.repository.post.PostRepository;
 import org.springframework.transaction.annotation.Transactional;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,9 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "👮 관리자 API - 데이터 마이그레이션", description = "데이터 마이그레이션 및 유지보수 API")
 public class AdminDataMigrationController {
 
-    private final UserService userService;
     private final StellaShopService stellaShopService;
-    private final PostService postService;
     private final PostRepository postRepository;
 
     @Operation(summary = "스텔라 아이콘 초기화", description = "전체 44개 스텔라 아이콘을 초기화합니다.")

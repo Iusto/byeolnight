@@ -273,6 +273,19 @@ public class UserAccountService {
         }
     }
 
+    @Transactional
+    public void migrateDefaultAsteroidIcon() {
+        List<User> allUsers = userRepository.findAll();
+        int processedCount = 0;
+        for (User user : allUsers) {
+            if (user.getStatus() == User.UserStatus.ACTIVE) {
+                grantDefaultAsteroidIcon(user);
+                processedCount++;
+            }
+        }
+        log.info("기본 소행성 아이콘 마이그레이션 완료: {}명 처리", processedCount);
+    }
+
     private void revokeSocialConnection(User user) {
         String provider = user.getSocialProvider();
         if (provider == null) return;

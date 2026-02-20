@@ -3,7 +3,7 @@ package com.byeolnight.controller.certificate;
 import com.byeolnight.dto.certificate.CertificateResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.certificate.CertificateService;
-import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.UserQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class PublicCertificateController {
 
     private final CertificateService certificateService;
-    private final UserService userService;
+    private final UserQueryService userQueryService;
 
     @Operation(summary = "사용자 대표 인증서 조회", description = """
     닉네임으로 사용자의 대표 인증서를 조회합니다.
@@ -36,7 +36,7 @@ public class PublicCertificateController {
     public ResponseEntity<CommonResponse<CertificateResponseDto>> getRepresentativeCertificateByNickname(
             @Parameter(description = "사용자 닉네임", example = "우주탐험가") @PathVariable String nickname) {
         
-        var user = userService.findByNickname(nickname);
+        var user = userQueryService.findByNickname(nickname);
         if (user.isEmpty()) {
             return ResponseEntity.ok(CommonResponse.error("사용자를 찾을 수 없습니다."));
         }

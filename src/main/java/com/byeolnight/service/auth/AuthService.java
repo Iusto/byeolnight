@@ -9,8 +9,10 @@ import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.UserAdminService;
+import com.byeolnight.service.user.UserQueryService;
 import com.byeolnight.service.user.UserSecurityService;
-import com.byeolnight.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -30,7 +32,9 @@ import jakarta.servlet.http.Cookie;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserService userService;
+    private final UserQueryService userQueryService;
+    private final UserAccountService userAccountService;
+    private final UserAdminService userAdminService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuditLoginLogRepository auditLoginLogRepository;
     private final AuditSignupLogRepository auditSignupLogRepository;
@@ -56,7 +60,7 @@ public class AuthService {
         validatePassword(dto.getPassword(), user, ip, userAgent);
 
         // 로그인 성공 처리
-        userService.resetLoginFailCount(user);
+        userAdminService.resetLoginFailCount(user);
         auditLoginLogRepository.save(AuditLoginLog.of(user.getEmail(), ip, userAgent));
 
         // 인증서 발급 체크
@@ -74,7 +78,7 @@ public class AuthService {
     }
 
     private User findAndValidateUser(String email, String ip) {
-        User user = userService.findByEmail(email)
+        User user = userQueryService.findByEmail(email)
                 .orElseThrow(() -> {
                     auditSignupLogRepository.save(AuditSignupLog.failure(email, ip, "존재하지 않는 이메일"));
                     return new BadCredentialsException("존재하지 않는 아이디입니다.");
@@ -117,8 +121,8 @@ public class AuthService {
             }
         }
         
-        if (!userService.checkPassword(password, user)) {
-            userService.increaseLoginFailCount(user, ip, userAgent);
+        if (!userAccountService.checkPassword(password, user)) {
+            userAdminService.increaseLoginFailCount(user, ip, userAgent);
             // log.info("로그인 시도 실패: 비밀번호 불일치 - {} (IP: {})", user.getEmail(), ip);
 
             int failCount = user.getLoginFailCount();
@@ -148,7 +152,7 @@ public class AuthService {
     public User findOrCreateOAuthUser(String registrationId, OAuth2User oAuth2User) {
         OAuth2UserInfoFactory.OAuth2UserInfo userInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(registrationId, oAuth2User);
         
-        return userService.findByEmail(userInfo.getEmail())
+        return userQueryService.findByEmail(userInfo.getEmail())
                 .orElseGet(() -> createOAuthUser(userInfo));
     }
 
@@ -162,16 +166,16 @@ public class AuthService {
 
                 .build();
         
-        return userService.save(user);
+        return userAccountService.save(user);
     }
 
     public boolean needsNicknameSetup(Long userId) {
-        User user = userService.findById(userId);
+        User user = userQueryService.findById(userId);
         return user.getNickname() == null || user.getNickname().trim().isEmpty();
     }
 
     public String[] loginUser(User user, String clientInfo, String ipAddress, HttpServletResponse response) {
-        String[] tokens = jwtTokenProvider.generateTokens(user.getId(), clientInfo, ipAddress);
+        String[] tokens = jwtTokenProvider.generateTokens(user, clientInfo, ipAddress);
         
         // HttpOnly 쿠키로 Refresh Token 설정
         Cookie refreshCookie = new Cookie("refreshToken", tokens[1]);
@@ -186,7 +190,7 @@ public class AuthService {
     }
 
     private LoginResult createTokens(User user, String ipAddress, String userAgent) {
-        String[] tokens = jwtTokenProvider.generateTokens(user.getId(), userAgent, ipAddress);
+        String[] tokens = jwtTokenProvider.generateTokens(user, userAgent, ipAddress);
         
         return new LoginResult(tokens[0], tokens[1], 7 * 24 * 60 * 60 * 1000L);
     }
