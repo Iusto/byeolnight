@@ -13,6 +13,7 @@ import com.byeolnight.infrastructure.exception.SuggestionAccessDeniedException;
 import com.byeolnight.infrastructure.exception.SuggestionModificationException;
 import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ public class SuggestionService {
     private final SuggestionRepository suggestionRepository;
     private final UserRepository userRepository;
     private final CertificateService certificateService;
+    private final NotificationService notificationService;
 
     // 건의사항 목록 조회 (공개 건의사항만)
     public SuggestionDto.ListResponse getSuggestions(
@@ -176,11 +178,7 @@ public class SuggestionService {
         
         // 건의사항 작성자에게 알림 전송
         try {
-            com.byeolnight.service.notification.NotificationService notificationService = 
-                com.byeolnight.infrastructure.config.ApplicationContextProvider
-                    .getBean(com.byeolnight.service.notification.NotificationService.class);
-            
-            String notificationMessage = String.format("건의사항 '%s'에 관리자 답변이 등록되었습니다.", 
+            String notificationMessage = String.format("건의사항 '%s'에 관리자 답변이 등록되었습니다.",
                 suggestion.getTitle().length() > 20 ? suggestion.getTitle().substring(0, 20) + "..." : suggestion.getTitle());
             
             notificationService.createNotification(

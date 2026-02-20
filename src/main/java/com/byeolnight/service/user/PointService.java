@@ -7,6 +7,7 @@ import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.DailyAttendanceRepository;
 import com.byeolnight.repository.user.PointHistoryRepository;
 import com.byeolnight.repository.user.UserRepository;
+import com.byeolnight.service.certificate.CertificateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public class PointService {
     private final PointHistoryRepository pointHistoryRepository;
     private final DailyAttendanceRepository dailyAttendanceRepository;
     private final UserRepository userRepository;
+    private final CertificateService certificateService;
 
     // 포인트 상수
     private static final int DAILY_ATTENDANCE_POINTS = 10;
@@ -365,11 +367,8 @@ public class PointService {
 
         // 포인트 달성 인증서 체크
         try {
-            com.byeolnight.service.certificate.CertificateService certificateService =
-                com.byeolnight.infrastructure.config.ApplicationContextProvider
-                    .getBean(com.byeolnight.service.certificate.CertificateService.class);
             certificateService.checkAndIssueCertificates(managedUser,
-                com.byeolnight.service.certificate.CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
+                CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
         } catch (Exception certError) {
             log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
         }
