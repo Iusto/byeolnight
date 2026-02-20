@@ -109,7 +109,14 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
 
       {/* 상태 메시지 */}
       <div className="relative px-5 pb-3">
-        <p className="text-[13px] text-gray-400 leading-relaxed">{iss.friendlyMessage}</p>
+        <p className="text-[13px] text-gray-400 leading-relaxed">
+          {iss.currentAltitudeKm && iss.currentVelocityKmh
+            ? t('weather.iss_status_template', {
+                altitude: Math.round(iss.currentAltitudeKm).toLocaleString(),
+                velocity: Math.round(iss.currentVelocityKmh).toLocaleString(),
+              })
+            : t('weather.iss_fallback_info')}
+        </p>
       </div>
 
       {/* 고도 / 속도 카드 */}

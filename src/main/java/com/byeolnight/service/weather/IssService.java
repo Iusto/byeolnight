@@ -22,6 +22,7 @@ import java.net.http.HttpResponse;
 import java.net.URI;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +34,7 @@ public class IssService {
     private final MeterRegistry meterRegistry;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(30))
+        .connectTimeout(Duration.ofSeconds(5))
         .build();
 
     private static final String ISS_LOCATION_URL = "https://api.wheretheiss.at/v1/satellites/25544";
@@ -42,10 +43,10 @@ public class IssService {
     private final Map<String, CachedPassData> passCache = new ConcurrentHashMap<>();
     private static final long PASS_CACHE_TTL_MS = TimeUnit.HOURS.toMillis(2);
 
-    // ISS 현재 위치 캐시 (TTL 30초)
+    // ISS 현재 위치 캐시 (TTL 5분 - 고도/속도는 크게 변하지 않으므로 표시용으로 충분)
     private volatile IssLocationData cachedLocation;
     private volatile long locationCachedAt;
-    private static final long LOCATION_CACHE_TTL_MS = TimeUnit.SECONDS.toMillis(30);
+    private static final long LOCATION_CACHE_TTL_MS = TimeUnit.MINUTES.toMillis(5);
 
     public IssService(TleFetchService tleFetchService, MeterRegistry meterRegistry) {
         this.tleFetchService = tleFetchService;
@@ -54,8 +55,14 @@ public class IssService {
 
     public IssObservationResponse getIssObservationOpportunity(double latitude, double longitude) {
         try {
-            IssLocationData issData = fetchIssCurrentLocation();
-            IssPassData nextPass = calculateNextIssPass(latitude, longitude);
+            // 두 작업을 병렬 실행 (서로 의존성 없음)
+            CompletableFuture<IssLocationData> locationFuture =
+                CompletableFuture.supplyAsync(() -> fetchIssCurrentLocation());
+            CompletableFuture<IssPassData> passFuture =
+                CompletableFuture.supplyAsync(() -> calculateNextIssPass(latitude, longitude));
+
+            IssLocationData issData = locationFuture.join();
+            IssPassData nextPass = passFuture.join();
 
             return IssObservationResponse.builder()
                 .messageKey("iss.detailed_status")
@@ -87,7 +94,7 @@ public class IssService {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ISS_LOCATION_URL))
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(5))
                 .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

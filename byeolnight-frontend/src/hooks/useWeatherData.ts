@@ -60,6 +60,8 @@ export const useIssObservation = (latitude: number, longitude: number) => {
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 10 * 60 * 1000, // 10분
     refetchInterval: 5 * 60 * 1000, // 5분마다 자동 갱신
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     retry: 1,
   });
 };
