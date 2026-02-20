@@ -7,6 +7,7 @@ import '@toast-ui/editor/dist/toastui-editor.css';
 import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
 import '../../styles/tui-editor.css';
 import { uploadImage } from '../../lib/s3Upload';
+import type { UploadedImageResponse } from '../../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
 import { isValidImageUrl } from '../../utils/imageUtils';
 
@@ -18,6 +19,7 @@ interface TuiEditorProps {
   placeholder?: string;
   height?: string;
   handleImageUpload?: () => void;
+  onImageUploaded?: (imageData: UploadedImageResponse) => void;
 }
 
 const TuiEditor = forwardRef(({
@@ -25,7 +27,8 @@ const TuiEditor = forwardRef(({
   onChange,
   placeholder,
   height = "500px",
-  handleImageUpload
+  handleImageUpload,
+  onImageUploaded
 }: TuiEditorProps, ref) => {
   const { t } = useTranslation();
   const editorRef = useRef<any>(null);
@@ -93,6 +96,7 @@ const TuiEditor = forwardRef(({
 
       if (imageData?.url && isValidImageUrl(imageData.url)) {
         callback(imageData.url, imageData.originalName || '업로드된 이미지');
+        onImageUploaded?.(imageData);
       } else {
         throw new Error('이미지 업로드 실패');
       }
