@@ -1,8 +1,6 @@
 package com.byeolnight.infrastructure.security;
 
 import com.byeolnight.entity.user.User;
-import com.byeolnight.infrastructure.config.ApplicationContextProvider;
-import com.byeolnight.service.user.UserService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
@@ -39,23 +37,25 @@ public class JwtTokenProvider {
         this.redisTemplate = redisTemplate;
     }
 
-    public String[] generateTokens(Long userId, String clientInfo, String ipAddress) {
-        String sessionId = generateSessionId(userId, clientInfo, ipAddress);
-        
-        String accessToken = generateAccessToken(userId, sessionId);
-        String refreshToken = generateRefreshToken(userId, sessionId);
-        
+    public String[] generateTokens(User user, String clientInfo, String ipAddress) {
+        String sessionId = generateSessionId(user.getId(), clientInfo, ipAddress);
+
+        String accessToken = generateAccessToken(user, sessionId);
+        String refreshToken = generateRefreshToken(user, sessionId);
+
         // Redis에 세션 저장
         String sessionKey = "session:" + sessionId;
         redisTemplate.opsForValue().set(sessionKey, refreshToken, refreshTokenExpiry);
-        
+
         return new String[]{accessToken, refreshToken, sessionId};
     }
 
-    private String generateAccessToken(Long userId, String sessionId) {
+    private String generateAccessToken(User user, String sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .setSubject(userId.toString())
+                .setSubject(user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("role", user.getRole().name())
                 .claim("sessionId", sessionId)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(accessTokenExpiry)))
@@ -63,10 +63,12 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    private String generateRefreshToken(Long userId, String sessionId) {
+    private String generateRefreshToken(User user, String sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .setSubject(userId.toString())
+                .setSubject(user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("role", user.getRole().name())
                 .claim("sessionId", sessionId)
                 .claim("type", "refresh")
                 .setIssuedAt(Date.from(now))
@@ -113,11 +115,11 @@ public class JwtTokenProvider {
     }
 
     public String createAccessToken(User user) {
-        return generateAccessToken(user.getId(), UUID.randomUUID().toString());
+        return generateAccessToken(user, UUID.randomUUID().toString());
     }
 
     public String createRefreshToken(User user) {
-        return generateRefreshToken(user.getId(), UUID.randomUUID().toString());
+        return generateRefreshToken(user, UUID.randomUUID().toString());
     }
 
     public long getRefreshTokenValidity() {
@@ -131,16 +133,19 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String token) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Claims claims = parseToken(token);
+            Long userId = Long.parseLong(claims.getSubject());
+            String email = claims.get("email", String.class);
+            String role = claims.get("role", String.class);
 
-            // UserService를 통해 User 조회
-            UserService userService = ApplicationContextProvider.getBean(UserService.class);
+            User principal = User.builder()
+                    .id(userId)
+                    .email(email)
+                    .role(User.Role.valueOf(role))
+                    .build();
 
-            User user = userService.findById(userId);
-
-            // UsernamePasswordAuthenticationToken 생성
             return new UsernamePasswordAuthenticationToken(
-                user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                    principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))
             );
         } catch (Exception e) {
             log.error("토큰에서 Authentication 생성 실패: {}", e.getMessage());
