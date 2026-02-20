@@ -229,6 +229,13 @@ export default function PostForm({
               placeholder={t('home.content_placeholder')}
               height={window.innerWidth <= 768 ? '350px' : '500px'}
               handleImageUpload={() => {}}
+              onImageUploaded={(imageData) => {
+                setUploadedImages(prev => [...prev, {
+                  originalName: imageData.originalName,
+                  s3Key: imageData.s3Key,
+                  url: imageData.url,
+                }]);
+              }}
             />
             <div className="text-right text-xs sm:text-sm mt-1">
               <span className={`mobile-caption ${contentLength > 9000 ? (contentLength > 10000 ? 'text-red-400' : 'text-yellow-400') : 'text-gray-400'}`}>

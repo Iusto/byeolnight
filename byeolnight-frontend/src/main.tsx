@@ -1,6 +1,8 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ConfirmProvider } from './contexts/ConfirmContext'
@@ -21,6 +23,11 @@ const queryClient = new QueryClient({
   },
 })
 
+// localStorage 기반 캐시 영속화 - 새로고침 시 캐시 유지
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+})
+
 // 정적 파일 경로 확인 함수
 const isStaticFilePath = (pathname: string): boolean => {
   return [
@@ -35,7 +42,7 @@ if (isStaticFilePath(window.location.pathname)) {
   // 아무것도 렌더링하지 않고 종료
 } else {
   ReactDOM.createRoot(document.getElementById('root')!).render(
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
       <BrowserRouter>
         <AuthProvider>
           <ToastProvider>
@@ -45,6 +52,6 @@ if (isStaticFilePath(window.location.pathname)) {
           </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

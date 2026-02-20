@@ -77,22 +77,6 @@ const WeatherWidget: React.FC = () => {
     }
   };
 
-  // 로딩 상태 (위치 정보나 날씨 데이터 로딩 중)
-  const loading = locationLoading || weatherLoading;
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-xl p-6 text-white shadow-2xl">
-          <div className="animate-pulse text-center py-8">
-            <div className="text-4xl mb-4">🌌</div>
-            <p className="text-blue-200 font-medium">{t('weather.loading_weather_data')}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* 별 관측 조건 */}
@@ -101,14 +85,19 @@ const WeatherWidget: React.FC = () => {
           <h3 className="text-2xl font-bold flex items-center gap-2">
             🌟 {t('weather.star_observation')}
           </h3>
-          {weather && (
+          {weather && !locationLoading && !weatherLoading && (
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getQualityColor(weather.observationQuality)}`}>
               {weather.observationQuality}
             </span>
           )}
         </div>
 
-        {weatherError ? (
+        {locationLoading || weatherLoading ? (
+          <div className="animate-pulse text-center py-8">
+            <div className="text-4xl mb-4">🌌</div>
+            <p className="text-blue-200 font-medium">{t('weather.loading_weather_data')}</p>
+          </div>
+        ) : weatherError ? (
           <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
             <p className="text-red-200 text-sm">{t('weather.weather_error')}</p>
           </div>
@@ -145,8 +134,10 @@ const WeatherWidget: React.FC = () => {
         )}
       </div>
 
-      {/* ISS 실시간 추적 */}
-      <IssTracker latitude={coordinates.lat} longitude={coordinates.lon} />
+      {/* ISS 실시간 추적 - 위치 정보만 있으면 날씨와 병렬 로딩 */}
+      {!locationLoading && (
+        <IssTracker latitude={coordinates.lat} longitude={coordinates.lon} />
+      )}
     </div>
   );
 };
