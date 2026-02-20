@@ -78,7 +78,7 @@ jwt:
 ```yaml
 # 응급처치: JWT 시크릿을 평문으로 변경
 jwt:
-  secret: 'byeolnight-jwt-secret-key-2025-very-long-and-secure-key-for-production-use-only'
+  secret: '********************-REDACTED-********************'
 ```
 
 ```bash
@@ -101,7 +101,7 @@ ssh -i byeolnight-key.pem ec2-user@<EC2-IP>
 # 2단계: Config Server가 실행 중인 상태에서 직접 암호화 요청
 curl -X POST http://localhost:8888/encrypt \
   -H "Content-Type: text/plain" \
-  -d "byeolnight-jwt-secret-key-2025-very-long-and-secure-key-for-production-use-only"
+  -d "********************-REDACTED-********************"
 ```
 
 **터미널 출력:**
@@ -152,7 +152,7 @@ docker logs -f byeolnight-app-1
 ```yaml
 # Config Server (application.yml)
 encrypt:
-  key: byeolnight-config-encryption-key-2025!@#$%^&*()
+  key: '********************-REDACTED-********************'
   fail-on-error: false
 ```
 
