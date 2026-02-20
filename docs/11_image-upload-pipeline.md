@@ -309,7 +309,15 @@ public class CommonResponse<T> {
 
 ### 클립보드 이미지 지원
 
+두 가지 경로로 클립보드 이미지를 처리한다:
+
+1. **에디터 밖 붙여넣기** (`ImageUploader.handlePaste`): `uploadedImages` 상태에 직접 추가
+2. **에디터 안 붙여넣기** (`TuiEditor.addImageBlobHook`): S3 업로드 후 `onImageUploaded` 콜백으로 `PostForm`의 `uploadedImages` 상태에 추가
+
+두 경로 모두 `uploadedImages`에 이미지가 포함되므로, 게시글 저장 시 PENDING → CONFIRMED 전환이 정상 수행된다.
+
 ```typescript
+// 에디터 밖: ImageUploader.handlePaste
 const handlePaste = async (event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
     if (!items) return;
@@ -320,21 +328,21 @@ const handlePaste = async (event: ClipboardEvent) => {
             const file = items[i].getAsFile();
             if (!file) continue;
 
-            // 모바일 환경 제한 (브라우저 한계)
-            if (isMobile()) {
-                setValidationAlert({
-                    message: '모바일에서는 이미지 붙여넣기가 제한될 수 있습니다.',
-                    type: 'warning'
-                });
-                return;
-            }
-
             const imageData = await uploadClipboardImage(file);
             onImageInsert(imageData, '클립보드 이미지');
             break;
         }
     }
 };
+
+// 에디터 안: TuiEditor.onImageUploaded → PostForm에서 uploadedImages에 추가
+onImageUploaded={(imageData) => {
+    setUploadedImages(prev => [...prev, {
+        originalName: imageData.originalName,
+        s3Key: imageData.s3Key,
+        url: imageData.url,
+    }]);
+}}
 ```
 
 ### 프론트엔드 업로드 유틸리티 (`s3Upload.ts`)

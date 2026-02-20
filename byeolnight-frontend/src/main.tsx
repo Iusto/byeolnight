@@ -42,7 +42,12 @@ if (isStaticFilePath(window.location.pathname)) {
   // 아무것도 렌더링하지 않고 종료
 } else {
   ReactDOM.createRoot(document.getElementById('root')!).render(
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{
+      persister,
+      dehydrateOptions: {
+        shouldDehydrateQuery: () => true, // refetchInterval 포함 모든 쿼리 영속화
+      },
+    }}>
       <BrowserRouter>
         <AuthProvider>
           <ToastProvider>
