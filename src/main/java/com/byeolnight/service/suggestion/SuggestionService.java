@@ -15,6 +15,7 @@ import com.byeolnight.infrastructure.exception.NotFoundException;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -235,27 +236,11 @@ public class SuggestionService {
             Pageable pageable,
             boolean publicOnly
     ) {
-        if (publicOnly) {
-            if (category != null && status != null) {
-                return suggestionRepository.findByCategoryAndStatusAndIsPublicTrue(category, status, pageable);
-            } else if (category != null) {
-                return suggestionRepository.findByCategoryAndIsPublicTrue(category, pageable);
-            } else if (status != null) {
-                return suggestionRepository.findByStatusAndIsPublicTrue(status, pageable);
-            } else {
-                return suggestionRepository.findByIsPublicTrue(pageable);
-            }
-        } else {
-            if (category != null && status != null) {
-                return suggestionRepository.findByCategoryAndStatus(category, status, pageable);
-            } else if (category != null) {
-                return suggestionRepository.findByCategory(category, pageable);
-            } else if (status != null) {
-                return suggestionRepository.findByStatus(status, pageable);
-            } else {
-                return suggestionRepository.findAll(pageable);
-            }
-        }
+        Specification<Suggestion> spec = Specification.where(null);
+        if (publicOnly) spec = spec.and((root, q, cb) -> cb.isTrue(root.get("isPublic")));
+        if (category != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("category"), category));
+        if (status != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        return suggestionRepository.findAll(spec, pageable);
     }
 
     // 공통 응답 빌더
