@@ -226,8 +226,8 @@ public class PointService {
         try {
             certificateService.checkAndIssueCertificates(managedUser,
                 CertificateService.CertificateCheckType.POINT_ACHIEVEMENT);
-        } catch (Exception e) {
-            log.error("포인트 달성 인증서 체크 실패: {}", e.getMessage());
+        } catch (Exception certError) {
+            log.error("포인트 달성 인증서 체크 실패: {}", certError.getMessage());
         }
     }
 }
