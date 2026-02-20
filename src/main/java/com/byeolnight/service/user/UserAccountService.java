@@ -7,7 +7,6 @@ import com.byeolnight.entity.shop.StellaIcon;
 import com.byeolnight.entity.shop.UserIcon;
 import com.byeolnight.entity.token.PasswordResetToken;
 import com.byeolnight.entity.user.User;
-import com.byeolnight.infrastructure.config.ApplicationContextProvider;
 import com.byeolnight.infrastructure.exception.*;
 import com.byeolnight.repository.PasswordResetTokenRepository;
 import com.byeolnight.repository.log.AuditSignupLogRepository;
@@ -47,6 +46,7 @@ public class UserAccountService {
     private final UserSecurityService userSecurityService;
     private final EmailAuthService emailAuthService;
     private final UserQueryService userQueryService;
+    private final SocialRevokeService socialRevokeService;
 
     @Transactional
     public Long register(UserSignUpRequestDto dto, String ipAddress) {
@@ -273,14 +273,24 @@ public class UserAccountService {
         }
     }
 
+    @Transactional
+    public void migrateDefaultAsteroidIcon() {
+        List<User> allUsers = userRepository.findAll();
+        int processedCount = 0;
+        for (User user : allUsers) {
+            if (user.getStatus() == User.UserStatus.ACTIVE) {
+                grantDefaultAsteroidIcon(user);
+                processedCount++;
+            }
+        }
+        log.info("기본 소행성 아이콘 마이그레이션 완료: {}명 처리", processedCount);
+    }
+
     private void revokeSocialConnection(User user) {
         String provider = user.getSocialProvider();
         if (provider == null) return;
-        
+
         try {
-            SocialRevokeService socialRevokeService =
-                ApplicationContextProvider.getBean(SocialRevokeService.class);
-            
             switch (provider.toLowerCase()) {
                 case "google" -> socialRevokeService.revokeGoogleConnection(user);
                 case "kakao" -> socialRevokeService.revokeKakaoConnection(user);

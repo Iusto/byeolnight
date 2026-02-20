@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(
     name = "chat_messages",
     indexes = {
-        @Index(name = "idx_chat_room_timestamp", columnList = "roomId, timestamp"),
+        @Index(name = "idx_chat_room_timestamp", columnList = "is_blinded, room_id, timestamp"),
         @Index(name = "idx_chat_timestamp", columnList = "timestamp")
     }
 )

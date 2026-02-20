@@ -21,7 +21,8 @@ import com.byeolnight.service.auth.TokenService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PasswordResetService;
 import com.byeolnight.service.certificate.CertificateService;
-import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.UserQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,7 +51,8 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenService tokenService;
-    private final UserService userService;
+    private final UserQueryService userQueryService;
+    private final UserAccountService userAccountService;
     private final EmailAuthService emailAuthService;
     private final PasswordResetService passwordResetService;
     private final CertificateService certificateService;
@@ -98,7 +100,7 @@ public class AuthController {
             Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
             log.debug("토큰 재발급 요청 - 사용자 ID: {}", userId);
             
-            User user = userService.findById(userId);
+            User user = userQueryService.findById(userId);
             if (user == null) {
                 log.warn("토큰 재발급 실패 - 사용자 없음: {}", userId);
                 tokenService.deleteRefreshToken(userId.toString());
@@ -230,7 +232,7 @@ public class AuthController {
     @Operation(summary = "닉네임 중복 확인")
     public ResponseEntity<CommonResponse<Boolean>> checkNickname(@RequestParam String value) {
         try {
-            boolean available = !userService.existsByNickname(value);
+            boolean available = !userQueryService.existsByNickname(value);
             return ResponseEntity.ok(CommonResponse.success(available));
         } catch (Exception e) {
             log.error("닉네임 중복 확인 실패", e);
@@ -248,7 +250,7 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(CommonResponse.fail("이메일 인증이 필요합니다."));
             }
 
-            userService.createUser(dto, request);
+            userAccountService.register(dto, IpUtil.getClientIp(request));
             emailAuthService.clearVerificationStatus(dto.getEmail());
             
             return ResponseEntity.ok(CommonResponse.success("회원가입이 완료되었습니다."));
@@ -365,7 +367,7 @@ public class AuthController {
 
         try {
             // 로그인 상태: 사용자 정보 반환
-            User fullUser = userService.findById(user.getId());
+            User fullUser = userQueryService.findById(user.getId());
 
             // 대표 인증서 조회 (실패해도 계속 진행)
             var repCert = certificateService.getRepresentativeCertificateSafe(fullUser);
@@ -429,7 +431,7 @@ public class AuthController {
             @RequestParam String token) {
         try {
             PasswordResetToken resetToken = passwordResetService.validateToken(token);
-            User user = userService.findByEmail(resetToken.getEmail())
+            User user = userQueryService.findByEmail(resetToken.getEmail())
                     .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
             
             if (user.isSocialUser()) {
@@ -482,8 +484,8 @@ public class AuthController {
                         .body(CommonResponse.fail("로그인이 필요합니다."));
             }
             
-            User user = userService.findById(userId);
-            
+            User user = userQueryService.findById(userId);
+
             String password = "";
             String reason = "사용자 요청";
             
@@ -492,7 +494,7 @@ public class AuthController {
                 reason = dto.getReason() != null ? dto.getReason() : "사용자 요청";
             }
             
-            userService.withdraw(user.getId(), password, reason);
+            userAccountService.withdraw(user.getId(), password, reason);
             
             // 토큰 무효화 처리
             tokenService.deleteRefreshToken(user.getEmail());

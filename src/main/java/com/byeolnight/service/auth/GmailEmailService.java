@@ -1,6 +1,7 @@
 package com.byeolnight.service.auth;
 
 
+import com.byeolnight.infrastructure.exception.EmailSendException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -36,9 +37,9 @@ public class GmailEmailService {
 
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("이메일 전송 실패: " + e.getMessage(), e);
+            throw new EmailSendException("이메일 전송 실패: " + e.getMessage(), e);
         } catch (Exception e) {
-            throw new RuntimeException("이메일 전송 중 예상치 못한 오류 발생: " + e.getMessage(), e);
+            throw new EmailSendException("이메일 전송 중 예상치 못한 오류 발생: " + e.getMessage(), e);
         }
     }
 }

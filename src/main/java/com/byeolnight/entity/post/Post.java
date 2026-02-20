@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
     name = "posts",
     indexes = {
         @Index(name = "idx_post_created_at", columnList = "created_at"),
-        @Index(name = "idx_post_category_created", columnList = "category, created_at"),
-        @Index(name = "idx_post_writer_created", columnList = "writer_id, created_at"),
+        @Index(name = "idx_post_category_created", columnList = "is_deleted, category, created_at"),
+        @Index(name = "idx_post_writer_created", columnList = "is_deleted, writer_id, created_at"),
         @Index(name = "idx_post_pinned_created", columnList = "pinned, created_at")
     }
 )
@@ -173,9 +173,6 @@ public class Post {
         this.reportCount = Math.max(0, this.reportCount - count);
     }
 
-    public void pin() {
-        this.pinned = true;
-    }   // TODO: 게시글 상단 고정 필요 시
     public void unpin() {
         this.pinned = false;
     }

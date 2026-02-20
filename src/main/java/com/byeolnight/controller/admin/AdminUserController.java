@@ -8,7 +8,8 @@ import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.service.auth.SocialAccountCleanupService;
 import com.byeolnight.service.user.PointService;
-import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.UserAdminService;
 import com.byeolnight.service.user.WithdrawnUserCleanupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,7 +37,8 @@ import java.util.stream.Collectors;
 @Tag(name = "👮 관리자 API - 사용자", description = "사용자 관리 및 제재 관련 API")
 public class AdminUserController {
 
-    private final UserService userService;
+    private final UserAdminService userAdminService;
+    private final UserAccountService userAccountService;
     private final StringRedisTemplate redisTemplate;
     private final PointService pointService;
     private final WithdrawnUserCleanupService withdrawnUserCleanupService;
@@ -51,7 +53,7 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users")
     public ResponseEntity<List<UserSummaryDto>> getAllUsers() {
-        List<UserSummaryDto> users = userService.getAllUserSummaries();
+        List<UserSummaryDto> users = userAdminService.getAllUserSummaries();
         return ResponseEntity.ok(users);
     }
 
@@ -69,7 +71,7 @@ public class AdminUserController {
         if (currentUser.getId().equals(id)) {
             return ResponseEntity.badRequest().build();
         }
-        userService.lockUserAccount(id);
+        userAdminService.lockUserAccount(id);
         return ResponseEntity.ok().build();
     }
 
@@ -83,7 +85,7 @@ public class AdminUserController {
     @PatchMapping("/users/{id}/unlock")
     public ResponseEntity<Void> unlockUser(@PathVariable Long id, 
                                           @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
-        userService.unlockUserAccount(id);
+        userAdminService.unlockUserAccount(id);
         return ResponseEntity.ok().build();
     }
 
@@ -109,7 +111,7 @@ public class AdminUserController {
         if (currentUser.getId().equals(userId)) {
             return ResponseEntity.badRequest().build();
         }
-        userService.changeUserStatus(userId, request.getStatus(), request.getReason());
+        userAdminService.changeUserStatus(userId, request.getStatus(), request.getReason());
         return ResponseEntity.ok().build();
     }
 
@@ -129,7 +131,7 @@ public class AdminUserController {
         if (currentUser.getId().equals(userId)) {
             return ResponseEntity.badRequest().build();
         }
-        userService.withdraw(userId, reason != null ? reason : "관리자에 의한 탈퇴 처리");
+        userAdminService.withdraw(userId, reason != null ? reason : "관리자에 의한 탈퇴 처리");
         return ResponseEntity.ok().build();
     }
 
@@ -219,7 +221,7 @@ public class AdminUserController {
     @PostMapping("/users/migrate-default-icon")
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> migrateDefaultAsteroidIcon() {
         try {
-            userService.migrateDefaultAsteroidIcon();
+            userAccountService.migrateDefaultAsteroidIcon();
             return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
                     "모든 사용자에게 기본 소행성 아이콘이 성공적으로 부여되었습니다."));
         } catch (Exception e) {
@@ -236,7 +238,7 @@ public class AdminUserController {
             @PathVariable String nickname) {
 
         // 데이터베이스에서 비슷한 닉네임들 찾기
-        java.util.List<String> similarNicknames = userService.getAllUserSummaries().stream()
+        java.util.List<String> similarNicknames = userAdminService.getAllUserSummaries().stream()
                 .map(UserSummaryDto::getNickname)
                 .filter(n -> n.toLowerCase().contains(nickname.toLowerCase()) ||
                            nickname.toLowerCase().contains(n.toLowerCase()))
@@ -245,7 +247,7 @@ public class AdminUserController {
         NicknameDebugDto result = NicknameDebugDto.builder()
                 .inputNickname(nickname)
                 .trimmedNickname(nickname.trim())
-                .exists(userService.isNicknameDuplicated(nickname))
+                .exists(userAccountService.isNicknameDuplicated(nickname))
                 .similarNicknames(similarNicknames)
                 .build();
 
@@ -285,7 +287,7 @@ public class AdminUserController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
     ) {
         try {
-            userService.grantNicknameChangeTicket(userId, currentUser.getId());
+            userAdminService.grantNicknameChangeTicket(userId, currentUser.getId());
             return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
                     "닉네임 변경권이 성공적으로 수여되었습니다."));
         } catch (Exception e) {

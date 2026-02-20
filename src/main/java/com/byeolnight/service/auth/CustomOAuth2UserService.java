@@ -3,7 +3,7 @@ package com.byeolnight.service.auth;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
-import com.byeolnight.service.user.UserService;
+import com.byeolnight.service.user.UserAccountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -25,7 +25,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final SocialAccountCleanupService socialAccountCleanupService;
-    private final UserService userService;
+    private final UserAccountService userAccountService;
     private final CertificateService certificateService;
 
     @Override
@@ -155,7 +155,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     
     private void setupNewSocialUser(User user) {
         try {
-            userService.grantDefaultAsteroidIcon(user);
+            userAccountService.grantDefaultAsteroidIcon(user);
             certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.LOGIN);
             log.info("소셜 로그인 사용자 {}에게 기본 아이콘 및 인증서 발급 완료", user.getNickname());
         } catch (Exception e) {

@@ -8,8 +8,10 @@ import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.repository.log.AuditLoginLogRepository;
 import com.byeolnight.repository.log.AuditSignupLogRepository;
 import com.byeolnight.service.certificate.CertificateService;
+import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.UserAdminService;
+import com.byeolnight.service.user.UserQueryService;
 import com.byeolnight.service.user.UserSecurityService;
-import com.byeolnight.service.user.UserService;
 import com.byeolnight.common.TestMockConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,23 +42,32 @@ class AuthServiceTest {
     private AuthService authService;
 
     @Mock
-    private UserService userService;
-    
+    private UserQueryService userQueryService;
+
+    @Mock
+    private UserAccountService userAccountService;
+
+    @Mock
+    private UserAdminService userAdminService;
+
     @Mock
     private JwtTokenProvider jwtTokenProvider;
-    
+
     @Mock
     private AuditLoginLogRepository auditLoginLogRepository;
-    
+
     @Mock
     private AuditSignupLogRepository auditSignupLogRepository;
-    
+
     @Mock
     private UserSecurityService userSecurityService;
-    
+
     @Mock
     private CertificateService certificateService;
-    
+
+    @Mock
+    private SocialAccountCleanupService socialAccountCleanupService;
+
     @Mock
     private HttpServletRequest request;
 
@@ -94,9 +105,9 @@ class AuthServiceTest {
         void authenticate_Success_GeneratesTokensAndLogsAudit() {
             // Given
             given(userSecurityService.isIpBlocked(TestMockConfig.getTestIp())).willReturn(false);
-            given(userService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
-            given(userService.checkPassword("password123", testUser)).willReturn(true);
-            given(jwtTokenProvider.generateTokens(1L, TestMockConfig.getTestUserAgent(), TestMockConfig.getTestIp()))
+            given(userQueryService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
+            given(userAccountService.checkPassword("password123", testUser)).willReturn(true);
+            given(jwtTokenProvider.generateTokens(testUser, TestMockConfig.getTestUserAgent(), TestMockConfig.getTestIp()))
                     .willReturn(new String[]{"accessToken", "refreshToken"});
 
             // When
@@ -107,7 +118,7 @@ class AuthServiceTest {
             assertThat(result.getRefreshToken()).isEqualTo("refreshToken");
             assertThat(result.getRefreshTokenValidity()).isEqualTo(7 * 24 * 60 * 60 * 1000L);
 
-            verify(userService).resetLoginFailCount(testUser);
+            verify(userAdminService).resetLoginFailCount(testUser);
             verify(auditLoginLogRepository).save(any(AuditLoginLog.class));
             verify(certificateService).checkAndIssueCertificates(testUser, CertificateService.CertificateCheckType.LOGIN);
         }
@@ -122,7 +133,7 @@ class AuthServiceTest {
         void authenticate_NonExistentEmail_ThrowsException() {
             // Given
             given(userSecurityService.isIpBlocked(TestMockConfig.getTestIp())).willReturn(false);
-            given(userService.findByEmail("test@example.com")).willReturn(Optional.empty());
+            given(userQueryService.findByEmail("test@example.com")).willReturn(Optional.empty());
 
             // When & Then
             assertThatThrownBy(() -> authService.authenticate(loginRequest, request))
@@ -137,8 +148,8 @@ class AuthServiceTest {
         void authenticate_WrongPassword_IncrementsFailCount() {
             // Given
             given(userSecurityService.isIpBlocked(TestMockConfig.getTestIp())).willReturn(false);
-            given(userService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
-            given(userService.checkPassword("wrongPassword", testUser)).willReturn(false);
+            given(userQueryService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
+            given(userAccountService.checkPassword("wrongPassword", testUser)).willReturn(false);
 
             LoginRequestDto wrongPasswordRequest = LoginRequestDto.builder()
                     .email("test@example.com")
@@ -150,7 +161,7 @@ class AuthServiceTest {
                     .isInstanceOf(BadCredentialsException.class)
                     .hasMessageContaining("비밀번호가 올바르지 않습니다");
 
-            verify(userService).increaseLoginFailCount(testUser, TestMockConfig.getTestIp(), TestMockConfig.getTestUserAgent());
+            verify(userAdminService).increaseLoginFailCount(testUser, TestMockConfig.getTestIp(), TestMockConfig.getTestUserAgent());
         }
     }
 
@@ -170,7 +181,7 @@ class AuthServiceTest {
                     .hasMessageContaining("🚫 해당 IP는 비정상적인 로그인 시도")
                     .hasMessageContaining("1시간 차단되었습니다");
 
-            verify(userService, never()).findByEmail(anyString());
+            verify(userQueryService, never()).findByEmail(anyString());
         }
     }
 }

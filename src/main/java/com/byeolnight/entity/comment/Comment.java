@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Table(
     name = "comments",
     indexes = {
-        @Index(name = "idx_comment_post_created", columnList = "post_id, createdAt"),
+        @Index(name = "idx_comment_post_created", columnList = "deleted, post_id, created_at"),
         @Index(name = "idx_comment_parent", columnList = "parent_id"),
         @Index(name = "idx_comment_writer", columnList = "writer_id")
     }
@@ -29,7 +29,7 @@ public class Comment {
     @JoinColumn(name = "post_id")
     private Post post;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "writer_id", nullable = false)
     private User writer;
 

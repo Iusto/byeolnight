@@ -34,7 +34,7 @@ erDiagram
     DeleteLog ||--o{ Message : logs
 ```
 
-> 전체 ERD 및 상세 스키마는 [📊 데이터베이스 설계 문서](./11_database-design.md) 참고
+> 전체 ERD 및 상세 스키마는 [📊 데이터베이스 설계 문서](./08_database-design.md) 참고
 
 ---
 

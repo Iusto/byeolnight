@@ -8,8 +8,8 @@
 [![JPA](https://img.shields.io/badge/Spring%20Data%20JPA-3.2.4-green.svg)](https://spring.io/projects/spring-data-jpa)
 [![QueryDSL](https://img.shields.io/badge/QueryDSL-5.0.0-blue.svg)](http://www.querydsl.com/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-blue.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.2.0-purple.svg)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.3.5-purple.svg)](https://vitejs.dev/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-blue.svg)](https://www.mysql.com/)
 [![Redis](https://img.shields.io/badge/Redis-7.0-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-24.0-blue.svg)](https://www.docker.com/)
@@ -89,6 +89,14 @@
 - **Redis 캐싱**: 세션 + 데이터 캐싱
 - **QueryDSL**: 동적 쿼리 최적화
 - **커넥션 풀 튜닝**: HikariCP, Redis, HTTP 풀 최적화
+- **하이브리드 캐싱**: 70개 도시 Proactive + On-Demand 캐싱 (k6 부하테스트 검증)
+
+#### k6 부하테스트 결과 (별도 EC2에서 실행)
+
+| API | 총 요청 | p(95) 응답시간 | 캐시 적중률 | 초당 처리량 |
+|-----|---------|---------------|-----------|-----------|
+| Weather 캐시 | 316,953건 | 49.29ms | 100% (Actuator 검증) | 2,112 req/s |
+| ISS 캐시 | 290,792건 | 51.15ms | 99.995% (Actuator 검증) | 1,938 req/s |
 
 ### 🔒 보안
 - **JWT + Redis**: Token 자동 갱신 + 블랙리스트
@@ -118,14 +126,14 @@
 - [🎯 핵심 도메인별 구조](./docs/04_core-domains.md)
 
 ### 기술 상세
-- [🔧 기술 스택 상세](./docs/06_tech-stack.md)
+- [🔧 기술 스택 상세](./docs/05_tech-stack.md)
 - [📊 성능 최적화 전략](./docs/PERFORMANCE.md)
- - [🌤️ 날씨 캐싱 시스템 개선 여정](./docs/13_weather-caching-evolution.md)
+- [🌤️ 날씨 캐싱 시스템 개선 여정](./docs/13_weather-caching-evolution.md)
 - [🛰️ ISS 관측 예보 시스템](./docs/15_iss-pass-prediction.md)
-- [📁 이미지 업로드 파이프라인](./docs/14_image-upload-pipeline.md)
-- [🏊 풀 설정 전략](./docs/12_pool-configuration-strategy.md)
-- [🧪 테스트 전략](./docs/07_testing.md)
-- [📊 데이터베이스 설계](./docs/09_database-design.md)
+- [📁 이미지 업로드 파이프라인](./docs/11_image-upload-pipeline.md)
+- [📧 이메일 비동기 처리](./docs/12_email-async-processing.md)
+- [🧪 테스트 전략](./docs/06_testing.md)
+- [📊 데이터베이스 설계](./docs/08_database-design.md)
 
 ### 트러블슈팅
 - [🚀 자동배포 트러블슈팅](./docs/troubleshooting/deployment-issues.md)

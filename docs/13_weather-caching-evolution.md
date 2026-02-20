@@ -464,14 +464,22 @@ cache.entrySet().removeIf(entry ->
 - 현재 70개 → 필요시 100개까지 확장 가능
 - 메모리 사용량: 도시당 ~2KB → 100개 = 200KB (무시 가능)
 
-### 3. 모니터링 (선택적)
-```java
-@Scheduled(fixedRate = 3600_000)  // 1시간마다
-public void logCacheStatistics() {
-    log.info("캐시 상태: 크기={}, 히트율={}%",
-        cache.size(), calculateHitRate());
-}
-```
+### 3. 모니터링
+
+Micrometer + Actuator 캐시 메트릭과 k6 부하테스트로 실측 검증을 완료했다.
+
+#### k6 부하테스트 실측 결과 (별도 EC2에서 실행)
+
+| 지표 | 결과 |
+|------|------|
+| 총 요청 | 316,953건 |
+| 에러율 | 0% |
+| 평균 응답시간 | 20.16ms (캐시 히트) |
+| p(95) 응답시간 | 49.29ms (임계값 50ms PASS) |
+| 초당 처리량 | 2,112 req/s |
+| Actuator 캐시 검증 | hit 316,953 / miss 0 (적중률 100%) |
+
+150 VU 동시 접속, 2분 30초 부하에서 에러 없이 안정적으로 처리되었으며, Actuator `/actuator/metrics/cache.gets` 엔드포인트로 캐시 히트/미스를 정량 검증했다.
 
 ---
 
