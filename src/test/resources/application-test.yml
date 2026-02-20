@@ -15,11 +15,6 @@ spring:
     console:
       enabled: false
 
-# NASA API 테스트용 설정
-nasa:
-  api:
-    key: TEST_API_KEY
-
 # JWT 테스트용 설정
 app:
   security:
