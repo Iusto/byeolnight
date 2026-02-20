@@ -38,49 +38,25 @@ public class CommentReportService {
         if (reporterId == null) {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
-        
-        try {
-            // 신고자 존재 여부 먼저 확인
-            if (!userRepository.existsById(reporterId)) {
-                throw new NotFoundException("신고자 정보가 유효하지 않습니다. 사용자 ID: " + reporterId);
-            }
-            
-            // 신고자 조회
-            User reporter = userRepository.findById(reporterId)
-                    .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
-            
-            // 댓글 조회
-            Comment comment = commentRepository.findById(commentId)
-                    .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
-            
-            // 중복 신고 방지
-            if (commentReportRepository.existsByCommentAndUser(comment, reporter)) {
-                throw new IllegalArgumentException("이미 신고한 댓글입니다.");
-            }
-            
-            log.debug("User ID: {}, Comment ID: {}", reporterId, commentId);
-            
-            // 신고 객체 생성 및 저장
-            CommentReport report = CommentReport.of(reporter, comment, reason, description);
-            
-            // 신고 저장
-            commentReportRepository.save(report);
-            
-            // 신고 수 증가
-            comment.increaseReportCount();
-            commentRepository.save(comment);
-            
-            // 신고 수가 5개 이상이면 자동 블라인드
-            if (comment.getReportCount() >= 5) {
-                comment.blind();
-                commentRepository.save(comment);
-            }
-            
-            log.info("댓글 신고 처리 완료 - 신고 수: {}", comment.getReportCount());
-        } catch (Exception e) {
-            e.printStackTrace(); // 상세 오류 로그 출력
-            throw new RuntimeException(e.getMessage());
+
+        User reporter = userRepository.findById(reporterId)
+                .orElseThrow(() -> new NotFoundException("신고자 정보가 유효하지 않습니다."));
+
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("댓글이 존재하지 않습니다."));
+
+        if (commentReportRepository.existsByCommentAndUser(comment, reporter)) {
+            throw new IllegalArgumentException("이미 신고한 댓글입니다.");
         }
+
+        commentReportRepository.save(CommentReport.of(reporter, comment, reason, description));
+
+        comment.increaseReportCount();
+        if (comment.getReportCount() >= 5) {
+            comment.blind();
+        }
+
+        log.info("댓글 신고 처리 완료 - 댓글 ID: {}, 신고 수: {}", commentId, comment.getReportCount());
     }
     
     /**
