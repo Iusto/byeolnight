@@ -4,25 +4,19 @@ import com.byeolnight.dto.weather.IssObservationResponse;
 import com.github.amsacode.predict4java.GroundStationPosition;
 import com.github.amsacode.predict4java.PassPredictor;
 import com.github.amsacode.predict4java.SatPassTime;
+import com.github.amsacode.predict4java.SatPos;
 import com.github.amsacode.predict4java.TLE;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.URI;
 import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -32,21 +26,13 @@ public class IssService {
 
     private final TleFetchService tleFetchService;
     private final MeterRegistry meterRegistry;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(5))
-        .build();
 
-    private static final String ISS_LOCATION_URL = "https://api.wheretheiss.at/v1/satellites/25544";
+    // ISS 궤도 속도는 거의 일정 (~27,600 km/h)
+    private static final double ISS_ORBITAL_VELOCITY_KMH = 27600.0;
 
     // 패스 예측 캐시: 위도/경도 1도 그리드 → 계산 결과 (TTL 2시간)
     private final Map<String, CachedPassData> passCache = new ConcurrentHashMap<>();
     private static final long PASS_CACHE_TTL_MS = TimeUnit.HOURS.toMillis(2);
-
-    // ISS 현재 위치 캐시 (TTL 5분 - 고도/속도는 크게 변하지 않으므로 표시용으로 충분)
-    private volatile IssLocationData cachedLocation;
-    private volatile long locationCachedAt;
-    private static final long LOCATION_CACHE_TTL_MS = TimeUnit.MINUTES.toMillis(5);
 
     public IssService(TleFetchService tleFetchService, MeterRegistry meterRegistry) {
         this.tleFetchService = tleFetchService;
@@ -55,20 +41,14 @@ public class IssService {
 
     public IssObservationResponse getIssObservationOpportunity(double latitude, double longitude) {
         try {
-            // 두 작업을 병렬 실행 (서로 의존성 없음)
-            CompletableFuture<IssLocationData> locationFuture =
-                CompletableFuture.supplyAsync(() -> fetchIssCurrentLocation());
-            CompletableFuture<IssPassData> passFuture =
-                CompletableFuture.supplyAsync(() -> calculateNextIssPass(latitude, longitude));
-
-            IssLocationData issData = locationFuture.join();
-            IssPassData nextPass = passFuture.join();
+            IssPassData nextPass = calculateNextIssPass(latitude, longitude);
+            Double altitudeKm = calculateCurrentAltitude(latitude, longitude);
 
             return IssObservationResponse.builder()
                 .messageKey("iss.detailed_status")
-                .friendlyMessage(createIssStatusMessage(issData))
-                .currentAltitudeKm(issData != null ? issData.getAltitude() : null)
-                .currentVelocityKmh(issData != null ? issData.getVelocity() : null)
+                .friendlyMessage("")
+                .currentAltitudeKm(altitudeKm != null ? altitudeKm : 408.0)
+                .currentVelocityKmh(ISS_ORBITAL_VELOCITY_KMH)
                 .nextPassTime(nextPass.getNextPassTime())
                 .nextPassDate(nextPass.getNextPassDate())
                 .nextPassDirection(nextPass.getNextPassDirection())
@@ -83,51 +63,23 @@ public class IssService {
         }
     }
 
-    private IssLocationData fetchIssCurrentLocation() {
-        // 캐시 확인 (30초 TTL)
-        IssLocationData cached = cachedLocation;
-        if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
-            log.debug("ISS 위치 캐시 HIT");
-            return cached;
-        }
-
+    /**
+     * SGP4로 ISS 현재 고도를 계산 (외부 API 의존 없음)
+     */
+    private Double calculateCurrentAltitude(double latitude, double longitude) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(ISS_LOCATION_URL))
-                .timeout(Duration.ofSeconds(5))
-                .build();
+            TLE tle = tleFetchService.getIssTle();
+            if (tle == null) return null;
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            GroundStationPosition observer = new GroundStationPosition(latitude, longitude, 0);
+            PassPredictor predictor = new PassPredictor(tle, observer);
+            SatPos satPos = predictor.getSatPos(new Date());
 
-            if (response.statusCode() == 200) {
-                JsonNode issData = objectMapper.readTree(response.body());
-                JsonNode altNode = issData.get("altitude");
-                JsonNode velNode = issData.get("velocity");
-                JsonNode latNode = issData.get("latitude");
-                JsonNode lonNode = issData.get("longitude");
-
-                if (altNode == null || velNode == null || latNode == null || lonNode == null) {
-                    log.warn("ISS API 응답에 필수 필드 누락: alt={}, vel={}, lat={}, lon={}",
-                            altNode, velNode, latNode, lonNode);
-                    return cached; // 캐시된 이전 데이터 반환 (없으면 null)
-                }
-
-                IssLocationData location = IssLocationData.builder()
-                    .altitude(altNode.asDouble())
-                    .velocity(velNode.asDouble())
-                    .latitude(latNode.asDouble())
-                    .longitude(lonNode.asDouble())
-                    .build();
-
-                // 캐시 갱신
-                cachedLocation = location;
-                locationCachedAt = System.currentTimeMillis();
-                return location;
-            }
+            return satPos.getAltitude();
         } catch (Exception e) {
-            log.warn("ISS 위치 조회 실패: {}", e.getMessage());
+            log.warn("ISS 고도 계산 실패: {}", e.getMessage());
+            return null;
         }
-        return cached; // 실패 시 캐시된 이전 데이터 반환 (없으면 null)
     }
 
     /**
@@ -225,15 +177,6 @@ public class IssService {
         return "POOR";
     }
 
-    private String createIssStatusMessage(IssLocationData issData) {
-        if (issData == null) {
-            return "ISS는 현재 지구 상공 약 400km에서 시속 27,600km로 이동 중입니다.";
-        }
-
-        return String.format("ISS는 현재 고도 %.0fkm에서 시속 %.0fkm로 이동 중입니다.",
-                           issData.getAltitude(), issData.getVelocity());
-    }
-
     private IssPassData createFallbackPassData() {
         LocalDateTime nextPass = LocalDateTime.now().plusHours(3);
         return IssPassData.builder()
@@ -251,9 +194,9 @@ public class IssService {
 
         return IssObservationResponse.builder()
             .messageKey("iss.fallback")
-            .friendlyMessage("ISS는 지구 상공 400km에서 90분마다 지구를 한 바퀴 돕니다.")
+            .friendlyMessage("")
             .currentAltitudeKm(408.0)
-            .currentVelocityKmh(27600.0)
+            .currentVelocityKmh(ISS_ORBITAL_VELOCITY_KMH)
             .nextPassTime(fallbackPass.getNextPassTime())
             .nextPassDate(fallbackPass.getNextPassDate())
             .nextPassDirection(fallbackPass.getNextPassDirection())
@@ -261,15 +204,6 @@ public class IssService {
             .visibilityQuality(fallbackPass.getVisibilityQuality())
             .maxElevation(null)
             .build();
-    }
-
-    @Getter
-    @Builder
-    private static class IssLocationData {
-        private final Double altitude;
-        private final Double velocity;
-        private final Double latitude;
-        private final Double longitude;
     }
 
     @Getter

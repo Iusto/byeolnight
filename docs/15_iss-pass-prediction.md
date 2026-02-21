@@ -94,8 +94,7 @@ private IssPassData calculateNextIssPass(double latitude, double longitude) {
 | **AtomicReference** | Java의 원자적 참조 변수. 여러 스레드가 동시에 TLE를 읽고 쓸 때 동기화 없이 안전하게 접근할 수 있다 |
 | **ConcurrentHashMap** | Java의 스레드 안전 해시맵. 패스 예측 결과를 저장하는 인메모리 캐시로 사용 중 |
 | **1도 그리드 캐싱** | 위도/경도를 1도 단위로 반올림하여 같은 격자 안의 요청을 하나의 캐시 키로 합치는 전략. 한국 전체가 약 25개 키로 커버된다 |
-| **volatile** | Java의 변수 가시성 보장 키워드. 한 스레드가 변경한 값을 다른 스레드가 즉시 읽을 수 있도록 한다. 위치 캐시처럼 단일 값을 여러 스레드가 공유할 때 사용 |
-| **TTL (Time To Live)** | 캐시 데이터의 유효 기간. TLE 캐시는 12시간, 패스 예측 캐시는 2시간, 위치 캐시는 5분 |
+| **TTL (Time To Live)** | 캐시 데이터의 유효 기간. TLE 캐시는 12시간, 패스 예측 캐시는 2시간 |
 
 ---
 
@@ -159,14 +158,11 @@ CelesTrak (TLE 제공)
 └────────┬─────────┘
          │ TLE 객체
          ▼
-┌──────────────────────┐     ┌─────────────────┐
-│   IssService         │────▶│  wheretheiss.at  │  현재 고도/속도
-│                      │     └─────────────────┘
+┌──────────────────────┐
+│   IssService         │  외부 API 의존 없음 (SGP4로 모든 데이터 계산)
+│                      │
 │  ┌────────────────┐  │
-│  │ Location Cache │  │  volatile 필드 (TTL 5분)
-│  └────────────────┘  │
-│  ┌────────────────┐  │
-│  │ PassPredictor  │  │  SGP4 궤도 전파 + 패스 계산
+│  │ PassPredictor  │  │  SGP4 궤도 전파 + 패스 계산 + 현재 고도 계산
 │  │ (predict4java) │  │
 │  └────────────────┘  │
 │  ┌────────────────┐  │
@@ -323,17 +319,12 @@ private String elevationToQuality(double maxElevation) {
 
 ## 캐싱 전략
 
-ISS 기능은 3단계 로컬 캐싱을 적용하여 외부 API 호출을 최소화한다.
+ISS 기능은 2단계 로컬 캐싱을 적용한다. 외부 API 의존 없이 TLE + SGP4만으로 모든 데이터를 계산한다.
 
 ```
 요청 흐름과 캐시 히트 포인트:
 
-사용자 요청 ──→ fetchIssCurrentLocation() ─┐ (CompletableFuture 병렬 실행)
-                    │                      │
-                    ├─ [HIT] volatile 캐시 (5분 이내) → 즉시 반환
-                    └─ [MISS] wheretheiss.at API 호출 → 캐시 갱신
-                                                       │
-              ──→ calculateNextIssPass() ──────────────┘
+사용자 요청 ──→ calculateNextIssPass()
                     │
                     ├─ [HIT] ConcurrentHashMap (2시간 이내, 같은 그리드) → 즉시 반환
                     └─ [MISS] SGP4 계산
@@ -343,6 +334,11 @@ ISS 기능은 3단계 로컬 캐싱을 적용하여 외부 API 호출을 최소�
                                 │     └─ [MISS] CelesTrak API 호출 → 캐시 갱신
                                 │
                                 └─ predict4java SGP4 계산 → 캐시 저장
+
+              ──→ calculateCurrentAltitude()
+                    │
+                    └─ SGP4 predictor.getSatPos() → 현재 고도 반환
+                       (속도는 궤도 특성상 일정하므로 27,600 km/h 고정값 사용)
 ```
 
 ### 1. TLE 캐시
@@ -386,53 +382,28 @@ ISS 기능은 3단계 로컬 캐싱을 적용하여 외부 API 호출을 최소�
 - **1도 그리드**: 위도 1도는 약 111km, 경도 1도는 한국 위도 기준 약 88km에 해당한다. 같은 그리드 안의 두 지점에서 ISS 패스 시각 차이는 수 초~수십 초 이내로, 사용자가 인지할 수 없는 수준이다. 더 세밀한 그리드(0.1도)로 하면 캐시 키가 2,500개로 늘어나 캐시 히트율이 급락한다
 - **ConcurrentHashMap**: 위치별로 키가 여러 개 필요하고, 서블릿 스레드에서 동시 접근이 발생하므로 스레드 안전한 Map이 필요하다. 읽기 위주 워크로드에서 `ConcurrentHashMap`이 `synchronized Map`보다 성능이 좋다
 
-### 3. ISS 위치 캐시
+### 3. ISS 현재 고도
 
-| 항목 | 값 |
-|------|-----|
-| 저장소 | `volatile IssLocationData` + `volatile long` (인메모리) |
-| TTL | 5분 |
-| 데이터 소스 | wheretheiss.at API |
-| 크기 | 1건 (고도, 속도, 위도, 경도) |
-
-ISS 현재 위치(고도/속도)를 반환하는 `fetchIssCurrentLocation()`에 5분 TTL 로컬 캐싱을 적용한다.
+ISS 현재 고도는 SGP4 `predictor.getSatPos()`로 직접 계산한다. 외부 API 의존 없이 TLE 데이터만으로 계산하므로 네트워크 지연이 없다. 속도는 ISS 궤도 특성상 거의 일정(~27,600 km/h)하므로 고정값을 사용한다.
 
 ```java
-private volatile IssLocationData cachedLocation;
-private volatile long locationCachedAt;
-private static final long LOCATION_CACHE_TTL_MS = TimeUnit.MINUTES.toMillis(5);
+private Double calculateCurrentAltitude(double latitude, double longitude) {
+    TLE tle = tleFetchService.getIssTle();
+    if (tle == null) return null;
 
-private IssLocationData fetchIssCurrentLocation() {
-    // 캐시 확인 (5분 TTL)
-    IssLocationData cached = cachedLocation;
-    if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
-        return cached;  // 5분 이내 → 외부 호출 없이 반환
-    }
+    GroundStationPosition observer = new GroundStationPosition(latitude, longitude, 0);
+    PassPredictor predictor = new PassPredictor(tle, observer);
+    SatPos satPos = predictor.getSatPos(new Date());
 
-    try {
-        // wheretheiss.at API 호출
-        // ... 성공 시 캐시 갱신
-        cachedLocation = location;
-        locationCachedAt = System.currentTimeMillis();
-        return location;
-    } catch (Exception e) {
-        return cached;  // 실패 시 이전 캐시 반환 (없으면 null)
-    }
+    return satPos.getAltitude();  // km 단위
 }
 ```
 
 설계 결정:
 
-- **TTL 5분**: ISS 고도(~420km)와 속도(~27,600km/h)는 궤도 전체에서 크게 변하지 않으므로, 표시용으로는 5분 주기 갱신이면 충분하다. TTL이 너무 짧으면(기존 30초) 캐시 히트율이 낮아져 대부분의 요청이 외부 API 호출로 이어져 응답 지연의 원인이 된다
-- **volatile 필드**: 패스 예측 캐시(`ConcurrentHashMap`)와 달리 키가 1개뿐이므로 `volatile` 필드로 충분하다. `ConcurrentHashMap`보다 메모리/오버헤드가 적다
-- **Graceful degradation**: API 실패 시 `null` 대신 이전 캐시 데이터를 반환하여, 일시적 네트워크 오류에도 사용자에게 데이터를 보여줄 수 있다
-- **프론트엔드 연동**: 프론트엔드가 5분(`refetchInterval: 5 * 60 * 1000`)마다 자동 갱신하므로, 동시 접속 사용자가 많아도 5분당 최대 1회만 외부 API를 호출한다
-
-```
-캐시 효과 (동시 접속 100명, 5분 내):
-  Before (TTL 30초): 최대 10회 외부 API 호출 (5분 ÷ 30초 = 10)
-  After  (TTL 5분):  최대 1회 외부 API 호출 (5분 ÷ 5분 = 1)
-```
+- **외부 API 제거**: 기존에 `wheretheiss.at` API로 고도/속도를 가져왔으나, 서버 환경에서 접속 불안정(타임아웃)으로 5초+ 지연의 원인이 되었다. SGP4로 대체하면서 외부 의존성을 완전히 제거
+- **속도 고정값**: ISS는 거의 원궤도(이심률 0.0007)를 돌므로 궤도 속도가 일정하다. 매번 계산하는 것은 불필요한 복잡성
+- **TLE 재사용**: 패스 계산과 같은 TLE를 사용하므로 추가 외부 호출이 없다
 
 ### k6 부하테스트 실측 결과
 
@@ -477,44 +448,6 @@ private IssPassData createFallbackPassData() {
 
 ---
 
-## 외부 API Null Safety
-
-wheretheiss.at API에서 ISS 현재 위치를 가져올 때, 응답 필드가 누락되거나 API 호출이 실패할 수 있다. 3단계 방어 전략을 적용한다.
-
-```
-방어 단계:
-
-1단계: 캐시 히트 (5분 TTL) → 외부 호출 자체를 하지 않음
-2단계: API 응답 필드 검증 → 필드 누락 시 이전 캐시 데이터 반환
-3단계: API 호출 실패 → 이전 캐시 데이터 반환 (없으면 null → 폴백 메시지)
-```
-
-```java
-private IssLocationData fetchIssCurrentLocation() {
-    // 1단계: 캐시 확인
-    IssLocationData cached = cachedLocation;
-    if (cached != null && System.currentTimeMillis() - locationCachedAt < LOCATION_CACHE_TTL_MS) {
-        return cached;
-    }
-
-    try {
-        // ...
-        // 2단계: 응답 필드 검증
-        if (altNode == null || velNode == null || latNode == null || lonNode == null) {
-            return cached;  // 이전 캐시 반환 (null일 수 있음)
-        }
-        // ...
-    } catch (Exception e) {
-        // 3단계: 호출 실패 시 이전 캐시 반환
-        return cached;
-    }
-}
-```
-
-`fetchIssCurrentLocation()`이 최종적으로 null을 반환하면(캐시도 없는 초기 상태) `getIssObservationOpportunity()`에서 기본 상태 메시지("ISS는 현재 지구 상공 약 400km에서...")를 사용한다. SGP4 패스 계산은 이 API와 독립적이므로 영향 없이 정상 작동한다.
-
----
-
 ## API 응답
 
 ### 엔드포인트
@@ -528,9 +461,9 @@ GET /api/weather/iss?latitude=37.5665&longitude=126.9780
 ```json
 {
   "messageKey": "iss.detailed_status",
-  "friendlyMessage": "ISS는 현재 고도 408km에서 시속 27580km로 이동 중입니다.",
-  "currentAltitudeKm": 408.2,
-  "currentVelocityKmh": 27580.4,
+  "friendlyMessage": "",
+  "currentAltitudeKm": 419.3,
+  "currentVelocityKmh": 27600.0,
   "nextPassTime": "21:35",
   "nextPassDate": "2026-02-09",
   "nextPassDirection": "SOUTHWEST",
@@ -544,8 +477,8 @@ GET /api/weather/iss?latitude=37.5665&longitude=126.9780
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `currentAltitudeKm` | Double | ISS 현재 고도 (km) - wheretheiss.at API |
-| `currentVelocityKmh` | Double | ISS 현재 속도 (km/h) - wheretheiss.at API |
+| `currentAltitudeKm` | Double | ISS 현재 고도 (km) - SGP4 계산 |
+| `currentVelocityKmh` | Double | ISS 궤도 속도 (km/h) - 고정값 27,600 |
 | `nextPassTime` | String | 다음 관측 시작 시간 (KST, HH:mm) |
 | `nextPassDate` | String | 다음 관측 날짜 (yyyy-MM-dd) |
 | `nextPassDirection` | String | ISS 출현 방향 (8방향) |
