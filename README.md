@@ -61,7 +61,7 @@
 **백엔드 (EC2 + Docker):**
 - Spring Boot 3.2.4 (REST API)
 - Spring Security 6.2.3 (JWT + OAuth2)
-- Spring Cloud Config Server (중앙 설정 관리)
+- Spring Cloud Config Server (Private Git 기반 중앙 설정 관리)
 - Native WebSocket 실시간 통신
 
 **데이터 계층:**
@@ -110,10 +110,31 @@
 - **브라우저 알림**: Notification API 통합
 
 ### 🛠️ 개발 인프라
-- **Spring Cloud Config**: 중앙 설정 관리 + 암호화
+- **Spring Cloud Config**: Private Git 저장소 기반 중앙 설정 관리 + 암호화
 - **GitHub Actions**: 자동 배포 (프론트엔드 → S3, 백엔드 → EC2)
 - **Swagger UI**: 자동 API 문서화
 - **Docker Compose**: 백엔드 컨테이너 관리
+
+#### Spring Cloud Config Server 구조
+
+민감 정보(DB 비밀번호, JWT Secret, OAuth2 Key 등)는 Public 저장소에 포함되지 않는다.
+별도의 Private Git 저장소(`config-repo`)에서 환경별 설정 파일을 관리하며,
+Config Server가 기동 시 해당 저장소를 Clone하여 설정을 제공한다.
+
+```
+[Private Git Repository]
+└── config-repo/
+    └── byeolnight-prod.yml   # 운영 환경 설정 (DB, JWT, OAuth2 등)
+    
+         ↓ (Spring Cloud Config Server가 Pull)
+
+[EC2 Docker]
+├── config-server (port 8888)  →  Private Git에서 설정 Pull
+└── app (port 8080)            →  Config Server에서 설정 주입
+```
+
+배포 시 `deploy.sh`에서 `config-repo`를 최신화(`git pull`)한 뒤 Config Server를 재기동하므로,
+설정 변경은 코드 배포 없이 Private Git 저장소 수정만으로 반영된다.
 
 ---
 
