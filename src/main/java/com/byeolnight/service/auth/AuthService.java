@@ -81,7 +81,7 @@ public class AuthService {
         User user = userQueryService.findByEmail(email)
                 .orElseThrow(() -> {
                     auditSignupLogRepository.save(AuditSignupLog.failure(email, ip, "존재하지 않는 이메일"));
-                    return new BadCredentialsException("존재하지 않는 아이디입니다.");
+                    return new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
                 });
 
         // 계정 상태 확인

@@ -165,7 +165,8 @@ public class AuthController {
                     
         } catch (Exception e) {
             log.error("로그아웃 오류", e);
-            return ResponseEntity.ok().body(CommonResponse.success("로그아웃되었습니다."));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CommonResponse.fail("로그아웃 처리 중 오류가 발생했습니다."));
         }
     }
 
@@ -396,8 +397,8 @@ public class AuthController {
                             .body(CommonResponse.fail("복구할 수 없는 계정입니다."));
                 }
             } else {
-                // 새 계정 생성을 위해 복구 체크 건너뛰기 플래그 설정
-                request.getSession().setAttribute("skip_recovery_check_" + dto.getEmail(), "true");
+                // 새 계정 생성을 위해 복구 체크 건너뛰기 플래그 설정 (Redis, 5분 TTL)
+                tokenService.saveSkipRecoveryFlag(dto.getEmail());
                 return ResponseEntity.ok(CommonResponse.success("새 계정으로 진행합니다. 다시 로그인해주세요."));
             }
         } catch (IllegalStateException e) {

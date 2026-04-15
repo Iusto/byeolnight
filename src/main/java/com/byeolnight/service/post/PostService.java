@@ -236,37 +236,26 @@ public class PostService {
                 Page<Post> recentPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(categoryEnum, pageable);
 
                 Set<Long> hotIds = hotPosts.stream().map(Post::getId).collect(Collectors.toSet());
-                List<PostResponseDto> combined = new ArrayList<>();
 
-                // HOT 게시글 처리 (이미 작성자 존재 확인된 데이터)
-                hotPosts.forEach(p -> {
-                    long actualLikeCount = postLikeRepository.countByPost(p);
-                    long commentCount = commentRepository.countByPostId(p.getId());
-                    combined.add(postResponseAssembler.toDto(p, false, actualLikeCount, true, commentCount));
-                });
-
-                // 최신 게시글 처리 (이미 작성자 존재 확인된 데이터)
+                List<Post> allPosts = new ArrayList<>(hotPosts);
                 recentPosts.getContent().stream()
                         .filter(p -> !hotIds.contains(p.getId()))
-                        .forEach(p -> {
-                            long actualLikeCount = postLikeRepository.countByPost(p);
-                            long commentCount = commentRepository.countByPostId(p.getId());
-                            combined.add(postResponseAssembler.toDto(p, false, actualLikeCount, false, commentCount));
-                        });
+                        .forEach(allPosts::add);
 
+                List<Long> postIds = allPosts.stream().map(Post::getId).toList();
+                Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
+
+                List<PostResponseDto> combined = postResponseAssembler.toDtoList(allPosts, Map.of(), commentCountMap, hotIds);
                 return new PageImpl<>(combined, pageable, combined.size());
             }
 
             case POPULAR -> {
                 Page<Post> popularPosts = postRepository.findByIsDeletedFalseAndCategoryOrderByLikeCountDesc(categoryEnum, pageable);
-                List<PostResponseDto> dtos = popularPosts.getContent().stream()
-                        .map(p -> {
-                            long actualLikeCount = postLikeRepository.countByPost(p);
-                            long commentCount = commentRepository.countByPostId(p.getId());
-                            return postResponseAssembler.toDto(p, false, actualLikeCount, false, commentCount);
-                        })
-                        .toList();
+                List<Long> postIds = popularPosts.getContent().stream().map(Post::getId).toList();
+                Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
 
+                List<PostResponseDto> dtos = postResponseAssembler.toDtoList(
+                        popularPosts.getContent(), Map.of(), commentCountMap, Set.of());
                 return new PageImpl<>(dtos, pageable, popularPosts.getTotalElements());
             }
         }
@@ -290,13 +279,11 @@ public class PostService {
         // QueryDSL 동적 검색 사용
         Page<Post> searchResults = postRepository.searchPosts(keyword, categoryEnum, searchType, pageable);
 
-        List<PostResponseDto> dtos = searchResults.getContent().stream()
-                .map(p -> {
-                    long actualLikeCount = postLikeRepository.countByPost(p);
-                    long commentCount = commentRepository.countByPostId(p.getId());
-                    return postResponseAssembler.toDto(p, false, actualLikeCount, false, commentCount);
-                })
-                .collect(Collectors.toList());
+        List<Long> postIds = searchResults.getContent().stream().map(Post::getId).toList();
+        Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
+
+        List<PostResponseDto> dtos = postResponseAssembler.toDtoList(
+                searchResults.getContent(), Map.of(), commentCountMap, Set.of());
 
         return new PageImpl<>(dtos, pageable, searchResults.getTotalElements());
     }
@@ -314,13 +301,11 @@ public class PostService {
         // 전체 카테고리 HOT 게시글은 일반 사용자도 볼 수 있으므로 블라인드 제외
         List<Post> hotPosts = postRepository.findHotPosts(null, threshold, 5, size, false);
 
-        return hotPosts.stream()
-                .map(p -> {
-                    long actualLikeCount = postLikeRepository.countByPost(p);
-                    long commentCount = commentRepository.countByPostId(p.getId());
-                    return postResponseAssembler.toDto(p, false, actualLikeCount, true, commentCount);
-                })
-                .toList();
+        List<Long> postIds = hotPosts.stream().map(Post::getId).toList();
+        Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
+        Set<Long> hotIds = hotPosts.stream().map(Post::getId).collect(Collectors.toSet());
+
+        return postResponseAssembler.toDtoList(hotPosts, Map.of(), commentCountMap, hotIds);
     }
 
     @Transactional
@@ -378,6 +363,15 @@ public class PostService {
                 .orElseThrow(() -> new NotFoundException("해당 게시글을 찾을 수 없습니다."));
     }
 
+    private Map<Long, Long> batchCommentCounts(List<Long> postIds) {
+        if (postIds.isEmpty()) return Map.of();
+        return commentRepository.countByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+    }
+
     private Category parseCategory(String category) {
         if (category == null || category.isBlank()) return null;
         try {
@@ -390,12 +384,11 @@ public class PostService {
     // 블라인드 게시글 리스트 조회(관리자용)
     @Transactional(readOnly = true)
     public List<PostResponseDto> getBlindedPostsList() {
-        return postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc().stream()
-                .map(p -> {
-                    long commentCount = commentRepository.countByPostId(p.getId());
-                    return postResponseAssembler.toDtoSimple(p, false, commentCount);
-                })
-                .toList();
+        List<Post> posts = postRepository.findByIsDeletedFalseAndBlindedTrueOrderByCreatedAtDesc();
+        List<Long> postIds = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
+
+        return postResponseAssembler.toDtoList(posts, Map.of(), commentCountMap, Set.of());
     }
 
     @Transactional
@@ -452,12 +445,14 @@ public class PostService {
 
         Page<Post> posts = postRepository.findByWriterAndIsDeletedFalseOrderByCreatedAtDesc(user, pageable);
 
+        List<Long> postIds = posts.getContent().stream().map(Post::getId).toList();
+        Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
+
         List<PostDto.Response> dtos = posts.getContent().stream()
-                .map(post -> {
-                    long likeCount = postLikeRepository.countByPost(post);
-                    long commentCount = commentRepository.countByPostId(post.getId());
-                    return PostDto.Response.from(post, likeCount, commentCount);
-                })
+                .map(post -> PostDto.Response.from(
+                        post,
+                        post.getLikeCount(),
+                        commentCountMap.getOrDefault(post.getId(), 0L)))
                 .toList();
 
         return new PageImpl<>(dtos, pageable, posts.getTotalElements());
@@ -465,22 +460,28 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostAdminDto> getDeletedPosts() {
-        return postRepository.findByIsDeletedTrueOrderByCreatedAtDesc().stream()
-                .map(post -> PostAdminDto.builder()
-                        .id(post.getId())
-                        .title(post.getTitle())
-                        .content(post.getContent())
-                        .writer(post.getWriter().getNickname())
-                        .category(post.getCategory().name())
-                        .blinded(post.isBlinded())
-                        .deleted(post.isDeleted())
-                        .viewCount(post.getViewCount())
-                        .likeCount(post.getLikeCount())
-                        .commentCount((int) commentRepository.countByPostId(post.getId()))
-                        .createdAt(post.getCreatedAt())
-                        .deletedAt(post.getDeletedAt())
-                        .build())
-                .toList();
+        List<Post> posts = postRepository.findByIsDeletedTrueOrderByCreatedAtDesc();
+        List<Long> postIds = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> commentCountMap = batchCommentCounts(postIds);
+
+        List<PostAdminDto> result = new ArrayList<>();
+        for (Post post : posts) {
+            result.add(PostAdminDto.builder()
+                    .id(post.getId())
+                    .title(post.getTitle())
+                    .content(post.getContent())
+                    .writer(post.getWriter().getNickname())
+                    .category(post.getCategory().name())
+                    .blinded(post.isBlinded())
+                    .deleted(post.isDeleted())
+                    .viewCount(post.getViewCount())
+                    .likeCount(post.getLikeCount())
+                    .commentCount(commentCountMap.getOrDefault(post.getId(), 0L).intValue())
+                    .createdAt(post.getCreatedAt())
+                    .deletedAt(post.getDeletedAt())
+                    .build());
+        }
+        return result;
     }
 
     @Transactional
@@ -506,10 +507,7 @@ public class PostService {
             throw new IllegalArgumentException("잘못된 카테고리입니다.");
         }
         
-        for (Long postId : postIds) {
-            Post post = postRepository.findById(postId)
-                    .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다: " + postId));
-            post.update(post.getTitle(), post.getContent(), category);
-        }
+        List<Post> posts = postRepository.findAllById(postIds);
+        posts.forEach(post -> post.update(post.getTitle(), post.getContent(), category));
     }
 }
