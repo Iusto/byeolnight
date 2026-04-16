@@ -138,7 +138,7 @@ class AuthServiceTest {
             // When & Then
             assertThatThrownBy(() -> authService.authenticate(loginRequest, request))
                     .isInstanceOf(BadCredentialsException.class)
-                    .hasMessage("존재하지 않는 아이디입니다.");
+                    .hasMessage("이메일 또는 비밀번호가 올바르지 않습니다.");
 
             verify(auditSignupLogRepository).save(any(AuditSignupLog.class));
         }

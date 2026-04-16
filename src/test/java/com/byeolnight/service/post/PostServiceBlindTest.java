@@ -155,10 +155,9 @@ class PostServiceBlindTest {
         when(postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(
                 eq(Post.Category.FREE), eq(pageable))).thenReturn(postPage);
         when(postRepository.findHotPosts(any(), any(), anyInt(), anyInt(), eq(false))).thenReturn(List.of());
-        when(postLikeRepository.countByPost(any())).thenReturn(0L);
-        when(commentRepository.countByPostId(any())).thenReturn(0L);
-        when(postResponseAssembler.toDto(eq(normalPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
-                .thenReturn(normalPostDto);
+        when(commentRepository.countByPostIdIn(anyList())).thenReturn(List.of());
+        when(postResponseAssembler.toDtoList(eq(List.of(normalPost)), any(), any(), any()))
+                .thenReturn(List.of(normalPostDto));
 
         // when
         Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, normalUser);
@@ -191,12 +190,9 @@ class PostServiceBlindTest {
         when(postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(
                 eq(Post.Category.FREE), eq(pageable))).thenReturn(postPage);
         when(postRepository.findHotPosts(any(), any(), anyInt(), anyInt(), eq(true))).thenReturn(List.of());
-        when(postLikeRepository.countByPost(any())).thenReturn(0L);
-        when(commentRepository.countByPostId(any())).thenReturn(0L);
-        when(postResponseAssembler.toDto(eq(normalPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
-                .thenReturn(normalPostDto);
-        when(postResponseAssembler.toDto(eq(blindedPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
-                .thenReturn(blindedPostDto);
+        when(commentRepository.countByPostIdIn(anyList())).thenReturn(List.of());
+        when(postResponseAssembler.toDtoList(eq(List.of(normalPost, blindedPost)), any(), any(), any()))
+                .thenReturn(List.of(normalPostDto, blindedPostDto));
 
         // when
         Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, adminUser);
@@ -223,10 +219,9 @@ class PostServiceBlindTest {
         when(postRepository.findByIsDeletedFalseAndCategoryOrderByCreatedAtDesc(
                 eq(Post.Category.FREE), eq(pageable))).thenReturn(postPage);
         when(postRepository.findHotPosts(any(), any(), anyInt(), anyInt(), eq(false))).thenReturn(List.of());
-        when(postLikeRepository.countByPost(any())).thenReturn(0L);
-        when(commentRepository.countByPostId(any())).thenReturn(0L);
-        when(postResponseAssembler.toDto(eq(normalPost), anyBoolean(), anyLong(), anyBoolean(), anyLong()))
-                .thenReturn(normalPostDto);
+        when(commentRepository.countByPostIdIn(anyList())).thenReturn(List.of());
+        when(postResponseAssembler.toDtoList(eq(List.of(normalPost)), any(), any(), any()))
+                .thenReturn(List.of(normalPostDto));
 
         // when
         Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, null);
