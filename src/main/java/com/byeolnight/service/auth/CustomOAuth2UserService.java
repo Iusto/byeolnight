@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 
 @Slf4j
@@ -27,6 +26,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private final SocialAccountCleanupService socialAccountCleanupService;
     private final UserAccountService userAccountService;
     private final CertificateService certificateService;
+    private final TokenService tokenService;
 
     @Override
     @Transactional
@@ -104,13 +104,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
     
     private User processNewUser(OAuth2UserInfoFactory.OAuth2UserInfo userInfo, String registrationId) {
-        // 복구 가능한 계정이 있는지 확인 (세션에 슠킵 플래그가 없는 경우만)
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        boolean skipRecoveryCheck = false;
-        if (attributes != null) {
-            HttpServletRequest request = attributes.getRequest();
-            skipRecoveryCheck = "true".equals(request.getSession().getAttribute("skip_recovery_check_" + userInfo.getEmail()));
-        }
+        // 복구 가능한 계정이 있는지 확인 (Redis 플래그가 없는 경우만)
+        boolean skipRecoveryCheck = tokenService.getAndDeleteSkipRecoveryFlag(userInfo.getEmail());
         
         if (!skipRecoveryCheck && socialAccountCleanupService.hasRecoverableAccount(userInfo.getEmail())) {
             String errorMsg = "RECOVERABLE_ACCOUNT:" + userInfo.getEmail() + ":" + registrationId;
@@ -175,9 +170,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                request.getSession().setAttribute("oauth2_error_message", errorMessage);
-                log.info("OAuth2 에러 메시지 세션에 저장: {}", errorMessage);
+                // 같은 요청 내에서 FailureHandler로 전달하므로 request attribute 사용 (세션 불필요)
+                attributes.getRequest().setAttribute("oauth2_error_message", errorMessage);
+                log.info("OAuth2 에러 메시지 request attribute에 저장: {}", errorMessage);
             }
         } catch (Exception e) {
             log.warn("OAuth2 에러 메시지 저장 실패: {}", e.getMessage());

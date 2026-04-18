@@ -37,9 +37,10 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     }
     
     private String extractErrorMessage(HttpServletRequest request, AuthenticationException exception) {
-        String errorMessage = (String) request.getSession().getAttribute(ERROR_SESSION_KEY);
+        // CustomOAuth2UserService에서 같은 요청 내 request attribute로 전달
+        String errorMessage = (String) request.getAttribute(ERROR_SESSION_KEY);
         if (errorMessage != null) {
-            request.getSession().removeAttribute(ERROR_SESSION_KEY);
+            request.removeAttribute(ERROR_SESSION_KEY);
             return errorMessage;
         }
         

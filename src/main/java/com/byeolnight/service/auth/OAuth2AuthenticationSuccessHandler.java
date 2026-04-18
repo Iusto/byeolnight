@@ -2,11 +2,9 @@ package com.byeolnight.service.auth;
 
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
-import org.springframework.beans.factory.annotation.Value;
 import com.byeolnight.service.auth.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,24 +58,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             
             response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
             response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-            
-            // OAuth2 인증 완료 후 세션 정리
-            HttpSession session = request.getSession(false);
-            if (session != null) {
-                // 복구 체크 건너뛰기 플래그 제거 (이메일별)
-                session.removeAttribute("skip_recovery_check_" + user.getEmail());
-                session.invalidate();
-                log.info("OAuth2 로그인 완료 후 세션 무효화: {}", user.getEmail());
-            }
-
-            ResponseCookie deleteJSessionId = ResponseCookie.from("JSESSIONID", "")
-                    .httpOnly(true)
-                    .secure(true)
-                    .sameSite("Lax")
-                    .path("/")
-                    .maxAge(0)
-                    .build();
-            response.addHeader(HttpHeaders.SET_COOKIE, deleteJSessionId.toString());
 
             String baseUrl = getBaseUrl(request);
             String redirectUrl = baseUrl + "/oauth/callback";

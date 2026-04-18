@@ -35,7 +35,7 @@ public class EmailWorker {
     public void processEmailJobs() {
         try {
             // 큐에서 작업 가져오기 (1초 대기)
-            EmailJob emailJob = cacheService.dequeue(MAIL_QUEUE, Duration.ofSeconds(1));
+            EmailJob emailJob = cacheService.dequeue(MAIL_QUEUE, Duration.ofSeconds(1), EmailJob.class);
 
             if (emailJob != null) {
                 processMessage(emailJob);
