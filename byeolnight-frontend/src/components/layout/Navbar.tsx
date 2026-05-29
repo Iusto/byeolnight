@@ -149,8 +149,8 @@ export default function Navbar() {
                   </Link>
                   
                   {user.role === 'ADMIN' && (
-                    <Link 
-                      to="/admin/users" 
+                    <Link
+                      to="/admin"
                       className="p-1.5 rounded-full hover:bg-red-600/20 text-red-300 hover:text-red-200 transition-all duration-200"
                       title="관리자"
                     >
