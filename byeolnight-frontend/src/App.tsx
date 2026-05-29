@@ -41,7 +41,6 @@ const OAuthNicknameSetup = lazy(() => import('./pages/OAuthNicknameSetup'));
 const OAuthRecover = lazy(() => import('./pages/OAuthRecover'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// 구 경로 /posts/write → /posts/new 리다이렉트 (쿼리스트링 유지)
 const PostWriteRedirect = () => {
   const { search } = useLocation();
   return <Navigate to={`/posts/new${search}`} replace />;
