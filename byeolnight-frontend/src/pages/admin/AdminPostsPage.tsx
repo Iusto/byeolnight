@@ -111,7 +111,7 @@ export default function AdminPostsPage() {
 
   const handleApproveReport = async (reportId: number) => {
     try {
-      await axios.post(`/admin/reports/${reportId}/approve`);
+      await axios.patch(`/admin/reports/${reportId}/approve`);
       alert('신고가 승인되었습니다. 신고자들에게 포인트가 지급되었습니다.');
       fetchData();
     } catch (error) {
@@ -122,7 +122,7 @@ export default function AdminPostsPage() {
 
   const handleRejectReport = async (reportId: number, reason: string) => {
     try {
-      await axios.post(`/admin/reports/${reportId}/reject`, { reason });
+      await axios.patch(`/admin/reports/${reportId}/reject`, { reason });
       alert('신고가 거부되었습니다.');
       fetchData();
     } catch (error) {

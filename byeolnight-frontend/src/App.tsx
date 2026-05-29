@@ -17,6 +17,15 @@ const PostDetail = lazy(() => import('./pages/PostDetail'));
 const PostEdit = lazy(() => import('./pages/PostEdit'));
 const PasswordReset = lazy(() => import('./pages/PasswordReset'));
 const AdminUserPage = lazy(() => import('./pages/AdminUserPage'));
+// 신규 모듈형 관리자 패널
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminPostsPage = lazy(() => import('./pages/admin/AdminPostsPage'));
+const AdminCommentsPage = lazy(() => import('./pages/admin/AdminCommentsPage'));
+const AdminIpPage = lazy(() => import('./pages/admin/AdminIpPage'));
+const AdminFilesPage = lazy(() => import('./pages/admin/AdminFilesPage'));
+const AdminSchedulerPage = lazy(() => import('./pages/admin/AdminSchedulerPage'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const Certificates = lazy(() => import('./pages/Certificates'));
 const StellaShop = lazy(() => import('./pages/StellaShop'));
@@ -64,6 +73,26 @@ function App() {
         <Route path="/oauth/setup-nickname" element={<OAuthNicknameSetup />} />
         <Route path="/oauth/recover" element={<OAuthRecover />} />
 
+        {/* 관리자 패널 (자체 AdminLayout 사용, 메인 Layout 미적용) */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="posts" element={<AdminPostsPage />} />
+          <Route path="comments" element={<AdminCommentsPage />} />
+          <Route path="ips" element={<AdminIpPage />} />
+          <Route path="files" element={<AdminFilesPage />} />
+          <Route path="scheduler" element={<AdminSchedulerPage />} />
+          {/* 레거시 페이지 (검증용 임시 보존, 검증 완료 후 제거 예정) */}
+          <Route path="legacy" element={<AdminUserPage />} />
+        </Route>
+
         {/* Layout이 적용되는 페이지들 */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
@@ -105,13 +134,6 @@ function App() {
           } />
           <Route path="/suggestions/:id/edit" element={
             <ProtectedRoute><SuggestionEdit /></ProtectedRoute>
-          } />
-
-          {/* 관리자 전용 페이지 */}
-          <Route path="/admin/users" element={
-            <ProtectedRoute requireAdmin>
-              <AdminUserPage />
-            </ProtectedRoute>
           } />
 
           <Route path="*" element={<NotFound />} />
