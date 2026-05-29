@@ -2,19 +2,7 @@
 import { Link } from 'react-router-dom';
 import axios from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
-
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  writerNickname: string;
-  likeCount: number;
-  commentCount: number;
-  viewCount: number;
-  isBlinded: boolean;
-  createdAt: string;
-}
+import type { ActivityPost as Post } from '../../types/post';
 
 interface Comment {
   id: number;

@@ -87,7 +87,7 @@ export default function PasswordReset() {
   // 로딩 상태일 때 표시
   if (loading && token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg text-center">
           <h2 className="text-2xl font-bold mb-6">🔑 비밀번호 재설정</h2>
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -112,7 +112,7 @@ export default function PasswordReset() {
 
   if (step === 'request') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
           <h2 className="text-2xl font-bold mb-6 text-center">🔑 비밀번호 재설정</h2>
           
@@ -165,7 +165,7 @@ export default function PasswordReset() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
         <h2 className="text-2xl font-bold mb-6 text-center">🔑 새 비밀번호 설정</h2>
         <form onSubmit={handleResetPassword} className="space-y-4">

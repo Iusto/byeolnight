@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import { StarfieldBackground } from '../components/common';
 
 interface Certificate {
   type: string;
@@ -65,7 +66,7 @@ export default function Certificates() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient text-white flex items-center justify-center">
         <p>{t('certificates.login_required')}</p>
       </div>
     );
@@ -73,14 +74,17 @@ export default function Certificates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient text-white flex items-center justify-center">
         <p>{t('certificates.loading')}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+    <div className="min-h-screen bg-space-gradient text-white py-12 px-6 relative">
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <StarfieldBackground density={50} />
+      </div>
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold mb-8 text-center text-white drop-shadow-glow">
           {t('certificates.title')}

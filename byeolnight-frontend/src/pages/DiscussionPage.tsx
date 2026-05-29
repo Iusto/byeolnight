@@ -64,7 +64,7 @@ export default function DiscussionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+    <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
       <div className="max-w-6xl mx-auto">
         {/* 페이지 헤더 */}
         <div className="text-center mb-12">

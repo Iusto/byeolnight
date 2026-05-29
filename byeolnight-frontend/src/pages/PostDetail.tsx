@@ -7,29 +7,8 @@ import { MarkdownRenderer } from '../components/post';
 import { ClickableNickname, UserIconDisplay } from '../components/user';
 import { CommentList, CommentForm } from '../components/post';
 import { getErrorMessage, isAxiosError } from '../types/api';
-
-
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  writer: string;
-  writerId: number;
-  blinded: boolean;
-  likeCount: number;
-  likedByMe: boolean;
-  createdAt: string;
-  viewCount: number;
-  commentCount: number;
-  writerIcon?: string;
-  writerCertificates?: string[];
-  images?: Array<{
-    id: number;
-    originalName: string;
-    url: string;
-  }>;
-}
+import type { PostDetail as Post } from '../types/post';
+import { StarfieldBackground } from '../components/common';
 
 interface Comment {
   id: number;
@@ -392,7 +371,7 @@ export default function PostDetail() {
   // ID 유효성 검사 - 로딩 완료 후에만 실행
   if (!loading && (!id || isNaN(Number(id)))) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+      <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
         <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
           <div className="text-red-400 text-center">
             <h1 className="text-2xl font-bold mb-4">{t('home.invalid_access')}</h1>
@@ -411,7 +390,7 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mb-4"></div>
           <p className="text-xl font-medium text-purple-300">{t('home.loading_post')}</p>
@@ -423,7 +402,7 @@ export default function PostDetail() {
   
   if (!post || error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+      <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
         <div className="max-w-4xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
           <div className="text-red-400 text-center">
             <h1 className="text-2xl font-bold mb-4">{t('home.inaccessible_post')}</h1>
@@ -445,7 +424,10 @@ export default function PostDetail() {
   const categoryName = categoryLabels[post.category] || post.category;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-space-gradient text-white relative">
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <StarfieldBackground density={50} />
+      </div>
       {/* 헤더 섹션 - 모바일 최적화 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>

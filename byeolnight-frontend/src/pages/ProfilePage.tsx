@@ -218,7 +218,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center text-white">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-lg mb-4">로그인이 필요합니다.</p>
           <button 
@@ -233,7 +233,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex justify-center pt-4 sm:pt-20 text-white mobile-optimized">
+    <div className="min-h-screen min-h-screen-safe bg-space-gradient flex justify-center pt-4 sm:pt-20 text-white mobile-optimized">
       <div className="w-full max-w-2xl bg-[#1f2336] rounded-xl shadow-lg overflow-hidden mx-4 sm:mx-0">
         {/* 탭 헤더 */}
         <div className="flex border-b border-gray-600">

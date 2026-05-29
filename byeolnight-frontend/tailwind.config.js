@@ -23,9 +23,36 @@ module.exports = {
       colors: {
         space: '#0b0c2a',
         starlight: '#e2e8f0',
+        // 브랜드 우주 컬러 스케일 (보라 중심)
+        cosmic: {
+          50: '#f5f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#a78bfa',
+          500: '#8b5cf6',
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
+        },
       },
       dropShadow: {
         glow: '0 0 8px #8b5cf6',
+      },
+      boxShadow: {
+        glow: '0 0 20px rgba(139, 92, 246, 0.35)',
+        'glow-sm': '0 0 10px rgba(139, 92, 246, 0.30)',
+        'glow-lg': '0 0 40px rgba(139, 92, 246, 0.45)',
+        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.35)',
+        'glow-pink': '0 0 20px rgba(236, 72, 153, 0.35)',
+        'glow-emerald': '0 0 20px rgba(16, 185, 129, 0.35)',
+      },
+      backgroundImage: {
+        // 페이지 전체 배경 (from-slate-900 via-purple-900 to-slate-900)
+        'space-gradient': 'linear-gradient(to bottom right, #0f172a, #581c87, #0f172a)',
+        // 상단 성운 방사형 글로우
+        'nebula-radial': 'radial-gradient(ellipse at top, rgba(88,28,135,0.45), rgba(15,23,42,0.5), #0f172a)',
       },
       animation: {
         'glow': 'glow 2s ease-in-out infinite alternate',

@@ -1,7 +1,7 @@
 // App.tsx
 import './i18n'; // i18n 초기화
 import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Layout, ProtectedRoute } from './components/layout';
 import { LoadingSpinner } from './components/common';
 
@@ -31,6 +31,12 @@ const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthNicknameSetup = lazy(() => import('./pages/OAuthNicknameSetup'));
 const OAuthRecover = lazy(() => import('./pages/OAuthRecover'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+// 구 경로 /posts/write → /posts/new 리다이렉트 (쿼리스트링 유지)
+const PostWriteRedirect = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/posts/new${search}`} replace />;
+};
 
 // 정적 파일 경로 확인 함수
 const isStaticFilePath = (pathname: string): boolean => {
@@ -87,9 +93,7 @@ function App() {
           <Route path="/posts/new" element={
             <ProtectedRoute><PostCreate /></ProtectedRoute>
           } />
-          <Route path="/posts/write" element={
-            <ProtectedRoute><PostCreate /></ProtectedRoute>
-          } />
+          <Route path="/posts/write" element={<PostWriteRedirect />} />
           <Route path="/posts/:id/edit" element={
             <ProtectedRoute><PostEdit /></ProtectedRoute>
           } />

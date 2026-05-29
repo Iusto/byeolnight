@@ -181,7 +181,7 @@ export default function Login() {
   const t = texts[language as keyof typeof texts]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
         {/* 상단 버튼들 */}
         <div className="flex justify-between items-center mb-4">

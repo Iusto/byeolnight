@@ -562,7 +562,7 @@ export default function AdminUserPage() {
   }, [users, statusFilter, userTypeFilter, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white px-6 py-12">
+    <div className="min-h-screen bg-space-gradient text-white px-6 py-12">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-bold mb-8 drop-shadow-glow text-center">🔐 관리자 - 사용자 관리</h2>
         

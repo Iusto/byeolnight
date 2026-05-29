@@ -24,7 +24,7 @@ export default function PostReport() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+      <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
         <div className="max-w-2xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">로그인이 필요합니다</h1>
@@ -81,7 +81,7 @@ export default function PostReport() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+    <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
       <div className="max-w-2xl mx-auto bg-[#1f2336]/80 backdrop-blur-md p-8 rounded-xl shadow-xl">
         <div className="flex items-center gap-4 mb-6">
           <button

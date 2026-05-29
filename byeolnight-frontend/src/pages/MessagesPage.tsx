@@ -57,7 +57,7 @@ export default function MessagesPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 text-lg mb-4">로그인이 필요합니다.</p>
           <Link to="/login" className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
@@ -69,7 +69,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-8">
+    <div className="min-h-screen bg-space-gradient py-8">
       <div className="max-w-6xl mx-auto px-6">
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-8">

@@ -11,7 +11,7 @@ interface SectionProps {
 
 export default function Section({ title, icon, link, bgColor, borderColor, children }: SectionProps) {
   return (
-    <div className={`${bgColor.replace('/30', '/50').replace('/20', '/40')} ${borderColor.replace('/20', '/40')} backdrop-blur-md rounded-2xl p-4 sm:p-6 border shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group`}>
+    <div className={`${bgColor.replace('/30', '/50').replace('/20', '/40')} ${borderColor.replace('/20', '/40')} backdrop-blur-md rounded-2xl p-4 sm:p-6 border shadow-lg hover:shadow-glow transition-all duration-300 relative overflow-hidden group`}>
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       
       <div className="flex justify-between items-center mb-3 sm:mb-6 relative z-10">

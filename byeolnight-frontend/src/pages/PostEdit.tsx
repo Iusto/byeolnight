@@ -144,7 +144,7 @@ export default function PostEdit() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mb-4"></div>
           <p className="text-xl font-medium text-purple-300">게시글 로딩 중...</p>
@@ -155,7 +155,7 @@ export default function PostEdit() {
 
   if (error && !postData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-400 text-lg mb-4">{error}</div>
           <button 
@@ -170,7 +170,7 @@ export default function PostEdit() {
   }
 
   return (
-    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized mobile-scroll">
+    <div className="min-h-screen min-h-screen-safe bg-space-gradient mobile-bright text-white mobile-optimized mobile-scroll">
 
       {/* 헤더 섹션 - 모바일 최적화 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">

@@ -17,7 +17,7 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
     post.title;
   const displayWriter = isBlinded ? '***' : post.writer;
   const displayStats = isBlinded ? '*' : '';
-  const imageUrl = isBlinded ? null : (post.thumbnailUrl || extractFirstImage(post.content));
+  const imageUrl = isBlinded ? null : extractFirstImage(post.content);
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = 'none';

@@ -6,27 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { ChatSidebar } from '../components/chat';
 import { WeatherWidget } from '../components/ui';
 import HeroSection from '../components/home/HeroSection';
-import { BoardNavigation, Section, PostCard, LoadingSpinner } from '../components/common';
-import { UserIconDisplay } from '../components/user';
-import { formatDate, extractFirstImage } from '../utils/formatters';
-
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  writer: string;
-  writerId: number;
-  likeCount: number;
-  viewCount: number;
-  commentCount: number;
-  updatedAt: string;
-  createdAt?: string;
-  writerIcon?: string;
-  blinded: boolean;
-  thumbnailUrl?: string;
-  dDay?: string;
-}
+import { BoardNavigation, Section, PostCard, LoadingSpinner, StarfieldBackground, BoardSection } from '../components/common';
+import { extractFirstImage } from '../utils/formatters';
+import type { Post } from '../types/post';
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -101,30 +83,13 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-space-gradient text-white relative overflow-x-hidden">
       {/* 우주 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-900/40 to-slate-900 sm:from-purple-900/20 sm:via-slate-900/40 sm:to-slate-900"></div>
-        {/* 별 효과 */}
-        <div className="absolute inset-0">
-          {[...Array(50)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${2 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
-        {/* 유성 효과 */}
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-gradient-to-r from-blue-400 to-transparent rounded-full animate-ping opacity-30"></div>
-        <div className="absolute top-3/4 right-1/3 w-1 h-1 bg-gradient-to-r from-purple-400 to-transparent rounded-full animate-ping opacity-40" style={{animationDelay: '1s'}}></div>
+        <StarfieldBackground density={100} />
       </div>
-      
+
       <div className="relative z-10">
         <HeroSection />
         
@@ -134,39 +99,20 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8">
             <div className="lg:col-span-3 space-y-4 sm:space-y-8">
               {/* 공지사항 */}
-              <Section 
-                title={t('home.notice_board')} 
-                icon="📢" 
+              <BoardSection
+                title={t('home.notice_board')}
+                icon="📢"
                 link="/posts?category=NOTICE&sort=recent"
+                posts={boardPosts.NOTICE || []}
+                isAdmin={isAdmin}
                 bgColor="bg-gradient-to-br from-emerald-900/30 to-green-900/30"
                 borderColor="border-emerald-500/20"
-              >
-                <div className="space-y-3">
-                  {boardPosts.NOTICE?.filter(post => isAdmin || !post.blinded).map((post) => (
-                    <div key={post.id} className="group bg-emerald-900/20 hover:bg-emerald-900/40 rounded-xl p-4 transition-all duration-300 border border-emerald-700/20 hover:border-emerald-500/50">
-                      <Link to={`/posts/${post.id}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex-shrink-0">
-                              {t('home.notice')}
-                            </span>
-                            <span className="font-bold text-white group-hover:text-emerald-100 transition-colors text-sm sm:text-base line-clamp-1 min-w-0" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>
-                              {post.title}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-emerald-300 text-sm">
-                            <span>💬 {post.commentCount || 0}</span>
-                            <span>👁 {post.viewCount}</span>
-                          </div>
-                        </div>
-                        <div className="text-emerald-200/70 text-sm flex items-center gap-1">
-                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </Section>
+                rowClass="bg-emerald-900/20 hover:bg-emerald-900/40 border border-emerald-700/20 hover:border-emerald-500/50"
+                statColor="text-emerald-300"
+                metaColor="text-emerald-200/70"
+                badge={{ text: t('home.notice'), className: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full' }}
+                showLikes={false}
+              />
 
 
 
@@ -214,7 +160,7 @@ export default function Home() {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                     {filteredStarPhotos.slice(0, 8).map((photo) => {
-                      const imageUrl = photo.thumbnailUrl || extractFirstImage(photo.content);
+                      const imageUrl = extractFirstImage(photo.content);
                       return (
                         <Link to={`/posts/${photo.id}`} key={photo.id} className="block">
                           <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 group bg-indigo-900/20 relative aspect-square">
@@ -251,171 +197,63 @@ export default function Home() {
                 )}
               </Section>
 
-              {/* 우주 뉴스 */}
-              <Section 
-                title={t('home.space_news')} 
-                icon="🚀" 
-                link="/posts?category=NEWS&sort=recent"
-                bgColor="bg-gradient-to-br from-blue-900/30 to-cyan-900/30"
-                borderColor="border-blue-500/30"
-              >
-                <div className="mb-3 p-2 bg-blue-800/30 rounded-lg border border-blue-600/30">
-                  <p className="text-blue-200 text-xs flex items-center gap-2">
-                    <span className="text-green-400">🤖</span>
-                    <span>{t('home.news_auto_desc')}</span>
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {boardPosts.NEWS?.filter(post => isAdmin || !post.blinded).map((post) => (
-                    <div key={post.id} className="bg-blue-900/20 rounded-lg p-4 hover:bg-blue-900/30 transition-colors">
-                      <Link to={`/posts/${post.id}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
-                          <div className="flex items-center gap-2 text-blue-300 text-sm">
-                            <span>❤️ {post.likeCount}</span>
-                            <span>💬 {post.commentCount || 0}</span>
-                            <span>👁 {post.viewCount}</span>
-                          </div>
-                        </div>
-                        <div className="text-blue-200/70 text-sm mt-1 flex items-center gap-1">
-                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-
-              {/* 리뷰 게시판 */}
-              <Section 
-                title={t('home.review_board')} 
-                icon="⭐" 
-                link="/posts?category=REVIEW&sort=recent"
-                bgColor="bg-gradient-to-br from-purple-900/30 to-pink-900/30"
-                borderColor="border-purple-500/30"
-              >
-                <div className="space-y-3">
-                  {boardPosts.REVIEW?.filter(post => isAdmin || !post.blinded).map((post) => (
-                    <div key={post.id} className="bg-purple-900/20 rounded-lg p-4 hover:bg-purple-900/30 transition-colors">
-                      <Link to={`/posts/${post.id}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
-                          <div className="flex items-center gap-2 text-purple-300 text-sm">
-                            <span>❤️ {post.likeCount}</span>
-                            <span>💬 {post.commentCount || 0}</span>
-                            <span>👁 {post.viewCount}</span>
-                          </div>
-                        </div>
-                        <div className="text-purple-200/70 text-sm mt-1 flex items-center gap-1">
-                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-
-              {/* 토론 게시판 */}
-              <Section 
-                title={t('home.discussion_board')} 
-                icon="💬" 
-                link="/posts?category=DISCUSSION&sort=recent"
-                bgColor="bg-gradient-to-br from-green-900/30 to-teal-900/30"
-                borderColor="border-green-500/30"
-              >
-                <div className="mb-3 p-2 bg-green-800/30 rounded-lg border border-green-600/30">
-                  <p className="text-green-200 text-xs flex items-center gap-2">
-                    <span className="text-green-400">🤖</span>
-                    <span>{t('home.discussion_auto_desc')}</span>
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {boardPosts.DISCUSSION?.filter(post => isAdmin || !post.blinded).map((post) => (
-                    <div key={post.id} className="bg-green-900/20 rounded-lg p-4 hover:bg-green-900/30 transition-colors">
-                      <Link to={`/posts/${post.id}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
-                          <div className="flex items-center gap-2 text-green-300 text-sm">
-                            <span>❤️ {post.likeCount}</span>
-                            <span>💬 {post.commentCount || 0}</span>
-                            <span>👁 {post.viewCount}</span>
-                          </div>
-                        </div>
-                        <div className="text-green-200/70 text-sm mt-1 flex items-center gap-1">
-                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-
-              {/* 자유 게시판 */}
-              <Section 
-                title={t('home.free_board')} 
-                icon="🎈" 
-                link="/posts?category=FREE&sort=recent"
-                bgColor="bg-gradient-to-br from-pink-900/30 to-rose-900/30"
-                borderColor="border-pink-500/30"
-              >
-                <div className="space-y-3">
-                  {boardPosts.FREE?.filter(post => isAdmin || !post.blinded).map((post) => (
-                    <div key={post.id} className="bg-pink-900/20 rounded-lg p-4 hover:bg-pink-900/30 transition-colors">
-                      <Link to={`/posts/${post.id}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-sm sm:text-base line-clamp-1 flex-1 mr-3" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
-                          <div className="flex items-center gap-2 text-pink-300 text-sm">
-                            <span>❤️ {post.likeCount}</span>
-                            <span>💬 {post.commentCount || 0}</span>
-                            <span>👁 {post.viewCount}</span>
-                          </div>
-                        </div>
-                        <div className="text-pink-200/70 text-sm mt-1 flex items-center gap-1">
-                          <UserIconDisplay iconName={post.writerIcon} size="xsmall" /> {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-
-              {/* 별빛 시네마 */}
-              <Section 
-                title={t('home.star_cinema')} 
-                icon="🎬" 
-                link="/posts?category=STARLIGHT_CINEMA&sort=recent"
-                bgColor="bg-gradient-to-br from-purple-900/30 to-pink-900/30"
-                borderColor="border-purple-500/30"
-              >
-                <div className="mb-3 p-3 bg-gradient-to-r from-purple-800/30 to-pink-800/30 rounded-lg border border-purple-600/30">
-                  <p className="text-purple-200 text-xs flex items-center gap-2">
-                    <span className="text-purple-400">🤖</span>
-                    <span>{t('home.cinema_auto_desc')}</span>
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {boardPosts.STARLIGHT_CINEMA?.filter(post => isAdmin || !post.blinded).map((post) => (
-                    <div key={post.id} className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 hover:from-purple-900/30 hover:to-pink-900/30 transition-all duration-300 border border-purple-700/20">
-                      <Link to={`/posts/${post.id}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-purple-100 flex items-center gap-2 flex-1 mr-3">
-                            <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded text-xs font-bold flex-shrink-0">🎬 AI</span>
-                            <span className="text-sm sm:text-base line-clamp-1 font-bold text-white" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)', filter: 'brightness(1.1)'}}>{post.title}</span>
-                          </span>
-                          <div className="flex items-center gap-2 text-purple-300 text-sm">
-                            <span>❤️ {post.likeCount}</span>
-                            <span>💬 {post.commentCount || 0}</span>
-                            <span>👁 {post.viewCount}</span>
-                          </div>
-                        </div>
-                        <div className="text-purple-200/70 text-sm mt-1">
-                          🤖 {post.writer} • 📅 {formatDate(post.createdAt || post.updatedAt)}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </Section>
+              {/* 카테고리별 게시판 (색상/뱃지/안내배너만 다른 동일 구조) */}
+              {([
+                {
+                  category: 'NEWS', title: t('home.space_news'), icon: '🚀',
+                  bgColor: 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30', borderColor: 'border-blue-500/30',
+                  rowClass: 'bg-blue-900/20 hover:bg-blue-900/30', statColor: 'text-blue-300', metaColor: 'text-blue-200/70',
+                  autoDescription: t('home.news_auto_desc'), autoDescClass: 'bg-blue-800/30 border-blue-600/30 text-blue-200',
+                },
+                {
+                  category: 'REVIEW', title: t('home.review_board'), icon: '⭐',
+                  bgColor: 'bg-gradient-to-br from-purple-900/30 to-pink-900/30', borderColor: 'border-purple-500/30',
+                  rowClass: 'bg-purple-900/20 hover:bg-purple-900/30', statColor: 'text-purple-300', metaColor: 'text-purple-200/70',
+                },
+                {
+                  category: 'DISCUSSION', title: t('home.discussion_board'), icon: '💬',
+                  bgColor: 'bg-gradient-to-br from-green-900/30 to-teal-900/30', borderColor: 'border-green-500/30',
+                  rowClass: 'bg-green-900/20 hover:bg-green-900/30', statColor: 'text-green-300', metaColor: 'text-green-200/70',
+                  autoDescription: t('home.discussion_auto_desc'), autoDescClass: 'bg-green-800/30 border-green-600/30 text-green-200',
+                },
+                {
+                  category: 'FREE', title: t('home.free_board'), icon: '🎈',
+                  bgColor: 'bg-gradient-to-br from-pink-900/30 to-rose-900/30', borderColor: 'border-pink-500/30',
+                  rowClass: 'bg-pink-900/20 hover:bg-pink-900/30', statColor: 'text-pink-300', metaColor: 'text-pink-200/70',
+                },
+                {
+                  category: 'STARLIGHT_CINEMA', title: t('home.star_cinema'), icon: '🎬',
+                  bgColor: 'bg-gradient-to-br from-purple-900/30 to-pink-900/30', borderColor: 'border-purple-500/30',
+                  rowClass: 'bg-gradient-to-r from-purple-900/20 to-pink-900/20 hover:from-purple-900/30 hover:to-pink-900/30 border border-purple-700/20',
+                  statColor: 'text-purple-300', metaColor: 'text-purple-200/70',
+                  autoDescription: t('home.cinema_auto_desc'), autoDescClass: 'bg-gradient-to-r from-purple-800/30 to-pink-800/30 border-purple-600/30 text-purple-200',
+                  badge: { text: '🎬 AI', className: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded' }, aiBot: true,
+                },
+              ] as Array<{
+                category: string; title: string; icon: string;
+                bgColor: string; borderColor: string; rowClass: string;
+                statColor: string; metaColor: string;
+                autoDescription?: string; autoDescClass?: string;
+                badge?: { text: string; className: string }; aiBot?: boolean;
+              }>).map((cfg) => (
+                <BoardSection
+                  key={cfg.category}
+                  title={cfg.title}
+                  icon={cfg.icon}
+                  link={`/posts?category=${cfg.category}&sort=recent`}
+                  posts={boardPosts[cfg.category] || []}
+                  isAdmin={isAdmin}
+                  bgColor={cfg.bgColor}
+                  borderColor={cfg.borderColor}
+                  rowClass={cfg.rowClass}
+                  statColor={cfg.statColor}
+                  metaColor={cfg.metaColor}
+                  autoDescription={cfg.autoDescription}
+                  autoDescClass={cfg.autoDescClass}
+                  badge={cfg.badge}
+                  aiBot={cfg.aiBot}
+                />
+              ))}
             </div>
 
             {/* 채팅 사이드바 */}
