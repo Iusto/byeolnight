@@ -58,7 +58,7 @@ export default function PostCreate() {
   // 로그인 검증
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center text-white">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-lg mb-4">{t('home.login_required_desc')}</p>
           <button 
@@ -73,7 +73,7 @@ export default function PostCreate() {
   }
 
   return (
-    <div className="min-h-screen min-h-screen-safe bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 sm:from-slate-900 sm:via-purple-900 sm:to-slate-900 mobile-bright text-white mobile-optimized">
+    <div className="min-h-screen min-h-screen-safe bg-space-gradient mobile-bright text-white mobile-optimized">
 
       {/* 헤더 섹션 - 모바일 최적화 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">

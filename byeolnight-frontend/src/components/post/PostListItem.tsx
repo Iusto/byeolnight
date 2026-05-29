@@ -40,7 +40,6 @@ export default function PostListItem({ post, isHot = false, isAdmin, selectedPos
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
               <h4 className="text-base sm:text-lg font-semibold text-white flex-1 flex items-center gap-2 line-clamp-2">
                 {isHot && <span className="text-orange-400 flex-shrink-0">🔥</span>}
-                {post.dDay && <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs flex-shrink-0">[{post.dDay}]</span>}
                 <span className="break-words">{displayTitle}</span>
                 {post.blinded && (
                   <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${

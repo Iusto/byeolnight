@@ -6,19 +6,8 @@ import { UserIconDisplay } from '../components/user';
 import { getReceivedMessages, getSentMessages, markMessageAsRead, type Message, type MessageListResponse } from '../lib/api/message';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../lib/api/notification';
 import type { Notification, NotificationListResponse } from '../types/notification';
-
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  writerNickname: string;
-  likeCount: number;
-  commentCount: number;
-  viewCount: number;
-  isBlinded: boolean;
-  createdAt: string;
-}
+import type { ActivityPost as Post } from '../types/post';
+import { StarfieldBackground } from '../components/common';
 
 interface Comment {
   id: number;
@@ -407,7 +396,7 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+      <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
         <div className="max-w-4xl mx-auto bg-[#1f2336] bg-opacity-80 backdrop-blur-md p-8 rounded-xl shadow-xl text-center">
           <h1 className="text-2xl font-bold mb-4">로그인이 필요합니다</h1>
           <Link
@@ -423,7 +412,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-12 px-6">
+      <div className="min-h-screen bg-space-gradient text-white py-12 px-6">
         <div className="max-w-4xl mx-auto bg-[#1f2336] bg-opacity-80 backdrop-blur-md p-8 rounded-xl shadow-xl text-center">
           <p className="text-white text-lg">로딩 중...</p>
         </div>
@@ -432,7 +421,10 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-3 sm:py-8 px-3 sm:px-6">
+    <div className="min-h-screen bg-space-gradient text-white py-3 sm:py-8 px-3 sm:px-6 relative">
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <StarfieldBackground density={50} />
+      </div>
       <div className="max-w-6xl mx-auto">
         {/* 헤더 섹션 - 모바일 최적화 */}
         <div className="bg-slate-800/50 rounded-xl p-3 sm:p-6 mb-4 sm:mb-6 border border-slate-600/30">

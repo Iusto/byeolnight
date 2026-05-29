@@ -71,14 +71,14 @@ export default function SuggestionList() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-white text-xl">{t('suggestion.loading')}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
+    <div className="min-h-screen bg-space-gradient py-4 sm:py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* 헤더 */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">

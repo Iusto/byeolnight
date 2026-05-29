@@ -112,7 +112,7 @@ const OAuthNicknameSetup: React.FC = () => {
   const nicknameStatus = getNicknameStatus();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+    <div className="min-h-screen flex items-center justify-center bg-space-gradient">
       <div className="max-w-md w-full mx-4">
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/20">
           <div className="text-center mb-8">

@@ -7,6 +7,7 @@ import type { StellaIcon as StellaIconType, UserIcon } from '../types/stellaIcon
 
 import axios from '../lib/axios';
 import { getErrorMessage } from '../types/api';
+import { StarfieldBackground } from '../components/common';
 
 export default function StellaShop() {
   const { user, refreshUserInfo } = useAuth();
@@ -135,7 +136,10 @@ export default function StellaShop() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f] text-white py-6 sm:py-12 px-3 sm:px-6 mobile-optimized mobile-scroll">
+    <div className="min-h-screen bg-space-gradient text-white py-6 sm:py-12 px-3 sm:px-6 mobile-optimized mobile-scroll relative">
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <StarfieldBackground density={50} />
+      </div>
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-6 sm:mb-8 mobile-header">
           <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mobile-title">

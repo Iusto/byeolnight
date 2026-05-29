@@ -47,7 +47,7 @@ export default function OAuthCallback() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
           <p>로그인 처리 중...</p>
@@ -60,7 +60,7 @@ export default function OAuthCallback() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-center text-white">
           <div className="text-green-500 text-6xl mb-4">✓</div>
           <h2 className="text-2xl font-bold mb-2">로그인 성공!</h2>
@@ -72,7 +72,7 @@ export default function OAuthCallback() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg text-center">
           <div className="text-red-500 text-6xl mb-4">✗</div>
           <h2 className="text-2xl font-bold mb-4">로그인 실패</h2>

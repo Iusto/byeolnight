@@ -22,7 +22,7 @@ export default function AdminLayout() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0c1f] via-[#1b1e3d] to-[#0c0c1f]">
+    <div className="min-h-screen bg-space-gradient">
       <div className="flex">
         {/* 사이드바 */}
         <aside

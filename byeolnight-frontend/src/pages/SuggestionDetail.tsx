@@ -196,7 +196,7 @@ export default function SuggestionDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-white text-xl">{t('suggestion.loading')}</div>
       </div>
     );
@@ -204,7 +204,7 @@ export default function SuggestionDetail() {
 
   if (!suggestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
           <p className="text-gray-400 text-lg mb-4">{t('suggestion.not_found')}</p>
@@ -221,7 +221,7 @@ export default function SuggestionDetail() {
 
   if (!suggestion.isPublic && !isAdmin && user?.id !== suggestion.authorId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🔒</div>
           <p className="text-gray-400 text-lg mb-4">{t('suggestion.private_access_denied')}</p>
@@ -237,7 +237,7 @@ export default function SuggestionDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
+    <div className="min-h-screen bg-space-gradient py-4 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* 뒤로가기 버튼 */}
         <div className="mb-3 sm:mb-6">

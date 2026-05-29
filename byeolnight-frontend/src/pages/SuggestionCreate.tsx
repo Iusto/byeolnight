@@ -29,7 +29,7 @@ export default function SuggestionCreate() {
   // 인증 로딩 중
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-white text-lg">로딩 중...</div>
       </div>
     );
@@ -79,7 +79,7 @@ export default function SuggestionCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f2e] to-[#2d1b69] py-4 sm:py-8">
+    <div className="min-h-screen bg-space-gradient py-4 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* 헤더 - 모바일 최적화 */}
         <div className="mb-6 sm:mb-8">

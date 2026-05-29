@@ -59,7 +59,7 @@ export default function OAuthRecover() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0c2a] to-[#1a1c40] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1f2336] text-white p-8 rounded-xl shadow-lg">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🌌</div>

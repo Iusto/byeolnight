@@ -12,6 +12,7 @@ import PostSearchBar from '../components/post/PostSearchBar';
 import PostPagination from '../components/post/PostPagination';
 import PostImageCard from '../components/post/PostImageCard';
 import PostListItem from '../components/post/PostListItem';
+import { StarfieldBackground } from '../components/common';
 import AdminSection from '../components/post/AdminSection';
 
 const DiscussionTopicBanner = React.lazy(() => import('../components/post/DiscussionTopicBanner'));
@@ -297,7 +298,10 @@ export default function PostList() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-space-gradient text-white overflow-x-hidden relative">
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <StarfieldBackground density={50} />
+      </div>
       <div className={`sticky top-0 z-40 transition-transform duration-300 ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'} relative overflow-hidden bg-gradient-to-r from-purple-900/90 to-pink-900/90 backdrop-blur-md border-b border-purple-500/20`}>
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
@@ -390,7 +394,7 @@ export default function PostList() {
             
             {canWrite && (
               <Link
-                to={`/posts/write?fixedCategory=${category}`}
+                to={`/posts/new?fixedCategory=${category}`}
                 className="w-full sm:w-auto px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg transition-all duration-200 text-center text-xs sm:text-sm"
               >
                 ✍️ {getCategoryLabel(category, t)} {t('home.write_post')}

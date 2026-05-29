@@ -85,7 +85,7 @@ export default function SuggestionEdit() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-white text-lg">{t('suggestion.loading')}</div>
       </div>
     );
@@ -93,7 +93,7 @@ export default function SuggestionEdit() {
 
   if (error && !title) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-space-gradient flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-400 text-lg mb-4">{error}</div>
           <button 
@@ -108,7 +108,7 @@ export default function SuggestionEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-space-gradient text-white">
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10"></div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
