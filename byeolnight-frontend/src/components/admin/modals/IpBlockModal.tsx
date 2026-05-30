@@ -1,12 +1,11 @@
 ﻿import { useState } from 'react';
 
 interface IpBlockModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onConfirm: (ip: string, duration: number) => void;
 }
 
-export default function IpBlockModal({ isOpen, onClose, onConfirm }: IpBlockModalProps) {
+export default function IpBlockModal({ onClose, onConfirm }: IpBlockModalProps) {
   const [ip, setIp] = useState('');
   const [duration, setDuration] = useState(60);
   const [error, setError] = useState('');
@@ -54,8 +53,6 @@ export default function IpBlockModal({ isOpen, onClose, onConfirm }: IpBlockModa
     setError('');
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleClose}>

@@ -1,12 +1,11 @@
 ﻿import { useState } from 'react';
 
 interface PointAwardModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onConfirm: (points: number, reason: string) => void;
 }
 
-export default function PointAwardModal({ isOpen, onClose, onConfirm }: PointAwardModalProps) {
+export default function PointAwardModal({ onClose, onConfirm }: PointAwardModalProps) {
   const [points, setPoints] = useState<number>(0);
   const [reason, setReason] = useState('');
 
@@ -35,8 +34,6 @@ export default function PointAwardModal({ isOpen, onClose, onConfirm }: PointAwa
     setReason('');
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

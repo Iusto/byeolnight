@@ -2,23 +2,19 @@
 import { createPortal } from 'react-dom';
 
 interface AdminReasonModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onConfirm: (reason: string) => void;
   title: string;
-  placeholder: string;
+  placeholder?: string;
 }
 
-export default function AdminReasonModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  title, 
-  placeholder 
+export default function AdminReasonModal({
+  onClose,
+  onConfirm,
+  title,
+  placeholder = '사유를 입력해주세요.'
 }: AdminReasonModalProps) {
   const [reason, setReason] = useState('');
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

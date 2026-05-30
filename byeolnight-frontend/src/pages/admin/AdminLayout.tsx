@@ -68,18 +68,6 @@ export default function AdminLayout() {
             })}
           </nav>
 
-          {/* 레거시 페이지 링크 */}
-          <div className="p-2 border-t border-purple-500/20">
-            <NavLink
-              to="/admin/legacy"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-500/10 hover:text-gray-400 transition-all duration-200"
-              title={collapsed ? '기존 페이지' : undefined}
-            >
-              <span className="flex-shrink-0 text-xl">🔙</span>
-              {!collapsed && <span className="text-sm">기존 페이지</span>}
-            </NavLink>
-          </div>
-
           {/* 사이드바 푸터 */}
           {!collapsed && (
             <div className="p-4 border-t border-purple-500/20">
