@@ -16,8 +16,7 @@ const PostCreate = lazy(() => import('./pages/PostCreate'));
 const PostDetail = lazy(() => import('./pages/PostDetail'));
 const PostEdit = lazy(() => import('./pages/PostEdit'));
 const PasswordReset = lazy(() => import('./pages/PasswordReset'));
-const AdminUserPage = lazy(() => import('./pages/AdminUserPage'));
-// 신규 모듈형 관리자 패널
+// 모듈형 관리자 패널
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
@@ -88,8 +87,6 @@ function App() {
           <Route path="ips" element={<AdminIpPage />} />
           <Route path="files" element={<AdminFilesPage />} />
           <Route path="scheduler" element={<AdminSchedulerPage />} />
-          {/* 레거시 페이지 (검증용 임시 보존, 검증 완료 후 제거 예정) */}
-          <Route path="legacy" element={<AdminUserPage />} />
         </Route>
 
         {/* Layout이 적용되는 페이지들 */}

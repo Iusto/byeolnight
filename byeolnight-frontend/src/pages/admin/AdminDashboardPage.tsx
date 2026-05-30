@@ -2,9 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../../lib/axios';
 
+interface UserSummary {
+  status: string;
+  createdAt: string;
+}
+
 interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
+  suspendedUsers: number;
+  withdrawnUsers: number;
   todayNewUsers: number;
   reportedPosts: number;
   reportedComments: number;
@@ -18,21 +25,64 @@ interface DashboardStats {
   };
 }
 
+function BarChart({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-gray-300">{label}</span>
+        <span className="text-white font-semibold">{value.toLocaleString()} ({pct}%)</span>
+      </div>
+      <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DonutRing({ value, total, color, label }: { value: number; total: number; color: string; label: string }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const circumference = 2 * Math.PI * 36;
+  const dash = (pct / 100) * circumference;
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-24 h-24">
+        <svg viewBox="0 0 80 80" className="w-24 h-24 -rotate-90">
+          <circle cx="40" cy="40" r="36" fill="none" stroke="#374151" strokeWidth="8" />
+          <circle
+            cx="40" cy="40" r="36" fill="none"
+            stroke={color} strokeWidth="8"
+            strokeDasharray={`${dash} ${circumference}`}
+            strokeLinecap="round"
+            className="transition-all duration-700"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-bold text-white">{pct}%</span>
+        </div>
+      </div>
+      <span className="text-xs text-gray-400 mt-1">{label}</span>
+      <span className="text-sm font-semibold text-white">{value.toLocaleString()}</span>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeUsers: 0,
+    suspendedUsers: 0,
+    withdrawnUsers: 0,
     todayNewUsers: 0,
     reportedPosts: 0,
     reportedComments: 0,
     blockedIps: 0,
     blindedPosts: 0,
     blindedComments: 0,
-    schedulerStatus: {
-      messagesToDelete: 0,
-      postsToDelete: 0,
-      usersToCleanup: 0,
-    },
+    schedulerStatus: { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 },
   });
   const [loading, setLoading] = useState(true);
 
@@ -54,10 +104,12 @@ export default function AdminDashboardPage() {
           axios.get('/admin/blocked-ips'),
           axios.get('/admin/posts/blinded'),
           axios.get('/admin/comments/blinded'),
-          axios.get('/admin/scheduler/status').catch(() => ({ data: { data: { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 } } })),
+          axios.get('/admin/scheduler/status').catch(() => ({
+            data: { data: { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 } },
+          })),
         ]);
 
-        const users = usersRes.data?.data || usersRes.data || [];
+        const users: UserSummary[] = usersRes.data?.data || usersRes.data || [];
         const reportedPosts = reportedPostsRes.data?.data || reportedPostsRes.data || [];
         const reportedComments = reportedCommentsRes.data?.data || reportedCommentsRes.data || [];
         const blockedIps = blockedIpsRes.data?.data || blockedIpsRes.data || [];
@@ -65,20 +117,15 @@ export default function AdminDashboardPage() {
         const blindedComments = blindedCommentsRes.data?.data || blindedCommentsRes.data || [];
         const schedulerStatus = schedulerRes.data?.data || { messagesToDelete: 0, postsToDelete: 0, usersToCleanup: 0 };
 
-        // 오늘 가입한 사용자 수 계산
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayNewUsers = Array.isArray(users)
-          ? users.filter((u: { createdAt: string }) => {
-              const createdAt = new Date(u.createdAt);
-              return createdAt >= today;
-            }).length
-          : 0;
 
         setStats({
           totalUsers: Array.isArray(users) ? users.length : 0,
-          activeUsers: Array.isArray(users) ? users.filter((u: { status: string }) => u.status === 'ACTIVE').length : 0,
-          todayNewUsers,
+          activeUsers: Array.isArray(users) ? users.filter(u => u.status === 'ACTIVE').length : 0,
+          suspendedUsers: Array.isArray(users) ? users.filter(u => u.status === 'SUSPENDED' || u.status === 'BANNED').length : 0,
+          withdrawnUsers: Array.isArray(users) ? users.filter(u => u.status === 'WITHDRAWN').length : 0,
+          todayNewUsers: Array.isArray(users) ? users.filter(u => new Date(u.createdAt) >= today).length : 0,
           reportedPosts: Array.isArray(reportedPosts) ? reportedPosts.length : 0,
           reportedComments: Array.isArray(reportedComments) ? reportedComments.length : 0,
           blockedIps: Array.isArray(blockedIps) ? blockedIps.length : 0,
@@ -96,73 +143,23 @@ export default function AdminDashboardPage() {
     fetchStats();
   }, []);
 
-  const totalSchedulerItems = stats.schedulerStatus.messagesToDelete + stats.schedulerStatus.postsToDelete + stats.schedulerStatus.usersToCleanup;
+  const totalSchedulerItems =
+    stats.schedulerStatus.messagesToDelete +
+    stats.schedulerStatus.postsToDelete +
+    stats.schedulerStatus.usersToCleanup;
 
-  const statCards = [
-    {
-      title: '전체 사용자',
-      value: stats.totalUsers,
-      subValue: `활성: ${stats.activeUsers}`,
-      icon: '👥',
-      color: 'from-blue-500 to-blue-600',
-      link: '/admin/users',
-    },
-    {
-      title: '오늘 신규 가입',
-      value: stats.todayNewUsers,
-      subValue: '오늘 가입한 회원',
-      icon: '🆕',
-      color: 'from-green-500 to-green-600',
-      link: '/admin/users',
-    },
-    {
-      title: '신고된 게시글',
-      value: stats.reportedPosts,
-      subValue: `블라인드: ${stats.blindedPosts}`,
-      icon: '📝',
-      color: 'from-orange-500 to-orange-600',
-      link: '/admin/posts',
-      alert: stats.reportedPosts > 0,
-    },
-    {
-      title: '신고된 댓글',
-      value: stats.reportedComments,
-      subValue: `블라인드: ${stats.blindedComments}`,
-      icon: '💬',
-      color: 'from-yellow-500 to-yellow-600',
-      link: '/admin/comments',
-      alert: stats.reportedComments > 0,
-    },
-    {
-      title: '차단된 IP',
-      value: stats.blockedIps,
-      subValue: '현재 차단 중',
-      icon: '🚫',
-      color: 'from-red-500 to-red-600',
-      link: '/admin/ips',
-    },
-    {
-      title: '정리 대기',
-      value: totalSchedulerItems,
-      subValue: `쪽지 ${stats.schedulerStatus.messagesToDelete} / 게시글 ${stats.schedulerStatus.postsToDelete} / 회원 ${stats.schedulerStatus.usersToCleanup}`,
-      icon: '🧹',
-      color: 'from-purple-500 to-purple-600',
-      link: '/admin/scheduler',
-      alert: totalSchedulerItems > 100,
-    },
-  ];
+  const totalContent = stats.reportedPosts + stats.reportedComments + stats.blindedPosts + stats.blindedComments;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
       <div>
         <h1 className="text-2xl font-bold text-white">관리자 대시보드</h1>
         <p className="text-gray-400 mt-1">사이트 현황을 한눈에 확인하세요.</p>
@@ -178,58 +175,136 @@ export default function AdminDashboardPage() {
               게시글 {stats.reportedPosts}건, 댓글 {stats.reportedComments}건의 신고가 대기 중입니다.
             </p>
           </div>
+          <Link to="/admin/posts" className="ml-auto px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg transition">
+            바로가기
+          </Link>
         </div>
       )}
 
-      {/* 통계 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => (
+      {/* 요약 수치 카드 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: '전체 사용자', value: stats.totalUsers, icon: '👥', color: 'text-blue-400', link: '/admin/users' },
+          { label: '오늘 신규', value: stats.todayNewUsers, icon: '🆕', color: 'text-green-400', link: '/admin/users' },
+          { label: '차단된 IP', value: stats.blockedIps, icon: '🚫', color: 'text-red-400', link: '/admin/ips' },
+          { label: '정리 대기', value: totalSchedulerItems, icon: '🧹', color: 'text-purple-400', link: '/admin/scheduler', alert: totalSchedulerItems > 100 },
+        ].map(card => (
           <Link
-            key={card.title}
+            key={card.label}
             to={card.link}
-            className="relative bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-5 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-200 group"
+            className="relative bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-5 border border-purple-500/20 hover:border-purple-500/40 transition-all group"
           >
-            {card.alert && (
-              <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-            )}
-            <div className={`inline-flex p-3 rounded-lg bg-gradient-to-br ${card.color} mb-3`}>
-              <span className="text-2xl">{card.icon}</span>
-            </div>
-            <p className="text-gray-400 text-sm">{card.title}</p>
-            <p className="text-3xl font-bold text-white mt-1">{card.value}</p>
-            <p className="text-gray-500 text-xs mt-1">{card.subValue}</p>
+            {card.alert && <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />}
+            <p className="text-gray-400 text-sm">{card.icon} {card.label}</p>
+            <p className={`text-3xl font-bold mt-1 ${card.color}`}>{card.value.toLocaleString()}</p>
           </Link>
         ))}
       </div>
 
-      {/* 빠른 링크 */}
-      <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-5 border border-purple-500/20">
-        <h2 className="text-lg font-semibold text-white mb-4">빠른 관리</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Link
-            to="/admin/users"
-            className="px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm text-center transition-colors"
-          >
-            사용자 관리
+      {/* 차트 영역 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* 사용자 현황 - 바 차트 */}
+        <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
+          <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
+            👥 사용자 현황
+            <span className="text-sm font-normal text-gray-400">총 {stats.totalUsers.toLocaleString()}명</span>
+          </h2>
+          <div className="space-y-4">
+            <BarChart label="활성 사용자" value={stats.activeUsers} total={stats.totalUsers} color="bg-green-500" />
+            <BarChart label="정지/차단 사용자" value={stats.suspendedUsers} total={stats.totalUsers} color="bg-orange-500" />
+            <BarChart label="탈퇴 사용자" value={stats.withdrawnUsers} total={stats.totalUsers} color="bg-gray-500" />
+          </div>
+          <Link to="/admin/users" className="mt-4 block text-center text-sm text-purple-400 hover:text-purple-300 transition">
+            사용자 관리 →
           </Link>
-          <Link
-            to="/admin/posts"
-            className="px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm text-center transition-colors"
-          >
-            게시글 관리
+        </div>
+
+        {/* 콘텐츠 현황 - 도넛 링 차트 */}
+        <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
+          <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
+            📝 콘텐츠 현황
+            <span className="text-sm font-normal text-gray-400">처리 대기 {totalContent}건</span>
+          </h2>
+          {totalContent === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-green-400">
+              <span className="text-4xl mb-2">✅</span>
+              <span className="text-sm">모든 콘텐츠가 정상입니다</span>
+            </div>
+          ) : (
+            <div className="flex justify-around items-end">
+              <DonutRing value={stats.reportedPosts} total={Math.max(totalContent, 1)} color="#f97316" label="신고 게시글" />
+              <DonutRing value={stats.reportedComments} total={Math.max(totalContent, 1)} color="#eab308" label="신고 댓글" />
+              <DonutRing value={stats.blindedPosts} total={Math.max(totalContent, 1)} color="#ef4444" label="블라인드 게시글" />
+              <DonutRing value={stats.blindedComments} total={Math.max(totalContent, 1)} color="#6b7280" label="블라인드 댓글" />
+            </div>
+          )}
+          <div className="flex gap-2 mt-4 justify-center">
+            <Link to="/admin/posts" className="text-sm text-orange-400 hover:text-orange-300 transition">게시글 →</Link>
+            <span className="text-gray-600">|</span>
+            <Link to="/admin/comments" className="text-sm text-yellow-400 hover:text-yellow-300 transition">댓글 →</Link>
+          </div>
+        </div>
+
+        {/* 스케줄러 정리 현황 - 가로 바 */}
+        <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
+          <h2 className="text-lg font-semibold text-white mb-5">⏰ 정리 대기 현황</h2>
+          <div className="space-y-4">
+            {[
+              { label: '쪽지', value: stats.schedulerStatus.messagesToDelete, color: 'bg-blue-500', unit: '개' },
+              { label: '게시글', value: stats.schedulerStatus.postsToDelete, color: 'bg-yellow-500', unit: '개' },
+              { label: '탈퇴 회원', value: stats.schedulerStatus.usersToCleanup, color: 'bg-red-500', unit: '명' },
+            ].map(item => {
+              const maxVal = Math.max(
+                stats.schedulerStatus.messagesToDelete,
+                stats.schedulerStatus.postsToDelete,
+                stats.schedulerStatus.usersToCleanup,
+                1
+              );
+              const pct = Math.round((item.value / maxVal) * 100);
+              return (
+                <div key={item.label}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-300">{item.label}</span>
+                    <span className="text-white font-semibold">{item.value.toLocaleString()}{item.unit}</span>
+                  </div>
+                  <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-700 ${item.color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Link to="/admin/scheduler" className="mt-4 block text-center text-sm text-purple-400 hover:text-purple-300 transition">
+            스케줄러 관리 →
           </Link>
-          <Link
-            to="/admin/files"
-            className="px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm text-center transition-colors"
-          >
-            파일 정리
-          </Link>
-          <Link
-            to="/admin/scheduler"
-            className="px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm text-center transition-colors"
-          >
-            스케줄러
-          </Link>
+        </div>
+
+        {/* 시스템 상태 */}
+        <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
+          <h2 className="text-lg font-semibold text-white mb-5">🔧 시스템 상태</h2>
+          <div className="space-y-3">
+            {[
+              { label: '신고 게시글', value: stats.reportedPosts, ok: stats.reportedPosts === 0, link: '/admin/posts' },
+              { label: '신고 댓글', value: stats.reportedComments, ok: stats.reportedComments === 0, link: '/admin/comments' },
+              { label: '차단 IP', value: stats.blockedIps, ok: true, link: '/admin/ips' },
+              { label: '정리 대기 항목', value: totalSchedulerItems, ok: totalSchedulerItems < 100, link: '/admin/scheduler' },
+            ].map(item => (
+              <Link
+                key={item.label}
+                to={item.link}
+                className="flex items-center justify-between p-3 bg-[#2a2e45] rounded-lg hover:bg-[#323654] transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${item.ok ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+                  <span className="text-gray-300 text-sm">{item.label}</span>
+                </div>
+                <span className={`text-sm font-semibold ${item.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.value.toLocaleString()}건
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
