@@ -89,6 +89,8 @@ dependencies {
     }
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:junit-jupiter'
+    // Embedded Redis (Java 21 호환 fork) - IP 차단 통합 테스트용
+    testImplementation 'com.github.codemonstur:embedded-redis:1.4.3'
     testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
