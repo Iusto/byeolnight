@@ -142,12 +142,12 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/blocked-ips")
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<List<String>>> getBlockedIps() {
-        Set<String> keys = redisTemplate.keys("blocked-ip:*");
+        Set<String> keys = redisTemplate.keys("blocked:ip:*");
         if (keys == null || keys.isEmpty()) {
             return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(Collections.emptyList()));
         }
         List<String> ipList = keys.stream()
-                .map(key -> key.replace("blocked-ip:", ""))
+                .map(key -> key.replace("blocked:ip:", ""))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(ipList));
     }
@@ -164,7 +164,7 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/blocked-ips")
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> unblockIp(@RequestParam String ip) {
-        redisTemplate.delete("blocked-ip:" + ip);
+        redisTemplate.delete("blocked:ip:" + ip);
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("IP 차단이 해제되었습니다."));
     }
 
@@ -184,7 +184,7 @@ public class AdminUserController {
                     .body(com.byeolnight.infrastructure.common.CommonResponse.fail("잘못된 IP 형식입니다."));
         }
 
-        redisTemplate.opsForValue().set("blocked-ip:" + ip, "true", duration, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set("blocked:ip:" + ip, "true", duration, TimeUnit.MINUTES);
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("IP가 차단되었습니다."));
     }
 
