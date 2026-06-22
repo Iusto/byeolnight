@@ -19,7 +19,7 @@ import java.util.Collections;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class RedissonCacheService {
+public class RedisCacheService {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;

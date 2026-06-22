@@ -1,7 +1,7 @@
 package com.byeolnight.worker;
 
 import com.byeolnight.dto.auth.EmailJob;
-import com.byeolnight.infrastructure.cache.RedissonCacheService;
+import com.byeolnight.infrastructure.cache.RedisCacheService;
 import com.byeolnight.service.auth.GmailEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class EmailWorker {
     private static final String DLQ = "queue:mail:dlq";
     private static final int MAX_ATTEMPTS = 5;
 
-    private final RedissonCacheService cacheService;
+    private final RedisCacheService cacheService;
     private final GmailEmailService gmailEmailService;
 
     /**

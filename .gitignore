@@ -284,6 +284,7 @@ GEMINI.md
 *.7z
 # 기존 내용 유지하면서 .env 추가
 .env
+# 기타
 CLAUDE.md
 plan.md
-
+AGENTS.md
