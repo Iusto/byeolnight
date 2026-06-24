@@ -1,7 +1,7 @@
 package com.byeolnight.service.auth;
 
 import com.byeolnight.dto.auth.EmailJob;
-import com.byeolnight.infrastructure.cache.RedissonCacheService;
+import com.byeolnight.infrastructure.cache.RedisCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,7 +40,7 @@ class EmailAuthServiceTest {
     private EmailAuthService emailAuthService;
 
     @Mock
-    private RedissonCacheService cacheService;
+    private RedisCacheService cacheService;
 
     private final String TEST_EMAIL = "test@example.com";
     private final String TEST_IP = "192.168.1.1";

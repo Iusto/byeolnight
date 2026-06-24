@@ -1,7 +1,7 @@
 package com.byeolnight.service.auth;
 
 import com.byeolnight.dto.auth.EmailJob;
-import com.byeolnight.infrastructure.cache.RedissonCacheService;
+import com.byeolnight.infrastructure.cache.RedisCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,7 @@ import java.util.UUID;
 @Service
 public class EmailAuthService {
 
-    private final RedissonCacheService cacheService;
+    private final RedisCacheService cacheService;
 
     @Value("${app.security.email-verification-secret}")
     private String verificationSecret;
