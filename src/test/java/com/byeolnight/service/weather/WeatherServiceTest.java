@@ -46,10 +46,9 @@ class WeatherServiceTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        weatherService = new WeatherService(localCacheService, meterRegistry);
+        weatherService = new WeatherService(localCacheService, meterRegistry, restTemplate);
         ReflectionTestUtils.setField(weatherService, "apiKey", TEST_API_KEY);
         ReflectionTestUtils.setField(weatherService, "apiUrl", TEST_API_URL);
-        ReflectionTestUtils.setField(weatherService, "restTemplate", restTemplate);
     }
 
     @Nested

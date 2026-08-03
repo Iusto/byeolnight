@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class SocialRevokeService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     
     @Value("${spring.security.oauth2.client.registration.kakao.client-id:}")
     private String kakaoClientId;
