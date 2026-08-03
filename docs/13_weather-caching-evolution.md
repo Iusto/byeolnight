@@ -362,26 +362,36 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 @Service
 public class WeatherLocalCacheService {
 
-    private final Map<String, CachedWeather> cache = new ConcurrentHashMap<>();
+    // TTL 35분(스케줄 주기 30분 + 여유), 최대 10,000건
+    private final Cache<String, WeatherResponse> cache = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(Duration.ofMinutes(35))
+            .recordStats()
+            .build();
 
     public Optional<WeatherResponse> get(String cacheKey) {
-        CachedWeather cached = cache.get(cacheKey);
+        WeatherResponse cached = cache.getIfPresent(cacheKey);
         if (cached != null) {
             log.debug("로컬 캐시 HIT: cacheKey={}", cacheKey);
-            return Optional.of(cached.data());
+            return Optional.of(cached);
         }
         log.debug("로컬 캐시 MISS: cacheKey={}", cacheKey);
         return Optional.empty();
     }
 
     public void put(String cacheKey, WeatherResponse data) {
-        cache.put(cacheKey, new CachedWeather(data, LocalDateTime.now()));
+        cache.put(cacheKey, data);
         log.info("로컬 캐시 저장: cacheKey={}, location={}", cacheKey, data.getLocation());
     }
-
-    private record CachedWeather(WeatherResponse data, LocalDateTime cachedAt) {}
 }
 ```
+
+> **초기 구현은 `ConcurrentHashMap`이었다.** 적재 시각을 함께 저장해뒀지만
+> 조회할 때 확인하지 않아 만료가 동작하지 않았고, 온디맨드 경로가 사용자 좌표를
+> 키로 쓰는데 개수 제한이 없어 계속 쌓이는 문제도 있었다.
+>
+> 만료만 직접 처리하는 건 어렵지 않지만, 개수 제한과 오래된 항목 축출까지
+> 직접 만들려면 동시성 상황에서 접근 순서를 관리해야 해서 Caffeine으로 교체했다.
 
 ### 2. WeatherResponse DTO
 ```java
@@ -452,16 +462,7 @@ public void collectWeatherData() {
 
 ## 📈 향후 개선 방향
 
-### 1. 캐시 만료 정책 (선택적)
-현재는 30분마다 덮어쓰기 방식이지만, 필요시 TTL 추가 가능:
-```java
-// 온디맨드 캐시에만 TTL 적용 (1시간)
-cache.entrySet().removeIf(entry ->
-    isExpired(entry.getValue(), Duration.ofHours(1))
-);
-```
-
-### 2. 도시 확장
+### 1. 도시 확장
 사용자 통계 분석 후 추가 도시 확대:
 - 현재 70개 → 필요시 100개까지 확장 가능
 - 메모리 사용량: 도시당 ~2KB → 100개 = 200KB (무시 가능)
