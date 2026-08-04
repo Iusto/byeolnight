@@ -49,6 +49,8 @@ List<ChatMessage> findByRoomIdAndIdLessThanOrderByTimestampDesc(...);
 | 방 분포 | `public` 240,041건(80%), 나머지 19개 방에 분산 |
 | id/timestamp 역전 비율 | 1.000% (2,400 / 240,041 쌍) |
 
+재현 스크립트는 [`docs/sql/chat-pagination/`](./sql/chat-pagination/)에 있다. Docker만 있으면 그대로 다시 뽑을 수 있다.
+
 > **한계**: 로컬 재현 환경이며 운영 DB 실측이 아니다.
 > 역전 비율 1%는 실제 측정값이 아니라 "동시 도착이 이 정도 비율로 있다면"을 가정한 값이다.
 > 실제 비율은 트래픽에 따라 달라진다. 이 실험은 **비율이 얼마든 문제가 발생한다는 사실**과
