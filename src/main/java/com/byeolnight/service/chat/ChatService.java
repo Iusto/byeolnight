@@ -5,6 +5,7 @@ import com.byeolnight.repository.chat.ChatMessageRepository;
 import com.byeolnight.dto.chat.ChatMessageDto;
 import com.byeolnight.entity.chat.ChatParticipation;
 import com.byeolnight.entity.user.User;
+import com.byeolnight.infrastructure.exception.InvalidRequestException;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
 import lombok.RequiredArgsConstructor;
@@ -72,8 +73,8 @@ public class ChatService {
 
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public List<ChatMessageDto> getMessagesBefore(String roomId, String beforeId, int limit) {
-        Long beforeIdLong = Long.parseLong(beforeId);
-        List<ChatMessageDto> messages = chatMessageRepository.findByRoomIdAndIdLessThanOrderByTimestampDesc(roomId, beforeIdLong,
+        Long beforeIdLong = parseCursor(beforeId);
+        List<ChatMessageDto> messages = chatMessageRepository.findByRoomIdAndIdLessThanOrderByIdDesc(roomId, beforeIdLong,
                 org.springframework.data.domain.PageRequest.of(0, limit))
                 .stream()
                 .map(entity -> ChatMessageDto.builder()
@@ -90,7 +91,20 @@ public class ChatService {
         java.util.Collections.reverse(messages);
         return messages;
     }
-    
+
+    /**
+     * 무한 스크롤 커서를 파싱한다.
+     * 커서는 클라이언트가 보내는 값이라 숫자가 아닐 수 있다.
+     * 그대로 파싱하면 NumberFormatException이 500으로 나가므로 400으로 처리한다.
+     */
+    private Long parseCursor(String beforeId) {
+        try {
+            return Long.parseLong(beforeId);
+        } catch (NumberFormatException e) {
+            throw new InvalidRequestException("beforeId는 숫자여야 합니다: " + beforeId);
+        }
+    }
+
     @Transactional
     public void save(ChatMessageDto dto, String ipAddress) {
         if (dto.getMessage() == null || dto.getMessage().trim().isEmpty()) {
