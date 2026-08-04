@@ -43,25 +43,10 @@ fi
 
 echo "✅ 환경 검증 완료"
 
-# ===== 1. 기존 서비스 정리 =====
-log_step "1️⃣ 기존 서비스 정리"
-echo "🗑️ Docker 로그 초기화..."
-for container in $(docker compose ps -q 2>/dev/null); do
-  LOG_PATH=$(docker inspect --format='{{.LogPath}}' "$container" 2>/dev/null || echo "")
-  if [ -n "$LOG_PATH" ] && [ -f "$LOG_PATH" ]; then
-    truncate -s 0 "$LOG_PATH" 2>/dev/null || true
-    echo "   ✓ 로그 초기화: $(docker inspect --format='{{.Name}}' "$container" | sed 's/^\///')"
-  fi
-done
-
-echo "🛑 Docker 컨테이너 중지..."
-docker compose down --remove-orphans 2>/dev/null || true
-sleep 2
-
-echo "🧹 Gradle 데몬 정지..."
-./gradlew --stop 2>/dev/null || true
-
-echo "✅ 기존 서비스 정리 완료"
+# ===== 1. 현재 서비스 확인 =====
+log_step "1️⃣ 현재 서비스 확인"
+docker compose ps || true
+echo "✅ 새 버전 검증이 끝날 때까지 기존 서비스를 유지합니다."
 
 # ===== 2. 코드 업데이트 =====
 log_step "2️⃣ 코드 업데이트"
@@ -131,7 +116,7 @@ fi
 echo "⏳ Config Server 헬스체크 (최대 60초)..."
 CONFIG_READY=false
 for i in $(seq 1 30); do
-  if docker exec "$CONFIG_CONTAINER" curl -s http://localhost:8888/actuator/health >/dev/null 2>&1; then
+  if docker exec "$CONFIG_CONTAINER" curl -s -f http://localhost:8888/actuator/health >/dev/null 2>&1; then
     echo "✅ Config Server 준비 완료 (${i}초)"
     CONFIG_READY=true
     break
@@ -221,14 +206,11 @@ for i in $(seq 1 60); do
 done
 
 if [ "$APP_READY" = false ]; then
-  echo "⚠️ 애플리케이션 헬스체크 시간 초과 (백그라운드에서 계속 시작 중)"
+  echo "❌ 애플리케이션 헬스체크 시간 초과"
   echo "📋 최근 로그:"
   docker logs --tail 50 "$APP_CONTAINER" 2>&1
+  exit 1
 fi
-
-echo "🛑 배포가 완료되었으므로 Config Server 중지..."
-docker compose stop config-server || echo "⚠️ Config Server 중지 실패(이미 꺼져있을 수 있음)"
-echo "✅ Config Server 중지 완료"
 
 log_step "✅ 배포 완료"
 echo "🎉 별 헤는 밤 백엔드 배포 성공!"

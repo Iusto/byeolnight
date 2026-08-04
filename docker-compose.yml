@@ -44,6 +44,7 @@ services:
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
       - SPRING_PROFILES_ACTIVE=prod
+      - CONFIG_SERVER_FAIL_FAST=true
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
