@@ -25,18 +25,13 @@
 - **복합 인덱스**: `(category, created_at)` 등 정렬 순서를 반영해 설계
 - **N+1 해결**: 게시판 목록 조회에 Fetch Join 적용
 
-> **⚠️ 채팅 메시지 인덱스 결함 (개선 예정)**
->
-> 현재 인덱스는 `(room_id, timestamp)`가 아니라 **`(is_blinded, room_id, timestamp)`** 이다.
-> 조회 쿼리(`WHERE room_id = ? AND id < ? ORDER BY timestamp DESC`)에 선행 컬럼인
-> `is_blinded` 조건이 없어 **이 인덱스는 range access로 활용되지 않는다.**
-> EXPLAIN 검증 없이 인덱스를 추가한 것이 원인이며, `(room_id, id DESC)`로 재설계가 필요하다.
->
-> 더불어 **커서 키(`id`)와 정렬 키(`timestamp`)가 달라** 동일 timestamp 구간에서
-> 메시지 누락·중복이 발생할 수 있다. 커서를 `id`로 통일해 함께 해결한다.
+- **채팅 커서 페이지네이션 수정**: 커서 키(`id`)와 정렬 키(`timestamp`)가 달라
+  메시지 중복·누락이 발생하던 문제를 정렬 기준 통일로 해결하고, `(room_id, id DESC)` 인덱스를 추가했다.
+  MySQL 8.0 30만 건 재현 환경에서 **30건 조회 시 스캔 행수 150,045 → 44행, 154ms → 0.056ms**.
+  200페이지 순회 시 중복 5건·영구 누락 2건 → 0건 ([상세](./16_chat-cursor-pagination.md))
 
 ### 파일 업로드
-- **S3 Presigned URL**: 클라이언트 직접 업로드로 서버 부하 33% 감소
+- **S3 Presigned URL**: 클라이언트가 S3로 직접 업로드하므로 WAS가 파일 바이트를 다루지 않는다
 - **CloudFront OAI**: S3 직접 접근 차단
 
 ### WebSocket

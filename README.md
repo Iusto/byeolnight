@@ -93,6 +93,8 @@
 - **Redis 활용**: 세션·JWT 블랙리스트·이메일 인증코드·레이트리밋·비동기 이메일 큐 (데이터 캐싱 용도 아님)
 - **QueryDSL**: 동적 쿼리 최적화
 - **커넥션 풀 튜닝**: HikariCP, Redis, HTTP 풀 최적화
+- **채팅 커서 페이지네이션**: 커서 키와 정렬 키가 달라 메시지 중복·누락이 생기던 문제를 발견해 수정.
+  MySQL 30만 건 재현 환경에서 스캔 행수 150,045 → 44행 ([상세](./docs/16_chat-cursor-pagination.md))
 - **하이브리드 캐싱 (로컬 인메모리)**: 70개 도시 Proactive + On-Demand. Redis를 도입했다가 오버엔지니어링으로 판단해 로컬 캐시로 전환 — 단일 서버 환경에 맞춘 의도적 단순화 ([상세](./docs/13_weather-caching-evolution.md), k6 부하테스트 검증)
 
 #### k6 부하테스트 결과 (별도 EC2에서 실행)
@@ -159,6 +161,7 @@ Config Server가 기동 시 해당 저장소를 Clone하여 설정을 제공한�
 - [🔧 기술 스택 상세](./docs/05_tech-stack.md)
 - [📊 성능 최적화 전략](./docs/PERFORMANCE.md)
 - [🌤️ 날씨 캐싱 시스템 개선 여정](./docs/13_weather-caching-evolution.md)
+- [💬 채팅 커서 페이지네이션 수정](./docs/16_chat-cursor-pagination.md)
 - [🛰️ ISS 관측 예보 시스템](./docs/15_iss-pass-prediction.md)
 - [📁 이미지 업로드 파이프라인](./docs/11_image-upload-pipeline.md)
 - [📧 이메일 비동기 처리](./docs/12_email-async-processing.md)

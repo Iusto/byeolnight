@@ -14,12 +14,18 @@
       │  @WebMvcTest + TestSecurityConfig     │     100% 통과 ✅
       └───────────────────────────────────────┘
         ┌─────────────────────────────────────┐
-        │     Repository Tests (31개)         │  ← QueryDSL 동적 쿼리
+        │     Repository Tests (33개)         │  ← QueryDSL 동적 쿼리, 커서 페이징
         │  @DataJpaTest + H2 실 DB 검증       │     100% 통과 ✅
         └─────────────────────────────────────┘
+          ┌───────────────────────────────────┐
+          │  Infrastructure (9개) / 통합 (6개) │  ← 설정·보안, Embedded Redis
+          └───────────────────────────────────┘
 ```
 
-**전체: 225개 테스트, 실패 0건** (2026-02-21 기준)
+**전체: 242개 테스트, 실패 0건 / 스킵 0건** (2026-08-04 기준, `./gradlew test`)
+
+> 소스의 `@Test`/`@ParameterizedTest` 선언은 222개이고, `@ParameterizedTest`가
+> 파라미터별로 펼쳐지면서 실제 실행 건수는 242개가 된다. 테스트 클래스는 33개다.
 
 ---
 
@@ -29,7 +35,9 @@
 |------|------|-------------|----------------|
 | **Service** | ✅ 완료 (157개) | Mock + Lenient 모드 | 비즈니스 로직, 예외 처리, 보안 정책 |
 | **Controller** | ✅ 완료 (37개) | @WebMvcTest + MockMvc | HTTP 상태코드, 인증/인가, 응답 구조 |
-| **Repository** | ✅ 완료 (31개) | @DataJpaTest + H2 | QueryDSL 동적 쿼리, 필터링, 페이징 |
+| **Repository** | ✅ 완료 (33개) | @DataJpaTest + H2 | QueryDSL 동적 쿼리, 필터링, 커서 페이징 |
+| **Infrastructure** | ✅ 완료 (9개) | 단위 + Embedded Redis | 설정, 보안 필터, IP 차단 |
+| **통합** | ✅ 완료 (6개) | SpringBootTest | 주요 플로우 |
 | **Frontend** | 🔲 미구현 | - | 빌드 성공 여부만 CI에서 체크 중 |
 
 ---
@@ -137,7 +145,7 @@ void wrongPassword_returns401() throws Exception {
 
 ---
 
-### 3. Repository 레이어 테스트 (31개)
+### 3. Repository 레이어 테스트 (33개)
 
 `@DataJpaTest`로 JPA 슬라이스만 로딩하고, H2 인메모리 DB에 실제 쿼리를 실행하여 QueryDSL 동적 쿼리를 검증한다.
 
@@ -152,6 +160,14 @@ void wrongPassword_returns401() throws Exception {
 |--------|--------|----------|
 | `PostRepositoryTest` | 20개 | 카테고리 필터, 삭제 제외, QueryDSL 키워드 검색, HOT 게시글, 블라인드, 페이징, 게시글 수 |
 | `UserRepositoryTest` | 11개 | 이메일 조회, 닉네임 중복, 탈퇴 상태 조회, 소셜 탈퇴 경과 사용자 |
+| `ChatMessageRepositoryTest` | 2개 | 커서 페이지네이션 중복·누락 없음, 정렬 기준이 커서와 동일한지 |
+
+**대표 예시 — 커서 페이지네이션:**
+
+`id`와 `timestamp`의 순서가 어긋난 데이터를 만들고 첫 페이지부터 끝까지 넘겨,
+중복·누락 없이 전부 조회되는지 검증한다. `@CreatedDate` 감사가 저장 시각을 덮어쓰므로
+저장 후 JPQL로 시각을 조정해 역전 상황을 만든다.
+자세한 배경은 [채팅 커서 페이지네이션 수정](./16_chat-cursor-pagination.md) 참조.
 
 **대표 예시 — QueryDSL 복합 조건 검색:**
 
@@ -253,7 +269,7 @@ public class TestMockConfig {
 ## 🎯 테스트 실행 명령어
 
 ```bash
-# 전체 테스트 (225개)
+# 전체 테스트 (242개)
 ./gradlew test
 
 # 계층별 실행
@@ -266,13 +282,13 @@ public class TestMockConfig {
 ./gradlew test --tests "com.byeolnight.repository.post.PostRepositoryTest"
 ```
 
-### 최신 테스트 실행 결과 (2026-02-21)
+### 최신 테스트 실행 결과 (2026-08-04)
 
 ```
 > Task :test
-BUILD SUCCESSFUL in 36s
+BUILD SUCCESSFUL
 
-225 tests completed, 0 failed ✅
+242 tests completed, 0 failed, 0 skipped ✅
 ```
 
 ---
