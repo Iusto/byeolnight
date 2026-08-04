@@ -1,0 +1,6 @@
+{
+  "last_turn_at": "2026-08-04T14:00:22.288Z",
+  "turn_count": 3,
+  "last_progress_at": "2026-08-04T14:00:22.288Z",
+  "last_agent_output": "Config Server가 GitHub에서 직접 읽는 구조가 아니라, `deploy.sh`가 먼저 Private Repository를 내려받는 구조입니다.\n\n실행 순서는 다음과 같"
+}
