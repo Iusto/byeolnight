@@ -1,7 +1,7 @@
 interface ChatConnectorCallbacks {
   onMessage: (msg: any) => void;
   onConnect: () => void;
-  onDisconnect: () => void;
+  onDisconnect: (willReconnect: boolean) => void;
   onError: () => void;
   onBanNotification?: (banData: any) => void;
 }
@@ -19,36 +19,53 @@ class ChatConnector {
   private maxMissedHeartbeats = 3;
 
   async connect(callbacks: ChatConnectorCallbacks, userNickname?: string) {
-    if (this.ws && this.isConnected) {
+    // 연결 중(CONNECTING)인 소켓도 중복 연결로 간주해야 소켓이 두 개 생기지 않음
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       console.log('이미 연결되어 있음');
       return;
     }
 
+    this.clearReconnectTimeout();
     this.callbacks = callbacks;
     this.userNickname = userNickname;
-    
-    const wsUrl = import.meta.env.VITE_WS_URL || 
-      (window.location.hostname === 'localhost' ? 'ws://localhost:8080/ws' : 
+
+    const wsUrl = import.meta.env.VITE_WS_URL ||
+      (window.location.hostname === 'localhost' ? 'ws://localhost:8080/ws' :
        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
-    
+
     console.log('🔌 WebSocket 연결 시도:', { wsUrl, userNickname, hasToken: document.cookie.includes('accessToken') });
-    
+
     try {
-      this.ws = new WebSocket(wsUrl);
-      
-      this.ws.onopen = () => this.handleConnect();
-      this.ws.onmessage = (event) => this.handleMessage(event);
-      this.ws.onerror = (error) => {
+      const socket = new WebSocket(wsUrl);
+      this.ws = socket;
+
+      // 이전 소켓의 이벤트가 뒤늦게 도착해 현재 연결 상태를 덮어쓰지 않도록
+      // 모든 핸들러에서 자기 소켓인지 확인한다
+      socket.onopen = () => {
+        if (this.ws !== socket) return;
+        this.handleConnect();
+      };
+      socket.onmessage = (event) => {
+        if (this.ws !== socket) return;
+        this.handleMessage(event);
+      };
+      socket.onerror = (error) => {
+        if (this.ws !== socket) return;
         console.error('❌ WebSocket 에러:', error);
         this.handleError();
       };
-      this.ws.onclose = (event) => {
+      socket.onclose = (event) => {
+        if (this.ws !== socket) return;
         console.log('🔌 WebSocket 연결 종료:', event.code, event.reason);
+        this.ws = null;
         this.handleDisconnect();
       };
     } catch (error) {
       console.error('❌ WebSocket 생성 실패:', error);
-      this.handleError();
+      this.ws = null;
+      this.isConnected = false;
+      this.callbacks?.onError();
+      this.scheduleReconnect();
     }
   }
 
@@ -57,6 +74,7 @@ class ChatConnector {
     this.isConnected = true;
     this.retryCount = 0;
     this.missedHeartbeats = 0;
+    this.clearReconnectTimeout();
     this.callbacks?.onConnect();
     this.startHeartbeat();
   }
@@ -64,15 +82,15 @@ class ChatConnector {
   private handleMessage(event: MessageEvent) {
     try {
       const message = JSON.parse(event.data);
-      
+
       // pong 응답 처리
       if (message.type === 'pong') {
         this.missedHeartbeats = 0;
         return;
       }
-      
+
       console.log('📨 메시지 수신:', message);
-      
+
       if (message.error) {
         this.callbacks?.onBanNotification?.(message);
       } else {
@@ -83,38 +101,66 @@ class ChatConnector {
     }
   }
 
+  // onerror 뒤에는 항상 onclose가 이어지므로 재연결 예약은 handleDisconnect에서만 한다
   private handleError() {
     console.error('WebSocket 연결 오류 발생');
     this.isConnected = false;
-    this.callbacks?.onError();
-    
-    if (this.retryCount < this.maxRetries) {
-      this.retryCount++;
-      console.log(`재연결 시도 ${this.retryCount}/${this.maxRetries}`);
-      this.reconnectTimeout = setTimeout(() => {
-        if (this.callbacks) {
-          this.connect(this.callbacks, this.userNickname);
-        }
-      }, 3000 * this.retryCount);
-    } else {
-      console.error('최대 재연결 시도 횟수 초과');
-    }
   }
 
   private handleDisconnect() {
-    console.log('🔌 연결 종료 감지, 재연결 시도...');
+    console.log('🔌 연결 종료 감지');
     this.isConnected = false;
     this.stopHeartbeat();
-    this.callbacks?.onDisconnect();
-    
-    // 자동 재연결 (정상 종료가 아닌 경우)
-    if (this.callbacks && this.retryCount < this.maxRetries) {
-      this.retryCount++;
-      console.log(`자동 재연결 시도 ${this.retryCount}/${this.maxRetries}`);
-      this.reconnectTimeout = setTimeout(() => {
-        this.connect(this.callbacks!, this.userNickname);
-      }, Math.min(3000 * this.retryCount, 15000)); // 최대 15초
+
+    const willReconnect = !!this.callbacks && this.retryCount < this.maxRetries;
+    this.callbacks?.onDisconnect(willReconnect);
+    this.scheduleReconnect();
+  }
+
+  private scheduleReconnect() {
+    if (!this.callbacks) return;
+
+    // 재연결 타이머는 항상 하나만 유지 (중복 예약 시 소켓이 여러 개 생김)
+    this.clearReconnectTimeout();
+
+    if (this.retryCount >= this.maxRetries) {
+      console.error('최대 재연결 시도 횟수 초과');
+      this.callbacks.onError();
+      return;
     }
+
+    this.retryCount++;
+    const delay = Math.min(3000 * this.retryCount, 15000);
+    console.log(`자동 재연결 시도 ${this.retryCount}/${this.maxRetries} (${delay}ms 후)`);
+
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = undefined;
+      if (this.callbacks) {
+        this.connect(this.callbacks, this.userNickname);
+      }
+    }, delay);
+  }
+
+  private clearReconnectTimeout() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
+    }
+  }
+
+  // 소켓을 버릴 때 핸들러를 먼저 떼어내야 뒤늦게 오는 close 이벤트가
+  // 새 연결 상태를 건드리지 않는다
+  private discardSocket() {
+    const socket = this.ws;
+    this.ws = null;
+    this.isConnected = false;
+
+    if (!socket) return;
+    socket.onopen = null;
+    socket.onmessage = null;
+    socket.onerror = null;
+    socket.onclose = null;
+    socket.close();
   }
 
   sendMessage(message: { roomId: string; sender: string; message: string }) {
@@ -134,17 +180,8 @@ class ChatConnector {
 
   disconnect() {
     this.stopHeartbeat();
-    
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = undefined;
-    }
-    
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    this.isConnected = false;
+    this.clearReconnectTimeout();
+    this.discardSocket();
     this.callbacks = null;
   }
 
@@ -156,23 +193,12 @@ class ChatConnector {
     console.log('ChatConnector.retryConnection 호출');
     this.retryCount = 0;
     this.stopHeartbeat();
-    
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = undefined;
+    this.clearReconnectTimeout();
+    this.discardSocket();
+
+    if (this.callbacks) {
+      await this.connect(this.callbacks, this.userNickname);
     }
-    
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    this.isConnected = false;
-    
-    setTimeout(async () => {
-      if (this.callbacks) {
-        await this.connect(this.callbacks, this.userNickname);
-      }
-    }, 500);
   }
 
   private startHeartbeat() {
@@ -182,7 +208,7 @@ class ChatConnector {
         try {
           this.ws.send(JSON.stringify({ type: 'ping' }));
           this.missedHeartbeats++;
-          
+
           if (this.missedHeartbeats >= this.maxMissedHeartbeats) {
             console.warn('⚠️ 하트비트 응답 없음, 연결 재시도');
             this.ws.close();

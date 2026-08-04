@@ -11,7 +11,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/app/config-repo/configs/
-      - ENCRYPT_KEY=byeolnight-config-encryption-key-2025!@#$%^&*()
+      - SPRING_CONFIG_IMPORT=file:/app/config-repo/configs/config-server-prod.yml
       - GITHUB_USERNAME=${GITHUB_USERNAME}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     volumes:
@@ -44,6 +44,7 @@ services:
       - TZ=Asia/Seoul
       - CONFIG_SERVER_URI=http://config-server:8888
       - SPRING_PROFILES_ACTIVE=prod
+      - CONFIG_SERVER_FAIL_FAST=true
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs

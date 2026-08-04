@@ -29,6 +29,7 @@ export default function ChatSidebar() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [connectionError, setConnectionError] = useState('');
   const [connecting, setConnecting] = useState(true);
   const [connected, setConnected] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -52,15 +53,17 @@ export default function ChatSidebar() {
       onConnect: () => {
         setConnecting(false);
         setConnected(true);
-        setError('');
+        setConnectionError('');
       },
-      onDisconnect: () => {
+      onDisconnect: (willReconnect) => {
         setConnected(false);
+        // 재연결 중에는 상태 표시가 비어 보이지 않도록 "연결 중"을 유지한다
+        setConnecting(willReconnect);
       },
       onError: () => {
         setConnecting(false);
         setConnected(false);
-        setError(t('home.chat.connection_failed'));
+        setConnectionError(t('home.chat.connection_failed'));
       },
       onBanNotification: (banData) => {
         if (banData.banned) {
@@ -84,7 +87,7 @@ export default function ChatSidebar() {
   };
 
   const handleRetryConnection = () => {
-    setError('');
+    setConnectionError('');
     setConnecting(true);
     setConnected(false);
     chatConnector.retryConnection();
@@ -205,7 +208,6 @@ export default function ChatSidebar() {
       
       if (!chatConnector.connected) {
         console.error('채팅 연결이 끊어졌습니다. 재연결 시도...');
-        setError('채팅 연결이 끊어졌습니다. 재연결 중...');
         handleRetryConnection();
         return;
       }
@@ -453,13 +455,19 @@ export default function ChatSidebar() {
                 <span className="text-yellow-300">{t('home.chat.connecting')}</span>
               </>
             )}
-            {connected && !connecting && !error && (
+            {connected && !connecting && !connectionError && (
               <>
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span className="text-green-400">{t('home.chat.connected')}</span>
               </>
             )}
-            {error && !connecting && (
+            {connectionError && !connecting && (
+              <>
+                <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                <span className="text-red-400">{connectionError}</span>
+              </>
+            )}
+            {error && !connectionError && !connecting && (
               <>
                 <div className="w-2 h-2 bg-red-400 rounded-full"></div>
                 <span className="text-red-400">{error}</span>
@@ -502,7 +510,7 @@ export default function ChatSidebar() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
+              disabled={connecting || !!connectionError || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
             />
             <EmojiPicker
               onEmojiSelect={(emoji) => setInput(prev => prev + emoji)}
@@ -515,7 +523,7 @@ export default function ChatSidebar() {
                   ? 'bg-red-600 cursor-not-allowed'
                   : 'bg-purple-600 hover:bg-purple-700'
               } text-white text-sm`}
-              disabled={connecting || !!error || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
+              disabled={connecting || !!connectionError || banStatus?.banned || bannedUsers.has(user?.nickname || '')}
             >
               {(banStatus?.banned || bannedUsers.has(user?.nickname || '')) ? t('home.chat.banned') : t('home.chat.send')}
             </button>
