@@ -45,4 +45,21 @@ public class RestTemplateConfig {
         log.info("RestTemplate 빈 생성 완료 (UTF-8 인코딩, 타임아웃 설정)");
         return restTemplate;
     }
+
+    /**
+     * 날씨 API 전용 RestTemplate
+     *
+     * 사용자 요청 경로에서 호출되므로 기본 빈(connect 10s / read 15s)보다 짧게 설정한다.
+     * 외부 API가 지연되면 Tomcat 스레드가 그만큼 묶여 날씨와 무관한 요청까지
+     * 대기열에 쌓이므로, 응답 상한을 짧게 두고 실패 시 폴백 응답으로 처리한다.
+     */
+    @Bean
+    public RestTemplate weatherRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(2000); // 2초
+        factory.setReadTimeout(3000);    // 3초
+
+        log.info("weatherRestTemplate 빈 생성 완료 (connect 2s / read 3s)");
+        return new RestTemplate(factory);
+    }
 }

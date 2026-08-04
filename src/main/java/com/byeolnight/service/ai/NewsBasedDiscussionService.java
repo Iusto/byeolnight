@@ -22,7 +22,7 @@ import java.util.Optional;
 public class NewsBasedDiscussionService {
     
     private final NewsRepository newsRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     
     @Value("${app.security.external-api.ai.openai-api-key:}")
     private String apiKey;

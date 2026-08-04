@@ -6,11 +6,14 @@
 
 | 지표 | 캐싱 없음 | Redis 캐싱 | 로컬 캐시 | 최종 (Proactive) |
 |------|----------|-----------|----------|----------------|
-| 첫 로딩 시간 | 7초+ | 7초+ (미스 시) | 7초+ (미스 시) | **즉시**         |
-| 캐시 히트율 | 0% | ~20% | ~60% | **~90%**       |
-| API 호출 | 매번 | 80% 요청 시 | 40% 요청 시 | 30분마다          |
-| 인프라 복잡도 | 낮음 | 높음 (Redis) | 낮음 | 낮음             |
-| 사용자 경험 | 😞 매우 느림 | 😐 느림 | 🙂 보통 | 😊 **빠름**      |
+| 첫 로딩 시간 | 최대 7초대 | 미스 시 동일 | 미스 시 동일 | **캐시 히트 평균 20.16ms** |
+| 캐시 키 공간 | — | 좌표 4자리 (과도하게 세밀) | 0.01도 그리드 | 0.01도 그리드 + 70개 도시 사전 적재 |
+| API 호출 | 매 요청 | 미스 시마다 | 미스 시마다 | 30분 주기 배치 + 온디맨드 폴백 |
+| 인프라 복잡도 | 낮음 | 높음 (Redis) | 낮음 | 낮음 |
+
+> **계측된 값**: k6 부하테스트 + Actuator 카운터로 `hit 316,953 / miss 0`.
+> 단 이 시나리오는 사전 캐싱된 70개 도시만 조회하므로 miss가 발생할 수 없다.
+> 실제 좌표 분포를 반영한 재측정이 필요하다.
 
 ---
 
@@ -208,7 +211,7 @@ public class CoordinateUtils {
 ```
 
 ### 결과
-- 캐시 히트율 20% → 60% 향상
+- 캐시 키 공간이 크게 줄어 동일 지역 요청 간 캐시 공유 가능
 - Redis 관리 부담 제거
 - 하지만 여전히 첫 로딩은 느림 (캐시 없음)
 
@@ -265,9 +268,8 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 ### 최종 결과
 
 #### 성능 개선
-- ✅ **첫 로딩: 7초 이상 → 즉시 응답** (주요 도시)
-- ✅ **캐시 히트율: 20% → 95%** (전체 사용자의 80%가 주요 도시)
-- ✅ **API 호출: 요청마다 → 30분마다**
+- ✅ **첫 로딩: 상한 없는 외부 호출 대기 → 캐시 히트 평균 20.16ms** (k6 실측, 주요 도시)
+- ✅ **API 호출: 요청마다 → 30분 주기 배치 + 미등록 지역 온디맨드 폴백**
 - ✅ **사용자 경험: 느린 로딩 → 즉시 정보 표시**
 
 #### 운영 개선
@@ -360,26 +362,36 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 @Service
 public class WeatherLocalCacheService {
 
-    private final Map<String, CachedWeather> cache = new ConcurrentHashMap<>();
+    // TTL 35분(스케줄 주기 30분 + 여유), 최대 10,000건
+    private final Cache<String, WeatherResponse> cache = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(Duration.ofMinutes(35))
+            .recordStats()
+            .build();
 
     public Optional<WeatherResponse> get(String cacheKey) {
-        CachedWeather cached = cache.get(cacheKey);
+        WeatherResponse cached = cache.getIfPresent(cacheKey);
         if (cached != null) {
             log.debug("로컬 캐시 HIT: cacheKey={}", cacheKey);
-            return Optional.of(cached.data());
+            return Optional.of(cached);
         }
         log.debug("로컬 캐시 MISS: cacheKey={}", cacheKey);
         return Optional.empty();
     }
 
     public void put(String cacheKey, WeatherResponse data) {
-        cache.put(cacheKey, new CachedWeather(data, LocalDateTime.now()));
+        cache.put(cacheKey, data);
         log.info("로컬 캐시 저장: cacheKey={}, location={}", cacheKey, data.getLocation());
     }
-
-    private record CachedWeather(WeatherResponse data, LocalDateTime cachedAt) {}
 }
 ```
+
+> **초기 구현은 `ConcurrentHashMap`이었다.** 적재 시각을 함께 저장해뒀지만
+> 조회할 때 확인하지 않아 만료가 동작하지 않았고, 온디맨드 경로가 사용자 좌표를
+> 키로 쓰는데 개수 제한이 없어 계속 쌓이는 문제도 있었다.
+>
+> 만료만 직접 처리하는 건 어렵지 않지만, 개수 제한과 오래된 항목 축출까지
+> 직접 만들려면 동시성 상황에서 접근 순서를 관리해야 해서 Caffeine으로 교체했다.
 
 ### 2. WeatherResponse DTO
 ```java
@@ -450,16 +462,7 @@ public void collectWeatherData() {
 
 ## 📈 향후 개선 방향
 
-### 1. 캐시 만료 정책 (선택적)
-현재는 30분마다 덮어쓰기 방식이지만, 필요시 TTL 추가 가능:
-```java
-// 온디맨드 캐시에만 TTL 적용 (1시간)
-cache.entrySet().removeIf(entry ->
-    isExpired(entry.getValue(), Duration.ofHours(1))
-);
-```
-
-### 2. 도시 확장
+### 1. 도시 확장
 사용자 통계 분석 후 추가 도시 확대:
 - 현재 70개 → 필요시 100개까지 확장 가능
 - 메모리 사용량: 도시당 ~2KB → 100개 = 200KB (무시 가능)
@@ -477,7 +480,7 @@ Micrometer + Actuator 캐시 메트릭과 k6 부하테스트로 실측 검증을
 | 평균 응답시간 | 20.16ms (캐시 히트) |
 | p(95) 응답시간 | 49.29ms (임계값 50ms PASS) |
 | 초당 처리량 | 2,112 req/s |
-| Actuator 캐시 검증 | hit 316,953 / miss 0 (적중률 100%) |
+| Actuator 캐시 검증 | hit 316,953 / miss 0 (사전 캐싱 도시만 조회한 시나리오) |
 
 150 VU 동시 접속, 2분 30초 부하에서 에러 없이 안정적으로 처리되었으며, Actuator `/actuator/metrics/cache.gets` 엔드포인트로 캐시 히트/미스를 정량 검증했다.
 

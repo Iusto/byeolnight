@@ -5,6 +5,7 @@ import com.byeolnight.dto.weather.WeatherResponse;
 import com.byeolnight.infrastructure.util.CoordinateUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -25,7 +26,7 @@ public class WeatherService {
 
     private final WeatherLocalCacheService localCacheService;
     private final MeterRegistry meterRegistry;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${weather.api.key}")
     private String apiKey;
@@ -33,9 +34,12 @@ public class WeatherService {
     @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
     private String apiUrl;
 
-    public WeatherService(WeatherLocalCacheService localCacheService, MeterRegistry meterRegistry) {
+    public WeatherService(WeatherLocalCacheService localCacheService,
+                          MeterRegistry meterRegistry,
+                          @Qualifier("weatherRestTemplate") RestTemplate restTemplate) {
         this.localCacheService = localCacheService;
         this.meterRegistry = meterRegistry;
+        this.restTemplate = restTemplate;
     }
 
     /**

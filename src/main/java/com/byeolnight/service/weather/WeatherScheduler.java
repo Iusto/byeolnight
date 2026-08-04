@@ -3,8 +3,8 @@ package com.byeolnight.service.weather;
 import com.byeolnight.config.WeatherCityConfig;
 import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,12 +22,22 @@ import static com.byeolnight.infrastructure.util.CoordinateUtils.generateCacheKe
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class WeatherScheduler {
 
     private final WeatherLocalCacheService cacheService;
     private final WeatherCityConfig cityConfig;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    // @Qualifier는 필드가 아닌 생성자 파라미터에 지정한다.
+    // lombok.config에 copyableAnnotations 설정이 없어 @RequiredArgsConstructor로는
+    // @Qualifier가 전달되지 않고 @Primary 빈이 주입되기 때문.
+    public WeatherScheduler(WeatherLocalCacheService cacheService,
+                            WeatherCityConfig cityConfig,
+                            @Qualifier("weatherRestTemplate") RestTemplate restTemplate) {
+        this.cacheService = cacheService;
+        this.cityConfig = cityConfig;
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${weather.api.key}")
     private String apiKey;

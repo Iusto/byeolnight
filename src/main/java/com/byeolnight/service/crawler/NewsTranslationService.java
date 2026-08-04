@@ -18,8 +18,12 @@ public class NewsTranslationService {
     @Value("${app.security.external-api.ai.openai-api-key:}")
     private String openaiApiKey;
     
-    private final RestTemplate restTemplate = new RestTemplate();
-    
+    private final RestTemplate restTemplate;
+
+    public NewsTranslationService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     public String translateTitle(String englishTitle) {
         if (!isEnglishTitle(englishTitle) || openaiApiKey.isEmpty()) {
             return englishTitle;

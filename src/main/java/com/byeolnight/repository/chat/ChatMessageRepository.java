@@ -26,5 +26,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     long countDistinctSenderByTimestampAfter(@Param("startTime") LocalDateTime startTime);
     
     // 특정 ID 이전 메시지 조회 (무한 스크롤용)
-    List<ChatMessage> findByRoomIdAndIdLessThanOrderByTimestampDesc(String roomId, Long beforeId, Pageable pageable);
+    //
+    // 정렬 기준은 반드시 커서와 같은 id여야 한다.
+    // 이전에는 timestamp로 정렬했는데, timestamp는 @CreatedDate가 flush 전에 채우고
+    // id는 INSERT 시점에 DB가 채번하므로 거의 동시에 도착한 메시지끼리 두 순서가
+    // 어긋날 수 있다. 그러면 커서가 정렬 순서를 따라가지 못해 같은 메시지가
+    // 다시 나오거나(중복) 영영 조회되지 않는(누락) 메시지가 생긴다.
+    List<ChatMessage> findByRoomIdAndIdLessThanOrderByIdDesc(String roomId, Long beforeId, Pageable pageable);
 }
