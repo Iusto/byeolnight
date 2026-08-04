@@ -212,6 +212,10 @@ if [ "$APP_READY" = false ]; then
   exit 1
 fi
 
+echo "🧹 사용하지 않는 Docker 이미지 정리..."
+docker image prune -f || echo "⚠️ Docker 이미지 정리 실패"
+docker builder prune -af --filter "until=168h" || echo "⚠️ Docker 빌드 캐시 정리 실패"
+
 log_step "✅ 배포 완료"
 echo "🎉 별 헤는 밤 백엔드 배포 성공!"
 echo "📝 프론트엔드는 S3+CloudFront에서 자동 배포됩니다."
