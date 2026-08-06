@@ -156,6 +156,7 @@ done
 # 설정값 추출
 MYSQL_ROOT_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."docker.mysql.root-password"' 2>/dev/null)
 REDIS_PASSWORD=$(echo "$CONFIG_RESPONSE" | jq -r '.propertySources[0].source."docker.redis.password"' 2>/dev/null)
+JWT_SECRET=$(echo "$CONFIG_RESPONSE" | jq -r '[.propertySources[]?.source."app.security.jwt.secret" | select(. != null and . != "")][0] // empty' 2>/dev/null)
 
 # 검증
 if [[ -z "$MYSQL_ROOT_PASSWORD" || "$MYSQL_ROOT_PASSWORD" == "null" ]]; then
@@ -170,9 +171,26 @@ if [[ -z "$REDIS_PASSWORD" || "$REDIS_PASSWORD" == "null" ]]; then
   exit 1
 fi
 
+if [[ -z "$JWT_SECRET" || "$JWT_SECRET" == "null" ]]; then
+  echo "❌ JWT 시크릿 추출 실패 - Config Server 복호화 결과를 확인하세요"
+  exit 1
+fi
+
+if [[ "$JWT_SECRET" == \{cipher\}* || "$JWT_SECRET" == invalid* || "$JWT_SECRET" == *'${'* ]]; then
+  echo "❌ JWT 시크릿이 복호화되지 않았습니다"
+  exit 1
+fi
+
+JWT_SECRET_BYTES=$(printf '%s' "$JWT_SECRET" | wc -c | tr -d ' ')
+if (( JWT_SECRET_BYTES < 32 )); then
+  echo "❌ JWT 시크릿 길이가 부족합니다 (최소 32바이트 필요)"
+  exit 1
+fi
+
 echo "✅ 설정값 검증 완료"
 echo "   - MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:0:3}***"
 echo "   - REDIS_PASSWORD: ${REDIS_PASSWORD:0:3}***"
+echo "   - JWT_SECRET: 검증 완료 (${JWT_SECRET_BYTES}바이트)"
 
 # 환경변수 내보내기 (Docker Compose에서 사용)
 export MYSQL_ROOT_PASSWORD REDIS_PASSWORD

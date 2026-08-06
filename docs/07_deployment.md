@@ -388,10 +388,13 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 ### 실제 배포 프로세스
 
 1. **서버 접속** → EC2 인스턴스에 SSH 접속
-2. **코드 업데이트** → `git pull origin master`로 최신 코드 가져오기
+2. **코드·설정 업데이트** → 애플리케이션과 Private Config 저장소의 `main` 최신화
 3. **애플리케이션 빌드** → `./gradlew clean bootJar`로 빌드
-4. **전체 서비스 배포** → `docker-compose up -d`로 전체 서비스 시작
-5. **배포 완료 확인** → 로그 모니터링 및 상태 체크
+4. **Config Server 검증** → 설정 응답에서 DB·Redis 값과 JWT 시크릿을 읽어 복호화 여부 및 32바이트 이상인지 검사
+5. **전체 서비스 배포** → 검증 성공 시에만 `docker compose up -d`로 백엔드 시작
+6. **배포 완료 확인** → 로그 모니터링 및 상태 체크
+
+JWT 시크릿이 누락되었거나 `{cipher}`/`invalid`/`${...}` 형태로 남아 있거나 UTF-8 기준 32바이트 미만이면 `deploy.sh`가 백엔드 교체 전에 종료한다. 배포 검사를 우회하더라도 `JwtTokenProvider` 생성 시 같은 길이 조건을 검증하므로 잘못된 키로 애플리케이션이 기동되지 않는다.
 
 ## 🔍 배포 후 확인사항
 

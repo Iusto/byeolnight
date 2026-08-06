@@ -85,7 +85,7 @@ const WeatherWidget: React.FC = () => {
           <h3 className="text-2xl font-bold flex items-center gap-2">
             🌟 {t('weather.star_observation')}
           </h3>
-          {weather && !locationLoading && !weatherLoading && (
+          {weather && weather.dataStatus !== 'UNAVAILABLE' && !locationLoading && !weatherLoading && (
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getQualityColor(weather.observationQuality)}`}>
               {weather.observationQuality}
             </span>
@@ -103,29 +103,44 @@ const WeatherWidget: React.FC = () => {
           </div>
         ) : weather ? (
           <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              <div className="flex justify-between items-center min-w-0">
-                <span className="text-gray-300 flex-shrink-0">📍 {t('weather.location')}</span>
-                <span className="font-semibold truncate ml-2">{weather.location}</span>
+            {weather.dataStatus === 'STALE' && (
+              <div className="mb-4 p-3 bg-amber-500/20 border border-amber-300/30 rounded-lg">
+                <p className="text-sm text-amber-100">
+                  {t('weather.stale_data', { time: weather.lastSuccessfulAt ?? weather.observationTime })}
+                </p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300 flex-shrink-0">☁️ {t('weather.cloud_cover')}</span>
-                <span className="font-semibold ml-2">{weather.cloudCover.toFixed(0)}%</span>
+            )}
+            {weather.dataStatus === 'UNAVAILABLE' ? (
+              <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
+                <p className="text-red-100 text-sm">{t('weather.data_unavailable')}</p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300 flex-shrink-0">👁️ {t('weather.visibility')}</span>
-                <span className="font-semibold ml-2">{weather.visibility.toFixed(1)}km</span>
-              </div>
-              <div className="flex justify-between items-center min-w-0">
-                <span className="text-gray-300 flex-shrink-0">{t('weather.moon_phase')}</span>
-                <span className="font-semibold flex items-center ml-2">
-                  <span className="text-2xl">{getMoonPhaseIcon(weather.moonPhase)}</span>
-                </span>
-              </div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-lg">
-              <p className="text-sm text-gray-200">{t(`weather.recommendations.${weather.recommendation}`)}</p>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-gray-300 flex-shrink-0">📍 {t('weather.location')}</span>
+                    <span className="font-semibold truncate ml-2">{weather.location}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300 flex-shrink-0">☁️ {t('weather.cloud_cover')}</span>
+                    <span className="font-semibold ml-2">{weather.cloudCover?.toFixed(0)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300 flex-shrink-0">👁️ {t('weather.visibility')}</span>
+                    <span className="font-semibold ml-2">{weather.visibility?.toFixed(1)}km</span>
+                  </div>
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-gray-300 flex-shrink-0">{t('weather.moon_phase')}</span>
+                    <span className="font-semibold flex items-center ml-2">
+                      <span className="text-2xl">{getMoonPhaseIcon(weather.moonPhase)}</span>
+                    </span>
+                  </div>
+                </div>
+                <div className="p-3 bg-white/5 rounded-lg">
+                  <p className="text-sm text-gray-200">{t(`weather.recommendations.${weather.recommendation}`)}</p>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="text-center py-8">

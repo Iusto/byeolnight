@@ -87,15 +87,19 @@ public class FileUploadRateLimitService {
         return current + 1
         """;
 
+    private static final String RELEASE_CONCURRENT_SLOT_SCRIPT = """
+        local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+        if current <= 1 then
+            redis.call('DEL', KEYS[1])
+            return 0
+        end
+        return redis.call('DECR', KEYS[1])
+        """;
+
     public boolean isUploadAllowed(String clientIp, long fileSize) {
         return checkUploadLimit(clientIp) &&
                checkFileSizeLimit(clientIp, fileSize) &&
                tryAcquireConcurrentSlot(clientIp);
-    }
-    
-    public boolean isPresignedUrlAllowed(String clientIp) {
-        return checkRateLimit("presigned_url_1h:" + clientIp, 20, 60, 60) &&
-               checkRateLimit("presigned_url_1d:" + clientIp, 100, 1440, 1440);
     }
     
     private boolean checkUploadLimit(String clientIp) {
@@ -135,7 +139,12 @@ public class FileUploadRateLimitService {
     }
     
     public void finishUpload(String clientIp) {
-        redisTemplate.opsForValue().decrement("concurrent_upload:" + clientIp);
+        try {
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(RELEASE_CONCURRENT_SLOT_SCRIPT, Long.class);
+            redisTemplate.execute(script, Collections.singletonList("concurrent_upload:" + clientIp));
+        } catch (Exception e) {
+            log.warn("업로드 동시 실행 슬롯 해제 실패: clientIp={}", clientIp, e);
+        }
     }
     
     private boolean checkRateLimit(String key, int limit, int windowMinutes, int blockMinutes) {
@@ -156,8 +165,8 @@ public class FileUploadRateLimitService {
     }
     
     public void clearIpLimit(String clientIp) {
-        String[] prefixes = {"file_upload_1h:", "file_upload_1d:", "file_size_1h:", 
-                           "presigned_url_1h:", "presigned_url_1d:", "concurrent_upload:"};
+        String[] prefixes = {"file_upload_1h:", "file_upload_1d:", "file_size_1h:",
+                           "concurrent_upload:"};
         
         for (String prefix : prefixes) {
             redisTemplate.delete(prefix + clientIp);

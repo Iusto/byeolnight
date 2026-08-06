@@ -57,7 +57,7 @@ Mock 기반으로 외부 의존성(DB, Redis, 외부 API)을 격리하여 비즈
 | `EmailAuthServiceTest` | 12개 | 이메일 인증, 시도 횟수 제한, 코드 검증 |
 | `CoordinateUtilsTest` | 9개 | 좌표 유틸리티 변환 정확성 |
 | `SocialAccountCleanupServiceTest` | 8개 | 30일 내 복구, 개인정보 마스킹 |
-| `WeatherServiceTest` | 7개 | 날씨 API 파싱, 캐싱, 에러 처리 |
+| `WeatherServiceTest` | 8개 | 날씨 API 파싱, 캐싱, stale 갱신 실패와 미가용 상태 처리 |
 | `SchedulerServiceTest` | 7개 | 크론 표현식, 자동화 작업 실행 |
 | `SchedulerCronExpressionTest` | 7개 | 크론 주기 검증 |
 | `NotificationServiceTest` | 6개 | 알림 생성/조회/읽음 처리 |
@@ -70,7 +70,8 @@ Mock 기반으로 외부 의존성(DB, Redis, 외부 API)을 격리하여 비즈
 | `PostServiceBlindTest` | 3개 | 게시글 블라인드 처리 |
 | `UserAdminServiceTest` | 3개 | 관리자 계정 복구 |
 | `SchedulerUnitTest` | 6개 | 스케줄러 단위 실행 검증 |
-| `WeatherSchedulerTest` | 5개 | 날씨 스케줄 동작 |
+| `WeatherSchedulerTest` | 5개 | 날씨 스케줄 동작, 재시도 후 실패 시 기존 캐시 보존 |
+| `WeatherLocalCacheServiceTest` | 7개 | 35분 신선도, 2시간 stale 보존, 크기 상한과 통계 |
 | `CustomOAuth2UserServiceWithdrawTest` | 2개 | 소셜 탈퇴 계정 처리 |
 
 **대표 예시:**

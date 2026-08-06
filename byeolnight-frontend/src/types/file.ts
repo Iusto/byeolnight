@@ -8,30 +8,6 @@ export interface FileDto {
 }
 
 /**
- * S3 Presigned URL 응답
- */
-export interface PresignedUrlResponse {
-  uploadUrl: string;
-  url: string;
-  s3Key: string;
-  originalName: string;
-  contentType: string;
-}
-
-/**
- * 이미지 검열 결과
- */
-export interface ModerationResult {
-  status: 'completed' | 'error' | 'skipped';
-  isSafe: boolean;
-  message: string;
-  url?: string;
-  s3Key?: string;
-  originalName?: string;
-  contentType?: string;
-}
-
-/**
  * CloudFront 이미지 조회 URL 응답
  */
 export interface ViewUrlResponse {

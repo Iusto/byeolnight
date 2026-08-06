@@ -1,4 +1,4 @@
-import http from 'k6/http';
+﻿import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
 import { BASE_URL } from '../lib/config.js';
@@ -8,18 +8,30 @@ const blockedDuration = new Trend('blocked_duration', true);
 const allowedCount = new Counter('allowed_count');
 const blockedCount = new Counter('blocked_count');
 
-const PRESIGNED_LIMIT_1H = 20;  // IP당 20회/시간
+const UPLOAD_LIMIT_1H = 10;
+const ACCESS_TOKEN = __ENV.ACCESS_TOKEN;
+
+function requestParams(scenario, clientIp) {
+  if (!ACCESS_TOKEN) {
+    throw new Error('인증이 필요한 테스트입니다. ACCESS_TOKEN 환경 변수를 설정하세요.');
+  }
+  return {
+    headers: {
+      Cookie: `accessToken=${ACCESS_TOKEN}`,
+      'X-Client-IP': clientIp,
+    },
+    tags: { scenario },
+  };
+}
 
 export const options = {
   scenarios: {
-    // 시나리오 1: Rate Limit 도달 과정 + 초과 시 429 확인
     rate_limit_test: {
       executor: 'per-vu-iterations',
       vus: 1,
       iterations: 1,
       exec: 'rateLimitTest',
     },
-    // 시나리오 2: 비지원 파일 형식 → 400 확인
     validation_test: {
       executor: 'per-vu-iterations',
       vus: 1,
@@ -29,79 +41,63 @@ export const options = {
     },
   },
   thresholds: {
-    'blocked_duration': ['p(95)<50'],
+    blocked_duration: ['p(95)<50'],
   },
 };
 
-// 시나리오 1: Presigned URL Rate Limit 도달 테스트
+// 외부 Vision/S3 비용이 발생하지 않도록 허용되지 않는 확장자의 작은 파일을 사용한다.
 export function rateLimitTest() {
-  let allowedBefore429 = 0;
+  let acceptedBefore429 = 0;
 
-  for (let i = 0; i <= PRESIGNED_LIMIT_1H + 2; i++) {
-    const filename = `test-${Date.now()}-${i}.jpg`;
-
+  for (let i = 0; i <= UPLOAD_LIMIT_1H + 2; i++) {
+    const body = {
+      file: http.file('not-an-image', `rate-limit-${Date.now()}-${i}.txt`, 'text/plain'),
+    };
     const res = http.post(
-      `${BASE_URL}/api/files/presigned-url?filename=${filename}&contentType=image/jpeg`,
-      null,
-      { tags: { scenario: 'rate_limit' } }
+      `${BASE_URL}/api/files/upload`,
+      body,
+      requestParams('rate_limit', '198.51.100.10')
     );
 
     if (res.status === 429) {
       blockedDuration.add(res.timings.duration);
       blockedCount.add(1);
-
       check(res, {
-        '[초과] status 429': (r) => r.status === 429,
-        '[초과] 에러 메시지': (r) => {
-          try { return r.body.includes('한도') || r.body.includes('초과'); }
-          catch { return false; }
-        },
-        '[초과] 응답 시간 < 50ms': (r) => r.timings.duration < 50,
+        '[초과] status 429': response => response.status === 429,
+        '[초과] 응답 시간 < 50ms': response => response.timings.duration < 50,
       });
-
-      console.log(`[File Rate Limit] 429 at request #${i + 1} | allowed=${allowedBefore429} | blocked in ${res.timings.duration.toFixed(1)}ms`);
       break;
     }
 
     allowedDuration.add(res.timings.duration);
     allowedCount.add(1);
-    allowedBefore429++;
-
+    acceptedBefore429++;
     check(res, {
-      '[허용] status 200': (r) => r.status === 200,
-      '[허용] has uploadUrl': (r) => {
-        try { return JSON.parse(r.body).data.uploadUrl !== undefined; }
-        catch { return false; }
-      },
+      '[허용 후 검증 거부] status 400': response => response.status === 400,
     });
-
     sleep(0.2);
   }
 
-  console.log(`[File Rate Limit] Total allowed before block: ${allowedBefore429} (limit: ${PRESIGNED_LIMIT_1H})`);
+  console.log(`[File Rate Limit] accepted=${acceptedBefore429}, limit=${UPLOAD_LIMIT_1H}`);
 }
 
-// 시나리오 2: 파일 형식 검증
 export function validationTest() {
   const invalidFiles = [
     { filename: 'test.exe', contentType: 'application/octet-stream' },
     { filename: 'script.sh', contentType: 'text/plain' },
-    { filename: 'hack.php', contentType: 'text/php' },
+    { filename: 'payload.svg', contentType: 'image/svg+xml' },
   ];
-
   const file = invalidFiles[__ITER % invalidFiles.length];
-
+  const body = {
+    file: http.file('invalid', file.filename, file.contentType),
+  };
   const res = http.post(
-    `${BASE_URL}/api/files/presigned-url?filename=${file.filename}&contentType=${file.contentType}`,
-    null,
-    { tags: { scenario: 'validation' } }
+    `${BASE_URL}/api/files/upload`,
+    body,
+    requestParams('validation', '198.51.100.20')
   );
 
   check(res, {
-    '[검증] status 400': (r) => r.status === 400,
-    '[검증] 에러 메시지': (r) => {
-      try { return r.body.includes('지원되지 않는'); }
-      catch { return false; }
-    },
+    '[검증] status 400': response => response.status === 400,
   });
 }

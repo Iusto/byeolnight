@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class WeatherResponse {
     private String location;
     private Double latitude;
@@ -19,4 +19,12 @@ public class WeatherResponse {
     private String observationQuality;
     private String recommendation;
     private String observationTime;
+    private DataStatus dataStatus;
+    private String lastSuccessfulAt;
+
+    public enum DataStatus {
+        FRESH,
+        STALE,
+        UNAVAILABLE
+    }
 }

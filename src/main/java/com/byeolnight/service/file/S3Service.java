@@ -7,6 +7,7 @@ import com.byeolnight.infrastructure.config.SecurityProperties;
 import com.byeolnight.repository.file.FileRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.dto.file.S3StatusDto;
+import com.byeolnight.dto.file.UploadedImageResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,34 +19,18 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.core.sync.RequestBody;
 
 import com.byeolnight.infrastructure.exception.FileProcessingException;
-import com.byeolnight.dto.file.PresignedUrlResponseDto;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * AWS S3 파일 업로드/관리 핵심 서비스
- * 
- * 아키텍처:
- * - 업로드: Presigned S3 URL (클라이언트 → S3 직접)
- * - 조회: CloudFront URL (클라이언트 → CloudFront → S3)
- * 
- * 주요 기능:
- * - Presigned URL 생성 (10분 유효)
- * - Google Vision API 이미지 검열
- * - 고아 파일 자동 정리
- * - S3 연결 상태 모니터링
- * 
- * @author byeolnight
- * @since 1.0
+ * AWS S3 이미지 저장 및 관리 서비스.
+ * 안전성 검열을 통과한 이미지 바이트만 공개 경로에 저장한다.
  */
 @Slf4j
 @Service
@@ -72,94 +57,78 @@ public class S3Service {
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
-    
+
     @Value("${cloud.aws.credentials.access-key}")
     private String accessKey;
-    
+
     @Value("${cloud.aws.credentials.secret-key}")
     private String secretKey;
-    
+
     @Value("${cloud.aws.region.static}")
     private String region;
-    
+
     @Value("${cloud.aws.cloudfront.domain}")
     private String cloudFrontDomain;
-    
+
     private String getBucketName() {
         return bucketName;
     }
-    
+
     private String getAccessKey() {
         return accessKey;
     }
-    
+
     private String getSecretKey() {
         return secretKey;
     }
-    
+
     private String getRegion() {
         return region;
     }
 
     /**
-     * S3 Presigned URL 생성 (클라이언트 직접 업로드용)
-     *
-     * 플로우:
-     * 1. 파일 확장자 검증 (jpg, png, gif 등)
-     * 2. S3 Presigned URL 생성 (10분 유효)
-     * 3. File 테이블에 PENDING 상태로 저장
-     * 4. CloudFront URL 반환 (조회용)
-     *
-     * @param originalFilename 원본 파일명
-     * @param contentTypeParam 콘텐츠 타입 (선택적)
-     * @return uploadUrl(업로드용), url(조회용), s3Key 등 포함
+     * 이미지 검열이 끝난 뒤에만 S3에 업로드하여 검열 전 공개 가능성을 차단한다.
      */
-    @Transactional
-    public PresignedUrlResponseDto generatePresignedUrl(String originalFilename, String contentTypeParam) {
-        if (!isValidImageFile(originalFilename)) {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp, svg, bmp 형식만 허용)");
+    public UploadedImageResponseDto uploadModeratedImage(
+            String originalFilename,
+            byte[] imageBytes
+    ) {
+        if (!validateUploadedImage(imageBytes)) {
+            throw new IllegalArgumentException("부적절하거나 검열할 수 없는 이미지입니다.");
         }
-        try {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(getAccessKey(), getSecretKey());
-            S3Presigner presigner = S3Presigner.builder()
-                    .region(Region.of(getRegion()))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+
+        String s3Key = generateS3Key(originalFilename);
+        String storedContentType = getContentType(originalFilename);
+        String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
+        boolean uploaded = false;
+
+        try (S3Client s3Client = createS3Client()) {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(getBucketName())
+                    .key(s3Key)
+                    .contentType(storedContentType)
+                    .contentLength((long) imageBytes.length)
                     .build();
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(imageBytes));
+            uploaded = true;
 
-            String s3Key = generateS3Key(originalFilename);
-            String contentType = contentTypeParam != null ? contentTypeParam : getContentType(originalFilename);
-
-            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofMinutes(10))
-                    .putObjectRequest(builder -> builder
-                            .bucket(getBucketName())
-                            .key(s3Key)
-                            .contentType(contentType)
-                    )
-                    .build();
-
-            PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(presignRequest);
-            String presignedUrl = presignedRequest.url().toString();
-
-            // CloudFront URL 사용 (S3 직접 접근 차단으로 인한 AccessDenied 방지)
-            String permanentUrl = String.format("https://%s/%s", cloudFrontDomain, s3Key);
-
-            // File 테이블에 PENDING 상태로 저장 (고아 파일 추적용)
             File pendingFile = File.createPending(originalFilename, s3Key, permanentUrl);
-            fileRepository.save(pendingFile);
-            log.debug("PENDING 상태 파일 저장: s3Key={}", s3Key);
+            fileRepository.saveAndFlush(pendingFile);
+            log.info("검열 완료 이미지 업로드: s3Key={}, size={}", s3Key, imageBytes.length);
 
-            log.info("Presigned URL 생성 완료: {} (영구 URL: {}, Content-Type: {})", s3Key, permanentUrl, contentType);
-            return PresignedUrlResponseDto.of(presignedUrl, permanentUrl, s3Key, originalFilename, contentType);
-
+            return UploadedImageResponseDto.of(
+                    permanentUrl,
+                    s3Key,
+                    originalFilename,
+                    storedContentType
+            );
         } catch (Exception e) {
-            log.error("Presigned URL 생성 실패: {}", e.getMessage(), e);
-            throw new FileProcessingException("파일 업로드 URL 생성에 실패했습니다.", e);
+            if (uploaded) {
+                deleteObject(s3Key);
+            }
+            log.error("검열 완료 이미지 업로드 실패: s3Key={}", s3Key, e);
+            throw new FileProcessingException("검열 완료 이미지를 저장하지 못했습니다.", e);
         }
-    }
-
-    public PresignedUrlResponseDto generatePresignedUrl(String originalFilename) {
-        return generatePresignedUrl(originalFilename, null);
     }
 
     /**
@@ -193,7 +162,7 @@ public class S3Service {
             return isSafe;
         } catch (Exception e) {
             log.error("이미지 검열 중 오류 발생", e);
-            return true;
+            return false;
         }
     }
 
@@ -406,7 +375,7 @@ public class S3Service {
      * 
      * @return 설정된 자격 증명과 리전으로 생성된 S3 클라이언트
      */
-    private S3Client createS3Client() {
+    S3Client createS3Client() {
         try {
             AwsBasicCredentials credentials = AwsBasicCredentials.create(getAccessKey(), getSecretKey());
             return S3Client.builder()
@@ -439,12 +408,4 @@ public class S3Service {
         return "application/octet-stream";
     }
 
-    private boolean isValidImageFile(String filename) {
-        if (filename == null || filename.trim().isEmpty()) return false;
-        String extension = filename.toLowerCase();
-        return extension.endsWith(".jpg") || extension.endsWith(".jpeg") ||
-                extension.endsWith(".png") || extension.endsWith(".gif") ||
-                extension.endsWith(".webp") || extension.endsWith(".svg") ||
-                extension.endsWith(".bmp");
-    }
 }
