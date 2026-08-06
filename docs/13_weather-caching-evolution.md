@@ -8,7 +8,7 @@
 |------|----------|-----------|----------|----------------|
 | 첫 로딩 시간 | 최대 7초대 | 미스 시 동일 | 미스 시 동일 | **캐시 히트 평균 20.16ms** |
 | 캐시 키 공간 | — | 좌표 4자리 (과도하게 세밀) | 0.01도 그리드 | 0.01도 그리드 + 70개 도시 사전 적재 |
-| API 호출 | 매 요청 | 미스 시마다 | 미스 시마다 | 30분 주기 배치 + 온디맨드 폴백 |
+| API 호출 | 매 요청 | 미스 시마다 | 미스 시마다 | 30분 주기 배치 + 온디맨드, 실패 시 bounded stale |
 | 인프라 복잡도 | 낮음 | 높음 (Redis) | 낮음 | 낮음 |
 
 > **계측된 값**: k6 부하테스트 + Actuator 카운터로 `hit 316,953 / miss 0`.
@@ -243,12 +243,19 @@ public void collectWeatherData() {
 public WeatherResponse getObservationConditions(Double latitude, Double longitude) {
     // 1. 캐시 확인
     Optional<WeatherResponse> cached = localCacheService.get(cacheKey);
-    if (cached.isPresent()) return cached.get();  // 즉시 반환!
+    if (cached.filter(data -> data.getDataStatus() == FRESH).isPresent()) {
+        return cached.get();  // 즉시 반환
+    }
 
-    // 2. 캐시 미스 → API 호출 후 저장
-    WeatherResponse data = fetchWeatherDataFromAPI(latitude, longitude);
-    localCacheService.put(cacheKey, data);
-    return data;
+    // 2. STALE 또는 캐시 미스 → API 갱신 시도
+    try {
+        WeatherResponse data = fetchWeatherDataFromAPI(latitude, longitude);
+        localCacheService.put(cacheKey, data);
+        return data;
+    } catch (Exception e) {
+        // 마지막 성공 데이터가 있으면 시각과 STALE 상태를 함께 반환
+        return cached.orElseGet(() -> createUnavailableResponse(latitude, longitude));
+    }
 }
 ```
 
@@ -276,7 +283,20 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 - ✅ Redis 제거 → 인프라 단순화
 - ✅ 설정 파일 최소화 (application.yml에 API 키만)
 - ✅ 배포 간소화 (Redis 의존성 제거)
-- ✅ 모니터링 불필요 (로컬 메모리)
+- ✅ 갱신 실패 시 가짜 현재값으로 캐시를 덮어쓰지 않음
+- ✅ 마지막 성공 데이터는 35분 이후 `STALE`로 전환해 최대 2시간만 보존
+- ✅ `FRESH`/`STALE`/`UNAVAILABLE` 상태와 마지막 성공 시각을 사용자에게 표시
+- ✅ 성공·실패·재시도 Micrometer 카운터로 외부 API 장애를 관측
+
+### 외부 API 장애 정책
+
+1. 스케줄 수집 실패 시 1초 대기 후 한 번만 재시도한다.
+2. 두 번째 호출도 실패하면 해당 도시 캐시를 갱신하지 않아 마지막 정상값을 보존한다.
+3. 저장 후 35분까지는 `FRESH`, 이후 2시간까지는 `STALE`로 반환한다.
+4. 마지막 정상값도 없으면 수치를 추정하지 않고 `UNAVAILABLE`과 `null` 수치를 반환한다.
+5. 프론트는 stale 시 마지막 성공 시각을 알리고, unavailable 시 관측 수치를 렌더링하지 않는다.
+
+복잡한 서킷 브레이커는 도입하지 않았다. 현재 단일 인스턴스·30분 배치 규모에서는 짧은 재시도와 bounded stale만으로 장애 전파와 잘못된 현재값 노출을 막을 수 있기 때문이다.
 
 ---
 
@@ -362,26 +382,27 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 @Service
 public class WeatherLocalCacheService {
 
-    // TTL 35분(스케줄 주기 30분 + 여유), 최대 10,000건
-    private final Cache<String, WeatherResponse> cache = Caffeine.newBuilder()
+    static final Duration FRESH_TTL = Duration.ofMinutes(35);
+    static final Duration STALE_RETENTION = Duration.ofHours(2);
+
+    private final Cache<String, CachedWeather> cache = Caffeine.newBuilder()
             .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(35))
+            .expireAfterWrite(STALE_RETENTION)
             .recordStats()
             .build();
 
     public Optional<WeatherResponse> get(String cacheKey) {
-        WeatherResponse cached = cache.getIfPresent(cacheKey);
+        CachedWeather cached = cache.getIfPresent(cacheKey);
         if (cached != null) {
-            log.debug("로컬 캐시 HIT: cacheKey={}", cacheKey);
-            return Optional.of(cached);
+            Duration age = Duration.ofNanos(ticker.read() - cached.storedAtNanos());
+            DataStatus status = age.compareTo(FRESH_TTL) <= 0 ? FRESH : STALE;
+            return Optional.of(cached.data().toBuilder().dataStatus(status).build());
         }
-        log.debug("로컬 캐시 MISS: cacheKey={}", cacheKey);
         return Optional.empty();
     }
 
     public void put(String cacheKey, WeatherResponse data) {
-        cache.put(cacheKey, data);
-        log.info("로컬 캐시 저장: cacheKey={}, location={}", cacheKey, data.getLocation());
+        cache.put(cacheKey, new CachedWeather(data, ticker.read()));
     }
 }
 ```
@@ -398,7 +419,7 @@ public class WeatherLocalCacheService {
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class WeatherResponse {
     private String location;           // 지역명
     private Double latitude;           // 위도
@@ -409,6 +430,8 @@ public class WeatherResponse {
     private String observationQuality; // EXCELLENT, GOOD, FAIR, POOR
     private String recommendation;     // 관측 추천 등급
     private String observationTime;    // 관측 시간
+    private DataStatus dataStatus;      // FRESH, STALE, UNAVAILABLE
+    private String lastSuccessfulAt;    // 마지막 외부 API 성공 시각
 }
 ```
 
@@ -443,13 +466,16 @@ public void collectWeatherData() {
 
     for (WeatherCityConfig.City city : cityConfig.getCities()) {
         try {
-            WeatherResponse weather = fetchWeatherData(city);
+            WeatherResponse weather = fetchWeatherDataWithRetry(city); // 1초 후 1회 재시도
             String cacheKey = generateCacheKey(city.latitude(), city.longitude());
             cacheService.put(cacheKey, weather);
             successCount++;
+            meterRegistry.counter("weather.scheduler.refresh.success").increment();
             Thread.sleep(200);  // Rate Limit 방지
         } catch (Exception e) {
-            log.error("날씨 수집 실패: city={}, error={}", city.name(), e.getMessage());
+            // 실패 응답을 캐시에 넣지 않으므로 마지막 정상 데이터가 유지된다.
+            log.error("날씨 수집 실패 - 기존 캐시 유지: city={}", city.name());
+            meterRegistry.counter("weather.scheduler.refresh.failure").increment();
             failCount++;
         }
     }
@@ -467,9 +493,9 @@ public void collectWeatherData() {
 - 현재 70개 → 필요시 100개까지 확장 가능
 - 메모리 사용량: 도시당 ~2KB → 100개 = 200KB (무시 가능)
 
-### 3. 모니터링
+### 2. 모니터링
 
-Micrometer + Actuator 캐시 메트릭과 k6 부하테스트로 실측 검증을 완료했다.
+Micrometer + Actuator 캐시 메트릭과 k6 부하테스트로 실측 검증을 완료했다. 운영 중에는 `weather.scheduler.refresh.success`, `weather.scheduler.refresh.failure`, `weather.scheduler.refresh.retry`, `cache.weather.stale` 카운터로 갱신 장애와 stale 반환을 구분한다.
 
 #### k6 부하테스트 실측 결과 (별도 EC2에서 실행)
 

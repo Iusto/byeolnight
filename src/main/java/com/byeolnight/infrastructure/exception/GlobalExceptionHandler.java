@@ -189,7 +189,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 파일 처리 실패 예외 (S3 업로드, Presigned URL 생성 등)
+     * 파일 처리 실패 예외 (검열 완료 이미지 S3 업로드 등)
      */
     @ExceptionHandler(FileProcessingException.class)
     public ResponseEntity<CommonResponse<?>> handleFileProcessing(FileProcessingException ex) {

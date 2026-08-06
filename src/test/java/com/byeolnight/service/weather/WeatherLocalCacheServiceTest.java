@@ -40,6 +40,8 @@ class WeatherLocalCacheServiceTest {
                 .observationQuality("EXCELLENT")
                 .recommendation("EXCELLENT")
                 .observationTime("2026-08-03 00:00")
+                .dataStatus(WeatherResponse.DataStatus.FRESH)
+                .lastSuccessfulAt("2026-08-03 00:00")
                 .build();
     }
 
@@ -54,21 +56,37 @@ class WeatherLocalCacheServiceTest {
             WeatherLocalCacheService cache = new WeatherLocalCacheService(ticker);
             cache.put("wx:37.57:126.98", weather("서울"));
 
-            ticker.advance(WeatherLocalCacheService.TTL.minusMinutes(1));
+            ticker.advance(WeatherLocalCacheService.FRESH_TTL.minusMinutes(1));
 
             Optional<WeatherResponse> result = cache.get("wx:37.57:126.98");
             assertThat(result).isPresent();
             assertThat(result.get().getLocation()).isEqualTo("서울");
+            assertThat(result.get().getDataStatus()).isEqualTo(WeatherResponse.DataStatus.FRESH);
         }
 
         @Test
-        @DisplayName("TTL이 지나면 조회되지 않는다")
-        void expiresAfterTtl() {
+        @DisplayName("신선도 TTL이 지나면 마지막 성공 데이터를 STALE로 반환한다")
+        void returnsStaleAfterFreshTtl() {
             FakeTicker ticker = new FakeTicker();
             WeatherLocalCacheService cache = new WeatherLocalCacheService(ticker);
             cache.put("wx:37.57:126.98", weather("서울"));
 
-            ticker.advance(WeatherLocalCacheService.TTL.plusMinutes(1));
+            ticker.advance(WeatherLocalCacheService.FRESH_TTL.plusMinutes(1));
+
+            Optional<WeatherResponse> result = cache.get("wx:37.57:126.98");
+            assertThat(result).isPresent();
+            assertThat(result.get().getDataStatus()).isEqualTo(WeatherResponse.DataStatus.STALE);
+            assertThat(result.get().getLastSuccessfulAt()).isEqualTo("2026-08-03 00:00");
+        }
+
+        @Test
+        @DisplayName("stale 보존 시간이 지나면 캐시에서 제거한다")
+        void expiresAfterStaleRetention() {
+            FakeTicker ticker = new FakeTicker();
+            WeatherLocalCacheService cache = new WeatherLocalCacheService(ticker);
+            cache.put("wx:37.57:126.98", weather("서울"));
+
+            ticker.advance(WeatherLocalCacheService.STALE_RETENTION.plusMinutes(1));
 
             assertThat(cache.get("wx:37.57:126.98")).isEmpty();
         }
@@ -76,7 +94,7 @@ class WeatherLocalCacheServiceTest {
         @Test
         @DisplayName("TTL은 스케줄 주기(30분)보다 길어야 갱신 직전 만료를 피할 수 있다")
         void ttlCoversSchedulerInterval() {
-            assertThat(WeatherLocalCacheService.TTL)
+            assertThat(WeatherLocalCacheService.FRESH_TTL)
                     .isGreaterThan(Duration.ofMinutes(30));
         }
     }

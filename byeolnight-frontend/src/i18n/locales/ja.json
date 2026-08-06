@@ -401,6 +401,8 @@
     "location_not_supported": "ブラウザーで位置サービスをサポートしていません。",
     "retry_location": "📍 位置再リクエスト",
     "weather_error": "天気データを読み込めません。",
+    "stale_data": "天気情報の更新が遅れているため、最後に取得できたデータ（{{time}}）を表示します。",
+    "data_unavailable": "天気サービスに接続できず、保存された最近のデータもありません。",
     "retry": "🔄 再試行",
     "loading_weather": "今日の天気情報を読み込み中...",
     "analyzing_conditions": "位置ベースの星観測条件を分析しています",

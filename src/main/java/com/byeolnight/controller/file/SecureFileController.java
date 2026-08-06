@@ -1,13 +1,10 @@
 package com.byeolnight.controller.file;
 
-import com.byeolnight.dto.file.PresignedUrlResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.file.CloudFrontService;
-import com.byeolnight.service.file.SecureS3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -15,7 +12,6 @@ import java.util.Set;
 
 /**
  * 보안 강화된 파일 컨트롤러
- * - 업로드: S3 Presigned URL (인증 필요)
  * - 조회: CloudFront Signed URL (SSRF 방지)
  */
 @RestController
@@ -24,32 +20,12 @@ import java.util.Set;
 @Slf4j
 public class SecureFileController {
 
-    private final SecureS3Service secureS3Service;
     private final CloudFrontService cloudFrontService;
     
     // CloudFront 도메인만 허용 (SSRF 방지)
     private static final Set<String> ALLOWED_DOMAINS = Set.of(
         "d1234567890.cloudfront.net" // 실제 CloudFront 도메인으로 변경
     );
-
-    /**
-     * 인증된 사용자만 업로드 URL 생성 가능
-     */
-    @PostMapping("/upload-url")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<CommonResponse<PresignedUrlResponseDto>> getUploadUrl(
-            @RequestParam("filename") String filename,
-            @RequestParam(value = "contentType", required = false) String contentType) {
-
-        try {
-            PresignedUrlResponseDto result = secureS3Service.generateSecurePresignedUrl(filename, contentType);
-            return ResponseEntity.ok(CommonResponse.success(result));
-        } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(CommonResponse.error(e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(CommonResponse.error(e.getMessage()));
-        }
-    }
 
     /**
      * 이미지 조회용 CloudFront Signed URL 생성

@@ -84,7 +84,7 @@ public class PostService {
         dto.getImages().forEach(image -> {
             Optional<File> existingFile = fileRepository.findByS3Key(image.s3Key());
             if (existingFile.isPresent()) {
-                // Presigned URL 발급 시 생성된 PENDING 파일을 CONFIRMED로 변경
+                // 검열 완료 업로드 시 생성된 PENDING 파일을 CONFIRMED로 변경
                 existingFile.get().confirmWithPost(post);
             } else {
                 // 이전 버전 호환성: PENDING 레코드가 없으면 새로 생성
@@ -167,7 +167,7 @@ public class PostService {
                     }
                     Optional<File> existingFile = fileRepository.findByS3Key(image.s3Key());
                     if (existingFile.isPresent()) {
-                        // Presigned URL 발급 시 생성된 PENDING 파일을 CONFIRMED로 변경
+                        // 검열 완료 업로드 시 생성된 PENDING 파일을 CONFIRMED로 변경
                         existingFile.get().confirmWithPost(post);
                     } else {
                         // 이전 버전 호환성: PENDING 레코드가 없으면 새로 생성

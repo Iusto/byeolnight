@@ -17,11 +17,12 @@ import java.util.Optional;
  *
  * <p>스케줄러가 30분마다 주요 도시를 갱신하고, 그 외 지역은 첫 요청 시 적재된다.
  *
- * <h2>만료 전략</h2>
+ * <h2>신선도·만료 전략</h2>
  * <ul>
- *   <li><b>TTL 35분</b> — 스케줄 주기(30분)보다 길게 잡아, 갱신 직전에 항목이 먼저
- *       사라져 불필요한 외부 호출이 발생하는 것을 막는다. 반대로 스케줄러가 멈추면
- *       35분 뒤 만료되므로 오래된 날씨가 무기한 서빙되지 않는다.</li>
+ *   <li><b>신선도 35분</b> — 스케줄 주기(30분)보다 길게 잡아 갱신 직전에 항목이 먼저
+ *       사라지는 것을 막는다.</li>
+ *   <li><b>stale 보존 2시간</b> — 외부 API 장애 시 마지막 성공 데이터를 명시적으로
+ *       STALE 상태로 반환한다. 2시간이 지나면 제거해 오래된 데이터가 무기한 제공되지 않는다.</li>
  *   <li><b>최대 10,000건</b> — 온디맨드 경로는 사용자가 보낸 임의 좌표를 키로 쓰므로
  *       상한이 없으면 메모리가 계속 증가한다. 초과 시 W-TinyLFU 정책으로 축출된다.
  *       주요 도시 70개 + 온디맨드 지역을 담기에 충분한 크기다.</li>
@@ -37,12 +38,16 @@ import java.util.Optional;
 public class WeatherLocalCacheService {
 
     /** 스케줄 주기(30분) + 여유 5분 */
-    static final Duration TTL = Duration.ofMinutes(35);
+    static final Duration FRESH_TTL = Duration.ofMinutes(35);
+
+    /** 외부 API 장애 시 마지막 성공 데이터를 제공할 수 있는 최대 시간 */
+    static final Duration STALE_RETENTION = Duration.ofHours(2);
 
     /** 온디맨드 적재로 인한 무제한 증가 방지 */
     static final long MAX_ENTRIES = 10_000;
 
-    private final Cache<String, WeatherResponse> cache;
+    private final Cache<String, CachedWeather> cache;
+    private final Ticker ticker;
 
     public WeatherLocalCacheService() {
         this(Ticker.systemTicker());
@@ -50,9 +55,10 @@ public class WeatherLocalCacheService {
 
     /** 테스트에서 시간을 제어하기 위한 생성자 */
     WeatherLocalCacheService(Ticker ticker) {
+        this.ticker = ticker;
         this.cache = Caffeine.newBuilder()
                 .maximumSize(MAX_ENTRIES)
-                .expireAfterWrite(TTL)
+                .expireAfterWrite(STALE_RETENTION)
                 .ticker(ticker)
                 .recordStats()
                 .build();
@@ -60,13 +66,18 @@ public class WeatherLocalCacheService {
 
     /**
      * 캐시에서 날씨 데이터 조회
-     * TTL이 지난 항목은 조회되지 않는다.
+     * 35분 이내 데이터는 FRESH, 이후 2시간까지는 STALE로 반환한다.
      */
     public Optional<WeatherResponse> get(String cacheKey) {
-        WeatherResponse cached = cache.getIfPresent(cacheKey);
+        CachedWeather cached = cache.getIfPresent(cacheKey);
         if (cached != null) {
-            log.debug("로컬 캐시 HIT: cacheKey={}", cacheKey);
-            return Optional.of(cached);
+            Duration age = Duration.ofNanos(Math.max(0, ticker.read() - cached.storedAtNanos()));
+            WeatherResponse.DataStatus status = age.compareTo(FRESH_TTL) <= 0
+                    ? WeatherResponse.DataStatus.FRESH
+                    : WeatherResponse.DataStatus.STALE;
+            log.debug("로컬 캐시 HIT: cacheKey={}, status={}, ageMinutes={}",
+                    cacheKey, status, age.toMinutes());
+            return Optional.of(cached.data().toBuilder().dataStatus(status).build());
         }
         log.debug("로컬 캐시 MISS: cacheKey={}", cacheKey);
         return Optional.empty();
@@ -76,7 +87,10 @@ public class WeatherLocalCacheService {
      * 캐시에 날씨 데이터 저장
      */
     public void put(String cacheKey, WeatherResponse data) {
-        cache.put(cacheKey, data);
+        WeatherResponse freshData = data.toBuilder()
+                .dataStatus(WeatherResponse.DataStatus.FRESH)
+                .build();
+        cache.put(cacheKey, new CachedWeather(freshData, ticker.read()));
         log.info("로컬 캐시 저장: cacheKey={}, location={}", cacheKey, data.getLocation());
     }
 
@@ -103,12 +117,17 @@ public class WeatherLocalCacheService {
         return Map.of(
                 "size", cache.estimatedSize(),
                 "maxSize", MAX_ENTRIES,
-                "ttlMinutes", TTL.toMinutes(),
+                "ttlMinutes", FRESH_TTL.toMinutes(),
+                "freshTtlMinutes", FRESH_TTL.toMinutes(),
+                "staleRetentionMinutes", STALE_RETENTION.toMinutes(),
                 "hitCount", stats.hitCount(),
                 "missCount", stats.missCount(),
                 "hitRate", stats.hitRate(),
                 "evictionCount", stats.evictionCount(),
                 "keys", cache.asMap().keySet()
         );
+    }
+
+    private record CachedWeather(WeatherResponse data, long storedAtNanos) {
     }
 }

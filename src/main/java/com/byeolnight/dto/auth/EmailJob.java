@@ -30,12 +30,13 @@ public class EmailJob implements Serializable {
 
     private String createdAt;
     private String lastAttemptAt;
+    private String nextAttemptAt;
     private String errorMessage;
 
     /**
      * attempt 증가 및 오류 정보 업데이트
      */
-    public EmailJob withRetry(String errorMessage) {
+    public EmailJob withRetry(String errorMessage, Instant attemptedAt, Instant retryAt) {
         return EmailJob.builder()
                 .jobId(this.jobId)
                 .email(this.email)
@@ -43,7 +44,8 @@ public class EmailJob implements Serializable {
                 .htmlBody(this.htmlBody)
                 .attempt(this.attempt + 1)
                 .createdAt(this.createdAt)
-                .lastAttemptAt(Instant.now().toString())
+                .lastAttemptAt(attemptedAt.toString())
+                .nextAttemptAt(retryAt.toString())
                 .errorMessage(errorMessage)
                 .build();
     }
@@ -51,15 +53,16 @@ public class EmailJob implements Serializable {
     /**
      * DLQ 이동용 최종 실패 정보 추가
      */
-    public EmailJob withFinalFailure(String finalError) {
+    public EmailJob withFinalFailure(String finalError, Instant attemptedAt) {
         return EmailJob.builder()
                 .jobId(this.jobId)
                 .email(this.email)
                 .subject(this.subject)
                 .htmlBody(this.htmlBody)
-                .attempt(this.attempt)
+                .attempt(this.attempt + 1)
                 .createdAt(this.createdAt)
-                .lastAttemptAt(Instant.now().toString())
+                .lastAttemptAt(attemptedAt.toString())
+                .nextAttemptAt(null)
                 .errorMessage(finalError)
                 .build();
     }

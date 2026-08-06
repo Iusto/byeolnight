@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 
 /**
@@ -33,6 +34,17 @@ public class RedisCacheService {
             end
             return value
             """, Long.class);
+
+    private static final DefaultRedisScript<String> DEQUEUE_DUE_SCRIPT = new DefaultRedisScript<>("""
+            local jobs = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, 1)
+            if #jobs == 0 then
+                return nil
+            end
+            if redis.call('ZREM', KEYS[1], jobs[1]) == 1 then
+                return jobs[1]
+            end
+            return nil
+            """, String.class);
 
     // ============= String 값 저장/조회/삭제 =============
 
@@ -119,6 +131,41 @@ public class RedisCacheService {
             return job;
         } catch (Exception e) {
             log.warn("큐 역직렬화 실패: queue={}, error={}", queueName, e.getMessage());
+            return null;
+        }
+    }
+
+    // ============= 지연 큐 (Sorted Set) =============
+
+    /**
+     * 지정된 시각 이후에만 소비할 수 있는 작업을 저장한다.
+     */
+    public <T> void enqueueDelayed(String queueName, T job, Instant dueAt) {
+        try {
+            String json = objectMapper.writeValueAsString(job);
+            stringRedisTemplate.opsForZSet().add(queueName, json, dueAt.toEpochMilli());
+            log.debug("지연 큐에 작업 추가: queue={}, dueAt={}", queueName, dueAt);
+        } catch (Exception e) {
+            throw new RuntimeException("지연 큐 직렬화 실패: " + queueName, e);
+        }
+    }
+
+    /**
+     * 실행 시각이 지난 작업 한 건을 원자적으로 가져온다.
+     */
+    public <T> T dequeueDue(String queueName, Instant now, Class<T> type) {
+        try {
+            String json = stringRedisTemplate.execute(
+                    DEQUEUE_DUE_SCRIPT,
+                    Collections.singletonList(queueName),
+                    String.valueOf(now.toEpochMilli())
+            );
+            if (json == null) return null;
+            T job = objectMapper.readValue(json, type);
+            log.debug("지연 큐에서 실행 가능 작업 가져옴: queue={}", queueName);
+            return job;
+        } catch (Exception e) {
+            log.warn("지연 큐 역직렬화 실패: queue={}, error={}", queueName, e.getMessage());
             return null;
         }
     }

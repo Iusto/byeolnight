@@ -404,6 +404,8 @@
     "location_not_supported": "브라우저에서 위치 서비스를 지원하지 않습니다.",
     "retry_location": "📍 위치 재요청",
     "weather_error": "날씨 데이터를 불러올 수 없습니다.",
+    "stale_data": "외부 날씨 서비스 갱신이 지연되어 마지막 성공 데이터({{time}})를 표시합니다.",
+    "data_unavailable": "외부 날씨 서비스에 연결할 수 없고 저장된 최근 데이터도 없습니다.",
     "retry": "🔄 재시도",
     "loading_weather": "오늘의 날씨 정보를 불러오는 중...",
     "analyzing_conditions": "위치 기반 별 관측 조건을 분석하고 있습니다",

@@ -55,21 +55,34 @@ public class WeatherService {
 
         // 로컬 캐시 확인
         Optional<WeatherResponse> cached = localCacheService.get(cacheKey);
-        if (cached.isPresent()) {
+        if (cached.isPresent() && cached.get().getDataStatus() != WeatherResponse.DataStatus.STALE) {
             log.debug("캐시에서 날씨 반환: cacheKey={}", cacheKey);
             meterRegistry.counter("cache.weather.hit").increment();
             return cached.get();
         }
 
-        // 캐시에 없으면 실시간 API 호출
-        log.info("캐시 MISS: cacheKey={} - 실시간 API 호출", cacheKey);
-        meterRegistry.counter("cache.weather.miss").increment();
+        WeatherResponse staleData = cached.orElse(null);
+        if (staleData != null) {
+            log.info("stale 날씨 갱신 시도: cacheKey={}, lastSuccessfulAt={}",
+                    cacheKey, staleData.getLastSuccessfulAt());
+            meterRegistry.counter("cache.weather.stale").increment();
+        } else {
+            log.info("캐시 MISS: cacheKey={} - 실시간 API 호출", cacheKey);
+            meterRegistry.counter("cache.weather.miss").increment();
+        }
         try {
             WeatherResponse realTimeData = fetchWeatherDataFromAPI(roundedLat, roundedLon);
             localCacheService.put(cacheKey, realTimeData);
+            meterRegistry.counter("weather.realtime.success").increment();
             return realTimeData;
         } catch (Exception e) {
             log.error("실시간 날씨 API 호출 실패: lat={}, lon={}, error={}", latitude, longitude, e.getMessage());
+            meterRegistry.counter("weather.realtime.failure").increment();
+            if (staleData != null) {
+                log.warn("마지막 성공 날씨를 STALE 상태로 반환합니다: cacheKey={}, lastSuccessfulAt={}",
+                        cacheKey, staleData.getLastSuccessfulAt());
+                return staleData;
+            }
             return createFallbackResponse(latitude, longitude);
         }
     }
@@ -82,6 +95,7 @@ public class WeatherService {
         String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
         String moonPhase = getMoonPhaseIcon();
 
+        String successfulAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
         return WeatherResponse.builder()
                 .location(apiResponse.getLocationName())
                 .latitude(latitude)
@@ -91,7 +105,9 @@ public class WeatherService {
                 .moonPhase(moonPhase)
                 .observationQuality(quality)
                 .recommendation(quality)
-                .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                .observationTime(successfulAt)
+                .dataStatus(WeatherResponse.DataStatus.FRESH)
+                .lastSuccessfulAt(successfulAt)
                 .build();
     }
 
@@ -158,20 +174,21 @@ public class WeatherService {
     }
 
     /**
-     * Fallback 응답 생성
-     * - API 호출이 실패했을 때만 사용
+     * 마지막 성공 데이터도 없는 경우의 명시적 미가용 응답
      */
     private WeatherResponse createFallbackResponse(Double latitude, Double longitude) {
         return WeatherResponse.builder()
                 .location("알 수 없음")
                 .latitude(latitude)
                 .longitude(longitude)
-                .cloudCover(50.0)
-                .visibility(10.0)
+                .cloudCover(null)
+                .visibility(null)
                 .moonPhase("🌙")
                 .observationQuality("UNKNOWN")
                 .recommendation("UNKNOWN")
-                .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                .observationTime(null)
+                .dataStatus(WeatherResponse.DataStatus.UNAVAILABLE)
+                .lastSuccessfulAt(null)
                 .build();
     }
 
