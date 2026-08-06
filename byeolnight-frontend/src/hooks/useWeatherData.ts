@@ -6,12 +6,14 @@ export interface WeatherData {
   location: string;
   latitude: number;
   longitude: number;
-  cloudCover: number;
-  visibility: number;
+  cloudCover: number | null;
+  visibility: number | null;
   moonPhase: string;
   observationQuality: string;
   recommendation: string;
-  observationTime: string;
+  observationTime: string | null;
+  dataStatus: 'FRESH' | 'STALE' | 'UNAVAILABLE';
+  lastSuccessfulAt: string | null;
 }
 
 export interface IssData {

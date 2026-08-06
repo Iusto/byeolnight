@@ -4,12 +4,12 @@ import com.byeolnight.config.WeatherCityConfig;
 import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -30,7 +30,6 @@ import static org.mockito.BDDMockito.*;
 @DisplayName("WeatherScheduler 테스트")
 class WeatherSchedulerTest {
 
-    @InjectMocks
     private WeatherScheduler weatherScheduler;
 
     @Mock
@@ -42,15 +41,18 @@ class WeatherSchedulerTest {
     @Mock
     private RestTemplate restTemplate;
 
+    private SimpleMeterRegistry meterRegistry;
+
     private static final String TEST_API_KEY = "test-api-key";
     private static final String TEST_API_URL = "https://api.openweathermap.org/data/2.5";
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
+        weatherScheduler = new WeatherScheduler(cacheService, cityConfig, restTemplate, meterRegistry, millis -> { });
         ReflectionTestUtils.setField(weatherScheduler, "apiKey", TEST_API_KEY);
         ReflectionTestUtils.setField(weatherScheduler, "apiUrl", TEST_API_URL);
-        ReflectionTestUtils.setField(weatherScheduler, "restTemplate", restTemplate);
     }
 
     @Test
@@ -147,8 +149,8 @@ class WeatherSchedulerTest {
     }
 
     @Test
-    @DisplayName("API 호출 실패 시 Fallback 응답으로 캐시 저장")
-    void shouldSaveFallbackResponseWhenApiFails() {
+    @DisplayName("API 호출이 재시도 후에도 실패하면 기존 캐시를 덮어쓰지 않는다")
+    void shouldKeepExistingCacheWhenApiFailsAfterRetry() {
         // given
         List<WeatherCityConfig.City> testCities = List.of(
                 new WeatherCityConfig.City("서울", 37.5665, 126.9780),
@@ -157,35 +159,30 @@ class WeatherSchedulerTest {
 
         given(cityConfig.getCities()).willReturn(testCities);
 
-        // 첫 번째 도시는 실패, 두 번째는 성공
-        boolean[] firstCall = {true};
-        given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willAnswer(invocation -> {
-            if (firstCall[0]) {
-                firstCall[0] = false;
-                throw new RuntimeException("API 호출 실패");
-            }
-            return createMockOpenWeatherResponse("Busan", 30, 10000);
-        });
+        given(restTemplate.getForObject(contains("lat=37.566500"), eq(OpenWeatherResponse.class)))
+                .willThrow(new RuntimeException("API 호출 실패"));
+        given(restTemplate.getForObject(contains("lat=35.179600"), eq(OpenWeatherResponse.class)))
+                .willReturn(createMockOpenWeatherResponse("Busan", 30, 10000));
 
         // when
         weatherScheduler.collectWeatherData();
 
         // then
-        // 2개 도시 모두 캐시 저장 (실패한 도시는 Fallback)
+        // 실패한 서울은 저장하지 않고, 성공한 부산만 갱신한다.
         ArgumentCaptor<WeatherResponse> weatherCaptor = ArgumentCaptor.forClass(WeatherResponse.class);
-        verify(cacheService, times(2)).put(anyString(), weatherCaptor.capture());
+        verify(cacheService, times(1)).put(anyString(), weatherCaptor.capture());
 
         List<WeatherResponse> cachedWeathers = weatherCaptor.getAllValues();
-
-        // 첫 번째 도시는 Fallback 응답
-        WeatherResponse seoulWeather = cachedWeathers.get(0);
-        assertThat(seoulWeather.getLocation()).isEqualTo("서울");
-        assertThat(seoulWeather.getObservationQuality()).isEqualTo("UNKNOWN");
-
-        // 두 번째 도시는 정상 응답
-        WeatherResponse busanWeather = cachedWeathers.get(1);
+        WeatherResponse busanWeather = cachedWeathers.get(0);
         assertThat(busanWeather.getLocation()).isEqualTo("부산");
         assertThat(busanWeather.getObservationQuality()).isNotEqualTo("UNKNOWN");
+        assertThat(busanWeather.getDataStatus()).isEqualTo(WeatherResponse.DataStatus.FRESH);
+
+        verify(restTemplate, times(2))
+                .getForObject(contains("lat=37.566500"), eq(OpenWeatherResponse.class));
+        assertThat(meterRegistry.counter("weather.scheduler.refresh.retry").count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter("weather.scheduler.refresh.failure").count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter("weather.scheduler.refresh.success").count()).isEqualTo(1.0);
     }
 
     @Test

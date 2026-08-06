@@ -72,7 +72,7 @@ public class File {
     }
 
     /**
-     * Presigned URL 발급 시 PENDING 상태로 생성
+     * 검열 완료 업로드 후 게시글 연결 전 PENDING 상태로 생성
      */
     public static File createPending(String originalName, String s3Key, String url) {
         return File.builder()

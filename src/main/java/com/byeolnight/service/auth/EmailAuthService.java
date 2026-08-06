@@ -50,7 +50,7 @@ public class EmailAuthService {
         // 전송 횟수 증가
         incrementSendAttempts(email);
 
-        // 비동기 메일 전송 작업을 Redis Stream에 추가
+        // 비동기 메일 전송 작업을 Redis List 큐에 추가
         enqueueEmailJob(email, subject, htmlBody);
     }
 

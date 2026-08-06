@@ -33,8 +33,21 @@ public class JwtTokenProvider {
     private final Duration refreshTokenExpiry = Duration.ofDays(7);
 
     public JwtTokenProvider(@Value("${app.security.jwt.secret}") String secret, StringRedisTemplate redisTemplate) {
+        validateSecret(secret);
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.redisTemplate = redisTemplate;
+    }
+
+    static void validateSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT 시크릿이 설정되지 않았습니다.");
+        }
+        if (secret.startsWith("{cipher}") || secret.startsWith("invalid") || secret.contains("${")) {
+            throw new IllegalStateException("JWT 시크릿이 정상적으로 복호화되지 않았습니다.");
+        }
+        if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT 시크릿은 UTF-8 기준 32바이트 이상이어야 합니다.");
+        }
     }
 
     public String[] generateTokens(User user, String clientInfo, String ipAddress) {

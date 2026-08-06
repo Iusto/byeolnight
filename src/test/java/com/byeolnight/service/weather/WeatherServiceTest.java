@@ -169,8 +169,8 @@ class WeatherServiceTest {
         }
 
         @Test
-        @DisplayName("API 호출 실패 시 Fallback 응답 반환")
-        void shouldReturnFallbackWhenAPIFails() {
+        @DisplayName("API 호출 실패 시 명시적인 UNAVAILABLE 응답 반환")
+        void shouldReturnUnavailableWhenApiFailsWithoutCachedData() {
             // given
             double latitude = 37.5665;
             double longitude = 126.9780;
@@ -186,8 +186,43 @@ class WeatherServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getLocation()).isEqualTo("알 수 없음");
             assertThat(result.getObservationQuality()).isEqualTo("UNKNOWN");
-            assertThat(result.getCloudCover()).isEqualTo(50.0);
-            assertThat(result.getVisibility()).isEqualTo(10.0);
+            assertThat(result.getCloudCover()).isNull();
+            assertThat(result.getVisibility()).isNull();
+            assertThat(result.getDataStatus()).isEqualTo(WeatherResponse.DataStatus.UNAVAILABLE);
+            assertThat(result.getLastSuccessfulAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("stale 캐시 갱신 실패 시 마지막 성공 데이터를 반환")
+        void shouldReturnStaleDataWhenRefreshFails() {
+            double latitude = 37.5665;
+            double longitude = 126.9780;
+            WeatherResponse staleResponse = WeatherResponse.builder()
+                    .location("서울")
+                    .latitude(latitude)
+                    .longitude(longitude)
+                    .cloudCover(30.0)
+                    .visibility(10.0)
+                    .moonPhase("🌕")
+                    .observationQuality("GOOD")
+                    .recommendation("GOOD")
+                    .observationTime("2026-08-06 10:00")
+                    .dataStatus(WeatherResponse.DataStatus.STALE)
+                    .lastSuccessfulAt("2026-08-06 10:00")
+                    .build();
+
+            given(localCacheService.get(anyString())).willReturn(Optional.of(staleResponse));
+            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
+                    .willThrow(new RuntimeException("API 호출 실패"));
+
+            WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
+
+            assertThat(result).isSameAs(staleResponse);
+            assertThat(result.getDataStatus()).isEqualTo(WeatherResponse.DataStatus.STALE);
+            assertThat(result.getLastSuccessfulAt()).isEqualTo("2026-08-06 10:00");
+            verify(localCacheService, never()).put(anyString(), any(WeatherResponse.class));
+            assertThat(meterRegistry.counter("cache.weather.stale").count()).isEqualTo(1.0);
+            assertThat(meterRegistry.counter("weather.realtime.failure").count()).isEqualTo(1.0);
         }
 
         @Test

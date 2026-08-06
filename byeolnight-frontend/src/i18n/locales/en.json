@@ -402,6 +402,8 @@
     "location_not_supported": "Browser does not support location services.",
     "retry_location": "📍 Retry Location",
     "weather_error": "Cannot load weather data.",
+    "stale_data": "The weather update is delayed. Showing the last successful data from {{time}}.",
+    "data_unavailable": "The weather service is unavailable and no recent saved data exists.",
     "retry": "🔄 Retry",
     "loading_weather": "Loading today's weather information...",
     "analyzing_conditions": "Analyzing location-based star observation conditions",

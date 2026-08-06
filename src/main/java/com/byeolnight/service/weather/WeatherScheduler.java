@@ -3,7 +3,9 @@ package com.byeolnight.service.weather;
 import com.byeolnight.config.WeatherCityConfig;
 import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,16 +29,34 @@ public class WeatherScheduler {
     private final WeatherLocalCacheService cacheService;
     private final WeatherCityConfig cityConfig;
     private final RestTemplate restTemplate;
+    private final MeterRegistry meterRegistry;
+    private final Sleeper sleeper;
+
+    static final int MAX_ATTEMPTS = 2;
+    static final long RETRY_DELAY_MILLIS = 1_000;
+    static final long REQUEST_INTERVAL_MILLIS = 200;
 
     // @Qualifier는 필드가 아닌 생성자 파라미터에 지정한다.
     // lombok.config에 copyableAnnotations 설정이 없어 @RequiredArgsConstructor로는
     // @Qualifier가 전달되지 않고 @Primary 빈이 주입되기 때문.
+    @Autowired
     public WeatherScheduler(WeatherLocalCacheService cacheService,
                             WeatherCityConfig cityConfig,
-                            @Qualifier("weatherRestTemplate") RestTemplate restTemplate) {
+                            @Qualifier("weatherRestTemplate") RestTemplate restTemplate,
+                            MeterRegistry meterRegistry) {
+        this(cacheService, cityConfig, restTemplate, meterRegistry, Thread::sleep);
+    }
+
+    WeatherScheduler(WeatherLocalCacheService cacheService,
+                     WeatherCityConfig cityConfig,
+                     RestTemplate restTemplate,
+                     MeterRegistry meterRegistry,
+                     Sleeper sleeper) {
         this.cacheService = cacheService;
         this.cityConfig = cityConfig;
         this.restTemplate = restTemplate;
+        this.meterRegistry = meterRegistry;
+        this.sleeper = sleeper;
     }
 
     @Value("${weather.api.key}")
@@ -58,16 +78,22 @@ public class WeatherScheduler {
 
         for (WeatherCityConfig.City city : cityConfig.getCities()) {
             try {
-                WeatherResponse weather = fetchWeatherData(city);
+                WeatherResponse weather = fetchWeatherDataWithRetry(city);
                 String cacheKey = generateCacheKey(city.latitude(), city.longitude());
                 cacheService.put(cacheKey, weather);
                 successCount++;
+                meterRegistry.counter("weather.scheduler.refresh.success").increment();
 
                 // API 호출 간 짧은 지연 (Rate Limit 방지)
-                Thread.sleep(200);
+                sleeper.sleep(REQUEST_INTERVAL_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("날씨 수집 스케줄이 중단되었습니다: city={}", city.name());
+                break;
             } catch (Exception e) {
-                log.error("날씨 수집 실패: city={}, error={}", city.name(), e.getMessage());
+                log.error("날씨 수집 실패 - 기존 캐시를 유지합니다: city={}, error={}", city.name(), e.getMessage());
                 failCount++;
+                meterRegistry.counter("weather.scheduler.refresh.failure").increment();
             }
         }
 
@@ -77,28 +103,43 @@ public class WeatherScheduler {
     /**
      * 외부 API 호출하여 날씨 데이터 수집
      */
-    private WeatherResponse fetchWeatherData(WeatherCityConfig.City city) {
-        try {
-            OpenWeatherResponse apiResponse = callWeatherAPI(city.latitude(), city.longitude());
-            String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
-            String moonPhase = getMoonPhaseIcon();
-
-            return WeatherResponse.builder()
-                    .location(city.name()) // 설정된 한글 이름 사용
-                    .latitude(city.latitude())
-                    .longitude(city.longitude())
-                    .cloudCover(apiResponse.getCloudCover())
-                    .visibility(apiResponse.getVisibilityKm())
-                    .moonPhase(moonPhase)
-                    .observationQuality(quality)
-                    .recommendation(quality)
-                    .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
-                    .build();
-
-        } catch (Exception e) {
-            log.error("날씨 데이터 수집 실패: city={}, error={}", city.name(), e.getMessage());
-            return createFallbackResponse(city);
+    private WeatherResponse fetchWeatherDataWithRetry(WeatherCityConfig.City city) throws InterruptedException {
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                return fetchWeatherData(city);
+            } catch (RuntimeException e) {
+                lastFailure = e;
+                if (attempt < MAX_ATTEMPTS) {
+                    meterRegistry.counter("weather.scheduler.refresh.retry").increment();
+                    log.warn("날씨 수집 재시도 대기: city={}, attempt={}/{}, delayMs={}, error={}",
+                            city.name(), attempt + 1, MAX_ATTEMPTS, RETRY_DELAY_MILLIS, e.getMessage());
+                    sleeper.sleep(RETRY_DELAY_MILLIS);
+                }
+            }
         }
+        throw lastFailure == null ? new IllegalStateException("날씨 수집에 실패했습니다") : lastFailure;
+    }
+
+    private WeatherResponse fetchWeatherData(WeatherCityConfig.City city) {
+        OpenWeatherResponse apiResponse = callWeatherAPI(city.latitude(), city.longitude());
+        String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
+        String moonPhase = getMoonPhaseIcon();
+        String successfulAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+        return WeatherResponse.builder()
+                .location(city.name()) // 설정된 한글 이름 사용
+                .latitude(city.latitude())
+                .longitude(city.longitude())
+                .cloudCover(apiResponse.getCloudCover())
+                .visibility(apiResponse.getVisibilityKm())
+                .moonPhase(moonPhase)
+                .observationQuality(quality)
+                .recommendation(quality)
+                .observationTime(successfulAt)
+                .dataStatus(WeatherResponse.DataStatus.FRESH)
+                .lastSuccessfulAt(successfulAt)
+                .build();
     }
 
     private OpenWeatherResponse callWeatherAPI(double latitude, double longitude) {
@@ -157,18 +198,8 @@ public class WeatherScheduler {
         return getMoonPhase(f);
     }
 
-    private WeatherResponse createFallbackResponse(WeatherCityConfig.City city) {
-        return WeatherResponse.builder()
-                .location(city.name())
-                .latitude(city.latitude())
-                .longitude(city.longitude())
-                .cloudCover(50.0)
-                .visibility(10.0)
-                .moonPhase("🌙")
-                .observationQuality("UNKNOWN")
-                .recommendation("UNKNOWN")
-                .observationTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
-                .build();
+    @FunctionalInterface
+    interface Sleeper {
+        void sleep(long millis) throws InterruptedException;
     }
-
 }

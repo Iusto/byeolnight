@@ -208,11 +208,15 @@ management:
         include: health,info,decrypt
 ```
 
-### 2. 암호화 검증 자동화
-```bash
-# 배포 전 암호화 검증 스크립트
-validate-config.sh byeolnight prod
-```
+### 2. 암호화 검증 자동화 (적용 완료)
+
+현재 `deploy.sh`가 Config Server의 `/byeolnight/prod` 응답에서 `app.security.jwt.secret`을 직접 추출해 다음 조건을 검사한다.
+
+- 값 누락 또는 `null`
+- `{cipher}`·`invalid`·`${...}` 형태의 미복호화 값
+- UTF-8 기준 32바이트 미만
+
+검증에 실패하면 기존 백엔드를 교체하기 전에 배포를 중단한다. 애플리케이션 내부의 `JwtTokenProvider`도 시작 시 최소 길이를 재검증해 배포 경로 밖에서 실행해도 fail fast 한다.
 
 ### 3. 백업 전략
 - Config 파일 **Git 이력 관리**
@@ -224,6 +228,7 @@ validate-config.sh byeolnight prod
 ### 1. "증상과 원인은 다를 수 있다"
 - 처음 `ERR_TOO_MANY_REDIRECTS`는 Nginx 문제로 보였지만
 - 진짜 원인은 **JWT 암호화 데이터 손상**이었다
+- 이후 Config Server 응답을 배포 전에 검증하고 애플리케이션 시작 시 한 번 더 검증하도록 보완했다
 - **근본 원인**을 찾지 않으면 같은 문제가 반복된다
 
 ### 2. "Config Server 암호화는 생각보다 취약하다"
