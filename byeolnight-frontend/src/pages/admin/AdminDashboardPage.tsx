@@ -13,8 +13,8 @@ interface DashboardStats {
   suspendedUsers: number;
   withdrawnUsers: number;
   todayNewUsers: number;
-  reportedPosts: number;
-  reportedComments: number;
+  pendingPostReports: number;
+  pendingCommentReports: number;
   blockedIps: number;
   blindedPosts: number;
   blindedComments: number;
@@ -77,8 +77,8 @@ export default function AdminDashboardPage() {
     suspendedUsers: 0,
     withdrawnUsers: 0,
     todayNewUsers: 0,
-    reportedPosts: 0,
-    reportedComments: 0,
+    pendingPostReports: 0,
+    pendingCommentReports: 0,
     blockedIps: 0,
     blindedPosts: 0,
     blindedComments: 0,
@@ -91,16 +91,14 @@ export default function AdminDashboardPage() {
       try {
         const [
           usersRes,
-          reportedPostsRes,
-          reportedCommentsRes,
+          reportStatsRes,
           blockedIpsRes,
           blindedPostsRes,
           blindedCommentsRes,
           schedulerRes,
         ] = await Promise.all([
           axios.get('/admin/users'),
-          axios.get('/admin/posts/reported'),
-          axios.get('/admin/comments/reported'),
+          axios.get('/admin/dashboard/report-stats'),
           axios.get('/admin/blocked-ips'),
           axios.get('/admin/posts/blinded'),
           axios.get('/admin/comments/blinded'),
@@ -110,8 +108,7 @@ export default function AdminDashboardPage() {
         ]);
 
         const users: UserSummary[] = usersRes.data?.data || usersRes.data || [];
-        const reportedPosts = reportedPostsRes.data?.data || reportedPostsRes.data || [];
-        const reportedComments = reportedCommentsRes.data?.data || reportedCommentsRes.data || [];
+        const reportStats = reportStatsRes.data?.data || reportStatsRes.data || {};
         const blockedIps = blockedIpsRes.data?.data || blockedIpsRes.data || [];
         const blindedPosts = blindedPostsRes.data?.data || blindedPostsRes.data || [];
         const blindedComments = blindedCommentsRes.data?.data || blindedCommentsRes.data || [];
@@ -126,8 +123,8 @@ export default function AdminDashboardPage() {
           suspendedUsers: Array.isArray(users) ? users.filter(u => u.status === 'SUSPENDED' || u.status === 'BANNED').length : 0,
           withdrawnUsers: Array.isArray(users) ? users.filter(u => u.status === 'WITHDRAWN').length : 0,
           todayNewUsers: Array.isArray(users) ? users.filter(u => new Date(u.createdAt) >= today).length : 0,
-          reportedPosts: Array.isArray(reportedPosts) ? reportedPosts.length : 0,
-          reportedComments: Array.isArray(reportedComments) ? reportedComments.length : 0,
+          pendingPostReports: Number(reportStats.pendingPostReports) || 0,
+          pendingCommentReports: Number(reportStats.pendingCommentReports) || 0,
           blockedIps: Array.isArray(blockedIps) ? blockedIps.length : 0,
           blindedPosts: Array.isArray(blindedPosts) ? blindedPosts.length : 0,
           blindedComments: Array.isArray(blindedComments) ? blindedComments.length : 0,
@@ -148,7 +145,7 @@ export default function AdminDashboardPage() {
     stats.schedulerStatus.postsToDelete +
     stats.schedulerStatus.usersToCleanup;
 
-  const totalContent = stats.reportedPosts + stats.reportedComments + stats.blindedPosts + stats.blindedComments;
+  const totalContent = stats.pendingPostReports + stats.pendingCommentReports + stats.blindedPosts + stats.blindedComments;
 
   if (loading) {
     return (
@@ -166,18 +163,27 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* 알림 배너 */}
-      {(stats.reportedPosts > 0 || stats.reportedComments > 0) && (
+      {(stats.pendingPostReports > 0 || stats.pendingCommentReports > 0) && (
         <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-4 flex items-center gap-3">
           <span className="text-2xl">⚠️</span>
           <div>
             <p className="text-orange-200 font-medium">처리가 필요한 신고가 있습니다</p>
             <p className="text-orange-300/70 text-sm">
-              게시글 {stats.reportedPosts}건, 댓글 {stats.reportedComments}건의 신고가 대기 중입니다.
+              게시글 {stats.pendingPostReports}건, 댓글 {stats.pendingCommentReports}건의 신고가 대기 중입니다.
             </p>
           </div>
-          <Link to="/admin/posts" className="ml-auto px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg transition">
-            바로가기
-          </Link>
+          <div className="ml-auto flex gap-2">
+            {stats.pendingPostReports > 0 && (
+              <Link to="/admin/posts" className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg transition">
+                게시글 신고
+              </Link>
+            )}
+            {stats.pendingCommentReports > 0 && (
+              <Link to="/admin/comments" className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg transition">
+                댓글 신고
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
@@ -224,7 +230,7 @@ export default function AdminDashboardPage() {
         <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
           <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
             📝 콘텐츠 현황
-            <span className="text-sm font-normal text-gray-400">처리 대기 {totalContent}건</span>
+            <span className="text-sm font-normal text-gray-400">관리 항목 {totalContent}건</span>
           </h2>
           {totalContent === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-green-400">
@@ -233,8 +239,8 @@ export default function AdminDashboardPage() {
             </div>
           ) : (
             <div className="flex justify-around items-end">
-              <DonutRing value={stats.reportedPosts} total={Math.max(totalContent, 1)} color="#f97316" label="신고 게시글" />
-              <DonutRing value={stats.reportedComments} total={Math.max(totalContent, 1)} color="#eab308" label="신고 댓글" />
+              <DonutRing value={stats.pendingPostReports} total={Math.max(totalContent, 1)} color="#f97316" label="대기 신고(게시글)" />
+              <DonutRing value={stats.pendingCommentReports} total={Math.max(totalContent, 1)} color="#eab308" label="대기 신고(댓글)" />
               <DonutRing value={stats.blindedPosts} total={Math.max(totalContent, 1)} color="#ef4444" label="블라인드 게시글" />
               <DonutRing value={stats.blindedComments} total={Math.max(totalContent, 1)} color="#6b7280" label="블라인드 댓글" />
             </div>
@@ -285,8 +291,8 @@ export default function AdminDashboardPage() {
           <h2 className="text-lg font-semibold text-white mb-5">🔧 시스템 상태</h2>
           <div className="space-y-3">
             {[
-              { label: '신고 게시글', value: stats.reportedPosts, ok: stats.reportedPosts === 0, link: '/admin/posts' },
-              { label: '신고 댓글', value: stats.reportedComments, ok: stats.reportedComments === 0, link: '/admin/comments' },
+              { label: '대기 중인 게시글 신고', value: stats.pendingPostReports, ok: stats.pendingPostReports === 0, link: '/admin/posts' },
+              { label: '대기 중인 댓글 신고', value: stats.pendingCommentReports, ok: stats.pendingCommentReports === 0, link: '/admin/comments' },
               { label: '차단 IP', value: stats.blockedIps, ok: true, link: '/admin/ips' },
               { label: '정리 대기 항목', value: totalSchedulerItems, ok: totalSchedulerItems < 100, link: '/admin/scheduler' },
             ].map(item => (

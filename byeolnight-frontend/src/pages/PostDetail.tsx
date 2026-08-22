@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { MarkdownRenderer } from '../components/post';
+import { MarkdownRenderer, NewsArticleContent } from '../components/post';
 import { ClickableNickname, UserIconDisplay } from '../components/user';
 import { CommentList, CommentForm } from '../components/post';
 import { getErrorMessage, isAxiosError } from '../types/api';
@@ -524,7 +524,11 @@ export default function PostDetail() {
         <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-purple-500/20 shadow-2xl">
           {/* 게시글 내용 */}
           <div className="mb-8">
-            <MarkdownRenderer content={post.content} />
+            {post.category === 'NEWS' ? (
+              <NewsArticleContent content={post.content} />
+            ) : (
+              <MarkdownRenderer content={post.content} />
+            )}
             
             {/* iframe 지원 상태 표시 (개발용) */}
             {process.env.NODE_ENV === 'development' && iframeSupported !== null && (

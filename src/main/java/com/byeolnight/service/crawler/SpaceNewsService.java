@@ -8,16 +8,19 @@ import com.byeolnight.repository.NewsRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
+import com.byeolnight.dto.ai.NewsAiContentDto;
 import com.byeolnight.infrastructure.config.NewsCollectionProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -38,13 +41,25 @@ public class SpaceNewsService {
     @Value("${app.security.external-api.ai.newsdata-api-key}")
     private String primaryApiKey;
     
-    @Value("${app.newsdata.api-key-backup:}")
+    @Value("${app.security.external-api.ai.newsdata-api-key-backup:}")
     private String backupApiKey;
     
     private boolean usingBackupKey = false;
     private static final String NEWS_API_URL = "https://newsdata.io/api/1/news";
-    private static final String[] KOREAN_KEYWORDS = {"우주", "로켓", "위성", "화성", "달", "NASA", "SpaceX", "우주탐사", "화성탐사", "달탐사", "태양", "지구", "목성", "토성", "블랙홀", "은하", "별", "항성", "혜성", "소행성", "망원경", "천문", "항공우주", "우주선", "우주정거장", "우주비행사"};
-    private static final String[] ENGLISH_KEYWORDS = {"NASA", "SpaceX", "Mars", "Moon", "space exploration", "astronomy", "telescope", "satellite", "rocket", "space", "planet", "solar", "lunar", "jupiter", "saturn", "galaxy", "nebula", "star", "comet", "asteroid", "orbit", "spacecraft", "astronaut", "eclipse", "aurora", "supernova", "exoplanet", "hubble", "webb", "iss", "falcon", "dragon", "starship", "artemis", "apollo", "voyager", "perseverance", "curiosity"};
+    private static final String[] KOREAN_TOPIC_QUERIES = {
+            "NASA OR 달 탐사 OR 아르테미스",
+            "SpaceX OR 로켓 발사 OR 우주선",
+            "천문학 OR 외계행성 OR 우주망원경",
+            "소행성 OR 태양폭풍 OR 우주날씨",
+            "화성 탐사 OR 우주정거장 OR 인공위성"
+    };
+    private static final String[] ENGLISH_TOPIC_QUERIES = {
+            "NASA OR Artemis OR lunar mission",
+            "SpaceX OR Starship OR rocket launch",
+            "astronomy OR exoplanet OR space telescope",
+            "asteroid OR solar flare OR space weather",
+            "Mars mission OR space station OR satellite"
+    };
     
     @Transactional
     public void collectAndSaveSpaceNews() {
@@ -63,6 +78,8 @@ public class SpaceNewsService {
         List<Post> savedPosts = new ArrayList<>();
         int actualDuplicateCount = 0;
         int filteredCount = 0;
+        int aiFailureCount = 0;
+        List<String> collectedTitles = new ArrayList<>();
         
         for (NewsApiResponseDto.Result result : response.getResults()) {
             log.info("\n========== 뉴스 처리 시작 ==========\n제목: {}\nURL: {}", result.getTitle(), result.getLink());
@@ -84,23 +101,38 @@ public class SpaceNewsService {
                 log.info("이미 {}개 뉴스를 저장했으므로 종료 (하루 1개 제한)", newsConfig.getCollection().getMaxPosts());
                 break;
             }
+
+            if (validator.isSimilarToBatch(result, collectedTitles)) {
+                actualDuplicateCount++;
+                log.info("동일 수집 배치 내 유사 기사로 스킵됨: {}", result.getTitle());
+                continue;
+            }
+
+            Optional<NewsAiContentDto> generatedContent = translationService.generateNewsContent(result);
+            if (generatedContent.isEmpty()) {
+                aiFailureCount++;
+                log.warn("AI 콘텐츠 생성에 실패하여 게시하지 않습니다: {}", result.getTitle());
+                continue;
+            }
+            NewsAiContentDto aiContent = generatedContent.get();
             
             log.info("저장 진행 중... ({}/1)", savedPosts.size() + 1);
             
             // News 엔티티에 저장
-            News news = convertToNews(result);
+            News news = convertToNews(result, aiContent);
             newsRepository.save(news);
             
             // Post 엔티티로 변환하여 게시판에 표시
-            Post post = convertToPost(result, newsBot);
+            Post post = convertToPost(result, aiContent, newsBot);
             Post savedPost = postRepository.save(post);
             savedPosts.add(savedPost);
+            collectedTitles.add(result.getTitle());
             
             log.info("새 뉴스 게시글 저장: {}", savedPost.getTitle());
         }
         
-        log.info("우주 뉴스 수집 완료 - 수집: {}개, 저장: {}건 (하루 최대 {}), 실제 중복: {}건, 필터링: {}건", 
-                response.getResults().size(), savedPosts.size(), newsConfig.getCollection().getMaxPosts(), actualDuplicateCount, filteredCount);
+        log.info("우주 뉴스 수집 완료 - 수집: {}개, 저장: {}건 (하루 최대 {}), 실제 중복: {}건, 필터링: {}건, AI 실패: {}건",
+                response.getResults().size(), savedPosts.size(), newsConfig.getCollection().getMaxPosts(), actualDuplicateCount, filteredCount, aiFailureCount);
         
         // 뉴스 수집과 토론 주제 생성을 분리
         // 토론 주제는 별도 스케줄러에서 매일 오전 8시에 생성
@@ -111,9 +143,9 @@ public class SpaceNewsService {
         return newsRepository.existsByUrl(result.getLink());
     }
 
-    private Post convertToPost(NewsApiResponseDto.Result result, User writer) {
-        String content = formatter.formatNewsContent(result);
-        String title = translationService.translateTitle(result.getTitle());
+    private Post convertToPost(NewsApiResponseDto.Result result, NewsAiContentDto aiContent, User writer) {
+        String content = formatter.formatNewsContent(result, aiContent);
+        String title = aiContent.getKoreanTitle();
         
         if (title.length() > 100) {
             title = title.substring(0, 97) + "...";
@@ -127,18 +159,16 @@ public class SpaceNewsService {
                 .build();
     }
 
-    private News convertToNews(NewsApiResponseDto.Result result) {
-        String title = translationService.translateTitle(result.getTitle());
-        
+    private News convertToNews(NewsApiResponseDto.Result result, NewsAiContentDto aiContent) {
         return News.builder()
-                .title(title)
-                .description(result.getDescription())
+                .title(aiContent.getKoreanTitle())
+                .description(aiContent.getOverview())
                 .imageUrl(result.getImageUrl() != null ? result.getImageUrl() : getDefaultSpaceImage())
                 .url(result.getLink())
                 .publishedAt(parsePublishedAt(result.getPubDate()))
-                .hashtags(formatter.generateHashtags(result.getTitle(), result.getDescription()))
+                .hashtags(formatter.formatHashtags(aiContent))
                 .source(result.getSourceName() != null ? result.getSourceName() : "Unknown")
-                .summary(generateSummary(result))
+                .summary(aiContent.getWhyItMatters())
                 .build();
     }
     
@@ -161,22 +191,14 @@ public class SpaceNewsService {
         return "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=800&h=600&fit=crop";
     }
 
-    private String generateSummary(NewsApiResponseDto.Result result) {
-        return translationService.generateAIAnalysis(result.getTitle(), result.getDescription());
-    }
-    
     // NewsDataService에서 이동된 메서드들
     public NewsApiResponseDto fetchKoreanSpaceNews() {
         try {
             int callCount = 4;
             
-            String koreanQuery = "NASA OR SpaceX OR 우주탐사 OR 화성탐사 OR 달탐사";
-            log.info("한국어 뉴스 수집 키워드: {}", koreanQuery);
-            NewsApiResponseDto koreanNews = fetchMultipleNewsByLanguage("ko", koreanQuery, callCount / 2);
+            NewsApiResponseDto koreanNews = fetchMultipleNewsByLanguage("ko", callCount / 2);
             
-            String englishQuery = "NASA OR SpaceX OR Mars OR Moon OR space exploration OR astronomy";
-            log.info("영어 뉴스 수집 키워드: {}", englishQuery);
-            NewsApiResponseDto englishNews = fetchMultipleNewsByLanguage("en", englishQuery, callCount / 2);
+            NewsApiResponseDto englishNews = fetchMultipleNewsByLanguage("en", callCount / 2);
             
             NewsApiResponseDto combinedNews = new NewsApiResponseDto();
             combinedNews.setStatus("success");
@@ -198,7 +220,9 @@ public class SpaceNewsService {
             return combinedNews;
             
         } catch (Exception e) {
-            log.error("NewsData.io API 호출 중 오류 발생", e);
+            Integer statusCode = getHttpStatusCode(e);
+            log.error("NewsData.io 수집 실패: type={}, status={}",
+                    e.getClass().getSimpleName(), statusCode != null ? statusCode : "N/A");
             return null;
         }
     }
@@ -214,7 +238,7 @@ public class SpaceNewsService {
                     .build()
                     .toUriString();
             
-            log.info("NewsData.io API 호출 ({}): {}", language, url);
+            log.info("NewsData.io API 호출: language={}, query={}, size={}", language, query, size);
             
             NewsApiResponseDto response = restTemplate.getForObject(url, NewsApiResponseDto.class);
             
@@ -227,7 +251,9 @@ public class SpaceNewsService {
             }
             
         } catch (Exception e) {
-            log.error("{} NewsData.io API 호출 중 오류 발생: {}", language, e.getMessage());
+            Integer statusCode = getHttpStatusCode(e);
+            log.error("NewsData.io API 호출 실패: language={}, type={}, status={}",
+                    language, e.getClass().getSimpleName(), statusCode != null ? statusCode : "N/A");
             
             if (isQuotaExceededError(e) && !usingBackupKey && !backupApiKey.isEmpty()) {
                 log.warn("기본 API 키 한도 초과, 백업 키로 재시도합니다.");
@@ -239,7 +265,7 @@ public class SpaceNewsService {
         }
     }
     
-    private NewsApiResponseDto fetchMultipleNewsByLanguage(String language, String query, int callCount) {
+    private NewsApiResponseDto fetchMultipleNewsByLanguage(String language, int callCount) {
         NewsApiResponseDto combinedResponse = new NewsApiResponseDto();
         combinedResponse.setStatus("success");
         combinedResponse.setResults(new java.util.ArrayList<>());
@@ -247,10 +273,11 @@ public class SpaceNewsService {
         
         for (int i = 0; i < callCount; i++) {
             try {
-                String[] keywords = language.equals("ko") ? KOREAN_KEYWORDS : ENGLISH_KEYWORDS;
-                String randomQuery = getRandomSpaceKeywords(keywords, 3);
+                String[] topicQueries = language.equals("ko") ? KOREAN_TOPIC_QUERIES : ENGLISH_TOPIC_QUERIES;
+                int topicIndex = (LocalDate.now().getDayOfYear() + i) % topicQueries.length;
+                String topicQuery = topicQueries[topicIndex];
                 
-                NewsApiResponseDto response = fetchNewsByLanguage(language, randomQuery, 10);
+                NewsApiResponseDto response = fetchNewsByLanguage(language, topicQuery, 10);
                 if (response != null && response.getResults() != null) {
                     for (NewsApiResponseDto.Result result : response.getResults()) {
                         if (result.getLink() != null && !seenUrls.contains(result.getLink())) {
@@ -264,7 +291,11 @@ public class SpaceNewsService {
                     Thread.sleep(200);
                 }
             } catch (Exception e) {
-                log.warn("{} 뉴스 {}번째 호출 실패", language, i + 1, e);
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                log.warn("뉴스 수집 반복 실패: language={}, attempt={}, type={}",
+                        language, i + 1, e.getClass().getSimpleName());
             }
         }
         
@@ -273,42 +304,20 @@ public class SpaceNewsService {
         return combinedResponse;
     }
     
-    private String getRandomSpaceKeywords(String[] keywords, int count) {
-        java.util.Random random = new java.util.Random();
-        java.util.Set<String> selectedKeywords = new java.util.HashSet<>();
-        
-        // 필수 키워드 추가 (NASA, SpaceX, 우주 등)
-        if (keywords == KOREAN_KEYWORDS) {
-            selectedKeywords.add("NASA");
-            selectedKeywords.add("SpaceX");
-            selectedKeywords.add("우주");
-        } else {
-            selectedKeywords.add("NASA");
-            selectedKeywords.add("SpaceX");
-            selectedKeywords.add("space");
-        }
-        
-        while (selectedKeywords.size() < count && selectedKeywords.size() < keywords.length) {
-            int randomIndex = random.nextInt(keywords.length);
-            selectedKeywords.add(keywords[randomIndex]);
-        }
-        
-        return String.join(" OR ", selectedKeywords);
-    }
-    
     private String getCurrentApiKey() {
-        String currentKey = usingBackupKey ? backupApiKey : primaryApiKey;
-        log.debug("현재 사용 중인 API 키: {} (백업 키 사용: {})", 
-                currentKey.substring(0, Math.min(10, currentKey.length())) + "...", usingBackupKey);
-        return currentKey;
+        return usingBackupKey ? backupApiKey : primaryApiKey;
     }
     
     private boolean isQuotaExceededError(Exception e) {
-        String errorMessage = e.getMessage().toLowerCase();
-        return errorMessage.contains("quota") || 
-               errorMessage.contains("limit") || 
-               errorMessage.contains("exceeded") ||
-               errorMessage.contains("429");
+        Integer statusCode = getHttpStatusCode(e);
+        return statusCode != null && statusCode == 429;
+    }
+
+    private Integer getHttpStatusCode(Exception e) {
+        if (e instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode().value();
+        }
+        return null;
     }
     
     public long getTodayNewsCount() {

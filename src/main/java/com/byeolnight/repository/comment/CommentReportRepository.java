@@ -15,6 +15,8 @@ public interface CommentReportRepository extends JpaRepository<CommentReport, Lo
     boolean existsByCommentAndUser(Comment comment, User user);
     
     List<CommentReport> findByComment(Comment comment);
+
+    long countByReviewedFalse();
     
     @Query("SELECT cr FROM CommentReport cr WHERE cr.reviewed = false ORDER BY cr.createdAt DESC")
     List<CommentReport> findPendingReports();
