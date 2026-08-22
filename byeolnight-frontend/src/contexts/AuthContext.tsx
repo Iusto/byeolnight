@@ -45,7 +45,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error(res.data?.message || 'Login failed');
       }
       
-      await fetchMyInfo();
+      const authenticated = await fetchMyInfo();
+      if (!authenticated) {
+        throw new Error('로그인 세션을 확인하지 못했습니다. 다시 시도해주세요.');
+      }
     } catch (error: unknown) {
       // 서버에서 온 실제 에러 메시지를 그대로 전달
       throw new Error(getErrorMessage(error));

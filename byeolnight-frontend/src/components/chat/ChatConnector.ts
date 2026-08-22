@@ -46,7 +46,7 @@ class ChatConnector {
       (window.location.hostname === 'localhost' ? 'ws://localhost:8080/ws' :
        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
 
-    console.log('🔌 WebSocket 연결 시도:', { wsUrl, userNickname, hasToken: document.cookie.includes('accessToken') });
+    console.log('🔌 WebSocket 연결 시도:', { wsUrl, userNickname });
 
     try {
       const socket = new WebSocket(wsUrl);

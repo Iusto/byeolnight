@@ -13,6 +13,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Map;
@@ -30,7 +31,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
-        if (auth != null && auth.getPrincipal() instanceof User user) {
+        if (auth != null && auth.getPrincipal() instanceof User user
+                && StringUtils.hasText(user.getNickname())) {
             sessionRegistry.register(user.getNickname(), session);
             log.info("✅ WebSocket 연결: {} (sessionId={})", user.getNickname(), session.getId());
         } else {
