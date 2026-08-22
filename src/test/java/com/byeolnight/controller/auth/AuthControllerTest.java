@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -199,6 +200,39 @@ class AuthControllerTest {
                             .with(user(mockUser)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true));
+        }
+
+        @Test
+        @DisplayName("Refresh Token만 있어도 해당 Redis 토큰을 정확히 삭제한다")
+        void refreshCookie_deletesExactStoredToken() throws Exception {
+            when(jwtTokenProvider.validateRefreshToken("refresh-token")).thenReturn(true);
+            when(jwtTokenProvider.getEmail("refresh-token")).thenReturn("test@test.com");
+
+            mockMvc.perform(post("/api/auth/logout")
+                            .cookie(new jakarta.servlet.http.Cookie("refreshToken", "refresh-token")))
+                    .andExpect(status().isOk());
+
+            verify(tokenService).deleteRefreshToken("test@test.com");
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 갱신 POST /api/auth/token/refresh")
+    class RefreshToken {
+
+        @Test
+        @DisplayName("Redis에 저장되지 않은 Refresh Token은 거부한다")
+        void tokenMissingFromRedis_returnsUnauthorized() throws Exception {
+            when(jwtTokenProvider.validateRefreshToken("unknown-token")).thenReturn(true);
+            when(jwtTokenProvider.getUserIdFromToken("unknown-token")).thenReturn(1L);
+            when(userQueryService.findById(1L)).thenReturn(mockUser);
+            when(tokenService.isValidRefreshToken("test@test.com", "unknown-token")).thenReturn(false);
+
+            mockMvc.perform(post("/api/auth/token/refresh")
+                            .cookie(new jakarta.servlet.http.Cookie("refreshToken", "unknown-token")))
+                    .andExpect(status().isUnauthorized());
+
+            verify(tokenService).isValidRefreshToken("test@test.com", "unknown-token");
         }
     }
 

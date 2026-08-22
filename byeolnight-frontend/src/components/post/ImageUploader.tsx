@@ -1,6 +1,6 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { uploadImage } from '../../lib/s3Upload';
-import { isHandlingImageUpload } from './TuiEditor';
+import { isHandlingImageUpload } from './imageUploadState';
 import { getErrorMessage } from '../../types/api';
 import { isValidImageUrl } from '../../utils/imageUtils';
 import type { FileDto } from '../../types/file';
@@ -12,7 +12,6 @@ interface ValidationAlert {
 }
 
 interface ImageUploaderProps {
-  uploadedImages: FileDto[];
   setUploadedImages: React.Dispatch<React.SetStateAction<FileDto[]>>;
   onImageInsert: (imageData: FileDto | string, altText: string) => void;
   isImageValidating: boolean;
@@ -21,8 +20,10 @@ interface ImageUploaderProps {
   setValidationAlert: React.Dispatch<React.SetStateAction<ValidationAlert | null>>;
 }
 
+const isMobile = () =>
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 export default function ImageUploader({
-  uploadedImages,
   setUploadedImages,
   onImageInsert,
   isImageValidating,
@@ -33,12 +34,9 @@ export default function ImageUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 모바일 환경 감지 함수
-  const isMobile = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  };
 
   // 클립보드 이미지 업로드 함수 (검열 과정 추가)
-  const uploadClipboardImage = async (file: File) => {
+  const uploadClipboardImage = useCallback(async (file: File) => {
     setIsImageValidating(true);
     try {
       // 파일 크기 체크 (10MB 제한)
@@ -81,7 +79,7 @@ export default function ImageUploader({
     } finally {
       setIsImageValidating(false);
     }
-  };
+  }, [setIsImageValidating, setUploadedImages, setValidationAlert]);
 
   // ref로 최신 handlePaste를 유지하여 stale closure 방지
   const handlePasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
@@ -178,7 +176,7 @@ export default function ImageUploader({
     } catch {
       setIsImageValidating(false);
     }
-  }, [onImageInsert, setIsImageValidating, setUploadedImages, setValidationAlert]);
+  }, [onImageInsert, setIsImageValidating, setValidationAlert, uploadClipboardImage]);
 
   // ref를 최신 핸들러로 갱신
   useEffect(() => {

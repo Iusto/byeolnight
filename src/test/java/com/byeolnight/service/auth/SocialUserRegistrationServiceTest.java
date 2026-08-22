@@ -3,7 +3,7 @@ package com.byeolnight.service.auth;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
-import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.DefaultIconService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ class SocialUserRegistrationServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private UserAccountService userAccountService;
+    private DefaultIconService defaultIconService;
     @Mock
     private CertificateService certificateService;
     @Mock
@@ -55,7 +55,7 @@ class SocialUserRegistrationServiceTest {
         assertEquals("google", savedUser.getSocialProvider());
         assertEquals("google-subject", savedUser.getSocialProviderId());
         assertNull(savedUser.getPassword());
-        verify(userAccountService).grantDefaultAsteroidIcon(savedUser);
+        verify(defaultIconService).grant(savedUser);
         verify(certificateService).checkAndIssueCertificates(
                 savedUser, CertificateService.CertificateCheckType.LOGIN);
     }

@@ -1,15 +1,10 @@
 package com.byeolnight.integration;
 
-import com.byeolnight.controller.admin.AdminUserController;
+import com.byeolnight.controller.admin.AdminIpController;
 import com.byeolnight.dto.admin.IpBlockRequestDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.repository.log.AuditSignupLogRepository;
-import com.byeolnight.service.auth.AccountRecoveryService;
-import com.byeolnight.service.user.PointService;
-import com.byeolnight.service.user.UserAccountService;
-import com.byeolnight.service.user.UserAdminService;
 import com.byeolnight.service.user.UserSecurityService;
-import com.byeolnight.service.user.WithdrawnUserCleanupService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +46,7 @@ class IpBlockRedisIntegrationTest {
     private static LettuceConnectionFactory connectionFactory;
     private static StringRedisTemplate redisTemplate;
 
-    private AdminUserController adminUserController;
+    private AdminIpController adminIpController;
     private UserSecurityService userSecurityService;
 
     @BeforeAll
@@ -83,14 +78,7 @@ class IpBlockRedisIntegrationTest {
 
         // 관리자 컨트롤러와 보안 서비스에 '동일한' 실제 RedisTemplate 주입,
         // 나머지 협력자는 이 시나리오에서 쓰이지 않으므로 mock 처리.
-        adminUserController = new AdminUserController(
-                mock(UserAdminService.class),
-                mock(UserAccountService.class),
-                redisTemplate,
-                mock(PointService.class),
-                mock(WithdrawnUserCleanupService.class),
-                mock(AccountRecoveryService.class)
-        );
+        adminIpController = new AdminIpController(redisTemplate);
         userSecurityService = new UserSecurityService(
                 mock(AuditSignupLogRepository.class),
                 redisTemplate,
@@ -102,12 +90,12 @@ class IpBlockRedisIntegrationTest {
         IpBlockRequestDto dto = new IpBlockRequestDto();
         dto.setIp(ip);
         dto.setDurationMinutes(durationMinutes);
-        adminUserController.blockIpManually(dto);
+        adminIpController.blockIpManually(dto);
     }
 
     @SuppressWarnings("ConstantConditions")
     private List<String> getBlockedIps() {
-        ResponseEntity<CommonResponse<List<String>>> response = adminUserController.getBlockedIps();
+        ResponseEntity<CommonResponse<List<String>>> response = adminIpController.getBlockedIps();
         return response.getBody().getData();
     }
 
@@ -138,7 +126,7 @@ class IpBlockRedisIntegrationTest {
             assertThat(userSecurityService.isIpBlocked(ip)).isTrue();
 
             // when
-            adminUserController.unblockIp(ip);
+            adminIpController.unblockIp(ip);
 
             // then
             assertThat(userSecurityService.isIpBlocked(ip)).isFalse();
@@ -182,7 +170,7 @@ class IpBlockRedisIntegrationTest {
             assertThat(userSecurityService.isIpBlocked(ip)).isTrue();
 
             // when
-            adminUserController.unblockIp(ip);
+            adminIpController.unblockIp(ip);
 
             // then
             assertThat(userSecurityService.isIpBlocked(ip)).isFalse();
@@ -199,7 +187,7 @@ class IpBlockRedisIntegrationTest {
         dto.setDurationMinutes(30);
 
         // when
-        ResponseEntity<CommonResponse<String>> response = adminUserController.blockIpManually(dto);
+        ResponseEntity<CommonResponse<String>> response = adminIpController.blockIpManually(dto);
 
         // then
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();

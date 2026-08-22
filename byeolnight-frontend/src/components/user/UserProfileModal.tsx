@@ -1,7 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from '../../lib/axios';
-import type { SendMessageRequest } from '../types/message';
+import type { SendMessageRequest } from '../../types/message';
 import { getErrorMessage, isAxiosError } from '../../types/api';
 
 interface UserProfile {
@@ -42,13 +42,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
   });
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && userId) {
-      fetchUserProfile();
-    }
-  }, [isOpen, userId]);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
       console.log('프로필 조회 시작:', userId);
@@ -81,7 +75,13 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      void fetchUserProfile();
+    }
+  }, [fetchUserProfile, isOpen, userId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -16,7 +16,6 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
@@ -26,14 +25,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ChatService chatService;
     private final AdminChatService adminChatService;
     private final ObjectMapper objectMapper;
-    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+    private final ChatWebSocketSessionRegistry sessionRegistry;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
         if (auth != null && auth.getPrincipal() instanceof User user) {
-            sessions.put(user.getNickname(), session);
-            log.info("✅ WebSocket 연결: {}", user.getNickname());
+            sessionRegistry.register(user.getNickname(), session);
+            log.info("✅ WebSocket 연결: {} (sessionId={})", user.getNickname(), session.getId());
         } else {
             log.info("🔓 WebSocket 연결: 비로그인 사용자 (읽기 전용)");
         }
@@ -46,7 +45,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         
         // ping 메시지 처리 (pong 응답)
         if (payload.contains("\"type\":\"ping\"")) {
-            session.sendMessage(new TextMessage("{\"type\":\"pong\"}"));
+            sessionRegistry.sendToSession(session, new TextMessage("{\"type\":\"pong\"}"));
             return;
         }
         
@@ -81,8 +80,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         Authentication auth = (Authentication) session.getAttributes().get("authentication");
         if (auth != null && auth.getPrincipal() instanceof User user) {
-            sessions.remove(user.getNickname());
-            log.debug("❌ WebSocket 연결 종료: {} (code: {})", user.getNickname(), status.getCode());
+            sessionRegistry.unregister(user.getNickname(), session);
+            log.debug("❌ WebSocket 연결 종료: {} (sessionId={}, code={})",
+                    user.getNickname(), session.getId(), status.getCode());
         }
     }
 
@@ -95,23 +95,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        sessions.values().forEach(session -> {
-            try {
-                session.sendMessage(new TextMessage(payload));
-            } catch (IOException e) {
-                log.error("메시지 전송 실패", e);
-            }
-        });
+        sessionRegistry.broadcast(new TextMessage(payload));
     }
 
     private void sendToUser(String nickname, Object message) {
-        WebSocketSession session = sessions.get(nickname);
-        if (session != null && session.isOpen()) {
-            try {
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(message)));
-            } catch (IOException e) {
-                log.error("사용자 메시지 전송 실패", e);
-            }
+        try {
+            sessionRegistry.sendToUser(nickname, new TextMessage(objectMapper.writeValueAsString(message)));
+        } catch (IOException e) {
+            log.error("사용자 메시지 직렬화 실패", e);
         }
     }
 }

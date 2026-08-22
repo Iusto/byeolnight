@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,11 +43,7 @@ export default function SuggestionList() {
     REJECTED: t('suggestion.statuses.REJECTED')
   }), [t]);
 
-  useEffect(() => {
-    fetchSuggestions();
-  }, [selectedCategory, selectedStatus]);
-
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getSuggestions({
@@ -58,13 +54,17 @@ export default function SuggestionList() {
         sort: 'createdAt',
         direction: 'desc'
       });
-      setSuggestions(response?.suggestions || response?.content || []);
-    } catch (error) {
+      setSuggestions(response?.suggestions || []);
+    } catch {
       setSuggestions([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, selectedStatus]);
+
+  useEffect(() => {
+    void fetchSuggestions();
+  }, [fetchSuggestions]);
 
   const canViewSuggestion = (suggestion: Suggestion) => 
     suggestion.isPublic || (user && (user.role === 'ADMIN' || user.id === suggestion.authorId));

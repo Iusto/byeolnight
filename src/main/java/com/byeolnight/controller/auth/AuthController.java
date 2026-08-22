@@ -91,8 +91,12 @@ public class AuthController {
             Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
             User user = userQueryService.findById(userId);
             if (user == null) {
-                tokenService.deleteRefreshToken(userId.toString());
                 throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+            }
+            // 서명만 유효한 탈취·폐기 토큰은 Redis 원본 대조에서 차단한다.
+            if (!tokenService.isValidRefreshToken(user.getEmail(), refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(CommonResponse.fail("저장된 인증 정보와 일치하지 않는 Refresh Token입니다."));
             }
             auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(
                     user.getEmail(), IpUtil.getClientIp(request), request.getHeader("User-Agent")));

@@ -3,7 +3,7 @@ package com.byeolnight.service.auth;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
-import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.DefaultIconService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class SocialUserRegistrationService {
     private static final int MAX_RANDOM_NICKNAME_ATTEMPTS = 10;
 
     private final UserRepository userRepository;
-    private final UserAccountService userAccountService;
+    private final DefaultIconService defaultIconService;
     private final CertificateService certificateService;
 
     /** 제공자에서 검증한 사용자 정보로 신규 소셜 회원을 생성한다. */
@@ -53,7 +53,7 @@ public class SocialUserRegistrationService {
 
     private void initializeNewSocialUser(User user) {
         try {
-            userAccountService.grantDefaultAsteroidIcon(user);
+            defaultIconService.grant(user);
             certificateService.checkAndIssueCertificates(user, CertificateService.CertificateCheckType.LOGIN);
             log.info("소셜 로그인 사용자 {}에게 기본 아이콘 및 인증서 발급 완료", user.getNickname());
         } catch (Exception e) {

@@ -1,9 +1,11 @@
+import type { BanNotification, ChatMessage } from './chatTypes';
+
 interface ChatConnectorCallbacks {
-  onMessage: (msg: any) => void;
+  onMessage: (msg: ChatMessage) => void;
   onConnect: () => void;
   onDisconnect: (willReconnect: boolean) => void;
   onError: () => void;
-  onBanNotification?: (banData: any) => void;
+  onBanNotification?: (banData: BanNotification) => void;
 }
 
 class ChatConnector {

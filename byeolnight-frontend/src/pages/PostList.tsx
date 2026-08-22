@@ -17,8 +17,6 @@ import AdminSection from '../components/post/AdminSection';
 
 const DiscussionTopicBanner = React.lazy(() => import('../components/post/DiscussionTopicBanner'));
 
-export { CATEGORY_LABELS };
-
 export default function PostList() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +80,7 @@ export default function PostList() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const params: any = { category, sort, page, size: 30 };
+        const params: Record<string, string | number> = { category, sort, page, size: 30 };
         if (searchKeyword && searchKeyword.trim()) {
           params.searchType = searchType;
           params.search = searchKeyword.trim();

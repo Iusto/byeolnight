@@ -50,7 +50,7 @@ export default function PostEdit() {
         }
         
         // 기존 이미지들을 FileDto 형식으로 변환하여 설정
-        const existingImages = (post.images || []).map((img: any) => ({
+        const existingImages = (post.images || []).map((img: Partial<FileDto> & { url: string }) => ({
           originalName: img.originalName || '기존 이미지',
           s3Key: img.s3Key || '',
           url: img.url
@@ -85,7 +85,7 @@ export default function PostEdit() {
           images: allImages
         });
         
-      } catch (err) {
+      } catch {
         setError('게시글을 불러오지 못했습니다.');
       } finally {
         setLoading(false);

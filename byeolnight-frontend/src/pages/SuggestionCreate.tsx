@@ -172,7 +172,7 @@ export default function SuggestionCreate() {
                 <div className="text-blue-300 text-xs sm:text-sm">
                   <p className="font-medium mb-2">{t('suggestion.guide_title')}</p>
                   <ul className="space-y-1 text-blue-200">
-                    {t('suggestion.guide_items', { returnObjects: true }).map((item: string, index: number) => (
+                    {(t('suggestion.guide_items', { returnObjects: true }) as string[]).map((item, index) => (
                       <li key={index}>• {item}</li>
                     ))}
                   </ul>

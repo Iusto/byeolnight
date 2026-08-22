@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import axios from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserIconDisplay } from '../user';
@@ -21,7 +21,6 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
   const [reportingId, setReportingId] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
-  const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [adminComments, setAdminComments] = useState<Comment[]>([]);
@@ -29,7 +28,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
   const COMMENT_MAX_LENGTH = 500;
 
   // 관리자용 댓글 데이터 가져오기
-  const fetchAdminComments = async () => {
+  const fetchAdminComments = useCallback(async () => {
     if (user?.role === 'ADMIN') {
       try {
         const response = await axios.get(`/admin/posts/${postId}/comments`);
@@ -38,12 +37,12 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
         console.error('관리자 댓글 조회 실패:', error);
       }
     }
-  };
+  }, [postId, user?.role]);
 
   // 컴포넌트 마운트 시 관리자 댓글 데이터 가져오기
   useEffect(() => {
-    fetchAdminComments();
-  }, [user, postId]);
+    void fetchAdminComments();
+  }, [fetchAdminComments]);
 
   // 관리자인 경우 원본 댓글 데이터 사용
   const displayComments = user?.role === 'ADMIN' && adminComments.length > 0 ? adminComments : comments;
@@ -169,7 +168,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
 
 
   // 댓글 렌더링 함수
-  const renderComment = (c: Comment, isReply: boolean = false) => (
+  const renderComment = (c: Comment) => (
     <>
       {editingId === c.id ? (
         <div className="space-y-2">
@@ -518,7 +517,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                         <div className="text-xs text-green-400 mb-2 flex items-center gap-1">
                           ㄴ <span className="font-medium">{reply.parentWriter || c.writer}</span>님에게 답글
                         </div>
-                        {renderComment(reply, true)}
+                        {renderComment(reply)}
                       </div>
                     ))}
                   </div>
@@ -543,7 +542,7 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
                     <div className="text-xs text-green-400 mb-2 flex items-center gap-1">
                       ㄴ <span className="font-medium">{reply.parentWriter || c.writer}</span>님에게 답글
                     </div>
-                    {renderComment(reply, true)}
+                    {renderComment(reply)}
                   </div>
                 ))}
               </div>

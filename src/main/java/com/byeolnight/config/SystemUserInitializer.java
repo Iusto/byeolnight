@@ -3,7 +3,7 @@ package com.byeolnight.config;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.shop.StellaIconRepository;
 import com.byeolnight.repository.user.UserRepository;
-import com.byeolnight.service.user.UserAccountService;
+import com.byeolnight.service.user.DefaultIconService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +19,7 @@ public class SystemUserInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserAccountService userAccountService;
+    private final DefaultIconService defaultIconService;
     private final StellaIconRepository stellaIconRepository;
 
     @Value("${app.system.users.newsbot.email:newsbot@byeolnight.com}")
@@ -85,7 +85,7 @@ public class SystemUserInitializer implements ApplicationRunner {
                 retryCount++;
             }
             
-            userAccountService.migrateDefaultAsteroidIcon();
+            defaultIconService.migrateActiveUsers();
         } catch (Exception e) {
             log.warn("기본 소행성 아이콘 마이그레이션 실패: {}", e.getMessage());
         }

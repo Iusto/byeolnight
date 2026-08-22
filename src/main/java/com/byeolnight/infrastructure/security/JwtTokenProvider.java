@@ -7,7 +7,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -15,27 +14,22 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
     private final SecretKey key;
-    private final StringRedisTemplate redisTemplate;
     private final Duration accessTokenExpiry = Duration.ofMinutes(30);
     private final Duration refreshTokenExpiry = Duration.ofDays(7);
 
-    public JwtTokenProvider(@Value("${app.security.jwt.secret}") String secret, StringRedisTemplate redisTemplate) {
+    public JwtTokenProvider(@Value("${app.security.jwt.secret}") String secret) {
         validateSecret(secret);
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.redisTemplate = redisTemplate;
     }
 
     static void validateSecret(String secret) {
@@ -50,39 +44,29 @@ public class JwtTokenProvider {
         }
     }
 
-    public String[] generateTokens(User user, String clientInfo, String ipAddress) {
-        String sessionId = generateSessionId(user.getId(), clientInfo, ipAddress);
-
-        String accessToken = generateAccessToken(user, sessionId);
-        String refreshToken = generateRefreshToken(user, sessionId);
-
-        // Redis에 세션 저장
-        String sessionKey = "session:" + sessionId;
-        redisTemplate.opsForValue().set(sessionKey, refreshToken, refreshTokenExpiry);
-
-        return new String[]{accessToken, refreshToken, sessionId};
+    /** JWT 생성만 담당하며 Refresh Token 저장은 TokenService가 담당한다. */
+    public String[] generateTokens(User user) {
+        return new String[]{generateAccessToken(user), generateRefreshToken(user)};
     }
 
-    private String generateAccessToken(User user, String sessionId) {
+    private String generateAccessToken(User user) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
-                .claim("sessionId", sessionId)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(accessTokenExpiry)))
                 .signWith(key)
                 .compact();
     }
 
-    private String generateRefreshToken(User user, String sessionId) {
+    private String generateRefreshToken(User user) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
-                .claim("sessionId", sessionId)
                 .claim("type", "refresh")
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(refreshTokenExpiry)))
@@ -124,15 +108,15 @@ public class JwtTokenProvider {
     }
 
     public String getEmail(String token) {
-        return getUserIdFromToken(token).toString();
+        return parseToken(token).get("email", String.class);
     }
 
     public String createAccessToken(User user) {
-        return generateAccessToken(user, UUID.randomUUID().toString());
+        return generateAccessToken(user);
     }
 
     public String createRefreshToken(User user) {
-        return generateRefreshToken(user, UUID.randomUUID().toString());
+        return generateRefreshToken(user);
     }
 
     public long getRefreshTokenValidity() {
@@ -186,14 +170,4 @@ public class JwtTokenProvider {
         return null;
     }
 
-    private String generateSessionId(Long userId, String clientInfo, String ipAddress) {
-        try {
-            String data = userId + ":" + clientInfo + ":" + ipAddress + ":" + System.currentTimeMillis();
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (Exception e) {
-            return UUID.randomUUID().toString();
-        }
-    }
 }

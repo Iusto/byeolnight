@@ -140,10 +140,11 @@ export const checkNetworkConnection = async (): Promise<{
       latency,
       error: response.ok ? undefined : `서버 응답 오류: ${response.status}`
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const failure = error instanceof Error ? error : new Error(String(error));
     return {
       isOnline: false,
-      error: error.name === 'AbortError' ? '네트워크 응답 시간 초과' : error.message
+      error: failure.name === 'AbortError' ? '네트워크 응답 시간 초과' : failure.message
     };
   }
 };
@@ -202,17 +203,18 @@ export const diagnoseCompatibility = async (): Promise<{
 /**
  * 이미지 업로드 실패 시 진단 및 해결책 제공
  */
-export const diagnoseUploadFailure = async (error: any): Promise<{
+export const diagnoseUploadFailure = async (error: unknown): Promise<{
   diagnosis: string;
   solutions: string[];
   technicalDetails: string;
 }> => {
   const browserInfo = getBrowserInfo();
+  const failure = error instanceof Error ? error : new Error(String(error));
   const networkStatus = await checkNetworkConnection();
   
   let diagnosis = '이미지 업로드 중 오류가 발생했습니다.';
   const solutions: string[] = [];
-  let technicalDetails = `오류: ${error.message || error}`;
+  let technicalDetails = `오류: ${failure.message}`;
 
   // 네트워크 문제
   if (!networkStatus.isOnline) {
@@ -221,7 +223,7 @@ export const diagnoseUploadFailure = async (error: any): Promise<{
     solutions.push('Wi-Fi 또는 모바일 데이터 연결을 다시 시도하세요');
   }
   // CORS 문제
-  else if (error.message?.includes('CORS') || error.message === 'Failed to fetch') {
+  else if (failure.message.includes('CORS') || failure.message === 'Failed to fetch') {
     diagnosis = '브라우저 보안 정책으로 인해 업로드가 차단되었습니다.';
     solutions.push('다른 브라우저를 사용해보세요 (Chrome, Firefox 권장)');
     solutions.push('시크릿/프라이빗 모드를 사용해보세요');
@@ -232,14 +234,14 @@ export const diagnoseUploadFailure = async (error: any): Promise<{
     }
   }
   // 타임아웃 문제
-  else if (error.message?.includes('timeout') || error.name === 'AbortError') {
+  else if (failure.message.includes('timeout') || failure.name === 'AbortError') {
     diagnosis = '네트워크 응답 시간이 초과되었습니다.';
     solutions.push('이미지 파일 크기를 줄여보세요 (5MB 이하 권장)');
     solutions.push('네트워크 연결 상태를 확인하세요');
     solutions.push('잠시 후 다시 시도하세요');
   }
   // 파일 크기 문제
-  else if (error.message?.includes('크기') || error.message?.includes('size')) {
+  else if (failure.message.includes('크기') || failure.message.includes('size')) {
     diagnosis = '파일 크기가 너무 큽니다.';
     solutions.push('이미지를 압축하거나 크기를 줄여주세요');
     solutions.push('10MB 이하의 이미지를 사용하세요');

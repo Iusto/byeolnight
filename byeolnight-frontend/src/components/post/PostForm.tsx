@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import TuiEditor from './TuiEditor';
@@ -6,6 +6,7 @@ import ImageUploader from './ImageUploader';
 import MarkdownRenderer from './MarkdownRenderer';
 import { isValidImageUrl } from '../../utils/imageUtils';
 import type { FileDto } from '../../types/file';
+import type { TuiEditorHandle } from './tuiEditorTypes';
 
 interface PostFormProps {
   initialTitle?: string;
@@ -48,7 +49,7 @@ export default function PostForm({
   const [uploadedImages, setUploadedImages] = useState<FileDto[]>(initialImages);
   const [isImageValidating, setIsImageValidating] = useState(false);
   const [validationAlert, setValidationAlert] = useState<{message: string, type: 'success' | 'error' | 'warning', imageUrl?: string} | null>(null);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<TuiEditorHandle>(null);
   const imageSyncTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // 이미지 동기화를 debounce (300ms)하여 빠른 입력 시 성능 저하 방지
@@ -208,7 +209,6 @@ export default function PostForm({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2 sm:gap-0">
           <label className="text-sm font-medium text-gray-300 mobile-text">{t('post.content')}</label>
           <ImageUploader
-            uploadedImages={uploadedImages}
             setUploadedImages={setUploadedImages}
             onImageInsert={insertImageToEditor}
             isImageValidating={isImageValidating}
@@ -228,7 +228,6 @@ export default function PostForm({
               }}
               placeholder={t('home.content_placeholder')}
               height={window.innerWidth <= 768 ? '350px' : '500px'}
-              handleImageUpload={() => {}}
               onImageUploaded={(imageData) => {
                 setUploadedImages(prev => [...prev, {
                   originalName: imageData.originalName,

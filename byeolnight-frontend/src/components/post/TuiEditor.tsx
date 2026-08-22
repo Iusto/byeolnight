@@ -10,28 +10,26 @@ import { uploadImage } from '../../lib/s3Upload';
 import type { UploadedImageResponse } from '../../lib/s3Upload';
 import { useTranslation } from 'react-i18next';
 import { isValidImageUrl } from '../../utils/imageUtils';
-
-export const isHandlingImageUpload = { current: false };
+import { isHandlingImageUpload } from './imageUploadState';
+import type { TuiEditorHandle } from './tuiEditorTypes';
 
 interface TuiEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   height?: string;
-  handleImageUpload?: () => void;
   onImageUploaded?: (imageData: UploadedImageResponse) => void;
 }
 
-const TuiEditor = forwardRef(({
+const TuiEditor = forwardRef<TuiEditorHandle, TuiEditorProps>(({
   value,
   onChange,
   placeholder,
   height = "500px",
-  handleImageUpload,
   onImageUploaded
 }: TuiEditorProps, ref) => {
   const { t } = useTranslation();
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<Editor>(null);
   const previousMarkdownRef = useRef<string>('');
   const effectivePlaceholder = placeholder ?? t('home.content_placeholder');
 

@@ -4,7 +4,7 @@ export interface SendMessageRequest {
   content: string;
 }
 
-export interface MessageResponse {
+export interface Message {
   id: number;
   senderId: number;
   senderNickname: string;
@@ -18,7 +18,7 @@ export interface MessageResponse {
 }
 
 export interface MessageListResponse {
-  messages: MessageResponse[];
+  messages: Message[];
   totalCount: number;
   currentPage: number;
   totalPages: number;

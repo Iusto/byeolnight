@@ -83,7 +83,7 @@ export default function SuggestionDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, navigate]);
 
   useEffect(() => {
     if (!id || isNaN(parseInt(id, 10))) {
@@ -101,9 +101,9 @@ export default function SuggestionDetail() {
 
     if (!hasFetched.current) {
       hasFetched.current = true;
-      fetchSuggestion();
+      void fetchSuggestion();
     }
-  }, [id, user, authLoading]);
+  }, [authLoading, fetchSuggestion, id, navigate, user]);
 
   useEffect(() => {
     hasFetched.current = false;

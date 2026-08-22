@@ -36,7 +36,7 @@ export default function Signup() {
       alert('이미 로그인되었습니다.');
       navigate('/', { replace: true });
     }
-  }, []); // 초기 마운트 시에만 실행
+  }, [navigate, user]);
   
   // 페이지 이탈 시 이메일 인증 데이터 정리 (인증 완료 시에는 정리하지 않음)
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function Signup() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [form.email]); // emailVerified 의존성 제거
+  }, [emailVerified, form.email]);
   const [emailTimer, setEmailTimer] = useState(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,8 +235,8 @@ export default function Signup() {
         if (!res.data.data) {
           setEmailVerified(false); // 인증 상태 만료 시 재설정
         }
-      } catch (error) {
-        console.warn('이메일 인증 상태 확인 실패:', error);
+      } catch {
+        console.warn('이메일 인증 상태 확인 실패');
       }
     };
     
@@ -268,7 +268,7 @@ export default function Signup() {
           setError('이메일 인증이 만료되었습니다. 다시 인증해주세요.');
           return;
         }
-      } catch (error) {
+      } catch {
         setError('이메일 인증 상태 확인에 실패했습니다.');
         return;
       }
@@ -329,9 +329,8 @@ export default function Signup() {
       });
       alert('회원가입이 완료되었습니다.');
       navigate('/login');
-    } catch (err: any) {
-      const message = err?.response?.data?.message || '회원가입 실패';
-      setError(message);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error) || '회원가입 실패');
     } finally {
       setLoading(prev => ({ ...prev, signup: false }));
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
@@ -7,7 +7,9 @@ import { CinemaArticleContent, MarkdownRenderer, NewsArticleContent } from '../c
 import { ClickableNickname, UserIconDisplay } from '../components/user';
 import { CommentList, CommentForm } from '../components/post';
 import { getErrorMessage, isAxiosError } from '../types/api';
+import type { ApiResponse } from '../types/api';
 import type { PostDetail as Post } from '../types/post';
+import '../styles/post-content.css';
 import { StarfieldBackground } from '../components/common';
 
 interface Comment {
@@ -48,85 +50,7 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // iframe 렌더링을 위한 전역 CSS 스타일 추가
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-
-      /* 글씨 크기 및 스타일 적용 */
-      .post-content { overflow-wrap: break-word !important; word-wrap: break-word !important; }
-      .post-content h1 { font-size: 2rem !important; font-weight: bold !important; margin: 1.5rem 0 1rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h2 { font-size: 1.75rem !important; font-weight: bold !important; margin: 1.25rem 0 0.75rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h3 { font-size: 1.5rem !important; font-weight: bold !important; margin: 1rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h4 { font-size: 1.25rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h5 { font-size: 1.125rem !important; font-weight: bold !important; margin: 0.75rem 0 0.5rem 0 !important; color: #e2e8f0 !important; }
-      .post-content h6 { font-size: 1rem !important; font-weight: bold !important; margin: 0.5rem 0 0.25rem 0 !important; color: #e2e8f0 !important; }
-      .post-content img { max-width: 100% !important; height: auto !important; margin: 16px 0 !important; border-radius: 8px !important; display: block !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important; cursor: pointer !important; }
-      .post-content img:hover { opacity: 0.9 !important; transition: opacity 0.2s ease !important; }
-      .post-content p { font-size: 1rem !important; line-height: 1.7 !important; margin: 0.4rem 0 !important; color: #cbd5e1 !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
-      .post-content strong { font-weight: bold !important; color: #f1f5f9 !important; }
-      .post-content em { font-style: italic !important; color: #a78bfa !important; }
-      .post-content u { text-decoration: underline !important; font-weight: normal !important; color: #cbd5e1 !important; }
-      .post-content s, .post-content del { text-decoration: line-through !important; color: #94a3b8 !important; }
-      .post-content ul, .post-content ol { padding-left: 1.5rem !important; }
-      .post-content li { color: #cbd5e1 !important; line-height: 1.6 !important; white-space: pre-wrap !important; }
-      .post-content blockquote { 
-        border-left: 4px solid #8b5cf6 !important; 
-        padding: 1rem 1.5rem !important; 
-        margin: 1.5rem 0 !important;
-        font-style: italic !important;
-        background: rgba(139, 92, 246, 0.1) !important;
-        border-radius: 0 8px 8px 0 !important;
-        color: #c4b5fd !important;
-      }
-      .post-content code {
-        background: rgba(139, 92, 246, 0.2) !important;
-        color: #e879f9 !important;
-        padding: 0.2rem 0.4rem !important;
-        border-radius: 4px !important;
-        font-family: 'Courier New', 'Consolas', monospace !important;
-        font-size: 0.9em !important;
-      }
-      .post-content pre {
-        background: rgba(0, 0, 0, 0.4) !important;
-        padding: 1.5rem !important;
-        border-radius: 8px !important;
-        overflow-x: auto !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        margin: 1.5rem 0 !important;
-      }
-      .post-content pre code {
-        background: transparent !important;
-        padding: 0 !important;
-        color: #f8fafc !important;
-      }
-      .post-content a {
-        color: #a78bfa !important;
-        text-decoration: underline !important;
-        transition: color 0.2s ease !important;
-      }
-      .post-content a:hover {
-        color: #c4b5fd !important;
-      }
-      .post-content hr {
-        border: none !important;
-        height: 2px !important;
-        background: linear-gradient(to right, transparent, #8b5cf6, transparent) !important;
-        margin: 2rem 0 !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style);
-      }
-    };
-  }, []);
-
-  const [iframeSupported, setIframeSupported] = useState<boolean | null>(null);
-
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     try {
       const res = await axios.get(`/public/posts/${id}`);
       // 응답 구조 안전하게 처리
@@ -157,7 +81,7 @@ export default function PostDetail() {
             postData.writerIcon = writerData.equippedIcon;
             postData.writerCertificates = writerData.representativeCertificates || [];
           }
-        } catch (writerErr) {
+        } catch {
           // 작성자 정보 조회 실패 시 기본값 유지
           console.warn('작성자 정보 조회 실패, 기본 아이콘 사용');
         }
@@ -174,59 +98,23 @@ export default function PostDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, t, user]);
 
 
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
-      console.log('댓글 조회 요청:', `/public/comments/post/${id}`);
-      const res = await axios.get(`/public/comments/post/${id}`);
-      
-      console.log('전체 응답:', res);
-      console.log('응답 데이터:', res.data);
-      console.log('응답 데이터 타입:', typeof res.data);
-      
-      let commentsData = [];
-      
-      // CommonResponse 구조 처리: { success: true, data: [...] }
-      if (res.data && typeof res.data === 'object') {
-        if (res.data.success === true && res.data.data) {
-          commentsData = res.data.data;
-          console.log('CommonResponse success 구조로 파싱:', commentsData);
-        } else if (res.data.success === false) {
-          console.error('API 오류:', res.data.message);
-          commentsData = [];
-        } else if (Array.isArray(res.data)) {
-          // 직접 배열인 경우
-          commentsData = res.data;
-          console.log('직접 배열로 파싱:', commentsData);
-        } else {
-          console.warn('예상치 못한 응답 구조:', res.data);
-          commentsData = [];
-        }
-      }
-      
-      console.log('최종 댓글 데이터:', commentsData);
-      console.log('댓글 데이터 길이:', Array.isArray(commentsData) ? commentsData.length : 'Not Array');
-      
-      // 댓글 작성자 정보 보완 (선택적)
-      const enhancedComments = (Array.isArray(commentsData) ? commentsData : []).map(comment => {
-        // 기본 아이콘과 빈 인증서 리스트로 초기화
-        if (!comment.writerIcon) comment.writerIcon = null;
-        if (!comment.writerCertificates) comment.writerCertificates = [];
-        return comment;
-      });
-      
-      console.log('처리된 댓글:', enhancedComments);
-      
-      setComments(enhancedComments);
+      const response = await axios.get<ApiResponse<Comment[]>>(`/public/comments/post/${id}`);
+      const commentData = response.data.data ?? [];
+      setComments(commentData.map(comment => ({
+        ...comment,
+        writerIcon: comment.writerIcon ?? undefined,
+        writerCertificates: comment.writerCertificates ?? [],
+      })));
     } catch (err: unknown) {
       console.error('댓글 조회 실패:', err);
-      console.error('에러 상세:', isAxiosError(err) ? err.response : err);
       setComments([]);
     }
-  };
+  }, [id]);
 
 
 
@@ -301,13 +189,9 @@ export default function PostDetail() {
       await fetchComments();
     };
     
-    loadData();
+    void loadData();
     
-    // iframe 지원 여부 체크 (개발용)
-    if (process.env.NODE_ENV === 'development') {
-      checkIframeSupport();
-    }
-  }, [id]);
+  }, [fetchComments, fetchPost, id]);
   
   // iframe 로딩 보장
   useEffect(() => {
@@ -330,44 +214,6 @@ export default function PostDetail() {
     }
   }, [post]);
   
-  const checkIframeSupport = () => {
-    try {
-      // iframe 생성 테스트
-      const testIframe = document.createElement('iframe');
-      testIframe.style.display = 'none';
-      testIframe.src = 'about:blank';
-      
-      // CSP 정책 체크
-      const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-      const cspHeader = cspMeta?.getAttribute('content') || '';
-      
-      // iframe이 차단되는지 확인
-      const isBlocked = cspHeader.includes('frame-src \'none\'') || 
-                       cspHeader.includes('child-src \'none\'') ||
-                       window.self !== window.top; // 이미 iframe 안에 있는 경우
-      
-      document.body.appendChild(testIframe);
-      
-      setTimeout(() => {
-        try {
-          // iframe 접근 테스트
-          const canAccess = testIframe.contentWindow !== null;
-          setIframeSupported(!isBlocked && canAccess);
-          document.body.removeChild(testIframe);
-        } catch (e) {
-          setIframeSupported(false);
-          document.body.removeChild(testIframe);
-        }
-      }, 100);
-      
-    } catch (e) {
-      console.log('iframe 지원 체크 실패:', e);
-      setIframeSupported(false);
-    }
-  };
-  
-
-
   // ID 유효성 검사 - 로딩 완료 후에만 실행
   if (!loading && (!id || isNaN(Number(id)))) {
     return (
@@ -418,7 +264,6 @@ export default function PostDetail() {
     );
   }
 
-  const isOwnerOrAdmin = user && (user.nickname === post.writer || user.role === 'ADMIN');
   // createdAt 사용 (업데이트 시간이 아닌 작성 시간 표시)
   const formattedDate = new Date(post.createdAt).toLocaleString();
   const categoryName = categoryLabels[post.category] || post.category;
@@ -532,16 +377,6 @@ export default function PostDetail() {
               <MarkdownRenderer content={post.content} />
             )}
             
-            {/* iframe 지원 상태 표시 (개발용) */}
-            {process.env.NODE_ENV === 'development' && iframeSupported !== null && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${
-                iframeSupported 
-                  ? 'bg-green-900/30 text-green-300 border border-green-500/30'
-                  : 'bg-red-900/30 text-red-300 border border-red-500/30'
-              }`}>
-                🔧 개발 정보: iframe 지원 {iframeSupported ? '✅ 활성화' : '❌ 차단됨'}
-              </div>
-            )}
           </div>
           
 

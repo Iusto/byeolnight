@@ -21,7 +21,10 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true },
+        {
+          allowConstantExport: true,
+          allowExportNames: ['AuthContext', 'useAuth', 'useConfirm', 'useToast'],
+        },
       ],
       // CI에서 오류를 방지하기 위한 규칙 완화
       '@typescript-eslint/no-explicit-any': 'warn',

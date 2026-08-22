@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { diagnoseCompatibility, BrowserInfo } from '../../utils/browserCompatibility';
 
 interface UploadErrorDialogProps {
@@ -30,7 +30,7 @@ export default function UploadErrorDialog({ isOpen, onClose, error, onRetry }: U
     if (isOpen && !diagnosis) {
       performDiagnosis();
     }
-  }, [isOpen]);
+  }, [diagnosis, isOpen]);
 
   const performDiagnosis = async () => {
     setIsLoading(true);
@@ -193,7 +193,7 @@ export default function UploadErrorDialog({ isOpen, onClose, error, onRetry }: U
                     <p>Fetch API 지원: {diagnosis.fetchSupported ? '예' : '아니오'}</p>
                     <p>User-Agent: {navigator.userAgent}</p>
                     <p>온라인 상태: {navigator.onLine ? '예' : '아니오'}</p>
-                    <p>연결 타입: {(navigator as any).connection?.effectiveType || '알 수 없음'}</p>
+                    <p>연결 타입: {(navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType || '알 수 없음'}</p>
                   </div>
                 )}
               </div>
