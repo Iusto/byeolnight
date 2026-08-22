@@ -18,6 +18,7 @@ export function useChatConnection(options: UseChatConnectionOptions) {
   const [connected, setConnected] = useState(false);
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const nickname = options.nickname;
 
   useEffect(() => {
     const connect = async () => {
@@ -56,12 +57,12 @@ export function useChatConnection(options: UseChatConnectionOptions) {
             `${optionsRef.current.bannedMessage}: ${banData.reason}`,
           );
         },
-      }, optionsRef.current.nickname);
+      }, nickname);
     };
 
     void connect();
     return () => chatConnector.disconnect();
-  }, []);
+  }, [nickname]);
 
   const retryConnection = () => {
     setConnectionError('');

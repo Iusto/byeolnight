@@ -94,10 +94,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         boolean authenticated = false;
 
         if (jwtTokenProvider.validate(token) && !tokenService.isAccessTokenBlacklisted(token)) {
-            String userId = jwtTokenProvider.getEmail(token);
+            Long userId = jwtTokenProvider.getUserIdFromToken(token);
             if (userId != null) {
                 try {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(userId.toString());
                     setAuthentication(request, userDetails);
                     authenticated = true;
                     log.debug("✅ 인증 성공: {} - {}", userId, uri);

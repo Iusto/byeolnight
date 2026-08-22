@@ -1,11 +1,15 @@
 package com.byeolnight.config;
 
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
+import com.byeolnight.service.auth.TokenService;
+import com.byeolnight.service.user.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
@@ -21,6 +25,8 @@ import java.util.Map;
 public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final CustomUserDetailsService userDetailsService;
+    private final TokenService tokenService;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, 
@@ -31,15 +37,17 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
         // HTTP 쿠키에서 accessToken 추출
         String token = extractTokenFromCookies(request);
         
-        if (token != null && jwtTokenProvider.validate(token)) {
+        if (token != null && jwtTokenProvider.validate(token)
+                && !tokenService.isAccessTokenBlacklisted(token)) {
             try {
-                Authentication auth = jwtTokenProvider.getAuthentication(token);
-                if (auth != null) {
-                    attributes.put("authentication", auth);
-                    attributes.put("accessToken", token);
-                    log.debug("✅ WebSocket Handshake 인증 성공: {}", auth.getName());
-                    return true;
-                }
+                Long userId = jwtTokenProvider.getUserIdFromToken(token);
+                UserDetails principal = userDetailsService.loadUserByUsername(userId.toString());
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal, null, principal.getAuthorities());
+                attributes.put("authentication", authentication);
+                attributes.put("accessToken", token);
+                log.debug("✅ WebSocket Handshake 인증 성공: {}", authentication.getName());
+                return true;
             } catch (Exception e) {
                 log.debug("❌ WebSocket Handshake 토큰 검증 실패: {}", e.getMessage());
             }
