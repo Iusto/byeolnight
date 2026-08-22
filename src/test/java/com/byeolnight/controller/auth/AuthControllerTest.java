@@ -11,8 +11,10 @@ import com.byeolnight.repository.log.AuditRefreshTokenLogRepository;
 import com.byeolnight.service.auth.AuthService;
 import com.byeolnight.service.auth.EmailAuthService;
 import com.byeolnight.service.auth.PasswordResetService;
-import com.byeolnight.service.auth.SocialAccountCleanupService;
+import com.byeolnight.service.auth.AccountRecoveryService;
+import com.byeolnight.service.auth.AccountRecoveryTicketService;
 import com.byeolnight.service.auth.TokenService;
+import com.byeolnight.service.auth.AuthCookieService;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.user.UserAccountService;
 import com.byeolnight.service.user.UserQueryService;
@@ -42,13 +44,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
-        value = AuthController.class,
+        value = {AuthController.class, RegistrationController.class, AccountAccessController.class},
         excludeFilters = {
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
         }
 )
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, AuthCookieService.class})
 @DisplayName("AuthController 테스트")
 class AuthControllerTest {
 
@@ -66,15 +68,59 @@ class AuthControllerTest {
     @MockBean PasswordResetService passwordResetService;
     @MockBean CertificateService certificateService;
     @MockBean AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
-    @MockBean SocialAccountCleanupService socialAccountCleanupService;
+    @MockBean AccountRecoveryService accountRecoveryService;
+    @MockBean AccountRecoveryTicketService accountRecoveryTicketService;
 
     private final User mockUser = User.builder()
+            .id(1L)
             .email("test@test.com")
             .nickname("tester")
             .password("encodedPassword")
             .role(User.Role.USER)
             .status(User.UserStatus.ACTIVE)
             .build();
+
+    @Nested
+    @DisplayName("계정 복구 POST /api/auth/account/recover")
+    class AccountRecovery {
+
+        @Test
+        @DisplayName("유효한 일회용 티켓이면 계정을 복구하고 인증 쿠키를 발급한다")
+        void success_returnsTokensAndCookies() throws Exception {
+            var identity = new AccountRecoveryTicketService.RecoveryIdentity(
+                    1L,
+                    AccountRecoveryTicketService.AuthenticationMethod.PASSWORD,
+                    null,
+                    null
+            );
+            when(accountRecoveryTicketService.consume("valid-ticket")).thenReturn(identity);
+            when(accountRecoveryService.recoverPasswordAccount(1L)).thenReturn(mockUser);
+            when(jwtTokenProvider.createAccessToken(mockUser)).thenReturn("access-token");
+            when(jwtTokenProvider.createRefreshToken(mockUser)).thenReturn("refresh-token");
+            when(jwtTokenProvider.getRefreshTokenValidity()).thenReturn(604800000L);
+
+            mockMvc.perform(post("/api/auth/account/recover")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"ticket\":\"valid-ticket\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists("Set-Cookie"))
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.success").value(true));
+        }
+
+        @Test
+        @DisplayName("만료된 티켓은 인증 실패로 처리한다")
+        void expiredTicket_returnsUnauthorized() throws Exception {
+            when(accountRecoveryTicketService.consume("expired-ticket"))
+                    .thenThrow(new IllegalArgumentException("만료된 티켓"));
+
+            mockMvc.perform(post("/api/auth/account/recover")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"ticket\":\"expired-ticket\"}"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.success").value(false));
+        }
+    }
 
     @Nested
     @DisplayName("로그인 POST /api/auth/login")

@@ -88,7 +88,7 @@ instance.interceptors.response.use(
     }
 
     // 공개 API들은 토큰 재발급 시도하지 않음 (백엔드에서 이미 permitAll 처리됨)
-    const publicApis = ['/auth/me', '/auth/login', '/auth/signup', '/auth/password/', '/auth/oauth/', '/public/'];
+    const publicApis = ['/auth/me', '/auth/login', '/auth/signup', '/auth/password/', '/auth/account/recover', '/public/'];
     if (publicApis.some(api => originalRequest.url?.includes(api))) {
       return Promise.reject(error);
     }

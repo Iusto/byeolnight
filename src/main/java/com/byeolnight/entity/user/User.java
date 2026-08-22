@@ -18,7 +18,13 @@ import java.util.Objects;
  * - 일반 로그인 및 소셜 로그인 지원
  */
 @Entity
-@Table(name = "`user`")  // H2 호환성을 위해 백틱 사용 (USER는 H2 예약어)
+@Table(
+        name = "`user`",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_user_social_identity",
+                columnNames = {"social_provider", "social_provider_id"}
+        )
+)  // H2 호환성을 위해 백틱 사용 (USER는 H2 예약어)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -60,6 +66,10 @@ public class User implements UserDetails {
     /** 소셜 로그인 제공자 (google, naver, kakao) */
     @Column
     private String socialProvider;
+
+    /** OAuth 제공자가 발급한 변경되지 않는 사용자 식별자 */
+    @Column(name = "social_provider_id")
+    private String socialProviderId;
 
     /** 사용자 권한 (USER 또는 ADMIN) */
     @Enumerated(EnumType.STRING)
@@ -294,6 +304,15 @@ public class User implements UserDetails {
             throw new IllegalArgumentException("소셜 프로바이더는 null이거나 빈 문자열일 수 없습니다.");
         }
         this.socialProvider = provider;
+    }
+
+    /** 검증된 OAuth 제공자 계정을 현재 사용자에게 연결 */
+    public void linkSocialIdentity(String provider, String providerUserId) {
+        if (provider == null || provider.isBlank() || providerUserId == null || providerUserId.isBlank()) {
+            throw new IllegalArgumentException("소셜 계정 식별 정보가 올바르지 않습니다.");
+        }
+        this.socialProvider = provider;
+        this.socialProviderId = providerUserId;
     }
     
     /** 소셜 로그인 제공자 이름 반환 */

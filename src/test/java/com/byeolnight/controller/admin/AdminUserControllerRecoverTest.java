@@ -1,6 +1,6 @@
 package com.byeolnight.controller.admin;
 
-import com.byeolnight.service.auth.SocialAccountCleanupService;
+import com.byeolnight.service.auth.AccountRecoveryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,22 +15,22 @@ import static org.mockito.Mockito.*;
 class AdminUserControllerRecoverTest {
 
     @Mock
-    private SocialAccountCleanupService socialAccountCleanupService;
+    private AccountRecoveryService accountRecoveryService;
 
     @Test
     @DisplayName("계정 복구 성공")
     void recoverWithdrawnAccount_Success() {
         // given
         String email = "withdrawn@test.com";
-        when(socialAccountCleanupService.recoverWithdrawnAccount(email))
+        when(accountRecoveryService.recoverWithdrawnAccount(email))
                 .thenReturn(true);
 
         // when
-        boolean result = socialAccountCleanupService.recoverWithdrawnAccount(email);
+        boolean result = accountRecoveryService.recoverWithdrawnAccount(email);
 
         // then
         assertTrue(result);
-        verify(socialAccountCleanupService).recoverWithdrawnAccount(email);
+        verify(accountRecoveryService).recoverWithdrawnAccount(email);
     }
 
     @Test
@@ -38,15 +38,15 @@ class AdminUserControllerRecoverTest {
     void recoverWithdrawnAccount_NotRecoverable() {
         // given
         String email = "old@test.com";
-        when(socialAccountCleanupService.recoverWithdrawnAccount(email))
+        when(accountRecoveryService.recoverWithdrawnAccount(email))
                 .thenReturn(false);
 
         // when
-        boolean result = socialAccountCleanupService.recoverWithdrawnAccount(email);
+        boolean result = accountRecoveryService.recoverWithdrawnAccount(email);
 
         // then
         assertFalse(result);
-        verify(socialAccountCleanupService).recoverWithdrawnAccount(email);
+        verify(accountRecoveryService).recoverWithdrawnAccount(email);
     }
 
     @Test
@@ -54,16 +54,16 @@ class AdminUserControllerRecoverTest {
     void recoverWithdrawnAccount_Exception() {
         // given
         String email = "error@test.com";
-        when(socialAccountCleanupService.recoverWithdrawnAccount(email))
+        when(accountRecoveryService.recoverWithdrawnAccount(email))
                 .thenThrow(new RuntimeException("DB 연결 오류"));
 
         // when & then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> socialAccountCleanupService.recoverWithdrawnAccount(email)
+                () -> accountRecoveryService.recoverWithdrawnAccount(email)
         );
 
         assertEquals("DB 연결 오류", exception.getMessage());
-        verify(socialAccountCleanupService).recoverWithdrawnAccount(email);
+        verify(accountRecoveryService).recoverWithdrawnAccount(email);
     }
 }

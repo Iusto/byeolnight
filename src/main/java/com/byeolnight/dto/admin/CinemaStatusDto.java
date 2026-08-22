@@ -1,5 +1,6 @@
 package com.byeolnight.dto.admin;
 
+import com.byeolnight.dto.cinema.CinemaCollectionResultDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class CinemaStatusDto {
     private SystemConfigDto systemConfig;
     private String statusMessage;
     private String error;
+    private CinemaCollectionResultDto lastExecution;
 
     @Getter
     @Builder

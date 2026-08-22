@@ -1,7 +1,8 @@
 package com.byeolnight.controller.admin;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
-import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.file.OrphanImageCleanupService;
+import com.byeolnight.service.file.S3StatusService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminFileController {
 
-    private final S3Service s3Service;
+    private final OrphanImageCleanupService orphanImageCleanupService;
+    private final S3StatusService s3StatusService;
 
     @GetMapping("/orphan-count")
     @Operation(
@@ -34,7 +36,7 @@ public class AdminFileController {
     public CommonResponse<Integer> getOrphanImageCount() {
         log.info("관리자 고아 이미지 개수 조회 요청");
         
-        int orphanCount = s3Service.getOrphanImageCount();
+        int orphanCount = orphanImageCleanupService.getOrphanImageCount();
         
         if (orphanCount == -1) {
             return CommonResponse.error("S3 ListBucket 권한이 부족합니다. IAM 정책을 확인해주세요.");
@@ -56,7 +58,7 @@ public class AdminFileController {
     public CommonResponse<Integer> cleanupOrphanImages() {
         log.info("관리자 고아 이미지 정리 요청");
         
-        int deletedCount = s3Service.cleanupOrphanImages();
+        int deletedCount = orphanImageCleanupService.cleanupOrphanImages();
         
         return CommonResponse.success(deletedCount, 
             deletedCount + "개의 고아 이미지를 정리했습니다.");
@@ -74,7 +76,7 @@ public class AdminFileController {
     public CommonResponse<S3StatusDto> getS3Status() {
         log.info("관리자 S3 상태 확인 요청");
 
-        S3StatusDto status = s3Service.getS3Status();
+        S3StatusDto status = s3StatusService.getS3Status();
 
         return CommonResponse.success(status, "S3 상태 정보를 조회했습니다.");
     }

@@ -1,7 +1,7 @@
 package com.byeolnight.controller.comment;
 
 import com.byeolnight.entity.user.User;
-import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostAdminService;
 import com.byeolnight.service.comment.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -20,7 +20,7 @@ import java.util.List;
 @Tag(name = "👮 관리자 API - 댓글", description = "댓글 관리 API")
 public class AdminCommentController {
 
-    private final PostService postService;
+    private final PostAdminService postAdminService;
     private final CommentService commentService;
 
     @Operation(summary = "블라인드 댓글 목록 조회", description = "관리자가 블라인드 처리된 댓글 목록을 조회합니다.")
@@ -77,7 +77,7 @@ public class AdminCommentController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/comments/{commentId}/restore")
     public ResponseEntity<Void> restoreComment(@PathVariable Long commentId) {
-        postService.restoreComment(commentId);
+        postAdminService.restoreComment(commentId);
         return ResponseEntity.ok().build();
     }
 
@@ -85,7 +85,7 @@ public class AdminCommentController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/posts/deleted")
     public ResponseEntity<List<com.byeolnight.dto.post.PostAdminDto>> getDeletedPosts() {
-        List<com.byeolnight.dto.post.PostAdminDto> posts = postService.getDeletedPosts();
+        List<com.byeolnight.dto.post.PostAdminDto> posts = postAdminService.getDeletedPosts();
         return ResponseEntity.ok(posts);
     }
 
@@ -93,7 +93,7 @@ public class AdminCommentController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/posts/{postId}/restore")
     public ResponseEntity<Void> restorePost(@PathVariable Long postId) {
-        postService.restorePost(postId);
+        postAdminService.restorePost(postId);
         return ResponseEntity.ok().build();
     }
 }

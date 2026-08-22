@@ -1,5 +1,6 @@
 export { default as CommentForm } from './CommentForm';
 export { default as CommentList } from './CommentList';
+export { default as CinemaArticleContent } from './CinemaArticleContent';
 export { default as DiscussionTopicBanner } from './DiscussionTopicBanner';
 export { default as ImageUploader } from './ImageUploader';
 export { default as MarkdownRenderer } from './MarkdownRenderer';

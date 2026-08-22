@@ -40,7 +40,8 @@ public class AuthService {
     private final AuditSignupLogRepository auditSignupLogRepository;
     private final UserSecurityService userSecurityService;
     private final CertificateService certificateService;
-    private final SocialAccountCleanupService socialAccountCleanupService;
+    private final AccountRecoveryService accountRecoveryService;
+    private final AccountRecoveryTicketService accountRecoveryTicketService;
     /**
      * 로그인 인증 처리
      */
@@ -54,7 +55,7 @@ public class AuthService {
         validateIpNotBlocked(ip);
 
         // 사용자 조회 및 검증
-        User user = findAndValidateUser(dto.getEmail(), ip);
+        User user = findAndValidateUser(dto.getEmail(), dto.getPassword(), ip, userAgent);
 
         // 비밀번호 검증
         validatePassword(dto.getPassword(), user, ip, userAgent);
@@ -77,7 +78,7 @@ public class AuthService {
         }
     }
 
-    private User findAndValidateUser(String email, String ip) {
+    private User findAndValidateUser(String email, String password, String ip, String userAgent) {
         User user = userQueryService.findByEmail(email)
                 .orElseThrow(() -> {
                     auditSignupLogRepository.save(AuditSignupLog.failure(email, ip, "존재하지 않는 이메일"));
@@ -86,11 +87,11 @@ public class AuthService {
 
         // 계정 상태 확인
         if (user.getStatus() == User.UserStatus.WITHDRAWN) {
-            // 탈퇴한 계정 - 복구 가능 여부 확인
-            if (socialAccountCleanupService.canRecover(user.getEmail())) {
-                // 복구 가능한 계정
+            if (accountRecoveryService.canRecover(user.getEmail())) {
+                validatePassword(password, user, ip, userAgent);
+                String recoveryTicket = accountRecoveryTicketService.issuePassword(user.getId());
                 auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "탈퇴 계정 복구 가능"));
-                throw new BadCredentialsException("RECOVERABLE_ACCOUNT:" + user.getEmail());
+                throw new BadCredentialsException("ACCOUNT_RECOVERY_REQUIRED:" + recoveryTicket);
             } else {
                 // 복구 불가능한 계정 (30일 경과)
                 auditSignupLogRepository.save(AuditSignupLog.failure(user.getEmail(), ip, "탈퇴 계정 복구 불가"));

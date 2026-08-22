@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import axios from '../lib/axios'
 import { getErrorMessage } from '../types/api'
 
 export default function OAuthCallback() {
@@ -17,7 +16,9 @@ export default function OAuthCallback() {
         const error = searchParams.get('error')
 
         if (error) {
-          setError(decodeURIComponent(error))
+          setError(error === 'OAUTH_LOGIN_FAILED'
+            ? '외부 계정 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.'
+            : error)
           setStatus('error')
           return
         }

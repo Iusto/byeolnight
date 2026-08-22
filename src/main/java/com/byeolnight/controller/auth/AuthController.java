@@ -3,25 +3,16 @@ package com.byeolnight.controller.auth;
 import com.byeolnight.dto.user.CurrentUserResponseDto;
 import com.byeolnight.dto.user.LoginRequestDto;
 import com.byeolnight.dto.user.TokenResponseDto;
-
-import com.byeolnight.dto.user.WithdrawRequestDto;
 import com.byeolnight.entity.log.AuditRefreshTokenLog;
-import com.byeolnight.entity.token.PasswordResetToken;
 import com.byeolnight.entity.user.User;
-import com.byeolnight.repository.log.AuditRefreshTokenLogRepository;
-import com.byeolnight.dto.user.UserSignUpRequestDto;
-import com.byeolnight.dto.auth.*;
-import com.byeolnight.service.auth.SocialAccountCleanupService;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.infrastructure.security.JwtTokenProvider;
 import com.byeolnight.infrastructure.util.IpUtil;
+import com.byeolnight.repository.log.AuditRefreshTokenLogRepository;
+import com.byeolnight.service.auth.AuthCookieService;
 import com.byeolnight.service.auth.AuthService;
-
 import com.byeolnight.service.auth.TokenService;
-import com.byeolnight.service.auth.EmailAuthService;
-import com.byeolnight.service.auth.PasswordResetService;
 import com.byeolnight.service.certificate.CertificateService;
-import com.byeolnight.service.user.UserAccountService;
 import com.byeolnight.service.user.UserQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,36 +20,35 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+/** 로그인 세션의 생성·갱신·종료와 현재 인증 상태 조회를 담당한다. */
 @Slf4j
-@RequiredArgsConstructor
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/auth")
 @Tag(name = "인증 API")
 public class AuthController {
-    
-    @Value("${app.security.cookie.domain:}")
-    private String cookieDomain;
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenService tokenService;
+    private final AuthCookieService authCookieService;
     private final UserQueryService userQueryService;
-    private final UserAccountService userAccountService;
-    private final EmailAuthService emailAuthService;
-    private final PasswordResetService passwordResetService;
     private final CertificateService certificateService;
     private final AuditRefreshTokenLogRepository auditRefreshTokenLogRepository;
-    private final SocialAccountCleanupService socialAccountCleanupService;
-
 
     @PostMapping("/login")
     @Operation(summary = "로그인")
@@ -66,20 +56,22 @@ public class AuthController {
             @Valid @RequestBody LoginRequestDto dto, HttpServletRequest request) {
         try {
             AuthService.LoginResult result = authService.authenticate(dto, request);
-            ResponseCookie refreshCookie = createRefreshCookie(result.getRefreshToken(), result.getRefreshTokenValidity(), dto.isRememberMe());
-            ResponseCookie accessCookie = createAccessCookie(result.getAccessToken(), dto.isRememberMe());
-            TokenResponseDto tokenResponse = new TokenResponseDto(result.getAccessToken(), true);
-
+            ResponseCookie refresh = authCookieService.createRefreshCookie(
+                    result.getRefreshToken(), result.getRefreshTokenValidity(), dto.isRememberMe());
+            ResponseCookie access = authCookieService.createAccessCookie(
+                    result.getAccessToken(), dto.isRememberMe());
             return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                    .body(CommonResponse.success(tokenResponse));
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(CommonResponse.fail(e.getMessage()));
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("로그인 오류", e);
+                    .header(HttpHeaders.SET_COOKIE, refresh.toString())
+                    .header(HttpHeaders.SET_COOKIE, access.toString())
+                    .body(CommonResponse.success(new TokenResponseDto(result.getAccessToken(), true)));
+        } catch (SecurityException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(CommonResponse.fail(exception.getMessage()));
+        } catch (BadCredentialsException exception) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(CommonResponse.fail(exception.getMessage()));
+        } catch (Exception exception) {
+            log.error("로그인 처리 오류", exception);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(CommonResponse.fail("로그인 처리 중 오류가 발생했습니다."));
         }
@@ -96,42 +88,33 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(CommonResponse.fail("유효하지 않은 Refresh Token"));
             }
-
             Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
-            log.debug("토큰 재발급 요청 - 사용자 ID: {}", userId);
-            
             User user = userQueryService.findById(userId);
             if (user == null) {
-                log.warn("토큰 재발급 실패 - 사용자 없음: {}", userId);
                 tokenService.deleteRefreshToken(userId.toString());
-                throw new IllegalArgumentException("해당 사용자를 찾을 수 없습니다.");
+                throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
             }
-
-            auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(user.getEmail(), 
-                    IpUtil.getClientIp(request), request.getHeader("User-Agent")));
+            auditRefreshTokenLogRepository.save(AuditRefreshTokenLog.of(
+                    user.getEmail(), IpUtil.getClientIp(request), request.getHeader("User-Agent")));
 
             String newAccessToken = jwtTokenProvider.createAccessToken(user);
             String newRefreshToken = jwtTokenProvider.createRefreshToken(user);
-            long refreshTokenValidity = jwtTokenProvider.getRefreshTokenValidity();
-
-            tokenService.saveRefreshToken(user.getEmail(), newRefreshToken, refreshTokenValidity);
-
-            boolean isRememberMe = isRememberMeCookie(cookieHeader);
-            ResponseCookie refreshCookie = createRefreshCookie(newRefreshToken, refreshTokenValidity, isRememberMe);
-            ResponseCookie accessCookie = createAccessCookie(newAccessToken, isRememberMe);
-            TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, true);
+            long validity = jwtTokenProvider.getRefreshTokenValidity();
+            tokenService.saveRefreshToken(user.getEmail(), newRefreshToken, validity);
+            boolean rememberMe = authCookieService.isRememberMeCookie(cookieHeader);
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                    .body(CommonResponse.success(tokenResponse));
-
-        } catch (IllegalArgumentException e) {
-            log.error("토큰 재발급 오류 - 사용자 없음: {}", e.getMessage());
+                    .header(HttpHeaders.SET_COOKIE,
+                            authCookieService.createRefreshCookie(newRefreshToken, validity, rememberMe).toString())
+                    .header(HttpHeaders.SET_COOKIE,
+                            authCookieService.createAccessCookie(newAccessToken, rememberMe).toString())
+                    .body(CommonResponse.success(new TokenResponseDto(newAccessToken, true)));
+        } catch (IllegalArgumentException exception) {
+            log.warn("토큰 재발급 거부: {}", exception.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(CommonResponse.fail("인증 정보가 유효하지 않습니다. 다시 로그인해주세요."));
-        } catch (Exception e) {
-            log.error("토큰 재발급 오류", e);
+        } catch (Exception exception) {
+            log.error("토큰 재발급 오류", exception);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(CommonResponse.fail("토큰 재발급에 실패했습니다."));
         }
@@ -145,191 +128,58 @@ public class AuthController {
             @CookieValue(name = "accessToken", required = false) String accessToken,
             HttpServletRequest request) {
         try {
-            String userEmail = extractUserEmail(user, accessToken, refreshToken);
-            
-            if (userEmail != null) {
-                tokenService.deleteRefreshToken(userEmail);
+            String email = extractUserEmail(user, accessToken, refreshToken);
+            if (email != null) {
+                tokenService.deleteRefreshToken(email);
             }
-            
             blacklistToken(accessToken);
-            
-            ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
-            ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
-            ResponseCookie deleteJSessionId = createDeleteCookie("JSESSIONID");
-            
             return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, deleteJSessionId.toString())
+                    .header(HttpHeaders.SET_COOKIE, authCookieService.createDeleteCookie("refreshToken").toString())
+                    .header(HttpHeaders.SET_COOKIE, authCookieService.createDeleteCookie("accessToken").toString())
+                    .header(HttpHeaders.SET_COOKIE, authCookieService.createDeleteCookie("JSESSIONID").toString())
                     .body(CommonResponse.success("로그아웃되었습니다."));
-                    
-        } catch (Exception e) {
-            log.error("로그아웃 오류", e);
+        } catch (Exception exception) {
+            log.error("로그아웃 오류", exception);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(CommonResponse.fail("로그아웃 처리 중 오류가 발생했습니다."));
         }
     }
 
-    @PostMapping("/email/send")
-    @Operation(summary = "이메일 인증 코드 전송")
-    public ResponseEntity<CommonResponse<String>> sendEmailCode(@Valid @RequestBody EmailRequestDto dto) {
+    @GetMapping("/check")
+    @Operation(summary = "인증 상태 확인")
+    public ResponseEntity<CommonResponse<String>> checkAuth(@AuthenticationPrincipal User user) {
+        return user != null
+                ? ResponseEntity.ok(CommonResponse.success("인증됨"))
+                : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CommonResponse.fail("인증되지 않음"));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "현재 사용자 정보 조회")
+    public ResponseEntity<CommonResponse<CurrentUserResponseDto>> getCurrentUser(
+            @AuthenticationPrincipal User user) {
+        if (user == null) {
+            return ResponseEntity.ok(CommonResponse.success(null));
+        }
         try {
-            emailAuthService.sendCode(dto.getEmail());
-            return ResponseEntity.ok(CommonResponse.success("이메일 인증 코드가 전송되었습니다."));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(CommonResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("이메일 인증 코드 전송 실패", e);
+            User fullUser = userQueryService.findById(user.getId());
+            var certificate = certificateService.getRepresentativeCertificateSafe(fullUser);
+            return ResponseEntity.ok(CommonResponse.success(CurrentUserResponseDto.from(fullUser, certificate)));
+        } catch (Exception exception) {
+            log.error("사용자 정보 조회 실패", exception);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("이메일 전송에 실패했습니다."));
+                    .body(CommonResponse.fail("사용자 정보 조회에 실패했습니다."));
         }
-    }
-
-    @PostMapping("/email/verify")
-    @Operation(summary = "이메일 인증 코드 확인")
-    public ResponseEntity<CommonResponse<Boolean>> verifyEmailCode(
-            @Valid @RequestBody EmailVerifyRequestDto dto, HttpServletRequest request) {
-        try {
-            String clientIp = IpUtil.getClientIp(request);
-            boolean verified = emailAuthService.verifyCode(dto.getEmail(), dto.getCode(), clientIp);
-            return ResponseEntity.ok(CommonResponse.success(verified));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(CommonResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("이메일 인증 코드 확인 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("이메일 인증에 실패했습니다."));
-        }
-    }
-    
-    @DeleteMapping("/email/cleanup")
-    @Operation(summary = "이메일 인증 데이터 정리 (페이지 이탈 시)")
-    public ResponseEntity<CommonResponse<String>> cleanupEmailData(@Valid @RequestBody EmailRequestDto dto) {
-        try {
-            emailAuthService.clearAllEmailData(dto.getEmail());
-            return ResponseEntity.ok(CommonResponse.success("이메일 인증 데이터가 정리되었습니다."));
-        } catch (Exception e) {
-            log.error("이메일 인증 데이터 정리 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("데이터 정리에 실패했습니다."));
-        }
-    }
-    
-    @GetMapping("/email/status")
-    @Operation(summary = "이메일 인증 상태 확인")
-    public ResponseEntity<CommonResponse<Boolean>> checkEmailStatus(@RequestParam String email) {
-        try {
-            boolean verified = emailAuthService.isAlreadyVerified(email);
-            return ResponseEntity.ok(CommonResponse.success(verified));
-        } catch (Exception e) {
-            log.error("이메일 인증 상태 확인 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("인증 상태 확인에 실패했습니다."));
-        }
-    }
-
-    @GetMapping("/check-nickname")
-    @Operation(summary = "닉네임 중복 확인")
-    public ResponseEntity<CommonResponse<Boolean>> checkNickname(@RequestParam String value) {
-        try {
-            boolean available = !userQueryService.existsByNickname(value);
-            return ResponseEntity.ok(CommonResponse.success(available));
-        } catch (Exception e) {
-            log.error("닉네임 중복 확인 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("닉네임 확인에 실패했습니다."));
-        }
-    }
-
-    @PostMapping("/signup")
-    @Operation(summary = "회원가입")
-    public ResponseEntity<CommonResponse<String>> signup(
-            @Valid @RequestBody UserSignUpRequestDto dto, HttpServletRequest request) {
-        try {
-            if (!emailAuthService.isAlreadyVerified(dto.getEmail())) {
-                return ResponseEntity.badRequest().body(CommonResponse.fail("이메일 인증이 필요합니다."));
-            }
-
-            userAccountService.register(dto, IpUtil.getClientIp(request));
-            emailAuthService.clearVerificationStatus(dto.getEmail());
-            
-            return ResponseEntity.ok(CommonResponse.success("회원가입이 완료되었습니다."));
-        } catch (Exception e) {
-            log.error("회원가입 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail(e.getMessage()));
-        }
-    }
-
-    private ResponseCookie createRefreshCookie(String refreshToken, long validity, boolean rememberMe) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(rememberMe ? validity / 1000 : -1);
-        
-        if (!cookieDomain.isEmpty()) {
-            builder.domain(cookieDomain);
-        }
-        
-        return builder.build();
-    }
-
-    private ResponseCookie createAccessCookie(String accessToken, boolean rememberMe) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("accessToken", accessToken)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(rememberMe ? 1800 : -1);
-        
-        if (!cookieDomain.isEmpty()) {
-            builder.domain(cookieDomain);
-        }
-        
-        return builder.build();
-    }
-
-    private boolean isRememberMeCookie(String cookieHeader) {
-        if (cookieHeader == null) return false;
-        return cookieHeader.contains("refreshToken") && 
-               (cookieHeader.contains("Max-Age") || cookieHeader.contains("Expires"));
-    }
-
-    private ResponseCookie createDeleteCookie(String name) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, "")
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(0);
-        
-        if (!cookieDomain.isEmpty()) {
-            builder.domain(cookieDomain);
-        }
-        
-        return builder.build();
     }
 
     private String extractUserEmail(User user, String accessToken, String refreshToken) {
-        if (user != null) return user.getEmail();
+        if (user != null) {
+            return user.getEmail();
+        }
         if (accessToken != null && jwtTokenProvider.validate(accessToken)) {
             return jwtTokenProvider.getEmail(accessToken);
         }
         if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
             return jwtTokenProvider.getEmail(refreshToken);
-        }
-        return null;
-    }
-
-    private Long extractUserId(String accessToken, String refreshToken) {
-        if (accessToken != null && jwtTokenProvider.validate(accessToken)) {
-            return jwtTokenProvider.getUserIdFromToken(accessToken);
-        }
-        if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
-            return jwtTokenProvider.getUserIdFromToken(refreshToken);
         }
         return null;
     }
@@ -342,182 +192,4 @@ public class AuthController {
             }
         }
     }
-
-
-
-
-    
-    @GetMapping("/check")
-    @Operation(summary = "인증 상태 확인")
-    public ResponseEntity<CommonResponse<String>> checkAuth(@AuthenticationPrincipal User user) {
-        if (user != null) {
-            return ResponseEntity.ok(CommonResponse.success("인증됨"));
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(CommonResponse.fail("인증되지 않음"));
-    }
-
-    @GetMapping("/me")
-    @Operation(summary = "현재 사용자 정보 조회 (비로그인 허용)")
-    public ResponseEntity<CommonResponse<CurrentUserResponseDto>> getCurrentUser(
-            @AuthenticationPrincipal User user) {
-        if (user == null) {
-            // 비로그인 상태: 401이 아닌 200 OK with null
-            return ResponseEntity.ok(CommonResponse.success(null));
-        }
-
-        try {
-            // 로그인 상태: 사용자 정보 반환
-            User fullUser = userQueryService.findById(user.getId());
-
-            // 대표 인증서 조회 (실패해도 계속 진행)
-            var repCert = certificateService.getRepresentativeCertificateSafe(fullUser);
-
-            CurrentUserResponseDto response = CurrentUserResponseDto.from(fullUser, repCert);
-            return ResponseEntity.ok(CommonResponse.success(response));
-        } catch (Exception e) {
-            log.error("사용자 정보 조회 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("사용자 정보 조회에 실패했습니다."));
-        }
-    }
-    
-    @PostMapping("/oauth/recover")
-    @Operation(summary = "소셜 계정 복구 처리")
-    public ResponseEntity<CommonResponse<String>> handleAccountRecovery(
-            @Valid @RequestBody AccountRecoveryDto dto, HttpServletRequest request) {
-        try {
-            if (dto.isRecover()) {
-                // 계정 복구
-                boolean recovered = socialAccountCleanupService.recoverWithdrawnAccount(dto.getEmail());
-                if (recovered) {
-                    return ResponseEntity.ok(CommonResponse.success("계정이 복구되었습니다. 다시 로그인해주세요."));
-                } else {
-                    return ResponseEntity.badRequest()
-                            .body(CommonResponse.fail("복구할 수 없는 계정입니다."));
-                }
-            } else {
-                // 새 계정 생성을 위해 복구 체크 건너뛰기 플래그 설정 (Redis, 5분 TTL)
-                tokenService.saveSkipRecoveryFlag(dto.getEmail());
-                return ResponseEntity.ok(CommonResponse.success("새 계정으로 진행합니다. 다시 로그인해주세요."));
-            }
-        } catch (IllegalStateException e) {
-            log.error("계정 복구 처리 오류 - 비즈니스 로직 오류: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(CommonResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("계정 복구 처리 오류", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("처리 중 오류가 발생했습니다."));
-        }
-    }
-    
-    @PostMapping("/password/reset-request")
-    @Operation(summary = "비밀번호 재설정 요청")
-    public ResponseEntity<CommonResponse<String>> requestPasswordReset(
-            @Valid @RequestBody PasswordResetRequestDto dto) {
-        try {
-            passwordResetService.sendPasswordResetEmail(dto.getEmail());
-            return ResponseEntity.ok(CommonResponse.success("비밀번호 재설정 이메일이 전송되었습니다."));
-        } catch (Exception e) {
-            log.error("비밀번호 재설정 요청 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("이메일 전송에 실패했습니다."));
-        }
-    }
-
-    @GetMapping("/password/validate-token")
-    @Operation(summary = "비밀번호 재설정 토큰 검증")
-    public ResponseEntity<CommonResponse<String>> validatePasswordResetToken(
-            @RequestParam String token) {
-        try {
-            PasswordResetToken resetToken = passwordResetService.validateToken(token);
-            User user = userQueryService.findByEmail(resetToken.getEmail())
-                    .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
-            
-            if (user.isSocialUser()) {
-                String providerName = user.getSocialProviderName();
-                return ResponseEntity.badRequest()
-                        .body(CommonResponse.fail(
-                            String.format("소셜 로그인(%s) 계정입니다. %s에서 비밀번호를 변경해주세요.", 
-                                providerName, providerName)
-                        ));
-            }
-            
-            return ResponseEntity.ok(CommonResponse.success("유효한 토큰입니다."));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(CommonResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("토큰 검증 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("토큰 검증에 실패했습니다."));
-        }
-    }
-
-    @PostMapping("/password/reset-confirm")
-    @Operation(summary = "비밀번호 재설정 확인")
-    public ResponseEntity<CommonResponse<String>> confirmPasswordReset(
-            @Valid @RequestBody PasswordResetConfirmDto dto) {
-        try {
-            passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
-            return ResponseEntity.ok(CommonResponse.success("비밀번호가 성공적으로 변경되었습니다."));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(CommonResponse.fail(e.getMessage()));
-        } catch (Exception e) {
-            log.error("비밀번호 재설정 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail("비밀번호 재설정에 실패했습니다."));
-        }
-    }
-
-    @DeleteMapping("/withdraw")
-    @Operation(summary = "회원 탈퇴")
-    public ResponseEntity<CommonResponse<String>> withdraw(
-            @RequestBody(required = false) WithdrawRequestDto dto,
-            @CookieValue(name = "accessToken", required = false) String accessToken,
-            @CookieValue(name = "refreshToken", required = false) String refreshToken,
-            HttpServletRequest request) {
-        try {
-            // 토큰에서 userId 직접 추출
-            Long userId = extractUserId(accessToken, refreshToken);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(CommonResponse.fail("로그인이 필요합니다."));
-            }
-            
-            User user = userQueryService.findById(userId);
-
-            String password = "";
-            String reason = "사용자 요청";
-            
-            if (dto != null) {
-                password = dto.getPassword() != null ? dto.getPassword() : "";
-                reason = dto.getReason() != null ? dto.getReason() : "사용자 요청";
-            }
-            
-            userAccountService.withdraw(user.getId(), password, reason);
-            
-            // 토큰 무효화 처리
-            tokenService.deleteRefreshToken(user.getEmail());
-            
-            // 현재 토큰을 블랙리스트에 추가
-            blacklistToken(accessToken);
-            
-            ResponseCookie deleteRefreshCookie = createDeleteCookie("refreshToken");
-            ResponseCookie deleteAccessCookie = createDeleteCookie("accessToken");
-            ResponseCookie deleteJSessionId = createDeleteCookie("JSESSIONID");
-            
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, deleteAccessCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, deleteJSessionId.toString())
-                    .body(CommonResponse.success("회원 탈퇴가 완료되었습니다."));
-                    
-        } catch (Exception e) {
-            log.error("회원 탈퇴 오류", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.fail(e.getMessage()));
-        }
-    }
-
 }

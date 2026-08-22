@@ -8,6 +8,7 @@ import com.byeolnight.infrastructure.security.JwtAuthenticationFilter;
 import com.byeolnight.infrastructure.security.SecurityConfig;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostLikeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,6 +50,7 @@ class MemberPostControllerTest {
     @MockBean JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @MockBean PostService postService;
+    @MockBean PostLikeService postLikeService;
 
     private final User mockUser = User.builder()
             .email("test@test.com")
@@ -170,7 +172,7 @@ class MemberPostControllerTest {
         @Test
         @DisplayName("로그인 상태에서 추천 시 200 반환")
         void authenticated_returns200() throws Exception {
-            doNothing().when(postService).likePost(any(), eq(1L));
+            doNothing().when(postLikeService).likePost(any(), eq(1L));
 
             mockMvc.perform(post("/api/member/posts/1/like")
                             .with(user(mockUser)))

@@ -5,7 +5,7 @@ import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.infrastructure.security.JwtAuthenticationFilter;
 import com.byeolnight.infrastructure.security.SecurityConfig;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostQueryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class PublicPostControllerTest {
 
     @MockBean JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
-    @MockBean PostService postService;
+    @MockBean PostQueryService postQueryService;
 
     @Nested
     @DisplayName("게시글 목록 조회 GET /api/public/posts")
@@ -54,7 +54,7 @@ class PublicPostControllerTest {
         @DisplayName("비로그인 상태에서 200 반환")
         void unauthenticated_returns200() throws Exception {
             Page<PostResponseDto> emptyPage = new PageImpl<>(List.of());
-            when(postService.getFilteredPosts(any(), any(), any(), any(), any(), isNull()))
+            when(postQueryService.getFilteredPosts(any(), any(), any(), any(), any(), isNull()))
                     .thenReturn(emptyPage);
 
             mockMvc.perform(get("/api/public/posts"))
@@ -66,7 +66,7 @@ class PublicPostControllerTest {
         @DisplayName("카테고리 필터 적용 시 200 반환")
         void withCategoryFilter_returns200() throws Exception {
             Page<PostResponseDto> emptyPage = new PageImpl<>(List.of());
-            when(postService.getFilteredPosts(any(), any(), any(), any(), any(), isNull()))
+            when(postQueryService.getFilteredPosts(any(), any(), any(), any(), any(), isNull()))
                     .thenReturn(emptyPage);
 
             mockMvc.perform(get("/api/public/posts")
@@ -79,7 +79,7 @@ class PublicPostControllerTest {
         @DisplayName("검색어 포함 요청 시 200 반환")
         void withSearchParam_returns200() throws Exception {
             Page<PostResponseDto> emptyPage = new PageImpl<>(List.of());
-            when(postService.getFilteredPosts(any(), any(), any(), any(), any(), isNull()))
+            when(postQueryService.getFilteredPosts(any(), any(), any(), any(), any(), isNull()))
                     .thenReturn(emptyPage);
 
             mockMvc.perform(get("/api/public/posts")
@@ -98,7 +98,7 @@ class PublicPostControllerTest {
         @DisplayName("존재하는 게시글 조회 시 200 반환")
         void existingPost_returns200() throws Exception {
             PostResponseDto postResponse = mock(PostResponseDto.class);
-            when(postService.getPostById(1L, null)).thenReturn(postResponse);
+            when(postQueryService.getPostById(1L, null)).thenReturn(postResponse);
 
             mockMvc.perform(get("/api/public/posts/1"))
                     .andExpect(status().isOk())
@@ -113,7 +113,7 @@ class PublicPostControllerTest {
         @Test
         @DisplayName("200과 목록 반환")
         void returns200WithList() throws Exception {
-            when(postService.getTopHotPostsAcrossAllCategories(6)).thenReturn(List.of());
+            when(postQueryService.getTopHotPostsAcrossAllCategories(6)).thenReturn(List.of());
 
             mockMvc.perform(get("/api/public/posts/hot"))
                     .andExpect(status().isOk())

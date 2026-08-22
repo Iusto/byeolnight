@@ -6,7 +6,7 @@ import com.byeolnight.dto.admin.UserStatusChangeRequestDto;
 import com.byeolnight.dto.admin.PointAwardRequestDto;
 import com.byeolnight.dto.user.UserSummaryDto;
 import com.byeolnight.entity.user.User;
-import com.byeolnight.service.auth.SocialAccountCleanupService;
+import com.byeolnight.service.auth.AccountRecoveryService;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.user.UserAccountService;
 import com.byeolnight.service.user.UserAdminService;
@@ -42,7 +42,7 @@ public class AdminUserController {
     private final StringRedisTemplate redisTemplate;
     private final PointService pointService;
     private final WithdrawnUserCleanupService withdrawnUserCleanupService;
-    private final SocialAccountCleanupService socialAccountCleanupService;
+    private final AccountRecoveryService accountRecoveryService;
 
     @Operation(summary = "전체 사용자 요약 조회", description = "관리자 권한으로 전체 사용자 목록을 조회합니다.")
     @ApiResponses({
@@ -310,7 +310,7 @@ public class AdminUserController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser
     ) {
         try {
-            boolean recovered = socialAccountCleanupService.recoverWithdrawnAccount(email);
+            boolean recovered = accountRecoveryService.recoverWithdrawnAccount(email);
             if (recovered) {
                 return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success(
                         "계정이 성공적으로 복구되었습니다."));

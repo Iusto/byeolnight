@@ -71,7 +71,7 @@ class PostServiceBlindTest {
     private PostResponseAssembler postResponseAssembler;
 
     @InjectMocks
-    private PostService postService;
+    private PostQueryService postQueryService;
 
     private User normalUser;
     private User adminUser;
@@ -160,7 +160,7 @@ class PostServiceBlindTest {
                 .thenReturn(List.of(normalPostDto));
 
         // when
-        Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, normalUser);
+        Page<PostResponseDto> result = postQueryService.getFilteredPosts("FREE", "recent", null, null, pageable, normalUser);
 
         // then
         assertThat(result.getContent()).hasSize(1);
@@ -195,7 +195,7 @@ class PostServiceBlindTest {
                 .thenReturn(List.of(normalPostDto, blindedPostDto));
 
         // when
-        Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, adminUser);
+        Page<PostResponseDto> result = postQueryService.getFilteredPosts("FREE", "recent", null, null, pageable, adminUser);
 
         // then
         assertThat(result.getContent()).hasSize(2);
@@ -224,7 +224,7 @@ class PostServiceBlindTest {
                 .thenReturn(List.of(normalPostDto));
 
         // when
-        Page<PostResponseDto> result = postService.getFilteredPosts("FREE", "recent", null, null, pageable, null);
+        Page<PostResponseDto> result = postQueryService.getFilteredPosts("FREE", "recent", null, null, pageable, null);
 
         // then
         assertThat(result.getContent()).hasSize(1);

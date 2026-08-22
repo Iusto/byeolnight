@@ -3,75 +3,63 @@ package com.byeolnight.service.auth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
-    private static final String ERROR_SESSION_KEY = "oauth2_error_message";
-    private static final String DEFAULT_ERROR_MESSAGE = "OAuth 로그인에 실패했습니다";
     private static final String CALLBACK_PATH = "/oauth/callback";
-    private static final String LOCAL_BASE_URL = "http://localhost:5173";
-    private static final String PROD_BASE_URL = "https://byeolnight.com";
+
+    @Value("${app.frontend.local-url:http://localhost:5173}")
+    private String localFrontendUrl;
+
+    @Value("${app.frontend.prod-url:https://byeolnight.com}")
+    private String prodFrontendUrl;
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
-        
-        log.error("OAuth2 인증 실패 - 예외 타입: {}, 메시지: '{}'", 
-                exception.getClass().getSimpleName(), exception.getMessage());
-        
-        String errorMessage = extractErrorMessage(request, exception);
-        String redirectUrl = buildRedirectUrl(request, errorMessage);
+        OAuth2RecoveryRequiredException recoveryException = findRecoveryException(exception);
+        String redirectUrl;
 
-        log.info("OAuth2 실패 리다이렉트 - 원본 메시지: '{}', URL: {}", errorMessage, redirectUrl);
+        if (recoveryException != null) {
+            redirectUrl = UriComponentsBuilder
+                    .fromUriString(getBaseUrl(request) + "/oauth/recover")
+                    .queryParam("ticket", recoveryException.getRecoveryTicket())
+                    .build()
+                    .toUriString();
+            log.info("OAuth2 탈퇴 계정 복구 확인 요청");
+        } else {
+            redirectUrl = UriComponentsBuilder
+                    .fromUriString(getBaseUrl(request) + CALLBACK_PATH)
+                    .queryParam("error", "OAUTH_LOGIN_FAILED")
+                    .build()
+                    .toUriString();
+            log.warn("OAuth2 인증 실패: 예외유형={}", exception.getClass().getSimpleName());
+        }
+
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
-    
-    private String extractErrorMessage(HttpServletRequest request, AuthenticationException exception) {
-        // CustomOAuth2UserService에서 같은 요청 내 request attribute로 전달
-        String errorMessage = (String) request.getAttribute(ERROR_SESSION_KEY);
-        if (errorMessage != null) {
-            request.removeAttribute(ERROR_SESSION_KEY);
-            return errorMessage;
-        }
-        
-        String exceptionMessage = exception.getMessage();
-        return (exceptionMessage != null && !exceptionMessage.isEmpty()) ? 
-                exceptionMessage : DEFAULT_ERROR_MESSAGE;
-    }
-    
-    private String buildRedirectUrl(HttpServletRequest request, String errorMessage) {
-        String baseUrl = isLocalhost(request) ? LOCAL_BASE_URL : PROD_BASE_URL;
-        
-        // 복구 가능한 계정인 경우 복구 페이지로 리다이렉트
-        if (errorMessage.startsWith("RECOVERABLE_ACCOUNT:")) {
-            String[] parts = errorMessage.split(":");
-            if (parts.length >= 3) {
-                String email = parts[1];
-                String provider = parts[2];
-                return UriComponentsBuilder.fromUriString(baseUrl + "/oauth/recover")
-                        .queryParam("email", URLEncoder.encode(email, StandardCharsets.UTF_8))
-                        .queryParam("provider", provider)
-                        .build().toUriString();
+
+    private OAuth2RecoveryRequiredException findRecoveryException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof OAuth2RecoveryRequiredException recoveryException) {
+                return recoveryException;
             }
+            current = current.getCause();
         }
-        
-        String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
-        return UriComponentsBuilder.fromUriString(baseUrl + CALLBACK_PATH)
-                .queryParam("error", encodedError)
-                .build().toUriString();
+        return null;
     }
-    
-    private boolean isLocalhost(HttpServletRequest request) {
-        return request.getServerName().contains("localhost");
+
+    private String getBaseUrl(HttpServletRequest request) {
+        return request.getServerName().contains("localhost") ? localFrontendUrl : prodFrontendUrl;
     }
 }

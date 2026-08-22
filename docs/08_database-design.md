@@ -14,6 +14,7 @@ erDiagram
         varchar nickname UK
         varchar profile_image_url
         varchar social_provider
+        varchar social_provider_id
         enum role
         enum status
         boolean nickname_changed
@@ -304,6 +305,7 @@ CREATE TABLE user (
     nickname VARCHAR(8) NOT NULL,
     profile_image_url VARCHAR(500),
     social_provider VARCHAR(20),
+    social_provider_id VARCHAR(255),
     role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
     status ENUM('ACTIVE', 'BANNED', 'SUSPENDED', 'WITHDRAWN') NOT NULL DEFAULT 'ACTIVE',
     nickname_changed BOOLEAN NOT NULL DEFAULT FALSE,
@@ -323,7 +325,8 @@ CREATE TABLE user (
     INDEX idx_email (email),
     INDEX idx_nickname (nickname),
     INDEX idx_status (status),
-    INDEX idx_created_at (created_at)
+    INDEX idx_created_at (created_at),
+    UNIQUE KEY uk_user_social_identity (social_provider, social_provider_id)
 );
 ```
 

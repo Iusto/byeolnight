@@ -9,6 +9,8 @@ public class YouTubeSnippet {
     private String title;
     private String description;
     private String channelTitle;
+    private String channelId;
+    private String categoryId;
     private String publishedAt;
     private YouTubeThumbnails thumbnails;
 }

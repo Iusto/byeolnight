@@ -37,27 +37,6 @@ public class TokenService {
     }
 
     /**
-     * OAuth2 신규 계정 진행 플래그 저장 (5분 TTL)
-     * - STATELESS 환경에서 세션 대신 Redis 사용
-     */
-    public void saveSkipRecoveryFlag(String email) {
-        redisTemplate.opsForValue().set("skip_recovery:" + email, "true", 5, TimeUnit.MINUTES);
-    }
-
-    /**
-     * OAuth2 신규 계정 진행 플래그 조회 후 즉시 삭제 (1회용)
-     */
-    public boolean getAndDeleteSkipRecoveryFlag(String email) {
-        String key = "skip_recovery:" + email;
-        String value = redisTemplate.opsForValue().get(key);
-        if ("true".equals(value)) {
-            redisTemplate.delete(key);
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * AccessToken을 블랙리스트에 등록
      */
     public void blacklistAccessToken(String accessToken, long expirationMillis) {

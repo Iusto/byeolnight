@@ -7,7 +7,7 @@ import { getErrorMessage } from '../types/api'
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login } = useAuth()
+  const { login, refreshUserInfo } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,7 +16,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [loginMessage, setLoginMessage] = useState('')
   const [showRecoverModal, setShowRecoverModal] = useState(false)
-  const [recoverEmail, setRecoverEmail] = useState('')
+  const [recoveryTicket, setRecoveryTicket] = useState('')
   const [recoverLoading, setRecoverLoading] = useState(false)
 
   useEffect(() => {
@@ -50,9 +50,9 @@ export default function Login() {
       const errorMessage = getErrorMessage(err)
 
       // 복구 가능한 계정인지 확인
-      if (errorMessage.startsWith('RECOVERABLE_ACCOUNT:')) {
-        const emailPart = errorMessage.split(':')[1]
-        setRecoverEmail(emailPart || email)
+      if (errorMessage.startsWith('ACCOUNT_RECOVERY_REQUIRED:')) {
+        const ticket = errorMessage.slice('ACCOUNT_RECOVERY_REQUIRED:'.length)
+        setRecoveryTicket(ticket)
         setShowRecoverModal(true)
         setError('')
       } else {
@@ -66,18 +66,12 @@ export default function Login() {
   const handleRecover = async () => {
     setRecoverLoading(true)
     try {
-      const response = await axios.post('/auth/oauth/recover', {
-        email: recoverEmail,
-        provider: null,
-        recover: true
-      })
+      await axios.post('/auth/account/recover', { ticket: recoveryTicket })
 
-      alert(response.data.message || '계정이 복구되었습니다. 다시 로그인해주세요.')
+      await refreshUserInfo()
       setShowRecoverModal(false)
-      setRecoverEmail('')
-      // 복구 후 폼 초기화
-      setEmail('')
-      setPassword('')
+      setRecoveryTicket('')
+      navigate('/', { replace: true })
     } catch (err: unknown) {
       alert(getErrorMessage(err))
     } finally {
@@ -87,7 +81,7 @@ export default function Login() {
 
   const handleCancelRecover = () => {
     setShowRecoverModal(false)
-    setRecoverEmail('')
+    setRecoveryTicket('')
   }
 
   // 인앱브라우저 감지 함수
@@ -97,35 +91,16 @@ export default function Login() {
            /; wv\)|version\/[\d.]+.*mobile.*safari/.test(userAgent);
   };
 
-  const handleSocialLogin = (provider: string) => {
+  const handleSocialLogin = (provider: 'google' | 'kakao' | 'naver') => {
     // 구글은 인앱브라우저에서 차단
     if (provider === 'google' && isInAppBrowser()) {
       alert('구글 로그인은 인앱브라우저에서 지원되지 않습니다. \n일반 브라우저에서 이용해주세요.');
       return;
     }
 
-    // 인앱브라우저에서는 새 창 열기 시도
-    if (isInAppBrowser()) {
-      const authUrl = `${window.location.origin}/oauth2/authorization/${provider}`;
-      const newWindow = window.open(authUrl, '_blank', 'width=500,height=600');
-      
-      if (!newWindow) {
-        // 팝업 차단 시 직접 이동
-        window.location.href = authUrl;
-      } else {
-        // 새 창이 열렸을 때 주기적으로 확인
-        const checkClosed = setInterval(() => {
-          if (newWindow.closed) {
-            clearInterval(checkClosed);
-            // 창이 닫히면 페이지 새로고침
-            window.location.reload();
-          }
-        }, 1000);
-      }
-    } else {
-      // 일반 브라우저에서는 기존 방식
-      window.location.href = `/oauth2/authorization/${provider}`;
-    }
+    const oauthBaseUrl = import.meta.env.VITE_OAUTH_BASE_URL
+      || (window.location.hostname === 'localhost' ? 'http://localhost:8080' : window.location.origin)
+    window.location.assign(`${oauthBaseUrl}/oauth2/authorization/${provider}`)
   }
 
 
@@ -328,11 +303,6 @@ export default function Login() {
               <p className="text-gray-300 text-sm">
                 탈퇴한 계정을 복구하시겠습니까?
               </p>
-            </div>
-
-            <div className="bg-[#2a2d47] p-4 rounded-lg mb-6">
-              <p className="text-sm text-gray-300 mb-2">이메일:</p>
-              <p className="text-white font-medium">{recoverEmail}</p>
             </div>
 
             <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
