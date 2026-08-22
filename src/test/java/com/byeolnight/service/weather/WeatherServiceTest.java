@@ -46,7 +46,8 @@ class WeatherServiceTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        weatherService = new WeatherService(localCacheService, meterRegistry, restTemplate);
+        weatherService = new WeatherService(
+                localCacheService, meterRegistry, restTemplate, new ObservationScoreService());
         ReflectionTestUtils.setField(weatherService, "apiKey", TEST_API_KEY);
         ReflectionTestUtils.setField(weatherService, "apiUrl", TEST_API_URL);
     }
@@ -111,6 +112,10 @@ class WeatherServiceTest {
             assertThat(result.getLongitude()).isEqualTo(expectedLon);
             assertThat(result.getCloudCover()).isEqualTo(20.0);
             assertThat(result.getVisibility()).isEqualTo(10.0);
+            assertThat(result.getObservationScore()).isBetween(0, 100);
+            assertThat(result.getCloudScore()).isEqualTo(44);
+            assertThat(result.getVisibilityScore()).isEqualTo(30);
+            assertThat(result.getMoonScore()).isBetween(2, 15);
             verify(localCacheService, times(1)).put(anyString(), any(WeatherResponse.class));
         }
 
@@ -188,6 +193,7 @@ class WeatherServiceTest {
             assertThat(result.getObservationQuality()).isEqualTo("UNKNOWN");
             assertThat(result.getCloudCover()).isNull();
             assertThat(result.getVisibility()).isNull();
+            assertThat(result.getObservationScore()).isNull();
             assertThat(result.getDataStatus()).isEqualTo(WeatherResponse.DataStatus.UNAVAILABLE);
             assertThat(result.getLastSuccessfulAt()).isNull();
         }

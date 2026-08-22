@@ -289,7 +289,6 @@ export default function ChatSidebar() {
               onClick={handleRetryConnection}
               className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors flex items-center gap-1"
               title="채팅 재연결"
-              disabled={connecting}
             >
               🔄 재연결
             </button>

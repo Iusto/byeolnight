@@ -12,24 +12,33 @@ class ChatConnector {
   private callbacks: ChatConnectorCallbacks | null = null;
   private retryCount = 0;
   private maxRetries = 5;
+  private readonly connectionTimeoutMs = 10000;
   private readonly stableConnectionResetMs = 120000;
   private userNickname?: string;
   private reconnectTimeout?: NodeJS.Timeout;
+  private connectionTimeout?: NodeJS.Timeout;
   private stableConnectionTimeout?: NodeJS.Timeout;
   private heartbeatInterval?: NodeJS.Timeout;
   private missedHeartbeats = 0;
   private maxMissedHeartbeats = 3;
 
   async connect(callbacks: ChatConnectorCallbacks, userNickname?: string) {
-    // 연결 중(CONNECTING)인 소켓도 중복 연결로 간주해야 소켓이 두 개 생기지 않음
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      console.log('이미 연결되어 있음');
-      return;
-    }
-
     this.clearReconnectTimeout();
     this.callbacks = callbacks;
     this.userNickname = userNickname;
+
+    // 화면이 다시 마운트될 때 기존 소켓을 재사용하더라도 새 콜백을 먼저 등록해야
+    // UI가 영구적으로 "연결 중" 상태에 머무르지 않는다.
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.isConnected = true;
+      callbacks.onConnect();
+      return;
+    }
+
+    if (this.ws?.readyState === WebSocket.CONNECTING) {
+      this.startConnectionTimeout(this.ws);
+      return;
+    }
 
     const wsUrl = import.meta.env.VITE_WS_URL ||
       (window.location.hostname === 'localhost' ? 'ws://localhost:8080/ws' :
@@ -40,6 +49,7 @@ class ChatConnector {
     try {
       const socket = new WebSocket(wsUrl);
       this.ws = socket;
+      this.startConnectionTimeout(socket);
 
       // 이전 소켓의 이벤트가 뒤늦게 도착해 현재 연결 상태를 덮어쓰지 않도록
       // 모든 핸들러에서 자기 소켓인지 확인한다
@@ -59,6 +69,7 @@ class ChatConnector {
       socket.onclose = (event) => {
         if (this.ws !== socket) return;
         console.log('🔌 WebSocket 연결 종료:', event.code, event.reason);
+        this.clearConnectionTimeout();
         this.ws = null;
         this.handleDisconnect();
       };
@@ -73,6 +84,7 @@ class ChatConnector {
 
   private handleConnect() {
     console.log('✅ WebSocket 연결 성공');
+    this.clearConnectionTimeout();
     this.isConnected = true;
     this.missedHeartbeats = 0;
     this.clearReconnectTimeout();
@@ -151,6 +163,34 @@ class ChatConnector {
     }
   }
 
+  private startConnectionTimeout(socket: WebSocket) {
+    this.clearConnectionTimeout();
+    this.connectionTimeout = setTimeout(() => {
+      this.connectionTimeout = undefined;
+      if (this.ws !== socket || socket.readyState !== WebSocket.CONNECTING) return;
+
+      console.warn('⚠️ WebSocket 연결 제한 시간 초과, 재연결 시도');
+      this.ws = null;
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      try {
+        socket.close();
+      } catch {
+        // CONNECTING 상태 종료 과정에서 발생하는 브라우저별 예외는 무시한다.
+      }
+      this.handleDisconnect();
+    }, this.connectionTimeoutMs);
+  }
+
+  private clearConnectionTimeout() {
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = undefined;
+    }
+  }
+
   private scheduleRetryCountReset() {
     this.clearStableConnectionTimeout();
 
@@ -175,6 +215,7 @@ class ChatConnector {
   // 소켓을 버릴 때 핸들러를 먼저 떼어내야 뒤늦게 오는 close 이벤트가
   // 새 연결 상태를 건드리지 않는다
   private discardSocket() {
+    this.clearConnectionTimeout();
     const socket = this.ws;
     this.ws = null;
     this.isConnected = false;
@@ -205,6 +246,7 @@ class ChatConnector {
   disconnect() {
     this.stopHeartbeat();
     this.clearReconnectTimeout();
+    this.clearConnectionTimeout();
     this.clearStableConnectionTimeout();
     this.discardSocket();
     this.callbacks = null;
@@ -219,6 +261,7 @@ class ChatConnector {
     this.retryCount = 0;
     this.stopHeartbeat();
     this.clearReconnectTimeout();
+    this.clearConnectionTimeout();
     this.clearStableConnectionTimeout();
     this.discardSocket();
 

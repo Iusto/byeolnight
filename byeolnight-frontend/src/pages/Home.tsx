@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { ChatSidebar } from '../components/chat';
-import { WeatherWidget } from '../components/ui';
+import { TodaySpaceCard } from '../components/ui';
 import HeroSection from '../components/home/HeroSection';
 import { BoardNavigation, Section, PostCard, LoadingSpinner, StarfieldBackground, BoardSection } from '../components/common';
 import { extractFirstImage } from '../utils/formatters';
@@ -77,6 +77,14 @@ export default function Home() {
   const isAdmin = user?.role === 'ADMIN';
   const filteredPosts = useMemo(() => posts.filter(post => isAdmin || !post.blinded), [posts, isAdmin]);
   const filteredStarPhotos = useMemo(() => starPhotos.filter(photo => isAdmin || !photo.blinded), [starPhotos, isAdmin]);
+  const latestNews = useMemo(
+    () => boardPosts.NEWS?.find(post => isAdmin || !post.blinded),
+    [boardPosts.NEWS, isAdmin],
+  );
+  const latestCinema = useMemo(
+    () => boardPosts.STARLIGHT_CINEMA?.find(post => isAdmin || !post.blinded),
+    [boardPosts.STARLIGHT_CINEMA, isAdmin],
+  );
 
   if (authLoading || !dataLoaded) {
     return <LoadingSpinner />;
@@ -259,8 +267,8 @@ export default function Home() {
             {/* 채팅 사이드바 */}
             <div className="lg:col-span-2 order-first lg:order-last">
               <div className="sticky top-4 space-y-6">
-                {/* 날씨 위젯 */}
-                <WeatherWidget />
+                {/* 오늘의 관측 환경과 우주 콘텐츠를 한 카드에서 제공 */}
+                <TodaySpaceCard latestNews={latestNews} latestCinema={latestCinema} />
                 
                 {/* 채팅 사이드바 */}
                 <ChatSidebar />

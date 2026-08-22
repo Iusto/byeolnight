@@ -30,6 +30,7 @@ public class WeatherScheduler {
     private final WeatherCityConfig cityConfig;
     private final RestTemplate restTemplate;
     private final MeterRegistry meterRegistry;
+    private final ObservationScoreService observationScoreService;
     private final Sleeper sleeper;
 
     static final int MAX_ATTEMPTS = 2;
@@ -43,19 +44,22 @@ public class WeatherScheduler {
     public WeatherScheduler(WeatherLocalCacheService cacheService,
                             WeatherCityConfig cityConfig,
                             @Qualifier("weatherRestTemplate") RestTemplate restTemplate,
-                            MeterRegistry meterRegistry) {
-        this(cacheService, cityConfig, restTemplate, meterRegistry, Thread::sleep);
+                            MeterRegistry meterRegistry,
+                            ObservationScoreService observationScoreService) {
+        this(cacheService, cityConfig, restTemplate, meterRegistry, observationScoreService, Thread::sleep);
     }
 
     WeatherScheduler(WeatherLocalCacheService cacheService,
                      WeatherCityConfig cityConfig,
                      RestTemplate restTemplate,
                      MeterRegistry meterRegistry,
+                     ObservationScoreService observationScoreService,
                      Sleeper sleeper) {
         this.cacheService = cacheService;
         this.cityConfig = cityConfig;
         this.restTemplate = restTemplate;
         this.meterRegistry = meterRegistry;
+        this.observationScoreService = observationScoreService;
         this.sleeper = sleeper;
     }
 
@@ -123,8 +127,9 @@ public class WeatherScheduler {
 
     private WeatherResponse fetchWeatherData(WeatherCityConfig.City city) {
         OpenWeatherResponse apiResponse = callWeatherAPI(city.latitude(), city.longitude());
-        String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
         String moonPhase = getMoonPhaseIcon();
+        ObservationScoreService.ObservationScore score = observationScoreService.calculate(
+                apiResponse.getCloudCover(), apiResponse.getVisibilityKm(), moonPhase);
         String successfulAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
         return WeatherResponse.builder()
@@ -134,8 +139,12 @@ public class WeatherScheduler {
                 .cloudCover(apiResponse.getCloudCover())
                 .visibility(apiResponse.getVisibilityKm())
                 .moonPhase(moonPhase)
-                .observationQuality(quality)
-                .recommendation(quality)
+                .observationScore(score.totalScore())
+                .cloudScore(score.cloudScore())
+                .visibilityScore(score.visibilityScore())
+                .moonScore(score.moonScore())
+                .observationQuality(score.quality())
+                .recommendation(score.quality())
                 .observationTime(successfulAt)
                 .dataStatus(WeatherResponse.DataStatus.FRESH)
                 .lastSuccessfulAt(successfulAt)
@@ -154,13 +163,6 @@ public class WeatherScheduler {
             throw new IllegalStateException("날씨 API 응답이 null입니다");
         }
         return response;
-    }
-
-    private String calculateObservationQuality(double cloudCover, double visibilityKm) {
-        if (cloudCover < 20 && visibilityKm >= 8) return "EXCELLENT";
-        if (cloudCover < 40 && visibilityKm >= 6) return "GOOD";
-        if (cloudCover < 70 && visibilityKm >= 3) return "FAIR";
-        return "POOR";
     }
 
     private static double toJulian(LocalDateTime dtUtc) {

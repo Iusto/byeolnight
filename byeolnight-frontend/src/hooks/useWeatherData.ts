@@ -9,6 +9,10 @@ export interface WeatherData {
   cloudCover: number | null;
   visibility: number | null;
   moonPhase: string;
+  observationScore: number | null;
+  cloudScore: number | null;
+  visibilityScore: number | null;
+  moonScore: number | null;
   observationQuality: string;
   recommendation: string;
   observationTime: string | null;
