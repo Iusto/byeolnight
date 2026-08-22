@@ -59,7 +59,7 @@ axios 인터셉터가 토큰 갱신 실패 시 `window.location.href`를 직접 
 
 ```typescript
 // Before - publicApis 체크가 401 체크보다 먼저 실행
-const publicApis = ['/auth/withdraw', '/auth/password/', '/auth/oauth/recover'];
+const publicApis = ['/auth/withdraw', '/auth/password/', '/auth/account/recover'];
 if (publicApis.some(api => originalRequest.url?.includes(api))) {
   return Promise.reject(error);
 }

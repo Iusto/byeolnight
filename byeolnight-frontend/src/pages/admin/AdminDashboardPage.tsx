@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../../lib/axios';
+import CinemaManagementCard from '../../components/admin/CinemaManagementCard';
 
 interface UserSummary {
   status: string;
@@ -209,6 +210,8 @@ export default function AdminDashboardPage() {
 
       {/* 차트 영역 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <CinemaManagementCard />
 
         {/* 사용자 현황 - 바 차트 */}
         <div className="bg-[#1f2336]/80 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">

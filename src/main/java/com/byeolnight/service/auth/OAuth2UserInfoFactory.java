@@ -18,9 +18,11 @@ public class OAuth2UserInfoFactory {
     }
 
     public interface OAuth2UserInfo {
+        String getProviderUserId();
         String getEmail();
         String getName();
         String getImageUrl();
+        Boolean isEmailVerified();
     }
 
     public static class GoogleOAuth2UserInfo implements OAuth2UserInfo {
@@ -28,6 +30,11 @@ public class OAuth2UserInfoFactory {
 
         public GoogleOAuth2UserInfo(Map<String, Object> attributes) {
             this.attributes = attributes;
+        }
+
+        @Override
+        public String getProviderUserId() {
+            return (String) attributes.get("sub");
         }
 
         @Override
@@ -44,6 +51,12 @@ public class OAuth2UserInfoFactory {
         public String getImageUrl() {
             return (String) attributes.get("picture");
         }
+
+        @Override
+        public Boolean isEmailVerified() {
+            Object value = attributes.get("email_verified");
+            return value instanceof Boolean verified ? verified : null;
+        }
     }
 
     public static class KakaoOAuth2UserInfo implements OAuth2UserInfo {
@@ -51,6 +64,12 @@ public class OAuth2UserInfoFactory {
 
         public KakaoOAuth2UserInfo(Map<String, Object> attributes) {
             this.attributes = attributes;
+        }
+
+        @Override
+        public String getProviderUserId() {
+            Object value = attributes.get("id");
+            return value == null ? null : value.toString();
         }
 
         @Override
@@ -67,6 +86,20 @@ public class OAuth2UserInfoFactory {
         public String getImageUrl() {
             return getNestedString(attributes, "properties", "profile_image");
         }
+
+        @Override
+        public Boolean isEmailVerified() {
+            Object account = attributes.get("kakao_account");
+            if (account instanceof Map<?, ?> accountMap) {
+                Object valid = accountMap.get("is_email_valid");
+                Object verified = accountMap.get("is_email_verified");
+                if (valid instanceof Boolean validEmail && !validEmail) {
+                    return false;
+                }
+                return verified instanceof Boolean verifiedEmail ? verifiedEmail : null;
+            }
+            return null;
+        }
     }
 
     public static class NaverOAuth2UserInfo implements OAuth2UserInfo {
@@ -74,6 +107,11 @@ public class OAuth2UserInfoFactory {
 
         public NaverOAuth2UserInfo(Map<String, Object> attributes) {
             this.attributes = attributes;
+        }
+
+        @Override
+        public String getProviderUserId() {
+            return getNestedString(attributes, "response", "id");
         }
 
         @Override
@@ -89,6 +127,11 @@ public class OAuth2UserInfoFactory {
         @Override
         public String getImageUrl() {
             return getNestedString(attributes, "response", "profile_image");
+        }
+
+        @Override
+        public Boolean isEmailVerified() {
+            return null;
         }
     }
 

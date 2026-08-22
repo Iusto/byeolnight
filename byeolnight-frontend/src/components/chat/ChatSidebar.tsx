@@ -7,31 +7,14 @@ import { UserIconDisplay } from '../user';
 import EmojiPicker from './EmojiPicker';
 import chatConnector from './ChatConnector';
 
-interface ChatMessage {
-  id?: string;
-  sender: string;
-  senderIcon?: string;
-  message: string;
-  timestamp: string;
-  isBlinded?: boolean;
-}
-
-interface BanStatus {
-  banned: boolean;
-  reason?: string;
-  duration?: number;
-  bannedUntil?: string;
-}
+import type { BanStatus } from './chatTypes';
+import { useChatConnection } from './useChatConnection';
 
 export default function ChatSidebar() {
   const { user } = useContext(AuthContext);
   const { t, i18n } = useTranslation();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
-  const [connectionError, setConnectionError] = useState('');
-  const [connecting, setConnecting] = useState(true);
-  const [connected, setConnected] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(true);
   const [oldestMessageId, setOldestMessageId] = useState<string | null>(null);
@@ -41,58 +24,25 @@ export default function ChatSidebar() {
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    messages,
+    setMessages,
+    connectionError,
+    connecting,
+    connected,
+    retryConnection: handleRetryConnection,
+  } = useChatConnection({
+    nickname: user?.nickname,
+    connectionFailedMessage: t('home.chat.connection_failed'),
+    bannedMessage: t('home.chat.banned'),
+    onBanStatus: (status) => {
+      setBanStatus(status);
+      if (!status) setRemainingTime(0);
+    },
+    onErrorMessage: setError,
+  });
 
   // WebSocket 연결 및 콜백 설정
-  const initializeWebSocket = async () => {
-    setConnecting(true);
-    
-    await chatConnector.connect({
-      onMessage: (msg) => {
-        setMessages(prev => [...prev.slice(-50), msg]);
-      },
-      onConnect: () => {
-        setConnecting(false);
-        setConnected(true);
-        setConnectionError('');
-      },
-      onDisconnect: (willReconnect) => {
-        setConnected(false);
-        // 재연결 중에는 상태 표시가 비어 보이지 않도록 "연결 중"을 유지한다
-        setConnecting(willReconnect);
-      },
-      onError: () => {
-        setConnecting(false);
-        setConnected(false);
-        setConnectionError(t('home.chat.connection_failed'));
-      },
-      onBanNotification: (banData) => {
-        if (banData.banned) {
-          const endTime = new Date().getTime() + (banData.duration * 60 * 1000);
-          const newBanStatus: BanStatus = {
-            banned: true,
-            reason: banData.reason,
-            duration: banData.duration,
-            bannedUntil: new Date(endTime).toISOString()
-          };
-          setBanStatus(newBanStatus);
-          setError(`${t('home.chat.banned')}: ${banData.reason}`);
-        } else {
-          setBanStatus(null);
-          setError('');
-          setRemainingTime(0);
-        }
-      },
-
-    }, user?.nickname);
-  };
-
-  const handleRetryConnection = () => {
-    setConnectionError('');
-    setConnecting(true);
-    setConnected(false);
-    chatConnector.retryConnection();
-  };
-
   const loadInitialMessages = async () => {
     try {
       const res = await axios.get('/public/chat', {
@@ -304,11 +254,6 @@ export default function ChatSidebar() {
 
   useEffect(() => {
     loadInitialMessages();
-    initializeWebSocket();
-    
-    return () => {
-      chatConnector.disconnect();
-    };
   }, []);
 
   useEffect(() => {

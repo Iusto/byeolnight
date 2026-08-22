@@ -1,50 +1,33 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import axios from '../lib/axios'
 import { getErrorMessage } from '../types/api'
 
 export default function OAuthRecover() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { refreshUserInfo } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isReady, setIsReady] = useState(false)
-
-  const email = searchParams.get('email')
-  const provider = searchParams.get('provider')
+  const ticket = searchParams.get('ticket')
 
   useEffect(() => {
-    // URL 파라미터가 없으면 로그인 페이지로 리다이렉트
-    if (!email || !provider) {
-      navigate('/login')
-      return
+    if (!ticket) {
+      navigate('/login', { replace: true })
     }
-    setIsReady(true)
-  }, [email, provider, navigate])
-
-  const getProviderName = (provider: string) => {
-    switch (provider) {
-      case 'google': return 'Google'
-      case 'kakao': return 'Kakao'
-      case 'naver': return 'Naver'
-      default: return provider
-    }
-  }
+  }, [ticket, navigate])
 
   const handleRecover = async () => {
+    if (!ticket) return
+
     setLoading(true)
     setError('')
 
     try {
-      const response = await axios.post('/auth/oauth/recover', {
-        email,
-        provider,
-        recover: true
-      })
-
-      alert(response.data.message || '계정이 복구되었습니다.')
-      // 복구 후 해당 소셜 로그인으로 리다이렉트
-      window.location.href = `/oauth2/authorization/${provider}`
+      await axios.post('/auth/account/recover', { ticket })
+      await refreshUserInfo()
+      navigate('/', { replace: true })
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -52,11 +35,7 @@ export default function OAuthRecover() {
     }
   }
 
-
-
-  if (!email || !provider) {
-    return null
-  }
+  if (!ticket) return null
 
   return (
     <div className="min-h-screen bg-space-gradient flex items-center justify-center px-4">
@@ -65,13 +44,14 @@ export default function OAuthRecover() {
           <div className="text-6xl mb-4">🌌</div>
           <h2 className="text-2xl font-bold mb-2">계정 복구</h2>
           <p className="text-gray-300 text-sm">
-            {getProviderName(provider)} 계정으로 이전에 가입한 기록이 있습니다.
+            인증된 외부 계정과 연결된 탈퇴 계정이 확인되었습니다.
           </p>
         </div>
 
-        <div className="bg-[#2a2d47] p-4 rounded-lg mb-6">
-          <p className="text-sm text-gray-300 mb-2">이메일:</p>
-          <p className="text-white font-medium">{email}</p>
+        <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+          <p className="text-yellow-300 text-sm text-center">
+            복구하면 이전 활동 기록과 보유 항목을 다시 사용할 수 있습니다.
+          </p>
         </div>
 
         {error && (
@@ -86,21 +66,16 @@ export default function OAuthRecover() {
             disabled={loading}
             className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '처리 중...' : '계정 복구하기'}
+            {loading ? '복구 중...' : '계정 복구하기'}
           </button>
 
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login', { replace: true })}
             disabled={loading}
             className="w-full bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            로그인 페이지로 돌아가기
+            취소
           </button>
-        </div>
-
-        <div className="mt-6 text-xs text-gray-400 text-center">
-          <p>• 30일 이내에만 복구 가능합니다</p>
-          <p>• 복구 시 이전 활동 내역과 포인트가 유지됩니다</p>
         </div>
       </div>
     </div>

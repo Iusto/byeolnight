@@ -5,24 +5,7 @@ import { UserIconDisplay } from '../user';
 import { EmojiPicker } from '../chat';
 import { ClickableNickname } from '../user';
 import { getErrorMessage } from '../../types/api';
-
-interface Comment {
-  id: number;
-  content: string;
-  writer: string;
-  writerId?: number;
-  createdAt: string;
-  likeCount: number;
-  reportCount: number;
-  isPopular: boolean;
-  blinded: boolean;
-  deleted: boolean;
-  writerIcon?: string;
-  writerCertificates?: string[];
-  parentId?: number;
-  parentWriter?: string;
-  children?: Comment[];
-}
+import { organizeComments, type PostComment as Comment } from './commentTree';
 
 interface Props {
   comments: Comment[];
@@ -505,31 +488,6 @@ export default function CommentList({ comments, postId, onRefresh }: Props) {
     </>
   );
 
-  // 댓글을 평면적 구조로 정리
-  const organizeComments = (comments: Comment[]) => {
-    const rootComments = comments.filter(c => !c.parentId);
-    const allReplies = comments.filter(c => c.parentId);
-    
-    // 각 루트 댓글에 모든 관련 답글들을 평면적으로 연결
-    const organizedComments = rootComments.map(root => {
-      // 이 루트 댓글과 관련된 모든 답글들 찾기
-      const getRootId = (comment: Comment): number => {
-        if (!comment.parentId) return comment.id;
-        const parent = comments.find(c => c.id === comment.parentId);
-        return parent ? getRootId(parent) : comment.id;
-      };
-      
-      const relatedReplies = allReplies.filter(reply => getRootId(reply) === root.id);
-      
-      return {
-        ...root,
-        children: relatedReplies
-      };
-    });
-    
-    return organizedComments;
-  };
-  
   const organizedComments = organizeComments(displayComments);
   
   // TOP3 댓글과 일반 댓글 분리 (루트 댓글만)

@@ -1,9 +1,6 @@
 package com.byeolnight.service.file;
 
-import com.byeolnight.infrastructure.config.SecurityProperties;
-import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.repository.file.FileRepository;
-import com.byeolnight.repository.post.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,13 +29,7 @@ class S3ServiceTest {
     @Mock
     private GoogleVisionService googleVisionService;
     @Mock
-    private PostRepository postRepository;
-    @Mock
-    private CommentRepository commentRepository;
-    @Mock
     private FileRepository fileRepository;
-    @Mock
-    private SecurityProperties securityProperties;
 
     private S3Service s3Service;
 
@@ -46,10 +37,7 @@ class S3ServiceTest {
     void setUp() {
         s3Service = spy(new S3Service(
                 googleVisionService,
-                postRepository,
-                commentRepository,
-                fileRepository,
-                securityProperties
+                fileRepository
         ));
     }
 

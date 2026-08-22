@@ -4,6 +4,7 @@ import com.byeolnight.dto.post.PostRequestDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostLikeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class MemberPostController {
 
     private final PostService postService;
+    private final PostLikeService postLikeService;
 
     @Operation(summary = "게시글 생성", description = """
         [회원만 가능]
@@ -75,7 +77,7 @@ public class MemberPostController {
     @PostMapping("/{postId}/like")
     public ResponseEntity<CommonResponse<String>> likePost(@PathVariable Long postId,
                                                            @AuthenticationPrincipal User user) {
-        postService.likePost(user.getId(), postId);
+        postLikeService.likePost(user.getId(), postId);
         return ResponseEntity.ok(CommonResponse.success("추천 완료"));
     }
 }

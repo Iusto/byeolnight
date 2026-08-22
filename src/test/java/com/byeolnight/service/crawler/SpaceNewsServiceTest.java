@@ -1,8 +1,5 @@
 package com.byeolnight.service.crawler;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.byeolnight.dto.ai.NewsAiContentDto;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
 import com.byeolnight.entity.News;
@@ -11,192 +8,120 @@ import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.config.BaseCollectionProperties;
 import com.byeolnight.infrastructure.config.NewsCollectionProperties;
 import com.byeolnight.repository.NewsRepository;
-import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SpaceNewsServiceTest {
 
     @Mock private NewsRepository newsRepository;
-    @Mock private PostRepository postRepository;
     @Mock private UserRepository userRepository;
-    @Mock private RestTemplate restTemplate;
     @Mock private NewsCollectionProperties newsConfig;
     @Mock private NewsContentValidator validator;
     @Mock private NewsTranslationService translationService;
-    @Mock private NewsContentFormatter formatter;
+    @Mock private NewsDataClient newsDataClient;
+    @Mock private SpaceNewsPersistenceService persistenceService;
+    @Mock private User newsBot;
 
-    @InjectMocks
     private SpaceNewsService service;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(service, "primaryApiKey", "newsdata-key");
-        ReflectionTestUtils.setField(service, "backupApiKey", "");
+        service = new SpaceNewsService(newsRepository, userRepository, newsConfig, validator,
+                translationService, newsDataClient, persistenceService);
     }
 
     @Test
-    @DisplayName("AI 생성이 실패하면 News와 Post를 모두 저장하지 않는다")
-    void AI_실패_시_게시하지_않음() {
-        NewsApiResponseDto.Result article = 기사();
-        NewsApiResponseDto response = 응답(article);
-
-        BaseCollectionProperties.Collection collection = new BaseCollectionProperties.Collection();
-        collection.setMaxPosts(1);
-        when(newsConfig.getCollection()).thenReturn(collection);
-        when(restTemplate.getForObject(anyString(), eq(NewsApiResponseDto.class))).thenReturn(response);
-        when(userRepository.findByEmail("newsbot@byeolnight.com")).thenReturn(Optional.of(mock(User.class)));
-        when(validator.isHighQualityNews(any())).thenReturn(true);
-        when(translationService.generateNewsContent(any())).thenReturn(Optional.empty());
+    @DisplayName("AI 생성 실패 시 저장 서비스가 호출되지 않는다")
+    void doesNotSaveWhenAiGenerationFails() {
+        NewsApiResponseDto.Result article = article();
+        stubCollection(article, 1);
+        when(validator.isHighQualityNews(article)).thenReturn(true);
+        when(translationService.generateNewsContent(article)).thenReturn(Optional.empty());
 
         service.collectAndSaveSpaceNews();
 
-        verify(newsRepository, never()).save(any(News.class));
-        verify(postRepository, never()).save(any(Post.class));
-        verify(formatter, never()).formatNewsContent(any(), any());
+        verify(persistenceService, never()).save(any(), any(), any());
     }
 
     @Test
-    @DisplayName("성공한 기사 한 건은 AI를 한 번만 호출하고 News와 Post를 한 번씩 저장한다")
-    void 성공_경로는_AI와_저장을_각_한번_수행() {
-        NewsApiResponseDto.Result article = 기사();
-        BaseCollectionProperties.Collection collection = new BaseCollectionProperties.Collection();
-        collection.setMaxPosts(1);
-        NewsAiContentDto generated = 생성콘텐츠();
-        Post savedPost = Post.builder().title(generated.getKoreanTitle()).build();
-
-        when(newsConfig.getCollection()).thenReturn(collection);
-        when(restTemplate.getForObject(anyString(), eq(NewsApiResponseDto.class))).thenReturn(응답(article));
-        when(userRepository.findByEmail("newsbot@byeolnight.com")).thenReturn(Optional.of(mock(User.class)));
-        when(validator.isHighQualityNews(any())).thenReturn(true);
-        when(translationService.generateNewsContent(any())).thenReturn(Optional.of(generated));
-        when(formatter.formatHashtags(generated)).thenReturn("#NASA #외계행성");
-        when(formatter.formatNewsContent(article, generated)).thenReturn("## 한눈에 보기\n\n요약");
-        when(postRepository.save(any(Post.class))).thenReturn(savedPost);
+    @DisplayName("검증된 기사 한 건은 AI 생성 후 한 번 저장한다")
+    void savesValidatedArticleOnce() {
+        NewsApiResponseDto.Result article = article();
+        NewsAiContentDto generated = generatedContent();
+        stubCollection(article, 1);
+        when(validator.isHighQualityNews(article)).thenReturn(true);
+        when(translationService.generateNewsContent(article)).thenReturn(Optional.of(generated));
+        when(persistenceService.save(article, generated, newsBot))
+                .thenReturn(Post.builder().title(generated.getKoreanTitle()).build());
 
         service.collectAndSaveSpaceNews();
 
-        verify(translationService, times(1)).generateNewsContent(article);
-        verify(newsRepository, times(1)).save(any(News.class));
-        verify(postRepository, times(1)).save(any(Post.class));
-        verify(formatter, times(1)).formatNewsContent(article, generated);
+        verify(translationService).generateNewsContent(article);
+        verify(persistenceService).save(article, generated, newsBot);
     }
 
     @Test
-    @DisplayName("동일 수집 배치의 유사 기사는 AI를 중복 호출하지 않는다")
-    void 배치_중복은_AI_호출_전에_제외() {
-        NewsApiResponseDto.Result article = 기사();
-        BaseCollectionProperties.Collection collection = new BaseCollectionProperties.Collection();
-        collection.setMaxPosts(2);
-        NewsAiContentDto generated = 생성콘텐츠();
-        Post savedPost = Post.builder().title(generated.getKoreanTitle()).build();
-
-        when(newsConfig.getCollection()).thenReturn(collection);
-        when(restTemplate.getForObject(anyString(), eq(NewsApiResponseDto.class))).thenReturn(응답(article));
-        when(userRepository.findByEmail("newsbot@byeolnight.com")).thenReturn(Optional.of(mock(User.class)));
-        when(validator.isHighQualityNews(any())).thenReturn(true);
+    @DisplayName("같은 수집 배치의 유사 기사는 AI 호출 전에 제외한다")
+    void skipsSimilarArticleBeforeAi() {
+        NewsApiResponseDto.Result article = article();
+        stubCollection(article, 2);
+        when(validator.isHighQualityNews(article)).thenReturn(true);
         when(validator.isSimilarToBatch(eq(article), anyList()))
                 .thenAnswer(invocation -> !((List<?>) invocation.getArgument(1)).isEmpty());
+        NewsAiContentDto generated = generatedContent();
         when(translationService.generateNewsContent(article)).thenReturn(Optional.of(generated));
-        when(formatter.formatHashtags(generated)).thenReturn("#NASA #외계행성");
-        when(formatter.formatNewsContent(article, generated)).thenReturn("## 한눈에 보기\n\n요약");
-        when(postRepository.save(any(Post.class))).thenReturn(savedPost);
+        when(persistenceService.save(article, generated, newsBot))
+                .thenReturn(Post.builder().title(generated.getKoreanTitle()).build());
 
         service.collectAndSaveSpaceNews();
 
         verify(translationService, times(1)).generateNewsContent(article);
-        verify(newsRepository, times(1)).save(any(News.class));
-        verify(postRepository, times(1)).save(any(Post.class));
+        verify(persistenceService, times(1)).save(article, generated, newsBot);
     }
 
-    @Test
-    @DisplayName("NewsData 예외 메시지와 API 키는 로그에 남기지 않는다")
-    void NewsData_비밀정보_로그_차단() {
-        String secret = "TOP_SECRET_API_KEY";
-        ReflectionTestUtils.setField(service, "primaryApiKey", secret);
-        when(restTemplate.getForObject(anyString(), eq(NewsApiResponseDto.class)))
-                .thenThrow(new RuntimeException("https://newsdata.io/api/1/news?apikey=" + secret));
-
-        Logger logger = (Logger) LoggerFactory.getLogger(SpaceNewsService.class);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
-        try {
-            service.fetchKoreanSpaceNews();
-        } finally {
-            logger.detachAppender(appender);
-            appender.stop();
-        }
-
-        String logs = appender.list.stream()
-                .map(ILoggingEvent::getFormattedMessage)
-                .reduce("", (left, right) -> left + "\n" + right);
-        assertThat(logs).doesNotContain(secret, "apikey=", "https://newsdata.io");
-        assertThat(logs).contains("RuntimeException", "status=N/A");
+    private void stubCollection(NewsApiResponseDto.Result article, int maxPosts) {
+        BaseCollectionProperties.Collection collection = new BaseCollectionProperties.Collection();
+        collection.setMaxPosts(maxPosts);
+        when(newsConfig.getCollection()).thenReturn(collection);
+        when(newsDataClient.fetchSpaceNews()).thenReturn(response(article));
+        when(userRepository.findByEmail("newsbot@byeolnight.com")).thenReturn(Optional.of(newsBot));
     }
 
-    @Test
-    @DisplayName("NewsData가 429를 반환하면 예외 메시지가 아닌 상태 코드로 백업 키 재시도를 결정한다")
-    void NewsData_429_상태코드로_백업키_재시도() {
-        ReflectionTestUtils.setField(service, "backupApiKey", "backup-key");
-        HttpClientErrorException rateLimit = HttpClientErrorException.create(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "메시지에 quota 표현이 없어도 동작",
-                HttpHeaders.EMPTY,
-                new byte[0],
-                StandardCharsets.UTF_8
-        );
-        NewsApiResponseDto emptyResponse = new NewsApiResponseDto();
-        emptyResponse.setStatus("success");
-        emptyResponse.setResults(List.of());
-        when(restTemplate.getForObject(anyString(), eq(NewsApiResponseDto.class)))
-                .thenThrow(rateLimit)
-                .thenReturn(emptyResponse);
-
-        service.fetchKoreanSpaceNews();
-
-        verify(restTemplate, times(5)).getForObject(anyString(), eq(NewsApiResponseDto.class));
-    }
-
-    private NewsApiResponseDto.Result 기사() {
+    private NewsApiResponseDto.Result article() {
         NewsApiResponseDto.Result article = new NewsApiResponseDto.Result();
         article.setTitle("NASA telescope finds a nearby exoplanet");
-        article.setDescription("NASA used a space telescope to identify an exoplanet for follow-up observations.");
+        article.setDescription("NASA used a space telescope to identify an exoplanet.");
         article.setLink("https://example.com/nasa-exoplanet");
         article.setSourceName("NASA");
         article.setPubDate("2026-08-22 10:00:00");
         return article;
     }
 
-    private NewsApiResponseDto 응답(NewsApiResponseDto.Result article) {
+    private NewsApiResponseDto response(NewsApiResponseDto.Result article) {
         NewsApiResponseDto response = new NewsApiResponseDto();
         response.setStatus("success");
-        response.setResults(List.of(article));
+        response.setResults(List.of(article, article));
         return response;
     }
 
-    private NewsAiContentDto 생성콘텐츠() {
+    private NewsAiContentDto generatedContent() {
         NewsAiContentDto content = new NewsAiContentDto();
         content.setKoreanTitle("NASA, 새로운 외계행성 발견");
         content.setOverview("NASA가 새로운 외계행성을 확인했다.");

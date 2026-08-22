@@ -4,7 +4,7 @@ import com.byeolnight.controller.admin.AdminUserController;
 import com.byeolnight.dto.admin.IpBlockRequestDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.repository.log.AuditSignupLogRepository;
-import com.byeolnight.service.auth.SocialAccountCleanupService;
+import com.byeolnight.service.auth.AccountRecoveryService;
 import com.byeolnight.service.user.PointService;
 import com.byeolnight.service.user.UserAccountService;
 import com.byeolnight.service.user.UserAdminService;
@@ -89,7 +89,7 @@ class IpBlockRedisIntegrationTest {
                 redisTemplate,
                 mock(PointService.class),
                 mock(WithdrawnUserCleanupService.class),
-                mock(SocialAccountCleanupService.class)
+                mock(AccountRecoveryService.class)
         );
         userSecurityService = new UserSecurityService(
                 mock(AuditSignupLogRepository.class),

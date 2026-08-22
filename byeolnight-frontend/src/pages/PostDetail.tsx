@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { MarkdownRenderer, NewsArticleContent } from '../components/post';
+import { CinemaArticleContent, MarkdownRenderer, NewsArticleContent } from '../components/post';
 import { ClickableNickname, UserIconDisplay } from '../components/user';
 import { CommentList, CommentForm } from '../components/post';
 import { getErrorMessage, isAxiosError } from '../types/api';
@@ -526,6 +526,8 @@ export default function PostDetail() {
           <div className="mb-8">
             {post.category === 'NEWS' ? (
               <NewsArticleContent content={post.content} />
+            ) : post.category === 'STARLIGHT_CINEMA' ? (
+              <CinemaArticleContent content={post.content} />
             ) : (
               <MarkdownRenderer content={post.content} />
             )}

@@ -56,7 +56,8 @@ Mock 기반으로 외부 의존성(DB, Redis, 외부 API)을 격리하여 비즈
 | `TokenServiceTest` | 17개 | Redis 토큰 관리, 블랙리스트, TTL, 해시 검증 |
 | `EmailAuthServiceTest` | 12개 | 이메일 인증, 시도 횟수 제한, 코드 검증 |
 | `CoordinateUtilsTest` | 9개 | 좌표 유틸리티 변환 정확성 |
-| `SocialAccountCleanupServiceTest` | 8개 | 30일 내 복구, 개인정보 마스킹 |
+| `AccountRecoveryServiceTest` | 6개 | 30일 내 복구, OAuth 식별자 재검증 |
+| `WithdrawnUserCleanupServiceTest` | 3개 | 30일 마스킹, 2년 경과 완전 삭제 |
 | `WeatherServiceTest` | 8개 | 날씨 API 파싱, 캐싱, stale 갱신 실패와 미가용 상태 처리 |
 | `SchedulerServiceTest` | 7개 | 크론 표현식, 자동화 작업 실행 |
 | `SchedulerCronExpressionTest` | 7개 | 크론 주기 검증 |

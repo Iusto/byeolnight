@@ -6,6 +6,7 @@ import com.byeolnight.repository.comment.CommentRepository;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.file.FileRepository;
 import com.byeolnight.service.file.S3Service;
+import com.byeolnight.service.file.OrphanImageCleanupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,6 +24,7 @@ public class PostCleanupScheduler {
     private final PostRepository postRepository;
     private final FileRepository fileRepository;
     private final S3Service s3Service;
+    private final OrphanImageCleanupService orphanImageCleanupService;
     private final CommentRepository commentRepository;
 
     @Scheduled(cron = "0 0 8 * * *") // 매일 8시
@@ -76,7 +78,7 @@ public class PostCleanupScheduler {
         log.info("고아 이미지 자동 정리 작업 시작");
         
         try {
-            int deletedCount = s3Service.cleanupOrphanImages();
+            int deletedCount = orphanImageCleanupService.cleanupOrphanImages();
             log.info("고아 이미지 자동 정리 완료: {}개 삭제", deletedCount);
         } catch (Exception e) {
             log.error("고아 이미지 정리 작업 중 오류 발생", e);

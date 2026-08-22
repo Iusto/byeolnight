@@ -20,7 +20,7 @@ import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.certificate.CertificateService;
 import com.byeolnight.service.comment.CommentService;
 import com.byeolnight.service.message.MessageService;
-import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -47,7 +47,7 @@ public class UserProfileService {
     private final StellaIconRepository stellaIconRepository;
     private final UserIconRepository userIconRepository;
     private final CertificateService certificateService;
-    private final PostService postService;
+    private final PostQueryService postQueryService;
     private final CommentService commentService;
     private final MessageService messageService;
     private final PointService pointService;
@@ -131,7 +131,7 @@ public class UserProfileService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         try {
-            org.springframework.data.domain.Page<PostDto.Response> postsPage = postService.getMyPosts(userId, pageable);
+            org.springframework.data.domain.Page<PostDto.Response> postsPage = postQueryService.getMyPosts(userId, pageable);
             log.debug("내 게시글 조회 완료: {}개", postsPage.getContent().size());
 
             org.springframework.data.domain.Page<CommentDto.Response> commentsPage = commentService.getMyComments(userId, pageable);

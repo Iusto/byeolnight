@@ -2,7 +2,7 @@ package com.byeolnight.controller.post;
 
 import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.infrastructure.common.CommonResponse;
-import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -26,7 +26,7 @@ import java.util.List;
 @Tag(name = "🌍 공개 API - 게시글", description = "비회원도 접근 가능한 게시글 조회 API")
 public class PublicPostController {
 
-    private final PostService postService;
+    private final PostQueryService postQueryService;
 
     @Operation(summary = "게시글 목록 조회", description = """
     [비회원 접근 가능]
@@ -62,7 +62,7 @@ public class PublicPostController {
                 category, sort, searchType, search, currentUser != null ? currentUser.getEmail() : "anonymous");
 
         Pageable pageable = PageRequest.of(pageableRaw.getPageNumber(), pageableRaw.getPageSize());
-        Page<PostResponseDto> posts = postService.getFilteredPosts(category, sort, searchType, search, pageable, currentUser);
+        Page<PostResponseDto> posts = postQueryService.getFilteredPosts(category, sort, searchType, search, pageable, currentUser);
 
         log.debug("반환할 게시글 수: {}", posts.getTotalElements());
         return ResponseEntity.ok(CommonResponse.success(posts));
@@ -80,7 +80,7 @@ public class PublicPostController {
             @Parameter(hidden = true) @org.springframework.security.core.annotation.AuthenticationPrincipal 
             com.byeolnight.entity.user.User currentUser) {
         
-        PostResponseDto response = postService.getPostById(id, currentUser);
+        PostResponseDto response = postQueryService.getPostById(id, currentUser);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
@@ -88,7 +88,7 @@ public class PublicPostController {
     @Operation(summary = "전체 카테고리 인기 게시글 조회", description = "최근 30일 기준 추천수 5 이상 게시글을 추천순으로 최대 6개 반환합니다.")
     @Parameter(name = "size", description = "조회할 게시글 수", example = "6")
     public ResponseEntity<CommonResponse<List<PostResponseDto>>> getTopHotPosts(@RequestParam(defaultValue = "6") int size) {
-        List<PostResponseDto> hotPosts = postService.getTopHotPostsAcrossAllCategories(size);
+        List<PostResponseDto> hotPosts = postQueryService.getTopHotPostsAcrossAllCategories(size);
         
         // 날짜 디버그 (개발환경에서만 출력)
         if (!hotPosts.isEmpty()) {

@@ -26,7 +26,8 @@
   - 뉴스 수집: 매일 8시 (한국시간)
   - 토론 주제: 매일 8시 5분
   - 쪽지 정리: 매일 8시
-  - 소셜 계정 정리: 매일 9시/10시
+  - 탈퇴 계정 마스킹: 매일 12시
+  - 탈퇴 계정 완전 삭제: 매일 10시
   - 뉴스 재시도: 8시 5분/10분
 
 ## 🎯 테스트 대상 스케줄러
@@ -37,8 +38,8 @@
 | **SpaceNewsScheduler** | 매일 8시 (재시도: 8시 5분/10분) | 우주 뉴스 수집 | ✅ 완료 |
 | **DiscussionTopicScheduler** | 매일 8시 5분 | AI 토론 주제 생성 | ✅ 완료 |
 | **MessageCleanupService** | 매일 8시 | 3년 경과 쪽지 삭제 | ✅ 완료 |
-| **SocialAccountCleanupService** | 매일 9시/10시 | 소셜 계정 정리 | ✅ 완료 |
-| **WithdrawnUserCleanupService** | 매일 10시 | 5년 경과 탈퇴 회원 정리 | ✅ 완료 |
+| **WithdrawnUserCleanupService** | 매일 12시 | 30일 경과 탈퇴 회원 개인정보 마스킹 | ✅ 완료 |
+| **WithdrawnUserCleanupService** | 매일 10시 | 2년 경과 탈퇴·차단 회원 완전 삭제 | ✅ 완료 |
 
 ## 🚀 테스트 실행 방법
 

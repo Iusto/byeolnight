@@ -36,7 +36,6 @@ const SuggestionDetail = lazy(() => import('./pages/SuggestionDetail'));
 const SuggestionEdit = lazy(() => import('./pages/SuggestionEdit'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
-const OAuthNicknameSetup = lazy(() => import('./pages/OAuthNicknameSetup'));
 const OAuthRecover = lazy(() => import('./pages/OAuthRecover'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -68,7 +67,6 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
-        <Route path="/oauth/setup-nickname" element={<OAuthNicknameSetup />} />
         <Route path="/oauth/recover" element={<OAuthRecover />} />
 
         {/* 관리자 패널 (자체 AdminLayout 사용, 메인 Layout 미적용) */}

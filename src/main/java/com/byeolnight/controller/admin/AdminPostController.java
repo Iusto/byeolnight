@@ -4,6 +4,7 @@ import com.byeolnight.dto.post.PostResponseDto;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.common.CommonResponse;
 import com.byeolnight.service.post.PostService;
+import com.byeolnight.service.post.PostAdminService;
 import com.byeolnight.service.admin.AdminReportPostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,13 +27,14 @@ import java.util.List;
 public class AdminPostController {
 
     private final PostService postService;
+    private final PostAdminService postAdminService;
     private final AdminReportPostService adminReportPostService;
 
     @Operation(summary = "블라인드 게시글 전체 조회", description = "관리자가 블라인드 처리된 게시글 목록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/blinded")
     public ResponseEntity<CommonResponse<List<PostResponseDto>>> getBlindedPostsList() {
-        List<PostResponseDto> result = postService.getBlindedPostsList();
+        List<PostResponseDto> result = postAdminService.getBlindedPostsList();
         return ResponseEntity.ok(CommonResponse.success(result));
     }
 
@@ -48,7 +50,7 @@ public class AdminPostController {
             @PathVariable Long postId,
             @org.springframework.security.core.annotation.AuthenticationPrincipal User admin
     ) {
-        postService.blindPostByAdmin(postId, admin.getId());
+        postAdminService.blindPostByAdmin(postId, admin.getId());
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("블라인드 처리가 완료되었습니다."));
     }
 
@@ -61,7 +63,7 @@ public class AdminPostController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{postId}/unblind")
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> unblindPost(@PathVariable Long postId) {
-        postService.unblindPost(postId);
+        postAdminService.unblindPost(postId);
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("블라인드 해제가 완료되었습니다."));
     }
 
@@ -83,7 +85,7 @@ public class AdminPostController {
     public ResponseEntity<com.byeolnight.infrastructure.common.CommonResponse<String>> movePostsCategory(
             @RequestBody MoveCategoryRequest request
     ) {
-        postService.movePostsCategory(request.getPostIds(), request.getTargetCategory());
+        postAdminService.movePostsCategory(request.getPostIds(), request.getTargetCategory());
         return ResponseEntity.ok(com.byeolnight.infrastructure.common.CommonResponse.success("카테고리 이동이 완료되었습니다."));
     }
 

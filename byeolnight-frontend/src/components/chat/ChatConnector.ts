@@ -12,8 +12,10 @@ class ChatConnector {
   private callbacks: ChatConnectorCallbacks | null = null;
   private retryCount = 0;
   private maxRetries = 5;
+  private readonly stableConnectionResetMs = 120000;
   private userNickname?: string;
   private reconnectTimeout?: NodeJS.Timeout;
+  private stableConnectionTimeout?: NodeJS.Timeout;
   private heartbeatInterval?: NodeJS.Timeout;
   private missedHeartbeats = 0;
   private maxMissedHeartbeats = 3;
@@ -72,9 +74,9 @@ class ChatConnector {
   private handleConnect() {
     console.log('✅ WebSocket 연결 성공');
     this.isConnected = true;
-    this.retryCount = 0;
     this.missedHeartbeats = 0;
     this.clearReconnectTimeout();
+    this.scheduleRetryCountReset();
     this.callbacks?.onConnect();
     this.startHeartbeat();
   }
@@ -111,6 +113,7 @@ class ChatConnector {
     console.log('🔌 연결 종료 감지');
     this.isConnected = false;
     this.stopHeartbeat();
+    this.clearStableConnectionTimeout();
 
     const willReconnect = !!this.callbacks && this.retryCount < this.maxRetries;
     this.callbacks?.onDisconnect(willReconnect);
@@ -148,6 +151,27 @@ class ChatConnector {
     }
   }
 
+  private scheduleRetryCountReset() {
+    this.clearStableConnectionTimeout();
+
+    // 소켓이 열리자마자 재시도 횟수를 초기화하면
+    // 연결 즉시 종료되는 장애에서 영원히 재연결하게 된다.
+    this.stableConnectionTimeout = setTimeout(() => {
+      if (this.connected) {
+        this.retryCount = 0;
+      }
+      this.stableConnectionTimeout = undefined;
+    // 하트비트 실패 판정(최대 90초)보다 길게 유지된 연결만 정상 복구로 본다.
+    }, this.stableConnectionResetMs);
+  }
+
+  private clearStableConnectionTimeout() {
+    if (this.stableConnectionTimeout) {
+      clearTimeout(this.stableConnectionTimeout);
+      this.stableConnectionTimeout = undefined;
+    }
+  }
+
   // 소켓을 버릴 때 핸들러를 먼저 떼어내야 뒤늦게 오는 close 이벤트가
   // 새 연결 상태를 건드리지 않는다
   private discardSocket() {
@@ -181,6 +205,7 @@ class ChatConnector {
   disconnect() {
     this.stopHeartbeat();
     this.clearReconnectTimeout();
+    this.clearStableConnectionTimeout();
     this.discardSocket();
     this.callbacks = null;
   }
@@ -194,6 +219,7 @@ class ChatConnector {
     this.retryCount = 0;
     this.stopHeartbeat();
     this.clearReconnectTimeout();
+    this.clearStableConnectionTimeout();
     this.discardSocket();
 
     if (this.callbacks) {

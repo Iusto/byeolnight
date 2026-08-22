@@ -66,7 +66,10 @@ class AuthServiceTest {
     private CertificateService certificateService;
 
     @Mock
-    private SocialAccountCleanupService socialAccountCleanupService;
+    private AccountRecoveryService accountRecoveryService;
+
+    @Mock
+    private AccountRecoveryTicketService accountRecoveryTicketService;
 
     @Mock
     private HttpServletRequest request;
@@ -94,6 +97,34 @@ class AuthServiceTest {
                 .build();
 
         TestMockConfig.setupHttpServletRequest(request);
+    }
+
+    @Test
+    @DisplayName("탈퇴 계정은 비밀번호 검증 후 이메일 대신 일회용 복구 티켓을 반환한다")
+    void withdrawnAccountRequiresVerifiedRecoveryTicket() {
+        User withdrawnUser = User.builder()
+                .id(7L)
+                .email("withdrawn@example.com")
+                .password("encodedPassword")
+                .nickname("withdrawn")
+                .role(User.Role.USER)
+                .status(User.UserStatus.WITHDRAWN)
+                .withdrawnAt(LocalDateTime.now().minusDays(3))
+                .build();
+        LoginRequestDto requestDto = LoginRequestDto.builder()
+                .email("withdrawn@example.com")
+                .password("correct-password")
+                .build();
+
+        given(userSecurityService.isIpBlocked(anyString())).willReturn(false);
+        given(userQueryService.findByEmail("withdrawn@example.com")).willReturn(Optional.of(withdrawnUser));
+        given(accountRecoveryService.canRecover("withdrawn@example.com")).willReturn(true);
+        given(userAccountService.checkPassword("correct-password", withdrawnUser)).willReturn(true);
+        given(accountRecoveryTicketService.issuePassword(7L)).willReturn("one-time-ticket");
+
+        assertThatThrownBy(() -> authService.authenticate(requestDto, request))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("ACCOUNT_RECOVERY_REQUIRED:one-time-ticket");
     }
 
     @Nested
