@@ -8,7 +8,6 @@ import com.byeolnight.dto.admin.BlindedMessageDto;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.util.IpUtil;
 import com.byeolnight.service.chat.AdminChatService;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,13 +17,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/chat")
 @SecurityRequirement(name = "BearerAuth")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 @Tag(name = "👮 관리자 API - 채팅", description = "채팅 관리 및 제재 관련 API")
 public class AdminChatController {
 

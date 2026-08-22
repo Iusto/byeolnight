@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,15 +25,7 @@ export default function SuggestionEdit() {
     OTHER: t('suggestion.categories.OTHER')
   });
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    fetchSuggestion();
-  }, [id, user]);
-
-  const fetchSuggestion = async () => {
+  const fetchSuggestion = useCallback(async () => {
     try {
       const response = await axios.get(`/member/suggestions/${id}`);
       console.log('건의사항 조회 응답:', response.data);
@@ -59,7 +51,15 @@ export default function SuggestionEdit() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, t, user]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    void fetchSuggestion();
+  }, [fetchSuggestion, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

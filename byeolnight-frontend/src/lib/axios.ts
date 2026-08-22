@@ -19,7 +19,10 @@ const instance = axios.create({
 
 // 토큰 갱신 상태 관리
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
+let failedQueue: Array<{
+  resolve: (value: null) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
 
 
 

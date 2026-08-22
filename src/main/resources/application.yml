@@ -28,6 +28,14 @@ spring:
 
 # 커스텀 보안 설정
 app:
+  frontend:
+    local-url: http://localhost:5173
+    prod-url: https://byeolnight.com
+  web:
+    cors:
+      allowed-origins:
+        - ${app.frontend.local-url}
+        - ${app.frontend.prod-url}
   security:
     max-login-attempts: 10
     ip-block-duration: 1h

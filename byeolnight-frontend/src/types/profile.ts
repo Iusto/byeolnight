@@ -1,4 +1,4 @@
-import type { Message } from '../lib/api/message';
+import type { Message } from './message';
 import type { ActivityPost } from './post';
 
 export type ProfileTab =
@@ -41,6 +41,7 @@ export interface MyActivityData {
 
 export interface UserIcon {
   id: number;
+  iconId: number;
   name: string;
   iconUrl: string;
   price: number;

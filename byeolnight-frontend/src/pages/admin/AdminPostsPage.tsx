@@ -6,7 +6,7 @@ import {
   AdminStatsCard,
   ReportDetailModal,
 } from '../../components/admin';
-import { CATEGORY_LABELS } from '../PostList';
+import { CATEGORY_LABELS } from '../../constants/postConstants';
 
 interface BlindedPost {
   id: number;

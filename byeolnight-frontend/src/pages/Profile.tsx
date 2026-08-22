@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserIconDisplay } from '../components/user';
+import { MessageDetailModal, ProfileMessagesTab, ProfileNotificationsTab, UserIconDisplay } from '../components/user';
 import ProfileActivityTabs from '../components/user/ProfileActivityTabs';
 import { getReceivedMessages, getSentMessages, markMessageAsRead, type Message, type MessageListResponse } from '../lib/api/message';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../lib/api/notification';
@@ -38,19 +38,13 @@ export default function Profile() {
   const [commentsLoading, setCommentsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
-
-  useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab && ['info', 'posts', 'comments', 'icons', 'messages', 'notifications'].includes(tab)) {
       setActiveTab(tab as ProfileTab);
     }
   }, [searchParams]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/member/users/me');
@@ -79,10 +73,18 @@ export default function Profile() {
             totalPostCount: 0,
             totalCommentCount: 0,
             totalReceivedMessageCount: 0,
-            totalSentMessageCount: 0
+            totalSentMessageCount: 0,
+            postsCurrentPage: 0,
+            postsTotalPages: 0,
+            postsHasNext: false,
+            postsHasPrevious: false,
+            commentsCurrentPage: 0,
+            commentsTotalPages: 0,
+            commentsHasNext: false,
+            commentsHasPrevious: false
           });
         }
-      } catch (error) {
+      } catch {
         setActivity({
           myPosts: [],
           myComments: [],
@@ -91,18 +93,24 @@ export default function Profile() {
           totalPostCount: 0,
           totalCommentCount: 0,
           totalReceivedMessageCount: 0,
-          totalSentMessageCount: 0
+          totalSentMessageCount: 0,
+          postsCurrentPage: 0,
+          postsTotalPages: 0,
+          postsHasNext: false,
+          postsHasPrevious: false,
+          commentsCurrentPage: 0,
+          commentsTotalPages: 0,
+          commentsHasNext: false,
+          commentsHasPrevious: false
         });
       }
       
-      await fetchMessages();
-      await fetchNotifications();
     } catch (error) {
       console.error('프로필 조회 실패:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const fetchPostsPage = async (page: number) => {
     try {
@@ -162,7 +170,7 @@ export default function Profile() {
 
 
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setMessagesLoading(true);
       const [receivedData, sentData] = await Promise.all([
@@ -176,9 +184,9 @@ export default function Profile() {
     } finally {
       setMessagesLoading(false);
     }
-  };
+  }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setNotificationsLoading(true);
       const data = await getNotifications({ page: 0, size: 20 });
@@ -187,6 +195,21 @@ export default function Profile() {
       console.error('알림 데이터 조회 실패:', error);
     } finally {
       setNotificationsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      void Promise.all([fetchProfile(), fetchMessages(), fetchNotifications()]);
+    }
+  }, [fetchMessages, fetchNotifications, fetchProfile, user]);
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await markAllAsRead();
+      await fetchNotifications();
+    } catch (error) {
+      console.error('모든 알림 읽음 처리 실패:', error);
     }
   };
 
@@ -278,10 +301,6 @@ export default function Profile() {
     }
   };
 
-  const truncateText = (text: string, maxLength: number) => {
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-  };
-
   const handleIconEquip = async (userIconId: number) => {
     try {
       setIconLoading(userIconId);
@@ -320,14 +339,6 @@ export default function Profile() {
       return `${baseClasses} bg-purple-600 text-white`;
     }
     return `${baseClasses} text-gray-400 hover:text-white hover:bg-purple-600/20`;
-  };
-
-  const getMessageTabClassName = (tabName: string, isActive: boolean) => {
-    const baseClasses = 'flex-1 py-2 px-2 sm:px-3 rounded-lg transition-all text-xs sm:text-sm min-h-[40px] sm:min-h-[44px] flex items-center justify-center';
-    if (isActive) {
-      return `${baseClasses} bg-blue-600 text-white`;
-    }
-    return `${baseClasses} text-gray-400 hover:text-white hover:bg-blue-600/20`;
   };
 
   if (!user) {
@@ -451,241 +462,37 @@ export default function Profile() {
           />
 
           {activeTab === 'messages' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg sm:text-2xl font-bold text-white">📩 쪽지함</h2>
-                <button
-                  onClick={fetchMessages}
-                  className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-xs sm:text-sm transition-colors"
-                >
-                  🔄 새로고침
-                </button>
-              </div>
-              
-              <div className="bg-slate-700/30 rounded-lg p-1">
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setMessageTab('received')}
-                    className={getMessageTabClassName('received', messageTab === 'received')}
-                  >
-                    <span className="block sm:hidden">📥 ({receivedMessages.totalCount})</span>
-                    <span className="hidden sm:block">📥 받은 쪽지 ({receivedMessages.totalCount})</span>
-                  </button>
-                  <button
-                    onClick={() => setMessageTab('sent')}
-                    className={getMessageTabClassName('sent', messageTab === 'sent')}
-                  >
-                    <span className="block sm:hidden">📤 ({sentMessages.totalCount})</span>
-                    <span className="hidden sm:block">📤 보낸 쪽지 ({sentMessages.totalCount})</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {messagesLoading ? (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400">로딩 중...</div>
-                  </div>
-                ) : messageTab === 'received' ? (
-                  receivedMessages.messages.length === 0 ? (
-                    <div className="text-center text-gray-400 py-8">
-                      <div className="text-4xl mb-2">📭</div>
-                      <p>받은 쪽지가 없습니다.</p>
-                    </div>
-                  ) : (
-                    receivedMessages.messages.map((message) => (
-                      <div
-                        key={message.id}
-                        onClick={() => handleMessageClick(message)}
-                        className={[
-                          'bg-slate-700/30 rounded-lg p-3 sm:p-4 hover:bg-slate-700/50 transition-colors cursor-pointer min-h-[60px] sm:min-h-[80px] flex flex-col justify-between',
-                          !message.isRead ? 'border-l-4 border-blue-500' : ''
-                        ].join(' ')}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className={`font-medium flex-1 ${
-                            !message.isRead ? 'text-white font-bold' : 'text-gray-300'
-                          }`}>
-                            {message.title}
-                            {!message.isRead && <span className="text-blue-400 ml-2">●</span>}
-                          </h4>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">
-                              {formatDate(message.createdAt)}
-                            </span>
-                            <button
-                              onClick={(e) => handleDeleteMessage(message.id, e)}
-                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                              title="쪽지 삭제"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-400 mb-2">
-                          보낸이: {message.senderNickname}
-                        </p>
-                        <p className="text-sm text-gray-300">
-                          {truncateText(message.content, 100)}
-                        </p>
-                      </div>
-                    ))
-                  )
-                ) : (
-                  sentMessages.messages.length === 0 ? (
-                    <div className="text-center text-gray-400 py-8">
-                      <div className="text-4xl mb-2">📤</div>
-                      <p>보낸 쪽지가 없습니다.</p>
-                    </div>
-                  ) : (
-                    sentMessages.messages.map((message) => (
-                      <div
-                        key={message.id}
-                        onClick={() => handleMessageClick(message)}
-                        className="bg-slate-700/30 rounded-lg p-3 sm:p-4 hover:bg-slate-700/50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="text-gray-300 font-medium flex-1">
-                            {message.title}
-                          </h4>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">
-                              {formatDate(message.createdAt)}
-                            </span>
-                            <button
-                              onClick={(e) => handleDeleteMessage(message.id, e)}
-                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                              title="쪽지 삭제"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-400 mb-2">
-                          받는이: {message.receiverNickname}
-                        </p>
-                        <p className="text-sm text-gray-300">
-                          {truncateText(message.content, 100)}
-                        </p>
-                        <div className="text-xs text-gray-500 mt-2">
-                          {message.isRead ? (
-                            <span className="text-green-400">✓ 읽음 ({formatDate(message.readAt!)})</span>
-                          ) : (
-                            <span className="text-gray-400">○ 읽지 않음</span>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )
-                )}
-              </div>
-            </div>
+            <ProfileMessagesTab
+              activeBox={messageTab}
+              loading={messagesLoading}
+              received={receivedMessages}
+              sent={sentMessages}
+              formatDate={formatDate}
+              onBoxChange={setMessageTab}
+              onDelete={handleDeleteMessage}
+              onMessageClick={handleMessageClick}
+              onRefresh={fetchMessages}
+            />
           )}
 
           {activeTab === 'notifications' && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg sm:text-2xl font-bold text-white">🔔 알림</h2>
-                <button
-                  onClick={async () => {
-                    try {
-                      await markAllAsRead();
-                      await fetchNotifications();
-                    } catch (error) {
-                      console.error('모든 알림 읽음 처리 실패:', error);
-                    }
-                  }}
-                  className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-xs sm:text-sm transition-colors"
-                >
-                  모두 읽음
-                </button>
-              </div>
-              
-              {notificationsLoading ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">로딩 중...</p>
-                </div>
-              ) : !notifications || notifications.notifications.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">알림이 없습니다.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {notifications?.notifications?.map((notification) => (
-                    <div
-                      key={notification.id}
-                      onClick={() => handleNotificationClick(notification)}
-                      className={[
-                        'p-3 sm:p-4 rounded-lg border cursor-pointer transition-all hover:bg-slate-700/50',
-                        notification.isRead
-                          ? 'bg-slate-800/30 border-gray-600 opacity-70'
-                          : 'bg-slate-700/50 border-purple-500/50'
-                      ].join(' ')}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-purple-400">
-                              {notification.type === 'COMMENT_ON_POST' && '게시글 댓글'}
-                              {notification.type === 'REPLY_ON_COMMENT' && '댓글 답글'}
-                              {notification.type === 'NEW_MESSAGE' && '새 쪽지'}
-                              {notification.type === 'NEW_NOTICE' && '공지사항'}
-                            </span>
-                            {!notification.isRead && (
-                              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                            )}
-                          </div>
-                          <h3 className="font-medium text-white mb-1">{notification.title}</h3>
-                          <p className="text-sm text-gray-300 mb-2">{notification.message}</p>
-                          <p className="text-xs text-gray-500">{formatDate(notification.createdAt)}</p>
-                        </div>
-                        <button
-                          onClick={(e) => handleDeleteNotification(notification.id, e)}
-                          className="ml-2 p-2 text-gray-400 hover:text-red-400 hover:bg-red-500 hover:bg-opacity-10 rounded transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                          title="알림 삭제"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ProfileNotificationsTab
+              data={notifications}
+              loading={notificationsLoading}
+              formatDate={formatDate}
+              onDelete={handleDeleteNotification}
+              onMarkAllRead={handleMarkAllNotificationsRead}
+              onNotificationClick={handleNotificationClick}
+            />
           )}
         </div>
         
         {selectedMessage && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-            <div className="bg-slate-800/95 backdrop-blur-md rounded-xl border border-purple-500/20 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-3 sm:p-4 border-b border-purple-500/20">
-                <h2 className="text-base sm:text-lg font-bold text-white">📩 쪽지 상세</h2>
-                <button
-                  onClick={() => setSelectedMessage(null)}
-                  className="p-2 hover:bg-purple-600/20 rounded-lg transition-colors text-gray-400 hover:text-white min-w-[40px] min-h-[40px] flex items-center justify-center"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white mb-2">{selectedMessage.title}</h3>
-                  <div className="text-xs sm:text-sm text-gray-400 space-y-1">
-                    <p>보낸이: {selectedMessage.senderNickname}</p>
-                    <p>받는이: {selectedMessage.receiverNickname}</p>
-                    <p>보낸 시간: {formatDate(selectedMessage.createdAt)}</p>
-                    {selectedMessage.isRead && selectedMessage.readAt && (
-                      <p>읽은 시간: {formatDate(selectedMessage.readAt)}</p>
-                    )}
-                  </div>
-                </div>
-                <hr className="border-gray-600" />
-                <div className="text-white whitespace-pre-wrap text-sm sm:text-base">
-                  {selectedMessage.content}
-                </div>
-              </div>
-            </div>
-          </div>
+          <MessageDetailModal
+            message={selectedMessage}
+            formatDate={formatDate}
+            onClose={() => setSelectedMessage(null)}
+          />
         )}
       </div>
     </div>

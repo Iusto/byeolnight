@@ -13,3 +13,9 @@ export interface BanStatus {
   duration?: number;
   bannedUntil?: string;
 }
+
+export interface BanNotification {
+  banned: boolean;
+  reason: string;
+  duration: number;
+}

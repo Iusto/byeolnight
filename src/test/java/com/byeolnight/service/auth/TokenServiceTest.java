@@ -111,16 +111,6 @@ class TokenServiceTest {
         }
 
         @Test
-        @DisplayName("Refresh Token 삭제 - delete 메서드")
-        void delete_RemovesRefreshToken() {
-            // When
-            tokenService.delete(TEST_REFRESH_TOKEN, TEST_EMAIL);
-
-            // Then
-            verify(redisTemplate).delete("refresh:" + TEST_EMAIL);
-        }
-
-        @Test
         @DisplayName("Refresh Token 삭제 - deleteRefreshToken 메서드")
         void deleteRefreshToken_RemovesRefreshToken() {
             // When

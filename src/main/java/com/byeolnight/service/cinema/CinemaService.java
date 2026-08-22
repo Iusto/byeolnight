@@ -1,12 +1,9 @@
 package com.byeolnight.service.cinema;
 
 import com.byeolnight.dto.admin.CinemaStatusDto;
-import com.byeolnight.dto.cinema.CinemaAiContentDto;
 import com.byeolnight.dto.cinema.CinemaCollectionResultDto;
 import com.byeolnight.dto.cinema.CinemaVideoData;
-import com.byeolnight.dto.external.youtube.YouTubeSnippet;
 import com.byeolnight.dto.external.youtube.YouTubeVideoDetailItem;
-import com.byeolnight.dto.external.youtube.YouTubeVideoStatus;
 import com.byeolnight.dto.video.VideoDto;
 import com.byeolnight.entity.Cinema;
 import com.byeolnight.entity.post.Post;
@@ -18,22 +15,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 /**
  * 별빛시네마 수집 유스케이스를 조정한다.
@@ -45,18 +35,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CinemaService {
-
-    private static final List<String> SPACE_TERMS = List.of(
-            "space", "nasa", "esa", "spacex", "rocket", "astronomy", "telescope", "galaxy", "universe",
-            "planet", "mars", "moon", "lunar", "solar", "asteroid", "comet", "black hole", "cosmos",
-            "우주", "천문", "로켓", "발사체", "행성", "은하", "블랙홀", "망원경", "태양", "달", "화성"
-    );
-    private static final List<String> EXCLUDED_TERMS = List.of(
-            "music video", "lyrics", "k-pop", "kpop", "gameplay", "gaming", "video game", "space game",
-            "trailer", "movie clip", "sponsored", "advertisement", "paid promotion", "product review", "buy now",
-            "드라마", "뮤직비디오", "가사", "게임", "협찬", "유료 광고", "제품 리뷰", "할인"
-    );
-    private static final Set<String> GENERIC_TAGS = Set.of("우주", "천문", "천문학", "과학", "space", "science");
 
     private final CinemaRepository cinemaRepository;
     private final PostRepository postRepository;
@@ -110,9 +88,9 @@ public class CinemaService {
         List<Cinema> recentCinema = cinemaRepository.findByCreatedAtAfter(
                 LocalDateTime.now().minusDays(cinemaConfig.getCollection().getSimilarityCheckDays()));
         List<ScoredCandidate> valid = candidates.stream()
-                .filter(this::passesHardFilters)
+                .filter(candidate -> CinemaVideoPolicy.passesHardFilters(candidate, cinemaConfig))
                 .filter(this::isNewVideo)
-                .map(candidate -> new ScoredCandidate(candidate, score(candidate)))
+                .map(candidate -> new ScoredCandidate(candidate, CinemaVideoPolicy.score(candidate, cinemaConfig)))
                 .filter(candidate -> candidate.score() >= 35)
                 .sorted(Comparator.comparingInt(ScoredCandidate::score).reversed())
                 .toList();
@@ -129,12 +107,13 @@ public class CinemaService {
                 }
                 continue;
             }
-            if (isSimilarToRecentContent(aiResult.content(), recentCinema)) {
+            if (CinemaVideoPolicy.isSimilarToRecentContent(
+                    aiResult.content(), recentCinema, cinemaConfig.getCollection().getSimilarityThreshold())) {
                 recentTopicDuplicate = true;
                 continue;
             }
 
-            CinemaVideoData data = toVideoData(candidate.video(), aiResult.content());
+            CinemaVideoData data = CinemaContentFactory.create(candidate.video(), aiResult.content());
             try {
                 // 외부 호출이 모두 끝난 뒤 이 메서드 안에서만 DB 트랜잭션이 열린다.
                 persistenceService.save(data, user);
@@ -211,173 +190,10 @@ public class CinemaService {
         return builder.build();
     }
 
-    private boolean passesHardFilters(YouTubeVideoDetailItem video) {
-        if (video == null || video.getId() == null || video.getSnippet() == null || video.getStatus() == null) {
-            return false;
-        }
-        YouTubeSnippet snippet = video.getSnippet();
-        YouTubeVideoStatus status = video.getStatus();
-        if (!Boolean.TRUE.equals(status.getEmbeddable()) || !"public".equals(status.getPrivacyStatus())) return false;
-        if (status.getUploadStatus() != null && !"processed".equals(status.getUploadStatus())) return false;
-        if ("20".equals(snippet.getCategoryId())) return false;
-        if (snippet.getTitle() == null
-                || snippet.getTitle().length() < cinemaConfig.getQuality().getMinTitleLength()) return false;
-        if (snippet.getDescription() == null
-                || snippet.getDescription().length() < cinemaConfig.getQuality().getMinDescriptionLength()) return false;
-        if (snippet.getChannelId() == null || snippet.getChannelId().isBlank()
-                || snippet.getChannelTitle() == null || snippet.getChannelTitle().isBlank()) return false;
-        if (!hasValidPublishedAt(snippet.getPublishedAt())) return false;
-        if (snippet.getThumbnails() == null || snippet.getThumbnails().getBestUrl() == null
-                || snippet.getThumbnails().getBestUrl().isBlank()) return false;
-        int seconds = durationSeconds(video);
-        if (seconds < cinemaConfig.getQuality().getMinDurationSeconds()
-                || seconds > cinemaConfig.getQuality().getMaxDurationSeconds()) return false;
-        String text = normalizedText(video);
-        if (EXCLUDED_TERMS.stream().anyMatch(text::contains) || relevanceCount(text) < 2) return false;
-        return isTrustedChannel(video) || (video.getStatistics() != null
-                && video.getStatistics().getViewCountAsLong() >= cinemaConfig.getQuality().getMinViewCount());
-    }
-
     private boolean isNewVideo(YouTubeVideoDetailItem candidate) {
         if (cinemaRepository.existsByVideoId(candidate.getId())) return false;
         String title = candidate.getSnippet().getTitle();
         return title == null || !cinemaRepository.existsByTitle(title);
-    }
-
-    private boolean isSimilarToRecentContent(CinemaAiContentDto generated, List<Cinema> recentCinema) {
-        Set<String> generatedTags = normalizedTags(generated.getTags());
-        return recentCinema.stream().anyMatch(existing -> {
-            if (titleSimilarity(generated.getKoreanTitle(), existing.getTitle())
-                    >= cinemaConfig.getCollection().getSimilarityThreshold()) return true;
-            Set<String> existingTags = normalizedTags(existing.getHashtags() == null
-                    ? List.of()
-                    : Arrays.asList(existing.getHashtags().split("\\s+")));
-            long sharedTags = generatedTags.stream().filter(existingTags::contains).count();
-            return generatedTags.size() >= 2 && existingTags.size() >= 2 && sharedTags >= 2;
-        });
-    }
-
-    private int score(YouTubeVideoDetailItem video) {
-        int score = isTrustedChannel(video) ? 35 : 0;
-        score += Math.min(25, relevanceCount(normalizedText(video)) * 5);
-        long ageDays = Math.max(0, ChronoUnit.DAYS.between(publishedAt(video), LocalDateTime.now()));
-        score += ageDays <= 30 ? 15 : ageDays <= 180 ? 10 : 5;
-        long views = video.getStatistics() == null ? 0 : video.getStatistics().getViewCountAsLong();
-        long likes = video.getStatistics() == null ? 0 : video.getStatistics().getLikeCountAsLong();
-        score += views <= 0 ? 0
-                : Math.min(15, 5 + (int) Math.min(5, views / 10_000)
-                + (int) Math.min(5, likes * 1_000 / views));
-        return score + 10;
-    }
-
-    private CinemaVideoData toVideoData(YouTubeVideoDetailItem video, CinemaAiContentDto ai) {
-        YouTubeSnippet snippet = video.getSnippet();
-        String hashtags = ai.getTags().stream()
-                .map(tag -> "#" + tag.replace("#", ""))
-                .collect(Collectors.joining(" "));
-        String url = "https://www.youtube.com/watch?v=" + video.getId();
-        return new CinemaVideoData(
-                ai.getKoreanTitle(),
-                ai.getIntroduction(),
-                video.getId(),
-                url,
-                snippet.getChannelTitle(),
-                publishedAt(video),
-                ai.getWhySelected(),
-                hashtags,
-                formatContent(ai, video, url, hashtags));
-    }
-
-    private String formatContent(CinemaAiContentDto ai, YouTubeVideoDetailItem video,
-                                 String url, String hashtags) {
-        String points = ai.getKeyPoints().stream()
-                .map(point -> "- " + point)
-                .collect(Collectors.joining("\n"));
-        return """
-                ## 선정 이유
-                %s
-
-                ## 영상 소개
-                %s
-
-                ## 핵심 포인트
-                %s
-
-                ## 추천 대상
-                %s
-
-                ## 출처
-                채널: %s
-                발행일: %s
-                원본 영상: %s
-
-                %s
-
-                > 이 소개는 YouTube가 제공한 제목과 설명을 바탕으로 AI가 생성했습니다.
-                """.formatted(ai.getWhySelected(), ai.getIntroduction(), points, ai.getRecommendedFor(),
-                video.getSnippet().getChannelTitle(), publishedAt(video).toLocalDate(), url, hashtags);
-    }
-
-    private Set<String> normalizedTags(Collection<String> tags) {
-        return tags.stream()
-                .filter(Objects::nonNull)
-                .map(tag -> tag.replace("#", "").strip().toLowerCase(Locale.ROOT))
-                .filter(tag -> !tag.isBlank() && !GENERIC_TAGS.contains(tag))
-                .collect(Collectors.toSet());
-    }
-
-    private boolean isTrustedChannel(YouTubeVideoDetailItem video) {
-        String[] trustedIds = cinemaConfig.getYoutube().getTrustedChannelIds();
-        return trustedIds != null && Arrays.asList(trustedIds).contains(video.getSnippet().getChannelId());
-    }
-
-    private String normalizedText(YouTubeVideoDetailItem video) {
-        YouTubeSnippet snippet = video.getSnippet();
-        return ((snippet.getTitle() == null ? "" : snippet.getTitle()) + " "
-                + (snippet.getDescription() == null ? "" : snippet.getDescription()) + " "
-                + (snippet.getChannelTitle() == null ? "" : snippet.getChannelTitle()))
-                .toLowerCase(Locale.ROOT);
-    }
-
-    private int relevanceCount(String text) {
-        return (int) SPACE_TERMS.stream().filter(text::contains).count();
-    }
-
-    private int durationSeconds(YouTubeVideoDetailItem video) {
-        try {
-            return (int) Duration.parse(video.getContentDetails().getDuration()).getSeconds();
-        } catch (Exception ignored) {
-            return 0;
-        }
-    }
-
-    private LocalDateTime publishedAt(YouTubeVideoDetailItem video) {
-        return OffsetDateTime.parse(video.getSnippet().getPublishedAt())
-                .atZoneSameInstant(ZoneId.of("Asia/Seoul"))
-                .toLocalDateTime();
-    }
-
-    private boolean hasValidPublishedAt(String value) {
-        try {
-            OffsetDateTime.parse(value);
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private double titleSimilarity(String left, String right) {
-        if (left == null || right == null) return 0;
-        String normalizedLeft = left.strip().toLowerCase(Locale.ROOT);
-        String normalizedRight = right.strip().toLowerCase(Locale.ROOT);
-        if (normalizedLeft.equals(normalizedRight)) return 1;
-        Set<String> a = Arrays.stream(left.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+"))
-                .filter(word -> word.length() >= 2).collect(Collectors.toSet());
-        Set<String> b = Arrays.stream(right.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+"))
-                .filter(word -> word.length() >= 2).collect(Collectors.toSet());
-        if (a.isEmpty() || b.isEmpty()) return 0;
-        long common = a.stream().filter(b::contains).count();
-        return (double) common / Math.max(a.size(), b.size());
     }
 
     private boolean hasTodayPost() {

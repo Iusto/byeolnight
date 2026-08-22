@@ -57,12 +57,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const handleConfirm = useCallback(() => {
     state.resolve?.(true);
     setState((prev) => ({ ...prev, isOpen: false, resolve: null }));
-  }, [state.resolve]);
+  }, [state]);
 
   const handleCancel = useCallback(() => {
     state.resolve?.(false);
     setState((prev) => ({ ...prev, isOpen: false, resolve: null }));
-  }, [state.resolve]);
+  }, [state]);
 
   const { options, isOpen } = state;
   const type = options.type || 'danger';

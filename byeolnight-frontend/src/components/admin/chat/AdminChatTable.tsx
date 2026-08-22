@@ -98,7 +98,7 @@ const AdminChatTable: React.FC = () => {
 
   // 필터링 및 정렬 로직
   const getFilteredBannedUsers = useCallback(() => {
-    let filtered = bannedUsers.filter(user => {
+    const filtered = bannedUsers.filter(user => {
       const matchesUser = !userFilter || user.username.toLowerCase().includes(userFilter.toLowerCase());
       const matchesReason = !reasonFilter || (user.reason && user.reason.toLowerCase().includes(reasonFilter.toLowerCase()));
       return matchesUser && matchesReason;
@@ -112,7 +112,7 @@ const AdminChatTable: React.FC = () => {
   }, [bannedUsers, userFilter, reasonFilter, sortOrder]);
 
   const getFilteredBlindedMessages = useCallback(() => {
-    let filtered = blindedMessages.filter(msg => {
+    const filtered = blindedMessages.filter(msg => {
       const matchesUser = !userFilter || msg.sender.toLowerCase().includes(userFilter.toLowerCase());
       const matchesKeyword = !searchKeyword || msg.originalMessage.toLowerCase().includes(searchKeyword.toLowerCase());
       const matchesReason = !reasonFilter || (msg.reason && msg.reason.toLowerCase().includes(reasonFilter.toLowerCase()));

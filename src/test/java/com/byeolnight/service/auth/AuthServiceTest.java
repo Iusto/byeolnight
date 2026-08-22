@@ -72,6 +72,9 @@ class AuthServiceTest {
     private AccountRecoveryTicketService accountRecoveryTicketService;
 
     @Mock
+    private TokenService tokenService;
+
+    @Mock
     private HttpServletRequest request;
 
     private User testUser;
@@ -138,8 +141,9 @@ class AuthServiceTest {
             given(userSecurityService.isIpBlocked(TestMockConfig.getTestIp())).willReturn(false);
             given(userQueryService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
             given(userAccountService.checkPassword("password123", testUser)).willReturn(true);
-            given(jwtTokenProvider.generateTokens(testUser, TestMockConfig.getTestUserAgent(), TestMockConfig.getTestIp()))
+            given(jwtTokenProvider.generateTokens(testUser))
                     .willReturn(new String[]{"accessToken", "refreshToken"});
+            given(jwtTokenProvider.getRefreshTokenValidity()).willReturn(7 * 24 * 60 * 60 * 1000L);
 
             // When
             AuthService.LoginResult result = authService.authenticate(loginRequest, request);
@@ -152,6 +156,8 @@ class AuthServiceTest {
             verify(userAdminService).resetLoginFailCount(testUser);
             verify(auditLoginLogRepository).save(any(AuditLoginLog.class));
             verify(certificateService).checkAndIssueCertificates(testUser, CertificateService.CertificateCheckType.LOGIN);
+            verify(tokenService).saveRefreshToken(
+                    "test@example.com", "refreshToken", 7 * 24 * 60 * 60 * 1000L);
         }
     }
 

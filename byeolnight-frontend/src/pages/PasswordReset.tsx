@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../lib/axios';
 import { getErrorMessage } from '../types/api';
@@ -19,13 +19,7 @@ export default function PasswordReset() {
   const [loading, setLoading] = useState(false); // 로딩 상태 추가
 
   // 토큰이 있으면 토큰 검증 후 재설정 단계로
-  useEffect(() => {
-    if (token) {
-      validateToken();
-    }
-  }, [token]);
-
-  const validateToken = async () => {
+  const validateToken = useCallback(async () => {
     setLoading(true);
     try {
       await axios.get(`/auth/password/validate-token?token=${token}`);
@@ -36,7 +30,13 @@ export default function PasswordReset() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      void validateToken();
+    }
+  }, [token, validateToken]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });

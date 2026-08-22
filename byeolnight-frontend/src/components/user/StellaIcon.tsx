@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import type { StellaIcon as StellaIconType } from '../types/stellaIcon';
+import type { StellaIcon as StellaIconType } from '../../types/stellaIcon';
 import type { IconRegistry } from '../../types/icons';
 import * as StellarIcons from '../icons';
 

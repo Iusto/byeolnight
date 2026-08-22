@@ -149,7 +149,9 @@ export default function ProfilePage() {
     }
 
     try {
-      const requestData: any = { nickname: profileForm.nickname };
+      const requestData: { nickname: string; currentPassword?: string } = {
+        nickname: profileForm.nickname,
+      };
       
       if (!user?.socialProvider) {
         requestData.currentPassword = profileForm.currentPassword;

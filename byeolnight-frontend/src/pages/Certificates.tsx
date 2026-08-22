@@ -55,7 +55,7 @@ export default function Certificates() {
       fetchRepresentative();
       fetchCertificates();
       alert(t('certificates.set_representative_success'));
-    } catch (err) {
+    } catch {
       alert(t('certificates.set_representative_failed'));
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { StellaIcon } from '../components/user';
@@ -20,23 +20,11 @@ export default function StellaShop() {
 
   const grades = ['ALL', 'COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
 
-  const getLocalizedIconName = (koreanName: string) => {
+  const getLocalizedIconName = useCallback((koreanName: string) => {
     return t(`shop.icon_names.${koreanName}`, koreanName);
-  };
+  }, [t]);
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      await fetchIcons();
-      if (user) {
-        await fetchOwnedIcons();
-      }
-      setLoading(false);
-    };
-
-    fetchAll();
-  }, [user, i18n.language]);
-
-  const fetchIcons = async () => {
+  const fetchIcons = useCallback(async () => {
     try {
       const response = await axios.get('/public/shop/icons');
       if (response.data.success) {
@@ -56,9 +44,9 @@ export default function StellaShop() {
       console.error('아이콘 목록 조회 실패:', err);
       setIcons([]);
     }
-  };
+  }, [getLocalizedIconName]);
 
-  const fetchOwnedIcons = async () => {
+  const fetchOwnedIcons = useCallback(async () => {
     try {
       const response = await axios.get('/member/shop/my-icons');
       if (response.data.success) {
@@ -67,7 +55,18 @@ export default function StellaShop() {
     } catch (err) {
       console.error('보유 아이콘 조회 실패:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      await fetchIcons();
+      if (user) {
+        await fetchOwnedIcons();
+      }
+      setLoading(false);
+    };
+    void fetchAll();
+  }, [fetchIcons, fetchOwnedIcons, i18n.language, user]);
 
   const handlePurchase = async (iconId: number, price: number) => {
     if (!user) return;

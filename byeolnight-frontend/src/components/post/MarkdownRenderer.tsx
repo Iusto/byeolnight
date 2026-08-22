@@ -12,7 +12,6 @@ interface MarkdownRendererProps {
 }
 
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+)/;
-const YOUTUBE_REGEX_GLOBAL = new RegExp(YOUTUBE_REGEX.source, 'g');
 
 export default function MarkdownRenderer({ 
   content, 
@@ -33,8 +32,16 @@ export default function MarkdownRenderer({
   if (!decodedContent) return null;
   
   return (
-    <ReactMarkdown
+    <div
       className={`post-content ${className}`}
+      style={{
+        whiteSpace: 'pre-wrap',
+        wordWrap: 'break-word',
+        lineHeight: '1.7',
+        ...style
+      }}
+    >
+    <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       rehypePlugins={[
         rehypeRaw,
@@ -168,14 +175,9 @@ export default function MarkdownRenderer({
           );
         }
       }}
-      style={{ 
-        whiteSpace: 'pre-wrap', 
-        wordWrap: 'break-word', 
-        lineHeight: '1.7',
-        ...style 
-      }}
     >
       {decodedContent}
     </ReactMarkdown>
+    </div>
   );
 }

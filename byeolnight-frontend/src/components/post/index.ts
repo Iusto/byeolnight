@@ -5,7 +5,6 @@ export { default as DiscussionTopicBanner } from './DiscussionTopicBanner';
 export { default as ImageUploader } from './ImageUploader';
 export { default as MarkdownRenderer } from './MarkdownRenderer';
 export { default as NewsArticleContent } from './NewsArticleContent';
-export { default as PostAdminModal } from './PostAdminModal';
 export { default as PostForm } from './PostForm';
 export { default as TuiEditor } from './TuiEditor';
 export { default as UploadErrorDialog } from './UploadErrorDialog';

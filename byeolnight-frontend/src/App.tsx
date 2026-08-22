@@ -34,7 +34,6 @@ const SuggestionList = lazy(() => import('./pages/SuggestionList'));
 const SuggestionCreate = lazy(() => import('./pages/SuggestionCreate'));
 const SuggestionDetail = lazy(() => import('./pages/SuggestionDetail'));
 const SuggestionEdit = lazy(() => import('./pages/SuggestionEdit'));
-const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthRecover = lazy(() => import('./pages/OAuthRecover'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -108,7 +107,7 @@ function App() {
             <ProtectedRoute><Profile /></ProtectedRoute>
           } />
           <Route path="/messages" element={
-            <ProtectedRoute><MessagesPage /></ProtectedRoute>
+            <ProtectedRoute><Navigate to="/profile?tab=messages" replace /></ProtectedRoute>
           } />
           <Route path="/points" element={
             <ProtectedRoute><PointHistory /></ProtectedRoute>

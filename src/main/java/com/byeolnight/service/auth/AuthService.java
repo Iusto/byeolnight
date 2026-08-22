@@ -16,13 +16,10 @@ import com.byeolnight.service.user.UserSecurityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Cookie;
 
 /**
  * 인증 관련 비즈니스 로직을 처리하는 서비스
@@ -42,6 +39,7 @@ public class AuthService {
     private final CertificateService certificateService;
     private final AccountRecoveryService accountRecoveryService;
     private final AccountRecoveryTicketService accountRecoveryTicketService;
+    private final TokenService tokenService;
     /**
      * 로그인 인증 처리
      */
@@ -175,25 +173,11 @@ public class AuthService {
         return user.getNickname() == null || user.getNickname().trim().isEmpty();
     }
 
-    public String[] loginUser(User user, String clientInfo, String ipAddress, HttpServletResponse response) {
-        String[] tokens = jwtTokenProvider.generateTokens(user, clientInfo, ipAddress);
-        
-        // HttpOnly 쿠키로 Refresh Token 설정
-        Cookie refreshCookie = new Cookie("refreshToken", tokens[1]);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/auth");
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
-        refreshCookie.setAttribute("SameSite", "Lax");
-        response.addCookie(refreshCookie);
-        
-        return tokens;
-    }
-
     private LoginResult createTokens(User user, String ipAddress, String userAgent) {
-        String[] tokens = jwtTokenProvider.generateTokens(user, userAgent, ipAddress);
-        
-        return new LoginResult(tokens[0], tokens[1], 7 * 24 * 60 * 60 * 1000L);
+        String[] tokens = jwtTokenProvider.generateTokens(user);
+        long validity = jwtTokenProvider.getRefreshTokenValidity();
+        tokenService.saveRefreshToken(user.getEmail(), tokens[1], validity);
+        return new LoginResult(tokens[0], tokens[1], validity);
     }
 
     /**

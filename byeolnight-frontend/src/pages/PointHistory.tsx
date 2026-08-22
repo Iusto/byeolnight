@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import axios from '../lib/axios';
@@ -24,21 +24,7 @@ export default function PointHistory() {
   const [loading, setLoading] = useState(true);
   const [todayAttended, setTodayAttended] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchPointHistory();
-      checkTodayAttendance();
-    }
-  }, [user, activeTab]);
-  
-  // 사용자 정보가 변경될 때마다 출석 상태 재확인
-  useEffect(() => {
-    if (user) {
-      checkTodayAttendance();
-    }
-  }, [user?.points]); // 포인트가 변경되면 출석 상태도 재확인
-
-  const fetchPointHistory = async () => {
+  const fetchPointHistory = useCallback(async () => {
     try {
       setLoading(true);
       let endpoint = '/member/points/history';
@@ -73,9 +59,9 @@ export default function PointHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
-  const checkTodayAttendance = async () => {
+  const checkTodayAttendance = useCallback(async () => {
     try {
       const res = await axios.get('/member/points/attendance/today');
       const attended = res.data?.data === true;
@@ -86,7 +72,15 @@ export default function PointHistory() {
       console.error('출석 확인 실패:', err);
       setTodayAttended(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      void fetchPointHistory();
+      void checkTodayAttendance();
+    }
+  }, [checkTodayAttendance, fetchPointHistory, user]);
+
 
   const handleAttendance = async () => {
     try {

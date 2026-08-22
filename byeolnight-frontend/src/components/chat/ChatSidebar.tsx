@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../contexts/AuthContext';
 import axios from '../../lib/axios';
@@ -12,7 +12,7 @@ import { useChatConnection } from './useChatConnection';
 
 export default function ChatSidebar() {
   const { user } = useContext(AuthContext);
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -43,7 +43,7 @@ export default function ChatSidebar() {
   });
 
   // WebSocket 연결 및 콜백 설정
-  const loadInitialMessages = async () => {
+  const loadInitialMessages = useCallback(async () => {
     try {
       const res = await axios.get('/public/chat', {
         params: { roomId: 'public', limit: 20 },
@@ -63,11 +63,11 @@ export default function ChatSidebar() {
         setMessages([]);
         setHasMoreHistory(false);
       }
-    } catch (err) {
+    } catch {
       setMessages([]);
       setHasMoreHistory(false);
     }
-  };
+  }, [setMessages]);
   
   const loadMoreHistory = async () => {
     if (loadingHistory || !hasMoreHistory || !oldestMessageId) return;
@@ -96,14 +96,14 @@ export default function ChatSidebar() {
       } else {
         setHasMoreHistory(false);
       }
-    } catch (err) {
+    } catch {
       setHasMoreHistory(false);
     } finally {
       setLoadingHistory(false);
     }
   };
 
-  const checkBanStatus = async () => {
+  const checkBanStatus = useCallback(async () => {
     if (!user) {
       setBanStatus(null);
       return;
@@ -126,10 +126,10 @@ export default function ChatSidebar() {
         setBanStatus(null);
         setError('');
       }
-    } catch (error) {
+    } catch {
       setBanStatus(null);
     }
-  };
+  }, [t, user]);
 
   const sendMessage = async () => {
 
@@ -236,7 +236,7 @@ export default function ChatSidebar() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const isAdmin = user?.role === 'ADMIN' || user?.isAdmin;
+  const isAdmin = user?.role === 'ADMIN';
 
   const handleMessageBlind = (messageId: string) => {
     setMessages(prev =>
@@ -253,12 +253,12 @@ export default function ChatSidebar() {
   };
 
   useEffect(() => {
-    loadInitialMessages();
-  }, []);
+    void loadInitialMessages();
+  }, [loadInitialMessages]);
 
   useEffect(() => {
     if (user) {
-      checkBanStatus();
+      void checkBanStatus();
       statusIntervalRef.current = setInterval(checkBanStatus, 30000);
     } else {
       setBanStatus(null);
@@ -272,7 +272,7 @@ export default function ChatSidebar() {
         clearInterval(statusIntervalRef.current);
       }
     };
-  }, [user?.id]);
+  }, [checkBanStatus, user]);
 
   return (
     <div className="space-y-4">

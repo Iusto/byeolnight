@@ -18,5 +18,7 @@ export interface User {
   equippedIconId?: number;
   equippedIconName?: string;
   socialProvider?: string;
+  nicknameChanged?: boolean;
+  nicknameUpdatedAt?: string;
   representativeCertificate?: RepresentativeCertificate;
 }
