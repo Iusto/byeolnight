@@ -21,6 +21,8 @@ public interface PostReportRepository extends JpaRepository<PostReport, Long> {
     List<PostReport> findByPostTitleContainingIgnoreCase(String title);
     
     List<PostReport> findByPostWriterNicknameContainingIgnoreCase(String nickname);
+
+    long countByReviewedFalse();
     
     // 사용자별 승인된 신고 수 조회
     @Query("SELECT COUNT(pr) FROM PostReport pr WHERE pr.user = :user AND pr.accepted = true")
