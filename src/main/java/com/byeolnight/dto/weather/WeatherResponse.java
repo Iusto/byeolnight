@@ -16,6 +16,10 @@ public class WeatherResponse {
     private Double cloudCover;
     private Double visibility;
     private String moonPhase;
+    private Integer observationScore;
+    private Integer cloudScore;
+    private Integer visibilityScore;
+    private Integer moonScore;
     private String observationQuality;
     private String recommendation;
     private String observationTime;

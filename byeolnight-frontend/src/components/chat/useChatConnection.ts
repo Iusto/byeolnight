@@ -67,7 +67,7 @@ export function useChatConnection(options: UseChatConnectionOptions) {
     setConnectionError('');
     setConnecting(true);
     setConnected(false);
-    chatConnector.retryConnection();
+    void chatConnector.retryConnection();
   };
 
   return {

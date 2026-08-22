@@ -27,6 +27,7 @@ public class WeatherService {
     private final WeatherLocalCacheService localCacheService;
     private final MeterRegistry meterRegistry;
     private final RestTemplate restTemplate;
+    private final ObservationScoreService observationScoreService;
 
     @Value("${weather.api.key}")
     private String apiKey;
@@ -36,10 +37,12 @@ public class WeatherService {
 
     public WeatherService(WeatherLocalCacheService localCacheService,
                           MeterRegistry meterRegistry,
-                          @Qualifier("weatherRestTemplate") RestTemplate restTemplate) {
+                          @Qualifier("weatherRestTemplate") RestTemplate restTemplate,
+                          ObservationScoreService observationScoreService) {
         this.localCacheService = localCacheService;
         this.meterRegistry = meterRegistry;
         this.restTemplate = restTemplate;
+        this.observationScoreService = observationScoreService;
     }
 
     /**
@@ -92,8 +95,9 @@ public class WeatherService {
      */
     private WeatherResponse fetchWeatherDataFromAPI(double latitude, double longitude) {
         OpenWeatherResponse apiResponse = callWeatherAPI(latitude, longitude);
-        String quality = calculateObservationQuality(apiResponse.getCloudCover(), apiResponse.getVisibilityKm());
         String moonPhase = getMoonPhaseIcon();
+        ObservationScoreService.ObservationScore score = observationScoreService.calculate(
+                apiResponse.getCloudCover(), apiResponse.getVisibilityKm(), moonPhase);
 
         String successfulAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
         return WeatherResponse.builder()
@@ -103,8 +107,12 @@ public class WeatherService {
                 .cloudCover(apiResponse.getCloudCover())
                 .visibility(apiResponse.getVisibilityKm())
                 .moonPhase(moonPhase)
-                .observationQuality(quality)
-                .recommendation(quality)
+                .observationScore(score.totalScore())
+                .cloudScore(score.cloudScore())
+                .visibilityScore(score.visibilityScore())
+                .moonScore(score.moonScore())
+                .observationQuality(score.quality())
+                .recommendation(score.quality())
                 .observationTime(successfulAt)
                 .dataStatus(WeatherResponse.DataStatus.FRESH)
                 .lastSuccessfulAt(successfulAt)
@@ -123,16 +131,6 @@ public class WeatherService {
             throw new IllegalStateException("날씨 API 응답이 null입니다");
         }
         return response;
-    }
-
-    /**
-     * 별 관측 품질 계산
-     */
-    private String calculateObservationQuality(double cloudCover, double visibilityKm) {
-        if (cloudCover < 20 && visibilityKm >= 8) return "EXCELLENT";
-        if (cloudCover < 40 && visibilityKm >= 6) return "GOOD";
-        if (cloudCover < 70 && visibilityKm >= 3) return "FAIR";
-        return "POOR";
     }
 
     /**
@@ -184,6 +182,10 @@ public class WeatherService {
                 .cloudCover(null)
                 .visibility(null)
                 .moonPhase("🌙")
+                .observationScore(null)
+                .cloudScore(null)
+                .visibilityScore(null)
+                .moonScore(null)
                 .observationQuality("UNKNOWN")
                 .recommendation("UNKNOWN")
                 .observationTime(null)

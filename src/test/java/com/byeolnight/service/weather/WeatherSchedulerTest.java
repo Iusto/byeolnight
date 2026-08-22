@@ -50,7 +50,9 @@ class WeatherSchedulerTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        weatherScheduler = new WeatherScheduler(cacheService, cityConfig, restTemplate, meterRegistry, millis -> { });
+        weatherScheduler = new WeatherScheduler(
+                cacheService, cityConfig, restTemplate, meterRegistry,
+                new ObservationScoreService(), millis -> { });
         ReflectionTestUtils.setField(weatherScheduler, "apiKey", TEST_API_KEY);
         ReflectionTestUtils.setField(weatherScheduler, "apiUrl", TEST_API_URL);
     }
@@ -176,6 +178,7 @@ class WeatherSchedulerTest {
         WeatherResponse busanWeather = cachedWeathers.get(0);
         assertThat(busanWeather.getLocation()).isEqualTo("부산");
         assertThat(busanWeather.getObservationQuality()).isNotEqualTo("UNKNOWN");
+        assertThat(busanWeather.getObservationScore()).isBetween(0, 100);
         assertThat(busanWeather.getDataStatus()).isEqualTo(WeatherResponse.DataStatus.FRESH);
 
         verify(restTemplate, times(2))
