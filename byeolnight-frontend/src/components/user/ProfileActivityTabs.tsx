@@ -41,33 +41,33 @@ export default function ProfileActivityTabs({
     <>
           {activeTab === 'info' && profile && (
             <div className="space-y-4 sm:space-y-6">
-              <h2 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6">?뱥 湲곕낯 ?뺣낫</h2>
+              <h2 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6">📋 기본 정보</h2>
 
-              {/* 怨꾩젙 ?뺣낫 */}
+              {/* 계정 정보 */}
               <div className="bg-slate-700/30 rounded-lg p-3 sm:p-4">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">?뵍 怨꾩젙 ?뺣낫</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">🔐 계정 정보</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">?대찓??/label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">이메일</label>
                     <div className="text-white bg-slate-800/50 px-3 py-2 rounded-lg text-sm">
                       {profile.email}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">?됰꽕??/label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">닉네임</label>
                     <div className="text-white bg-slate-800/50 px-3 py-2 rounded-lg text-sm">
                       {profile.nickname}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">沅뚰븳</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">권한</label>
                     <div className="text-white bg-slate-800/50 px-3 py-2 rounded-lg text-sm">
-                      {profile.role === 'ADMIN' ? '愿由ъ옄' : '?쇰컲 ?ъ슜??}
+                      {profile.role === 'ADMIN' ? '관리자' : '일반 사용자'}
                       {user?.socialProvider && (
                         <span className="ml-2 text-xs px-2 py-1 rounded-full bg-blue-600/20 text-blue-300">
-                          {user.socialProvider === 'google' ? '援ш?' :
-                           user.socialProvider === 'naver' ? '?ㅼ씠踰? :
-                           user.socialProvider === 'kakao' ? '移댁뭅?? : user.socialProvider}
+                          {user.socialProvider === 'google' ? '구글' :
+                           user.socialProvider === 'naver' ? '네이버' :
+                           user.socialProvider === 'kakao' ? '카카오' : user.socialProvider}
                         </span>
                       )}
                     </div>
@@ -75,45 +75,45 @@ export default function ProfileActivityTabs({
                 </div>
               </div>
 
-              {/* ?쒕룞 ?듦퀎 */}
+              {/* 활동 통계 */}
               <div className="bg-slate-700/30 rounded-lg p-3 sm:p-4">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">???쒕룞 ?듦퀎</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">✨ 활동 통계</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                   <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 text-center">
-                    <div className="text-lg sm:text-2xl mb-1">??/div>
-                    <div className="text-xs sm:text-sm text-gray-400 mb-1">?ъ씤??/div>
+                    <div className="text-lg sm:text-2xl mb-1">✨</div>
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">포인트</div>
                     <div className="text-sm sm:text-lg font-bold text-yellow-400">
                       {(profile.points || 0).toLocaleString()}
                     </div>
                   </div>
 
                   <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 text-center">
-                    <div className="text-lg sm:text-2xl mb-1">?렓</div>
-                    <div className="text-xs sm:text-sm text-gray-400 mb-1">?꾩씠肄?/div>
+                    <div className="text-lg sm:text-2xl mb-1">🎨</div>
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">아이콘</div>
                     <div className="text-sm sm:text-lg font-bold text-blue-400">
                       {icons.length}
                     </div>
                   </div>
 
                   <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 text-center">
-                    <div className="text-lg sm:text-2xl mb-1">?뱷</div>
-                    <div className="text-xs sm:text-sm text-gray-400 mb-1">寃뚯떆湲</div>
+                    <div className="text-lg sm:text-2xl mb-1">📝</div>
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">게시글</div>
                     <div className="text-sm sm:text-lg font-bold text-green-400">
                       {activity?.totalPostCount || 0}
                     </div>
                   </div>
 
                   <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 text-center">
-                    <div className="text-lg sm:text-2xl mb-1">?뮠</div>
-                    <div className="text-xs sm:text-sm text-gray-400 mb-1">?볤?</div>
+                    <div className="text-lg sm:text-2xl mb-1">💬</div>
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">댓글</div>
                     <div className="text-sm sm:text-lg font-bold text-purple-400">
                       {activity?.totalCommentCount || 0}
                     </div>
                   </div>
 
                   <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 text-center">
-                    <div className="text-lg sm:text-2xl mb-1">?뱟</div>
-                    <div className="text-xs sm:text-sm text-gray-400 mb-1">異쒖꽍</div>
+                    <div className="text-lg sm:text-2xl mb-1">📅</div>
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">출석</div>
                     <div className="text-sm sm:text-lg font-bold text-orange-400">
                       {profile?.attendanceCount || 0}
                     </div>
@@ -121,24 +121,24 @@ export default function ProfileActivityTabs({
                 </div>
               </div>
 
-              {/* ?됰꽕???뺣낫 */}
+              {/* 닉네임 정보 */}
               <div className="bg-slate-700/30 rounded-lg p-3 sm:p-4">
-                <h4 className="text-sm sm:text-base font-medium text-white mb-2 sm:mb-3">?됰꽕??蹂寃??뺣낫</h4>
+                <h4 className="text-sm sm:text-base font-medium text-white mb-2 sm:mb-3">닉네임 변경 정보</h4>
                 <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">蹂寃??щ?:</span>
+                    <span className="text-gray-400">변경 여부:</span>
                     <span className={profile.nicknameChanged ? 'text-green-400' : 'text-gray-400'}>
-                      {profile.nicknameChanged ? '蹂寃쏀븿' : '蹂寃??덊븿'}
+                      {profile.nicknameChanged ? '변경함' : '변경 안함'}
                     </span>
                   </div>
                   {profile.nicknameChanged && profile.nicknameUpdatedAt && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">留덉?留?蹂寃?</span>
+                      <span className="text-gray-400">마지막 변경:</span>
                       <span className="text-white">{formatDate(profile.nicknameUpdatedAt)}</span>
                     </div>
                   )}
                   <div className="text-xs text-gray-500 mt-2">
-                    * ?됰꽕?꾩? 6媛쒖썡留덈떎 蹂寃?媛?ν빀?덈떎
+                    * 닉네임은 6개월마다 변경 가능합니다
                   </div>
                 </div>
               </div>
@@ -148,12 +148,12 @@ export default function ProfileActivityTabs({
           {activeTab === 'posts' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">?뱷 ?닿쾶?쒓?</h2>
-                <span className="text-sm text-gray-400">珥?{activity?.totalPostCount || 0}媛?/span>
+                <h2 className="text-2xl font-bold text-white">📝 내게시글</h2>
+                <span className="text-sm text-gray-400">총 {activity?.totalPostCount || 0}개</span>
               </div>
               {postsLoading ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-400">濡쒕뵫 以?..</div>
+                  <div className="text-gray-400">로딩 중...</div>
                 </div>
               ) : activity?.myPosts && activity.myPosts.length > 0 ? (
                 <>
@@ -167,24 +167,24 @@ export default function ProfileActivityTabs({
                               className="text-white hover:text-purple-300 font-medium block mb-2"
                             >
                               {post.title}
-                              {post.isBlinded && <span className="text-red-400 ml-2">(釉붾씪?몃뱶)</span>}
+                              {post.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
                             </Link>
                             <p className="text-gray-400 text-sm mb-2">
                               {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span>?뾺 {categoryLabels[post.category] || post.category}</span>
-                              <span>?ㅿ툘 {post.likeCount}</span>
-                              <span>?뮠 {post.commentCount}</span>
-                              <span>?몓 {post.viewCount}</span>
-                              <span>?뱟 {formatDate(post.createdAt)}</span>
+                              <span>🗂 {categoryLabels[post.category] || post.category}</span>
+                              <span>❤️ {post.likeCount}</span>
+                              <span>💬 {post.commentCount}</span>
+                              <span>👁 {post.viewCount}</span>
+                              <span>📅 {formatDate(post.createdAt)}</span>
                             </div>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {/* 寃뚯떆湲 ?섏씠吏?*/}
+                  {/* 게시글 페이징 */}
                   {(activity.postsTotalPages > 1) && (
                     <div className="flex items-center justify-center gap-2 mt-6">
                       <button
@@ -196,7 +196,7 @@ export default function ProfileActivityTabs({
                             : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
                         }`}
                       >
-                        ?댁쟾
+                        이전
                       </button>
                       <span className="text-sm text-gray-400 px-3">
                         {activity.postsCurrentPage + 1} / {activity.postsTotalPages}
@@ -210,20 +210,20 @@ export default function ProfileActivityTabs({
                             : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
                         }`}
                       >
-                        ?ㅼ쓬
+                        다음
                       </button>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="text-center text-gray-400 py-8">
-                  <div className="text-4xl mb-2">?뱷</div>
-                  <p>?묒꽦??寃뚯떆湲???놁뒿?덈떎.</p>
+                  <div className="text-4xl mb-2">📝</div>
+                  <p>작성한 게시글이 없습니다.</p>
                   <Link
                     to="/posts/create"
                     className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors text-white"
                   >
-                    寃뚯떆湲 ?묒꽦?섍린
+                    게시글 작성하기
                   </Link>
                 </div>
               )}
@@ -233,12 +233,12 @@ export default function ProfileActivityTabs({
           {activeTab === 'comments' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">?뮠 ?대뙎湲</h2>
-                <span className="text-sm text-gray-400">珥?{activity?.totalCommentCount || 0}媛?/span>
+                <h2 className="text-2xl font-bold text-white">💬 내댓글</h2>
+                <span className="text-sm text-gray-400">총 {activity?.totalCommentCount || 0}개</span>
               </div>
               {commentsLoading ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-400">濡쒕뵫 以?..</div>
+                  <div className="text-gray-400">로딩 중...</div>
                 </div>
               ) : activity?.myComments && activity.myComments.length > 0 ? (
                 <>
@@ -250,23 +250,23 @@ export default function ProfileActivityTabs({
                             to={`/posts/${comment.postId}`}
                             className="text-purple-300 hover:text-purple-200 text-sm font-medium"
                           >
-                            ?뱞 {comment.postTitle}
+                            📄 {comment.postTitle}
                           </Link>
                           {comment.parentId && (
-                            <span className="text-xs text-gray-500 ml-2">(?듦?)</span>
+                            <span className="text-xs text-gray-500 ml-2">(답글)</span>
                           )}
                         </div>
                         <p className="text-white mb-2">
                           {comment.content}
-                          {comment.isBlinded && <span className="text-red-400 ml-2">(釉붾씪?몃뱶)</span>}
+                          {comment.isBlinded && <span className="text-red-400 ml-2">(블라인드)</span>}
                         </p>
                         <div className="text-xs text-gray-500">
-                          ?뱟 {formatDate(comment.createdAt)}
+                          📅 {formatDate(comment.createdAt)}
                         </div>
                       </div>
                     ))}
                   </div>
-                  {/* ?볤? ?섏씠吏?*/}
+                  {/* 댓글 페이징 */}
                   {(activity.commentsTotalPages > 1) && (
                     <div className="flex items-center justify-center gap-2 mt-6">
                       <button
@@ -278,7 +278,7 @@ export default function ProfileActivityTabs({
                             : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
                         }`}
                       >
-                        ?댁쟾
+                        이전
                       </button>
                       <span className="text-sm text-gray-400 px-3">
                         {activity.commentsCurrentPage + 1} / {activity.commentsTotalPages}
@@ -292,15 +292,15 @@ export default function ProfileActivityTabs({
                             : 'bg-slate-800/30 text-gray-500 cursor-not-allowed'
                         }`}
                       >
-                        ?ㅼ쓬
+                        다음
                       </button>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="text-center text-gray-400 py-8">
-                  <div className="text-4xl mb-2">?뮠</div>
-                  <p>?묒꽦???볤????놁뒿?덈떎.</p>
+                  <div className="text-4xl mb-2">💬</div>
+                  <p>작성한 댓글이 없습니다.</p>
                 </div>
               )}
             </div>
@@ -309,20 +309,20 @@ export default function ProfileActivityTabs({
           {activeTab === 'icons' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">?렓 蹂댁쑀 ?ㅽ뀛???꾩씠肄?/h2>
+                <h2 className="text-2xl font-bold text-white">🎨 보유 스텔라 아이콘</h2>
                 <div className="text-sm text-gray-400">
-                  珥?{icons.length}媛?
+                  총 {icons.length}개
                 </div>
               </div>
               {icons.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
-                  <div className="text-4xl mb-2">?썟截?/div>
-                  <p>?꾩쭅 援щℓ???꾩씠肄섏씠 ?놁뒿?덈떎.</p>
+                  <div className="text-4xl mb-2">🛒️</div>
+                  <p>아직 구매한 아이콘이 없습니다.</p>
                   <Link
                     to="/shop"
                     className="inline-block mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors text-white"
                   >
-                    ?곸젏?먯꽌 援щℓ?섍린
+                    상점에서 구매하기
                   </Link>
                 </div>
               ) : (
@@ -340,7 +340,7 @@ export default function ProfileActivityTabs({
                       <div className="flex-1">
                         <div className="text-3xl mb-3">{icon.iconUrl}</div>
                         <div className="text-sm text-gray-300 mb-2 break-words leading-tight">{icon.name}</div>
-                        <div className="text-xs text-gray-500 mb-1">{(icon.price || 0).toLocaleString()} ?ㅽ뀛??/div>
+                        <div className="text-xs text-gray-500 mb-1">{(icon.price || 0).toLocaleString()} 스텔라</div>
                         <div className="text-xs text-gray-500 mb-3">{formatDate(icon.purchasedAt)}</div>
                       </div>
 
@@ -355,12 +355,12 @@ export default function ProfileActivityTabs({
                           iconLoading === icon.id ? 'opacity-50 cursor-not-allowed' : ''
                         ].join(' ')}
                       >
-                        {iconLoading === icon.id ? '...' : (icon.equipped ? '?댁젣' : '?μ갑')}
+                        {iconLoading === icon.id ? '...' : (icon.equipped ? '해제' : '장착')}
                       </button>
 
                       {icon.equipped && (
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                          <span className="text-xs text-white">??/span>
+                          <span className="text-xs text-white">✓</span>
                         </div>
                       )}
                     </div>
