@@ -34,16 +34,20 @@ export interface IssData {
 }
 
 // 날씨 관측 조건 조회
-export const useWeatherObservation = (latitude: number, longitude: number) => {
+export const useWeatherObservation = (latitude?: number, longitude?: number) => {
   return useQuery<WeatherData>({
     queryKey: ['weather', 'observation', latitude, longitude],
     queryFn: async () => {
+      if (latitude == null || longitude == null) {
+        throw new Error('날씨 조회에 필요한 좌표가 없습니다.');
+      }
       const response = await axios.get('/api/weather/observation', {
         params: { latitude, longitude },
         timeout: 10000,
       });
       return response.data;
     },
+    enabled: latitude != null && longitude != null,
     staleTime: 10 * 60 * 1000, // 10분
     gcTime: 15 * 60 * 1000, // 15분
     refetchOnMount: false,
@@ -53,16 +57,20 @@ export const useWeatherObservation = (latitude: number, longitude: number) => {
 };
 
 // ISS 관측 기회 조회 (실시간 업데이트)
-export const useIssObservation = (latitude: number, longitude: number) => {
+export const useIssObservation = (latitude?: number, longitude?: number) => {
   return useQuery<IssData>({
     queryKey: ['weather', 'iss', latitude, longitude],
     queryFn: async () => {
+      if (latitude == null || longitude == null) {
+        throw new Error('ISS 조회에 필요한 좌표가 없습니다.');
+      }
       const response = await axios.get('/api/weather/iss', {
         params: { latitude, longitude },
         timeout: 10000,
       });
       return response.data;
     },
+    enabled: latitude != null && longitude != null,
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 10 * 60 * 1000, // 10분
     refetchInterval: 5 * 60 * 1000, // 5분마다 자동 갱신

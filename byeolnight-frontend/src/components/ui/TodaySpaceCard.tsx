@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { useIssObservation, useWeatherObservation } from '../../hooks/useWeatherData';
 import type { Post } from '../../types/post';
 
@@ -8,8 +8,6 @@ interface TodaySpaceCardProps {
   latestNews?: Post;
   latestCinema?: Post;
 }
-
-const DEFAULT_COORDINATES = { lat: 37.5665, lon: 126.978 };
 
 const qualityStyles: Record<string, string> = {
   EXCELLENT: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-200',
@@ -58,45 +56,18 @@ function ScoreBar({ icon, label, score, maxScore }: ScoreBarProps) {
  */
 export default function TodaySpaceCard({ latestNews, latestCinema }: TodaySpaceCardProps) {
   const { t } = useTranslation();
-  const [coordinates, setCoordinates] = useState(DEFAULT_COORDINATES);
-  const [locationLoading, setLocationLoading] = useState(true);
+  const {
+    coordinates,
+    isLoading: locationLoading,
+    messageKey: locationMessageKey,
+    canRetry: canRetryLocation,
+    retry: retryLocation,
+  } = useCurrentLocation();
 
   const { data: weather, isLoading: weatherLoading, error: weatherError } =
-    useWeatherObservation(coordinates.lat, coordinates.lon);
+    useWeatherObservation(coordinates?.lat, coordinates?.lon);
   const { data: iss, isLoading: issLoading, error: issError } =
-    useIssObservation(coordinates.lat, coordinates.lon);
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocationLoading(false);
-      return;
-    }
-
-    let settled = false;
-    const finish = (position?: GeolocationPosition) => {
-      if (settled) return;
-      settled = true;
-      if (position) {
-        setCoordinates({ lat: position.coords.latitude, lon: position.coords.longitude });
-      }
-      setLocationLoading(false);
-    };
-
-    const timeoutId = window.setTimeout(() => finish(), 5_000);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        window.clearTimeout(timeoutId);
-        finish(position);
-      },
-      () => {
-        window.clearTimeout(timeoutId);
-        finish();
-      },
-      { timeout: 10_000, enableHighAccuracy: true, maximumAge: 60_000 },
-    );
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+    useIssObservation(coordinates?.lat, coordinates?.lon);
 
   const scoreAvailable = weather?.dataStatus !== 'UNAVAILABLE' && weather?.observationScore != null;
   const quality = weather?.observationQuality ?? 'UNKNOWN';
@@ -124,6 +95,21 @@ export default function TodaySpaceCard({ latestNews, latestCinema }: TodaySpaceC
       </div>
 
       <div className="relative space-y-4 p-5">
+        {locationMessageKey && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+            <span>{t(locationMessageKey)}</span>
+            {canRetryLocation && (
+              <button
+                type="button"
+                onClick={() => void retryLocation()}
+                className="shrink-0 rounded-lg border border-amber-300/30 px-2 py-1 font-semibold transition-colors hover:bg-amber-300/10"
+              >
+                {t('weather.retry_location')}
+              </button>
+            )}
+          </div>
+        )}
+
         {locationLoading || weatherLoading ? (
           <div className="animate-pulse py-8 text-center">
             <div className="mb-3 text-4xl">🔭</div>
@@ -195,7 +181,7 @@ export default function TodaySpaceCard({ latestNews, latestCinema }: TodaySpaceC
               </span>
             )}
           </div>
-          {issLoading ? (
+          {locationLoading || issLoading ? (
             <p className="animate-pulse text-xs text-slate-400">{t('weather.loading_iss_data')}</p>
           ) : issError || !iss ? (
             <p className="text-xs text-slate-400">{t('weather.iss_no_data')}</p>
