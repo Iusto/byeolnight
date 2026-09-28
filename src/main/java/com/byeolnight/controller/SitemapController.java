@@ -79,11 +79,13 @@ public class SitemapController {
         sitemap.append("  </url>\n");
         
         // 주요 페이지들
-        addUrl(sitemap, "/news", "weekly", "0.8");
-        addUrl(sitemap, "/community", "daily", "0.9");
-        addUrl(sitemap, "/cinema", "weekly", "0.8");
-        addUrl(sitemap, "/discussion", "daily", "0.8");
-        addUrl(sitemap, "/shop", "monthly", "0.7");
+        addUrl(sitemap, "/posts", "daily", "0.9");
+        addUrl(sitemap, "/shop", "monthly", "0.6");
+        addUrl(sitemap, "/suggestions", "weekly", "0.6");
+        addUrl(sitemap, "/about", "monthly", "0.5");
+        addUrl(sitemap, "/contact", "monthly", "0.4");
+        addUrl(sitemap, "/terms", "monthly", "0.3");
+        addUrl(sitemap, "/privacy", "monthly", "0.3");
         
         sitemap.append("</urlset>");
         return sitemap.toString();

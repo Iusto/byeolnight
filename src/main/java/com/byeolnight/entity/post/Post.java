@@ -29,7 +29,8 @@ public class Post {
 
     public enum BlindType {
         ADMIN_BLIND,    // 관리자 직접 블라인드
-        REPORT_BLIND    // 신고로 인한 자동 블라인드
+        REPORT_BLIND,   // 신고로 인한 자동 블라인드
+        PENDING_REVIEW  // 자동 생성 콘텐츠의 운영자 검수 대기
     }
 
     @Id
@@ -139,6 +140,13 @@ public class Post {
         this.blindedAt = LocalDateTime.now();
         this.blindType = BlindType.ADMIN_BLIND;
         this.blindedByAdminId = adminId;
+    }
+
+    public void markPendingReview() {
+        this.blinded = true;
+        this.blindedAt = LocalDateTime.now();
+        this.blindType = BlindType.PENDING_REVIEW;
+        this.blindedByAdminId = null;
     }
 
     public void unblind() {

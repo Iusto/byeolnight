@@ -42,13 +42,28 @@ jobs:
             --delete \
             --cache-control "public,max-age=31536000,immutable" \
             --exclude "index.html" \
-            --exclude "maintenance.html"
+            --exclude "maintenance.html" \
+            --exclude "robots.txt" \
+            --exclude "ads.txt" \
+            --exclude "sitemap.xml"
           
           aws s3 cp byeolnight-frontend/dist/index.html s3://byeolnight-frontend/index.html \
             --cache-control "no-cache,no-store,must-revalidate"
           
           aws s3 cp byeolnight-frontend/public/maintenance.html s3://byeolnight-frontend/maintenance.html \
             --cache-control "no-cache,no-store,must-revalidate"
+
+          aws s3 cp byeolnight-frontend/dist/robots.txt s3://byeolnight-frontend/robots.txt \
+            --content-type "text/plain; charset=utf-8" \
+            --cache-control "public,max-age=3600"
+
+          aws s3 cp byeolnight-frontend/dist/ads.txt s3://byeolnight-frontend/ads.txt \
+            --content-type "text/plain; charset=utf-8" \
+            --cache-control "public,max-age=3600"
+
+          aws s3 cp byeolnight-frontend/dist/sitemap.xml s3://byeolnight-frontend/sitemap.xml \
+            --content-type "application/xml; charset=utf-8" \
+            --cache-control "public,max-age=3600"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

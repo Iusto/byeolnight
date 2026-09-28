@@ -37,6 +37,10 @@ const SuggestionEdit = lazy(() => import('./pages/SuggestionEdit'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthRecover = lazy(() => import('./pages/OAuthRecover'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const PrivacyPolicy = lazy(() => import('./components/ui/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./components/ui/TermsOfService'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 const PostWriteRedirect = () => {
   const { search } = useLocation();
@@ -48,6 +52,7 @@ const isStaticFilePath = (pathname: string): boolean => {
   return [
     '/sitemap.xml',
     '/robots.txt',
+    '/ads.txt',
     '/favicon.ico'
   ].includes(pathname) || pathname.startsWith('/sitemap-');
 };
@@ -98,6 +103,10 @@ function App() {
           <Route path="/suggestions" element={<SuggestionList />} />
           <Route path="/suggestions/:id" element={<SuggestionDetail />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
 
           {/* 로그인 필요 페이지 */}
           <Route path="/me" element={

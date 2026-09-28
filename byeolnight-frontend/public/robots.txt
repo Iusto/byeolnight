@@ -1,0 +1,24 @@
+User-agent: Googlebot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/admin/
+Disallow: /api/member/
+Disallow: /api/auth/
+Disallow: /login
+Disallow: /signup
+Disallow: /password-reset
+Disallow: /profile
+Disallow: /me
+Disallow: /messages
+Disallow: /points
+Disallow: /posts/new
+Disallow: /posts/write
+Disallow: /error
+
+Sitemap: https://byeolnight.com/sitemap.xml

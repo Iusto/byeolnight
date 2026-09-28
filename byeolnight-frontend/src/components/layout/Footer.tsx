@@ -1,5 +1,7 @@
 ﻿import { useTranslation } from 'react-i18next';
 
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   const { t } = useTranslation();
   
@@ -29,7 +31,7 @@ export default function Footer() {
           
           {/* 저작권 정보 */}
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-sm text-gray-400">
-            <p>© 2025 {t('home.bigtitle')}. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} {t('home.bigtitle')}. All rights reserved.</p>
             <div className="hidden md:block w-px h-4 bg-gray-600"></div>
             <p className="flex items-center gap-2">
               <span>Made with</span>
@@ -37,7 +39,13 @@ export default function Footer() {
               <span>for space lovers</span>
             </p>
           </div>
-          
+
+          <nav aria-label="서비스 정보" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-gray-300">
+            <Link to="/about" className="hover:text-purple-300 transition-colors">사이트 소개</Link>
+            <Link to="/contact" className="hover:text-purple-300 transition-colors">문의</Link>
+            <Link to="/terms" className="hover:text-purple-300 transition-colors">이용약관</Link>
+            <Link to="/privacy" className="hover:text-purple-300 transition-colors">개인정보처리방침</Link>
+          </nav>
 
         </div>
       </div>
