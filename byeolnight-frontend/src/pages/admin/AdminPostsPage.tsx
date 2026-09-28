@@ -18,6 +18,7 @@ interface BlindedPost {
   viewCount: number;
   likeCount: number;
   commentCount: number;
+  blindType?: string;
 }
 
 interface ReportedPost {
@@ -74,7 +75,11 @@ export default function AdminPostsPage() {
   }, [fetchData]);
 
   const handleUnblindPost = async (postId: number) => {
-    if (!confirm('정말 이 게시글의 블라인드를 해제하시겠습니까?')) return;
+    const post = blindedPosts.find(item => item.id === postId);
+    const message = post?.blindType === 'PENDING_REVIEW'
+      ? '내용과 출처를 검수했으며 이 게시글을 공개하시겠습니까?'
+      : '정말 이 게시글의 블라인드를 해제하시겠습니까?';
+    if (!confirm(message)) return;
     try {
       await axios.patch(`/admin/posts/${postId}/unblind`);
       alert('블라인드가 해제되었습니다.');
@@ -280,7 +285,12 @@ export default function AdminPostsPage() {
                 <div key={post.id} className="bg-[#2a2e45] p-4 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">{post.title}</h4>
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <h4 className="text-white font-semibold">{post.title}</h4>
+                        {post.blindType === 'PENDING_REVIEW' && (
+                          <span className="rounded-full bg-blue-600/80 px-2 py-0.5 text-xs text-white">자동 콘텐츠 검수 대기</span>
+                        )}
+                      </div>
                       <p className="text-gray-400 text-sm mb-2">
                         작성자: {getWriterName(post.writer)} | 카테고리: {post.category} | 조회: {post.viewCount}
                       </p>
@@ -288,12 +298,20 @@ export default function AdminPostsPage() {
                         {post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleUnblindPost(post.id)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm ml-4"
-                    >
-                      블라인드 해제
-                    </button>
+                    <div className="ml-4 flex shrink-0 flex-col gap-2">
+                      <button
+                        onClick={() => window.open(`/posts/${post.id}`, '_blank')}
+                        className="rounded bg-slate-600 px-3 py-1 text-sm text-white hover:bg-slate-500"
+                      >
+                        내용 확인
+                      </button>
+                      <button
+                        onClick={() => handleUnblindPost(post.id)}
+                        className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
+                      >
+                        {post.blindType === 'PENDING_REVIEW' ? '검수 완료·공개' : '블라인드 해제'}
+                      </button>
+                    </div>
                   </div>
                   <p className="text-gray-500 text-xs mt-2">블라인드 시간: {new Date(post.createdAt).toLocaleString()}</p>
                 </div>
