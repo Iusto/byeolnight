@@ -5,6 +5,7 @@ import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,7 @@ public class WeatherScheduler {
     static final int MAX_ATTEMPTS = 2;
     static final long RETRY_DELAY_MILLIS = 1_000;
 
+    @Autowired
     public WeatherScheduler(WeatherLocalCacheService cacheService,
                             WeatherCityConfig cityConfig,
                             OpenWeatherClient openWeatherClient,
