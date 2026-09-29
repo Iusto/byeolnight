@@ -8,7 +8,7 @@
 |------|----------|-----------|----------|----------------|
 | 첫 로딩 시간 | 최대 7초대 | 미스 시 동일 | 미스 시 동일 | **캐시 히트 평균 20.16ms** |
 | 캐시 키 공간 | — | 좌표 4자리 (과도하게 세밀) | 0.01도 그리드 | 0.01도 그리드 + 70개 도시 사전 적재 |
-| API 호출 | 매 요청 | 미스 시마다 | 미스 시마다 | 30분 주기 배치 + 온디맨드, 실패 시 bounded stale |
+| API 호출 | 매 요청 | 미스 시마다 | 미스 시마다 | 30분 주기 배치 + 온디맨드, 분당 48회 제한, 실패 시 bounded stale |
 | 인프라 복잡도 | 낮음 | 높음 (Redis) | 낮음 | 낮음 |
 
 > **계측된 값**: k6 부하테스트 + Actuator 카운터로 `hit 316,953 / miss 0`.
@@ -230,7 +230,8 @@ public class CoordinateUtils {
 public void collectWeatherData() {
     // 70개 주요 도시 날씨를 미리 수집
     for (City city : cityConfig.getCities()) {
-        WeatherResponse weather = fetchWeatherData(city);
+        // 스케줄·온디맨드·재시도가 공유하는 Rate Limiter를 통과한다.
+        WeatherResponse weather = openWeatherClient.fetch(city.latitude(), city.longitude());
         cacheService.put(city.getCacheKey(), weather);
     }
 }
@@ -258,6 +259,30 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
     }
 }
 ```
+
+### 외부 API 호출 속도 제한
+
+초기 스케줄러는 18개 도시를 수집하면서 호출 성공 후 `Thread.sleep(200)`을 실행했다. 당시에는 한 배치가
+18회뿐이라 분당 60회 안에 끝났지만, 도시가 57개와 70개로 늘어날 때 월간 총량만 확인하고 호출 간격은
+다시 산정하지 않았다. `200ms`는 0.2회 호출이 아니라 호출 사이의 대기 시간이므로, 응답 시간을 제외하면
+초당 최대 5회(분당 300회)까지 가능하며 외부 API 응답이 빠를수록 무료 플랜의 순간 한도를 넘을 수 있다.
+
+[OpenWeather 무료 Current Weather 플랜](https://openweathermap.org/price)은 분당 60회, 월 1,000,000회를
+제공한다. 한도와 동일한 분당 60회로 운영하면 온디맨드 요청과 재시도 여유가 없으므로, 공통
+`WeatherApiRateLimiter`를 초당 0.8회, 즉 분당 최대 48회로 설정했다.
+
+| 항목 | 값 |
+|------|----|
+| 무료 플랜 순간 한도 | 분당 60회 |
+| 애플리케이션 제한 | 초당 0.8회 = 분당 48회 |
+| 호출 시작 간격 | 평균 1.25초 |
+| 70개 도시 최소 수집 시간 | 약 87.5초 |
+| 100개 도시 확장 시 최소 수집 시간 | 약 125초 |
+
+`WeatherScheduler`와 `WeatherService`에 중복되어 있던 HTTP 호출은 `OpenWeatherClient`로 통합했다.
+스케줄 수집, 캐시 미스·stale 갱신, 실패 후 재시도는 모두 동일한 제한기 인스턴스를 통과하므로 경로별
+호출량을 합쳐도 설정 속도를 넘지 않는다. 제한기는 현재 단일 애플리케이션 인스턴스를 전제로 한다.
+다중 인스턴스로 확장할 때는 스케줄러 단일 실행 또는 Redis 기반 분산 Rate Limiter가 필요하다.
 
 ### 대상 도시 (70개)
 ```yaml
@@ -287,6 +312,7 @@ public WeatherResponse getObservationConditions(Double latitude, Double longitud
 - ✅ 마지막 성공 데이터는 35분 이후 `STALE`로 전환해 최대 2시간만 보존
 - ✅ `FRESH`/`STALE`/`UNAVAILABLE` 상태와 마지막 성공 시각을 사용자에게 표시
 - ✅ 성공·실패·재시도 Micrometer 카운터로 외부 API 장애를 관측
+- ✅ 모든 외부 호출을 공통 클라이언트로 통합하고 분당 최대 48회로 제한
 
 ### 외부 API 장애 정책
 
@@ -466,12 +492,12 @@ public void collectWeatherData() {
 
     for (WeatherCityConfig.City city : cityConfig.getCities()) {
         try {
+            // fetchWeatherData 내부에서 공통 OpenWeatherClient와 Rate Limiter를 사용한다.
             WeatherResponse weather = fetchWeatherDataWithRetry(city); // 1초 후 1회 재시도
             String cacheKey = generateCacheKey(city.latitude(), city.longitude());
             cacheService.put(cacheKey, weather);
             successCount++;
             meterRegistry.counter("weather.scheduler.refresh.success").increment();
-            Thread.sleep(200);  // Rate Limit 방지
         } catch (Exception e) {
             // 실패 응답을 캐시에 넣지 않으므로 마지막 정상 데이터가 유지된다.
             log.error("날씨 수집 실패 - 기존 캐시 유지: city={}", city.name());
@@ -495,7 +521,10 @@ public void collectWeatherData() {
 
 ### 2. 모니터링
 
-Micrometer + Actuator 캐시 메트릭과 k6 부하테스트로 실측 검증을 완료했다. 운영 중에는 `weather.scheduler.refresh.success`, `weather.scheduler.refresh.failure`, `weather.scheduler.refresh.retry`, `cache.weather.stale` 카운터로 갱신 장애와 stale 반환을 구분한다.
+Micrometer + Actuator 캐시 메트릭과 k6 부하테스트로 실측 검증을 완료했다. 운영 중에는
+`weather.scheduler.refresh.success`, `weather.scheduler.refresh.failure`, `weather.scheduler.refresh.retry`,
+`cache.weather.stale`로 갱신 장애와 stale 반환을 구분하고, `weather.api.request`, `weather.api.success`,
+`weather.api.failure`, `weather.api.http.429`, `weather.api.rate_limit.wait`로 실제 외부 호출과 제한 대기를 관측한다.
 
 #### k6 부하테스트 실측 결과 (별도 EC2에서 실행)
 

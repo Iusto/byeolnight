@@ -16,6 +16,7 @@ public class WeatherCityConfig {
      * 날씨 데이터를 수집할 주요 도시 목록
      * - 30분마다 자동 수집하여 캐싱
      * - 총 70개 도시 (일 3,360 API 호출, 무료 플랜 충분)
+     * - 모든 외부 호출은 공통 Rate Limiter(분당 최대 48회)를 통과
      */
     private final List<City> cities = List.of(
             // 서울

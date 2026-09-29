@@ -5,12 +5,8 @@ import com.byeolnight.dto.external.weather.OpenWeatherResponse;
 import com.byeolnight.dto.weather.WeatherResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,6 +17,7 @@ import static com.byeolnight.infrastructure.util.CoordinateUtils.generateCacheKe
  * 날씨 데이터 스케줄 수집 서비스
  * - 30분마다 주요 도시 날씨 수집
  * - 로컬 캐시에 저장
+ * - OpenWeatherClient의 공통 Rate Limiter를 통해 호출 속도 제한
  */
 @Slf4j
 @Service
@@ -28,46 +25,35 @@ public class WeatherScheduler {
 
     private final WeatherLocalCacheService cacheService;
     private final WeatherCityConfig cityConfig;
-    private final RestTemplate restTemplate;
+    private final OpenWeatherClient openWeatherClient;
     private final MeterRegistry meterRegistry;
     private final ObservationScoreService observationScoreService;
     private final Sleeper sleeper;
 
     static final int MAX_ATTEMPTS = 2;
     static final long RETRY_DELAY_MILLIS = 1_000;
-    static final long REQUEST_INTERVAL_MILLIS = 200;
 
-    // @Qualifier는 필드가 아닌 생성자 파라미터에 지정한다.
-    // lombok.config에 copyableAnnotations 설정이 없어 @RequiredArgsConstructor로는
-    // @Qualifier가 전달되지 않고 @Primary 빈이 주입되기 때문.
-    @Autowired
     public WeatherScheduler(WeatherLocalCacheService cacheService,
                             WeatherCityConfig cityConfig,
-                            @Qualifier("weatherRestTemplate") RestTemplate restTemplate,
+                            OpenWeatherClient openWeatherClient,
                             MeterRegistry meterRegistry,
                             ObservationScoreService observationScoreService) {
-        this(cacheService, cityConfig, restTemplate, meterRegistry, observationScoreService, Thread::sleep);
+        this(cacheService, cityConfig, openWeatherClient, meterRegistry, observationScoreService, Thread::sleep);
     }
 
     WeatherScheduler(WeatherLocalCacheService cacheService,
                      WeatherCityConfig cityConfig,
-                     RestTemplate restTemplate,
+                     OpenWeatherClient openWeatherClient,
                      MeterRegistry meterRegistry,
                      ObservationScoreService observationScoreService,
                      Sleeper sleeper) {
         this.cacheService = cacheService;
         this.cityConfig = cityConfig;
-        this.restTemplate = restTemplate;
+        this.openWeatherClient = openWeatherClient;
         this.meterRegistry = meterRegistry;
         this.observationScoreService = observationScoreService;
         this.sleeper = sleeper;
     }
-
-    @Value("${weather.api.key}")
-    private String apiKey;
-
-    @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
-    private String apiUrl;
 
     /**
      * 30분마다 주요 도시 날씨 수집
@@ -87,9 +73,6 @@ public class WeatherScheduler {
                 cacheService.put(cacheKey, weather);
                 successCount++;
                 meterRegistry.counter("weather.scheduler.refresh.success").increment();
-
-                // API 호출 간 짧은 지연 (Rate Limit 방지)
-                sleeper.sleep(REQUEST_INTERVAL_MILLIS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.warn("날씨 수집 스케줄이 중단되었습니다: city={}", city.name());
@@ -126,7 +109,7 @@ public class WeatherScheduler {
     }
 
     private WeatherResponse fetchWeatherData(WeatherCityConfig.City city) {
-        OpenWeatherResponse apiResponse = callWeatherAPI(city.latitude(), city.longitude());
+        OpenWeatherResponse apiResponse = openWeatherClient.fetch(city.latitude(), city.longitude());
         String moonPhase = getMoonPhaseIcon();
         ObservationScoreService.ObservationScore score = observationScoreService.calculate(
                 apiResponse.getCloudCover(), apiResponse.getVisibilityKm(), moonPhase);
@@ -149,20 +132,6 @@ public class WeatherScheduler {
                 .dataStatus(WeatherResponse.DataStatus.FRESH)
                 .lastSuccessfulAt(successfulAt)
                 .build();
-    }
-
-    private OpenWeatherResponse callWeatherAPI(double latitude, double longitude) {
-        String url = String.format(
-                java.util.Locale.US,
-                "%s/weather?lat=%f&lon=%f&appid=%s&units=metric",
-                apiUrl, latitude, longitude, apiKey
-        );
-
-        OpenWeatherResponse response = restTemplate.getForObject(url, OpenWeatherResponse.class);
-        if (response == null) {
-            throw new IllegalStateException("날씨 API 응답이 null입니다");
-        }
-        return response;
     }
 
     private static double toJulian(LocalDateTime dtUtc) {

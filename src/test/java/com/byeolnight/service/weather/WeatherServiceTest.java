@@ -14,8 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 import java.util.Optional;
@@ -35,21 +33,17 @@ class WeatherServiceTest {
     private WeatherLocalCacheService localCacheService;
 
     @Mock
-    private RestTemplate restTemplate;
+    private OpenWeatherClient openWeatherClient;
 
     private MeterRegistry meterRegistry;
 
-    private static final String TEST_API_KEY = "test-api-key";
-    private static final String TEST_API_URL = "https://api.openweathermap.org/data/2.5";
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
         weatherService = new WeatherService(
-                localCacheService, meterRegistry, restTemplate, new ObservationScoreService());
-        ReflectionTestUtils.setField(weatherService, "apiKey", TEST_API_KEY);
-        ReflectionTestUtils.setField(weatherService, "apiUrl", TEST_API_URL);
+                localCacheService, meterRegistry, openWeatherClient, new ObservationScoreService());
     }
 
     @Nested
@@ -84,7 +78,7 @@ class WeatherServiceTest {
             assertThat(result.getLocation()).isEqualTo("서울");
             assertThat(result.getCloudCover()).isEqualTo(30.0);
             verify(localCacheService, times(1)).get(anyString());
-            verify(restTemplate, never()).getForObject(anyString(), eq(OpenWeatherResponse.class));
+            verify(openWeatherClient, never()).fetch(anyDouble(), anyDouble());
         }
 
         @Test
@@ -100,7 +94,7 @@ class WeatherServiceTest {
             OpenWeatherResponse apiResponse = createMockApiResponse("Seoul", 20, 10000);
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
+            given(openWeatherClient.fetch(anyDouble(), anyDouble())).willReturn(apiResponse);
 
             // when
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -132,7 +126,7 @@ class WeatherServiceTest {
             OpenWeatherResponse apiResponse = createMockApiResponse("Busan", 40, 8000);
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
+            given(openWeatherClient.fetch(anyDouble(), anyDouble())).willReturn(apiResponse);
 
             // when
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -159,7 +153,7 @@ class WeatherServiceTest {
             OpenWeatherResponse apiResponse = createMockApiResponse("Jeju", 60, 5000);
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willReturn(apiResponse);
+            given(openWeatherClient.fetch(anyDouble(), anyDouble())).willReturn(apiResponse);
 
             // when
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -181,7 +175,7 @@ class WeatherServiceTest {
             double longitude = 126.9780;
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
+            given(openWeatherClient.fetch(anyDouble(), anyDouble()))
                     .willThrow(new RuntimeException("API 호출 실패"));
 
             // when
@@ -218,7 +212,7 @@ class WeatherServiceTest {
                     .build();
 
             given(localCacheService.get(anyString())).willReturn(Optional.of(staleResponse));
-            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class)))
+            given(openWeatherClient.fetch(anyDouble(), anyDouble()))
                     .willThrow(new RuntimeException("API 호출 실패"));
 
             WeatherResponse result = weatherService.getObservationConditions(latitude, longitude);
@@ -243,10 +237,10 @@ class WeatherServiceTest {
             String[] locations = {"Seoul", "Busan", "Jeju", "Daejeon"};
 
             given(localCacheService.get(anyString())).willReturn(Optional.empty());
-            given(restTemplate.getForObject(anyString(), eq(OpenWeatherResponse.class))).willAnswer(invocation -> {
-                String url = invocation.getArgument(0);
+            given(openWeatherClient.fetch(anyDouble(), anyDouble())).willAnswer(invocation -> {
+                double latitude = invocation.getArgument(0);
                 for (int i = 0; i < locations.length; i++) {
-                    if (url.contains(String.format("lat=%f", expectedLats[i]))) {
+                    if (Math.abs(latitude - expectedLats[i]) < 0.0001) {
                         return createMockApiResponse(locations[i], 20 + (i * 10), 10000);
                     }
                 }

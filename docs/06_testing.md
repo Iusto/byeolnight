@@ -72,6 +72,7 @@ Mock 기반으로 외부 의존성(DB, Redis, 외부 API)을 격리하여 비즈
 | `UserAdminServiceTest` | 3개 | 관리자 계정 복구 |
 | `SchedulerUnitTest` | 6개 | 스케줄러 단위 실행 검증 |
 | `WeatherSchedulerTest` | 5개 | 날씨 스케줄 동작, 재시도 후 실패 시 기존 캐시 보존 |
+| `OpenWeatherClientTest` | 2개 | 공통 호출 제한 적용, 외부 호출·대기·HTTP 429 메트릭 기록 |
 | `WeatherLocalCacheServiceTest` | 7개 | 35분 신선도, 2시간 stale 보존, 크기 상한과 통계 |
 | `CustomOAuth2UserServiceWithdrawTest` | 2개 | 소셜 탈퇴 계정 처리 |
 
