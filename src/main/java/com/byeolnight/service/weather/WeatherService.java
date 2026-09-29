@@ -5,10 +5,7 @@ import com.byeolnight.dto.weather.WeatherResponse;
 import com.byeolnight.infrastructure.util.CoordinateUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,22 +23,16 @@ public class WeatherService {
 
     private final WeatherLocalCacheService localCacheService;
     private final MeterRegistry meterRegistry;
-    private final RestTemplate restTemplate;
+    private final OpenWeatherClient openWeatherClient;
     private final ObservationScoreService observationScoreService;
-
-    @Value("${weather.api.key}")
-    private String apiKey;
-
-    @Value("${weather.api.url:https://api.openweathermap.org/data/2.5}")
-    private String apiUrl;
 
     public WeatherService(WeatherLocalCacheService localCacheService,
                           MeterRegistry meterRegistry,
-                          @Qualifier("weatherRestTemplate") RestTemplate restTemplate,
+                          OpenWeatherClient openWeatherClient,
                           ObservationScoreService observationScoreService) {
         this.localCacheService = localCacheService;
         this.meterRegistry = meterRegistry;
-        this.restTemplate = restTemplate;
+        this.openWeatherClient = openWeatherClient;
         this.observationScoreService = observationScoreService;
     }
 
@@ -94,7 +85,7 @@ public class WeatherService {
      * 외부 API에서 실시간 날씨 데이터 조회
      */
     private WeatherResponse fetchWeatherDataFromAPI(double latitude, double longitude) {
-        OpenWeatherResponse apiResponse = callWeatherAPI(latitude, longitude);
+        OpenWeatherResponse apiResponse = openWeatherClient.fetch(latitude, longitude);
         String moonPhase = getMoonPhaseIcon();
         ObservationScoreService.ObservationScore score = observationScoreService.calculate(
                 apiResponse.getCloudCover(), apiResponse.getVisibilityKm(), moonPhase);
@@ -117,20 +108,6 @@ public class WeatherService {
                 .dataStatus(WeatherResponse.DataStatus.FRESH)
                 .lastSuccessfulAt(successfulAt)
                 .build();
-    }
-
-    private OpenWeatherResponse callWeatherAPI(double latitude, double longitude) {
-        String url = String.format(
-                java.util.Locale.US,
-                "%s/weather?lat=%f&lon=%f&appid=%s&units=metric",
-                apiUrl, latitude, longitude, apiKey
-        );
-
-        OpenWeatherResponse response = restTemplate.getForObject(url, OpenWeatherResponse.class);
-        if (response == null) {
-            throw new IllegalStateException("날씨 API 응답이 null입니다");
-        }
-        return response;
     }
 
     /**
