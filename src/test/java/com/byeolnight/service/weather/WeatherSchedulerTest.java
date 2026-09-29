@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.HashMap;
@@ -50,6 +51,13 @@ class WeatherSchedulerTest {
         weatherScheduler = new WeatherScheduler(
                 cacheService, cityConfig, openWeatherClient, meterRegistry,
                 new ObservationScoreService(), millis -> { });
+    }
+
+    @Test
+    @DisplayName("운영 생성자가 Spring 주입 대상으로 명시됨")
+    void shouldDeclareAutowiredConstructor() {
+        assertThat(WeatherScheduler.class.getConstructors())
+                .anyMatch(constructor -> constructor.isAnnotationPresent(Autowired.class));
     }
 
     @Test
