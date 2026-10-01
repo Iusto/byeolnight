@@ -238,8 +238,8 @@ if [ "$POSTS_TABLE_EXISTS" = "1" ] && [ -e "${MIGRATIONS[0]}" ]; then
     fi
   done
   BLIND_TYPE=$(docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight -Nse \
-    "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='byeolnight' AND TABLE_NAME='posts' AND COLUMN_NAME='blind_type'")
-  if [ "$BLIND_TYPE" != "varchar" ]; then
+    "SELECT CONCAT(DATA_TYPE, ':', COLUMN_TYPE) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='byeolnight' AND TABLE_NAME='posts' AND COLUMN_NAME='blind_type'")
+  if [[ "$BLIND_TYPE" != varchar:* && "$BLIND_TYPE" != *PENDING_REVIEW* ]]; then
     echo "❌ posts.blind_type 스키마 검증 실패: $BLIND_TYPE"
     exit 1
   fi
