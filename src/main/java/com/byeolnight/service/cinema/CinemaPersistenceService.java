@@ -40,13 +40,11 @@ public class CinemaPersistenceService {
     }
 
     private Post toPost(CinemaVideoData data, User writer) {
-        Post post = Post.builder()
+        return Post.builder()
                 .title(data.title())
                 .content(data.content())
                 .category(Post.Category.STARLIGHT_CINEMA)
                 .writer(writer)
                 .build();
-        post.markPendingReview();
-        return post;
     }
 }

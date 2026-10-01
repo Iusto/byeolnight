@@ -123,7 +123,10 @@ class CinemaServiceTest {
         assertThat(result.getStatus()).isEqualTo(CinemaCollectionResultDto.Status.CREATED);
         verify(restTemplate, times(3)).getForObject(any(URI.class), any(Class.class));
         verify(cinemaRepository).save(any(Cinema.class));
-        verify(postRepository).save(any(Post.class));
+        verify(postRepository).save(argThat(post ->
+                post.getCategory() == Post.Category.STARLIGHT_CINEMA
+                        && !post.isBlinded()
+                        && post.getBlindType() == null));
     }
 
     @Test
