@@ -1,7 +1,12 @@
 package com.byeolnight.controller.ai;
 
 import com.byeolnight.infrastructure.common.CommonResponse;
+import com.byeolnight.dto.admin.NewsStatusDto;
+import com.byeolnight.dto.admin.CinemaStatusDto;
+import com.byeolnight.dto.crawler.NewsCollectionResultDto;
+import com.byeolnight.service.cinema.CinemaService;
 import com.byeolnight.service.crawler.SpaceNewsScheduler;
+import com.byeolnight.service.crawler.SpaceNewsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -22,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 public class CrawlerController {
 
     private final SpaceNewsScheduler spaceNewsScheduler;
+    private final SpaceNewsService spaceNewsService;
+    private final CinemaService cinemaService;
 
     @Operation(summary = "우주 뉴스 수동 수집", description = """
     관리자가 수동으로 우주 뉴스를 수집합니다.
@@ -41,14 +48,14 @@ public class CrawlerController {
     })
     @PostMapping("/start")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResponse<String>> startCrawling() {
+    public ResponseEntity<CommonResponse<NewsCollectionResultDto>> startCrawling() {
         try {
             log.info("관리자 요청으로 우주 뉴스 수집 시작");
-            spaceNewsScheduler.manualCollection();
-            
-            return ResponseEntity.ok(
-                CommonResponse.success("우주 뉴스 수집이 완료되었습니다.")
-            );
+            NewsCollectionResultDto result = spaceNewsScheduler.manualCollection();
+            CommonResponse<NewsCollectionResultDto> response = result.isSuccessful()
+                    ? CommonResponse.success(result, result.getMessage())
+                    : new CommonResponse<>(false, result.getMessage(), result);
+            return ResponseEntity.ok(response);
             
         } catch (Exception e) {
             log.error("뉴스 수집 중 오류 발생: {}", e.getMessage(), e);
@@ -60,10 +67,8 @@ public class CrawlerController {
     @Operation(summary = "크롤러 상태 확인", description = "우주 뉴스 크롤러 시스템의 상태를 확인합니다. (스케줄링 상태 및 마지막 실행 시간 포함)")
     @GetMapping("/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResponse<String>> getStatus() {
-        return ResponseEntity.ok(
-            CommonResponse.success("우주 뉴스 크롤러 시스템이 정상 작동 중입니다. 매일 오전 8시에 자동 실행됩니다.")
-        );
+    public ResponseEntity<CommonResponse<NewsStatusDto>> getStatus() {
+        return ResponseEntity.ok(CommonResponse.success(spaceNewsService.getStatus()));
     }
     
     @Operation(summary = "토론 주제 생성 상태", description = "AI 기반 일일 토론 주제 생성 시스템 상태를 확인합니다. (Claude/OpenAI API 사용)")
@@ -78,9 +83,7 @@ public class CrawlerController {
     @Operation(summary = "별빛 시네마 상태", description = "YouTube 우주 영상 자동 수집 및 번역 시스템 상태를 확인합니다.")
     @GetMapping("/cinema")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResponse<String>> getCinemaStatus() {
-        return ResponseEntity.ok(
-            CommonResponse.success("별빛 시네마 시스템이 정상 작동 중입니다. 매일 오후 8시에 자동 실행됩니다.")
-        );
+    public ResponseEntity<CommonResponse<CinemaStatusDto>> getCinemaStatus() {
+        return ResponseEntity.ok(CommonResponse.success(cinemaService.getCinemaStatus()));
     }
 }

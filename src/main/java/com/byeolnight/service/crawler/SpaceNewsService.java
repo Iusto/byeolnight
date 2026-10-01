@@ -2,6 +2,8 @@ package com.byeolnight.service.crawler;
 
 import com.byeolnight.dto.ai.NewsAiContentDto;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
+import com.byeolnight.dto.admin.NewsStatusDto;
+import com.byeolnight.dto.crawler.NewsCollectionResultDto;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.user.User;
 import com.byeolnight.infrastructure.config.NewsCollectionProperties;
@@ -12,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,14 +35,27 @@ public class SpaceNewsService {
     private final NewsTranslationService translationService;
     private final NewsDataClient newsDataClient;
     private final SpaceNewsPersistenceService persistenceService;
+    private volatile NewsCollectionResultDto lastResult;
 
     /** 외부 API와 AI 호출은 트랜잭션 밖에서 수행하고, 확정된 기사만 짧게 저장한다. */
-    public void collectAndSaveSpaceNews() {
+    public NewsCollectionResultDto collectAndSaveSpaceNews() {
+        try {
+            return collectAndSaveSpaceNewsInternal();
+        } catch (RuntimeException exception) {
+            log.error("우주 뉴스 수집 실패: type={}", exception.getClass().getSimpleName(), exception);
+            return remember(result(NewsCollectionResultDto.Status.FAILED,
+                    "뉴스 수집 또는 저장 중 오류가 발생했습니다.", 0, 0, 0, 0, 0,
+                    exception.getClass().getSimpleName()));
+        }
+    }
+
+    private NewsCollectionResultDto collectAndSaveSpaceNewsInternal() {
         log.info("우주 뉴스 수집을 시작합니다.");
         NewsApiResponseDto response = newsDataClient.fetchSpaceNews();
         if (response == null || response.getResults() == null) {
             log.warn("수집할 뉴스 응답이 없습니다.");
-            return;
+            return remember(result(NewsCollectionResultDto.Status.SOURCE_API_FAILED,
+                    "NewsData.io에서 뉴스 응답을 받지 못했습니다.", 0, 0, 0, 0, 0, null));
         }
 
         User newsBot = userRepository.findByEmail(NEWS_BOT_EMAIL)
@@ -79,6 +96,19 @@ public class SpaceNewsService {
 
         log.info("우주 뉴스 수집 완료: 후보 {}건, 저장 {}건, 중복 {}건, 품질 제외 {}건, AI 실패 {}건",
                 response.getResults().size(), savedCount, duplicateCount, filteredCount, aiFailureCount);
+        long todayCount = getTodayNewsCount();
+        NewsCollectionResultDto.Status status = savedCount > 0
+                ? NewsCollectionResultDto.Status.COLLECTED
+                : todayCount > 0
+                ? NewsCollectionResultDto.Status.ALREADY_COLLECTED_TODAY
+                : NewsCollectionResultDto.Status.NO_ARTICLES_SAVED;
+        String message = savedCount > 0
+                ? "우주 뉴스 " + savedCount + "건을 저장했습니다."
+                : todayCount > 0
+                ? "오늘 수집된 뉴스가 이미 있습니다."
+                : "수집은 실행됐지만 저장된 뉴스가 없습니다.";
+        return remember(result(status, message, response.getResults().size(), savedCount,
+                duplicateCount, filteredCount, aiFailureCount, null));
     }
 
     /** 기존 관리자 API 호환을 위한 NewsData 조회 진입점이다. */
@@ -89,5 +119,43 @@ public class SpaceNewsService {
     public long getTodayNewsCount() {
         LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
         return newsRepository.countByCreatedAtAfter(todayStart);
+    }
+
+    public NewsStatusDto getStatus() {
+        long todayCount = getTodayNewsCount();
+        boolean finalSchedulePassed = LocalTime.now(ZoneId.of("Asia/Seoul")).isAfter(LocalTime.of(8, 10));
+        boolean lastExecutionFailed = lastResult != null && !lastResult.isSuccessful();
+        boolean healthy = !lastExecutionFailed && (todayCount > 0 || !finalSchedulePassed);
+        String warning = lastExecutionFailed
+                ? lastResult.getMessage()
+                : healthy ? null : "오전 8시 10분까지 저장된 뉴스가 없습니다.";
+        return NewsStatusDto.builder()
+                .todayNews(todayCount)
+                .systemHealthy(healthy)
+                .statusMessage(healthy ? "뉴스 수집 시스템이 정상입니다." : "뉴스 수집 시스템을 확인해야 합니다.")
+                .warning(warning)
+                .lastExecution(lastResult)
+                .build();
+    }
+
+    private NewsCollectionResultDto remember(NewsCollectionResultDto result) {
+        lastResult = result;
+        return result;
+    }
+
+    private NewsCollectionResultDto result(NewsCollectionResultDto.Status status, String message,
+                                           int candidates, int saved, int duplicates, int filtered,
+                                           int aiFailures, String errorType) {
+        return NewsCollectionResultDto.builder()
+                .status(status)
+                .message(message)
+                .candidateCount(candidates)
+                .savedCount(saved)
+                .duplicateCount(duplicates)
+                .filteredCount(filtered)
+                .aiFailureCount(aiFailures)
+                .errorType(errorType)
+                .executedAt(LocalDateTime.now())
+                .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.byeolnight.service.crawler;
 
+import com.byeolnight.dto.crawler.NewsCollectionResultDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -44,8 +45,14 @@ public class SpaceNewsScheduler {
                 return;
             }
             
-            spaceNewsService.collectAndSaveSpaceNews();
-            log.info("=== 우주 뉴스 자동 수집 스케줄 완료 - {} ===", java.time.LocalDateTime.now());
+            NewsCollectionResultDto result = spaceNewsService.collectAndSaveSpaceNews();
+            if (result.isSuccessful()) {
+                log.info("=== 우주 뉴스 자동 수집 스케줄 완료 - {}, status={} ===",
+                        java.time.LocalDateTime.now(), result.getStatus());
+            } else {
+                log.warn("=== 우주 뉴스 자동 수집 실패 - {}, status={}, message={} ===",
+                        java.time.LocalDateTime.now(), result.getStatus(), result.getMessage());
+            }
         } catch (Exception e) {
             log.error("우주 뉴스 수집 중 오류 발생 - {}", java.time.LocalDateTime.now(), e);
         }
@@ -63,9 +70,10 @@ public class SpaceNewsScheduler {
     }
     
     // 테스트용 수동 실행 메서드 (필요시 컨트롤러에서 호출)
-    public void manualCollection() {
+    public NewsCollectionResultDto manualCollection() {
         log.info("=== 우주 뉴스 수동 수집 시작 ===");
-        spaceNewsService.collectAndSaveSpaceNews();
-        log.info("=== 우주 뉴스 수동 수집 완료 ===");
+        NewsCollectionResultDto result = spaceNewsService.collectAndSaveSpaceNews();
+        log.info("=== 우주 뉴스 수동 수집 종료: status={} ===", result.getStatus());
+        return result;
     }
 }

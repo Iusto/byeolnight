@@ -1,20 +1,15 @@
 name: Deploy Backend to EC2
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - 테스트 및 코드 품질 검사"]
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'config-server/**'
-      - 'build.gradle'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'deploy.sh'
-      - '.github/workflows/deploy-backend.yml'
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
@@ -27,11 +22,14 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           timeout: 25m
           command_timeout: 25m
-          envs: GITHUB_USERNAME,GITHUB_TOKEN
+          envs: GITHUB_USERNAME,GITHUB_TOKEN,DEPLOY_SHA
           script: |
             cd /home/ubuntu/byeolnight
+            git fetch origin main
+            git reset --hard "$DEPLOY_SHA"
             chmod +x deploy.sh
             ./deploy.sh
         env:
           GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || 'origin/main' }}

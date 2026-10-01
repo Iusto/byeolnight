@@ -1,20 +1,21 @@
 name: Deploy Frontend to S3
 
 on:
-  pull_request:
-    types: [closed]
+  workflow_run:
+    workflows: ["CI - 테스트 및 코드 품질 검사"]
     branches: [main]
-    paths:
-      - 'byeolnight-frontend/**'
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || 'main' }}
       
       - name: Install pnpm
         run: npm install -g pnpm@9

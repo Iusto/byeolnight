@@ -58,17 +58,28 @@ jobs:
 
     - name: 테스트용 환경변수 설정
       run: |
-        echo "DB_HOST=localhost" >> $GITHUB_ENV
-        echo "DB_PORT=3306" >> $GITHUB_ENV
-        echo "DB_NAME=byeolnight_test" >> $GITHUB_ENV
-        echo "DB_USERNAME=root" >> $GITHUB_ENV
-        echo "DB_PASSWORD=test" >> $GITHUB_ENV
-        echo "REDIS_HOST=localhost" >> $GITHUB_ENV
-        echo "REDIS_PORT=6379" >> $GITHUB_ENV
+        echo "SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/byeolnight_test" >> $GITHUB_ENV
+        echo "SPRING_DATASOURCE_USERNAME=root" >> $GITHUB_ENV
+        echo "SPRING_DATASOURCE_PASSWORD=test" >> $GITHUB_ENV
+        echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> $GITHUB_ENV
+        echo "SPRING_DATA_REDIS_HOST=localhost" >> $GITHUB_ENV
+        echo "SPRING_DATA_REDIS_PORT=6379" >> $GITHUB_ENV
         echo "JWT_SECRET=test-secret-key-for-github-actions" >> $GITHUB_ENV
 
     - name: Gradle 실행 권한 설정
       run: chmod +x ./gradlew
+
+    - name: 운영 스키마 마이그레이션 호환성 검증
+      run: |
+        mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e \
+          "CREATE TABLE posts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, blind_type ENUM('ADMIN_BLIND','REPORT_BLIND') NULL)"
+        mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test \
+          < db/migration/20260928_expand_posts_blind_type.sql
+        mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e \
+          "INSERT INTO posts(blind_type) VALUES ('PENDING_REVIEW')"
+        test "$(mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -Nse \
+          "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='byeolnight_test' AND TABLE_NAME='posts' AND COLUMN_NAME='blind_type'")" = "varchar"
+        mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e "DROP TABLE posts"
 
     - name: 테스트 및 빌드
       env:

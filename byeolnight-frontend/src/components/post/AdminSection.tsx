@@ -4,6 +4,41 @@ interface AdminSectionProps {
   category: string;
 }
 
+interface CollectionExecution {
+  status?: string;
+  message?: string;
+  executedAt?: string;
+  errorType?: string;
+}
+
+interface CinemaStatusResponse {
+  totalCinemaPosts?: number;
+  lastUpdated?: string;
+  latestPostExists?: boolean;
+  latestPostTitle?: string;
+  systemHealthy?: boolean;
+  warning?: string;
+  lastExecution?: CollectionExecution;
+}
+
+interface NewsStatusResponse {
+  todayNews?: number;
+  systemHealthy?: boolean;
+  statusMessage?: string;
+  warning?: string;
+  lastExecution?: CollectionExecution;
+}
+
+function executionDetails(execution?: CollectionExecution) {
+  if (!execution) return '';
+  const executedAt = execution.executedAt
+    ? new Date(execution.executedAt).toLocaleString('ko-KR')
+    : '정보 없음';
+  return `\n• 최근 실행: ${execution.status ?? 'UNKNOWN'} (${executedAt})` +
+    `${execution.errorType ? `\n• 오류 유형: ${execution.errorType}` : ''}` +
+    `${execution.message ? `\n• 실행 결과: ${execution.message}` : ''}`;
+}
+
 export default function AdminSection({ category }: AdminSectionProps) {
   if (category === 'DISCUSSION') {
     return (
@@ -93,27 +128,20 @@ export default function AdminSection({ category }: AdminSectionProps) {
                   const data = response.data?.data || response.data;
                   
                   if (typeof data === 'object' && data !== null) {
-                    const { totalCinemaPosts, lastUpdated, latestPostExists, latestPostTitle } = data;
-                    const lastUpdateTime = lastUpdated ? new Date(lastUpdated) : null;
-                    const daysSinceUpdate = lastUpdateTime ? Math.floor((new Date().getTime() - lastUpdateTime.getTime()) / (1000 * 60 * 60 * 24)) : 999;
-                    
-                    const isHealthy = latestPostExists && totalCinemaPosts > 0 && daysSinceUpdate < 2;
+                    const status = data as CinemaStatusResponse;
+                    const { totalCinemaPosts, lastUpdated, latestPostExists, latestPostTitle } = status;
+                    const isHealthy = status.systemHealthy === true;
                     const statusIcon = isHealthy ? '✅' : '⚠️';
                     const statusText = isHealthy ? '정상 작동 중' : '주의 필요';
-                    
-                    let warningMessage = '';
-                    if (!latestPostExists) {
-                      warningMessage = '\n⚠️ 최신 시네마 포스트가 없습니다. 수동 생성을 고려해주세요.';
-                    } else if (daysSinceUpdate >= 2) {
-                      warningMessage = `\n⚠️ 마지막 업데이트가 ${daysSinceUpdate}일 전입니다. 스케줄러 확인이 필요합니다.`;
-                    }
+                    const warningMessage = status.warning ? `\n⚠️ ${status.warning}` : '';
                     
                     const statusMessage = `🎬 별빛 시네마 상태\n\n` +
                       `• 총 시네마 게시글: ${totalCinemaPosts || 0}개\n` +
                       `• 최신 포스트: ${latestPostExists ? '있음' : '없음'}\n` +
                       `${latestPostTitle ? `• 제목: "${latestPostTitle}"\n` : ''}` +
                       `• 마지막 업데이트: ${lastUpdated ? new Date(lastUpdated).toLocaleString('ko-KR') : '정보 없음'}\n\n` +
-                      `${statusIcon} 별빛 시네마 시스템 ${statusText}${warningMessage}`;
+                      `${statusIcon} 별빛 시네마 시스템 ${statusText}${warningMessage}` +
+                      executionDetails(status.lastExecution);
                     alert(statusMessage);
                   } else {
                     alert('⚠️ 별빛 시네마 시스템 상태를 확인할 수 없습니다.');
@@ -132,9 +160,14 @@ export default function AdminSection({ category }: AdminSectionProps) {
                 if (!confirm('새로운 별빛 시네마 포스트를 생성하시겠습니까?')) return;
                 
                 try {
-                  await axios.post('/admin/cinema/generate-post');
-                  alert('별빛 시네마 포스트가 성공적으로 생성되었습니다!');
-                  window.location.reload();
+                  const response = await axios.post('/admin/cinema/generate-post');
+                  const result = response.data?.data as CollectionExecution | undefined;
+                  if (response.data?.success === false) {
+                    alert(`별빛 시네마 생성에 실패했습니다.\n${result?.message ?? response.data?.message ?? ''}`);
+                  } else {
+                    alert(result?.message ?? '별빛 시네마 포스트가 성공적으로 생성되었습니다!');
+                    window.location.reload();
+                  }
                 } catch (error) {
                   console.error('별빛 시네마 생성 실패:', error);
                   alert('별빛 시네마 생성에 실패했습니다.');
@@ -165,7 +198,13 @@ export default function AdminSection({ category }: AdminSectionProps) {
               onClick={async () => {
                 try {
                   const response = await axios.get('/admin/crawler/status');
-                  alert(response.data.data || '뉴스 크롤러 시스템이 정상 작동 중입니다.');
+                  const status = (response.data?.data || response.data) as NewsStatusResponse;
+                  const isHealthy = status.systemHealthy === true;
+                  const warning = status.warning ? `\n⚠️ ${status.warning}` : '';
+                  alert(`📰 우주 뉴스 수집 상태\n\n` +
+                    `• 오늘 저장: ${status.todayNews ?? 0}건\n` +
+                    `${isHealthy ? '✅ 정상' : '⚠️ 문제 있음'}: ${status.statusMessage ?? '상태 정보 없음'}` +
+                    warning + executionDetails(status.lastExecution));
                 } catch (error) {
                   console.error('상태 확인 실패:', error);
                   alert('상태 확인에 실패했습니다.');
@@ -180,9 +219,14 @@ export default function AdminSection({ category }: AdminSectionProps) {
                 if (!confirm('NewsData.io API를 통해 최신 우주 뉴스를 수집하시겠습니까?')) return;
                 
                 try {
-                  await axios.post('/admin/crawler/start');
-                  alert('뉴스 수집이 성공적으로 완료되었습니다!');
-                  window.location.reload();
+                  const response = await axios.post('/admin/crawler/start');
+                  const result = response.data?.data as CollectionExecution | undefined;
+                  if (response.data?.success === false) {
+                    alert(`뉴스 수집에 실패했습니다.\n${result?.message ?? response.data?.message ?? ''}`);
+                  } else {
+                    alert(result?.message ?? '뉴스 수집이 성공적으로 완료되었습니다!');
+                    window.location.reload();
+                  }
                 } catch (error) {
                   console.error('뉴스 수집 실패:', error);
                   alert('뉴스 수집에 실패했습니다.');

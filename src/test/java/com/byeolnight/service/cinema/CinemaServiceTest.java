@@ -1,6 +1,7 @@
 package com.byeolnight.service.cinema;
 
 import com.byeolnight.dto.cinema.CinemaCollectionResultDto;
+import com.byeolnight.dto.admin.CinemaStatusDto;
 import com.byeolnight.dto.external.openai.OpenAiChatResponse;
 import com.byeolnight.dto.external.youtube.YouTubeSearchResponse;
 import com.byeolnight.dto.external.youtube.YouTubeVideoListResponse;
@@ -24,7 +25,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -71,6 +74,29 @@ class CinemaServiceTest {
         verifyNoInteractions(restTemplate);
         verify(cinemaRepository, never()).save(any(Cinema.class));
         verify(postRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    @DisplayName("최근 수집 실패가 있으면 과거 게시물이 있어도 시스템 상태를 비정상으로 표시한다")
+    void latestCollectionFailureMakesStatusUnhealthy() {
+        ReflectionTestUtils.setField(youtubeClient, "googleApiKey", "");
+        Post previousPost = Post.builder()
+                .title("어제 등록된 별빛시네마")
+                .category(Post.Category.STARLIGHT_CINEMA)
+                .writer(user)
+                .build();
+        ReflectionTestUtils.setField(previousPost, "createdAt", LocalDateTime.now().minusDays(1));
+        when(postRepository.findFirstByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA))
+                .thenReturn(Optional.of(previousPost));
+        when(postRepository.countByCategory(Post.Category.STARLIGHT_CINEMA)).thenReturn(1L);
+
+        CinemaCollectionResultDto result = service.collectAndSaveSpaceVideo(user);
+        CinemaStatusDto status = service.getCinemaStatus();
+
+        assertThat(result.isSuccessful()).isFalse();
+        assertThat(status.getSystemHealthy()).isFalse();
+        assertThat(status.getLastExecution()).isSameAs(result);
+        assertThat(status.getWarning()).isEqualTo(result.getMessage());
     }
 
     @Test
