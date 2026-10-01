@@ -52,7 +52,8 @@ echo "✅ 새 버전 검증이 끝날 때까지 기존 서비스를 유지합니
 log_step "2️⃣ 코드 업데이트"
 echo "📥 메인 저장소 업데이트..."
 git fetch origin main || { echo "❌ git fetch 실패"; exit 1; }
-git reset --hard origin/main || { echo "❌ git reset 실패"; exit 1; }
+DEPLOY_REF="${DEPLOY_SHA:-origin/main}"
+git reset --hard "$DEPLOY_REF" || { echo "❌ 검증된 커밋으로 git reset 실패: $DEPLOY_REF"; exit 1; }
 chmod +x ./gradlew
 
 echo "📦 Config 저장소 업데이트..."
@@ -195,8 +196,60 @@ echo "   - JWT_SECRET: 검증 완료 (${JWT_SECRET_BYTES}바이트)"
 # 환경변수 내보내기 (Docker Compose에서 사용)
 export MYSQL_ROOT_PASSWORD REDIS_PASSWORD
 
-# ===== 7. 백엔드 서비스 배포 =====
-log_step "7️⃣ 백엔드 서비스 배포"
+# ===== 7. 데이터베이스 마이그레이션 =====
+log_step "7️⃣ 데이터베이스 마이그레이션"
+echo "🐬 MySQL 시작 및 준비 상태 확인..."
+docker compose up -d mysql || { echo "❌ MySQL 시작 실패"; exit 1; }
+
+MYSQL_READY=false
+for i in $(seq 1 30); do
+  if docker compose exec -T mysql mysqladmin ping -uroot "-p${MYSQL_ROOT_PASSWORD}" --silent >/dev/null 2>&1; then
+    MYSQL_READY=true
+    break
+  fi
+  sleep 2
+done
+
+if [ "$MYSQL_READY" = false ]; then
+  echo "❌ MySQL 준비 시간 초과"
+  docker compose logs --tail 50 mysql
+  exit 1
+fi
+
+docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight -e \
+  "CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)" \
+  || { echo "❌ 마이그레이션 이력 테이블 생성 실패"; exit 1; }
+
+POSTS_TABLE_EXISTS=$(docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight -Nse \
+  "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='byeolnight' AND TABLE_NAME='posts'")
+MIGRATIONS=(db/migration/*.sql)
+if [ "$POSTS_TABLE_EXISTS" = "1" ] && [ -e "${MIGRATIONS[0]}" ]; then
+  for migration in "${MIGRATIONS[@]}"; do
+    version=$(basename "$migration")
+    applied=$(docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight -Nse \
+      "SELECT COUNT(*) FROM schema_migrations WHERE version='${version}'")
+    if [ "$applied" = "0" ]; then
+      echo "🔄 마이그레이션 적용: $version"
+      docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight < "$migration" \
+        || { echo "❌ 마이그레이션 실패: $version"; exit 1; }
+      docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight -e \
+        "INSERT INTO schema_migrations(version) VALUES ('${version}')" \
+        || { echo "❌ 마이그레이션 이력 기록 실패: $version"; exit 1; }
+    fi
+  done
+  BLIND_TYPE=$(docker compose exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" byeolnight -Nse \
+    "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='byeolnight' AND TABLE_NAME='posts' AND COLUMN_NAME='blind_type'")
+  if [ "$BLIND_TYPE" != "varchar" ]; then
+    echo "❌ posts.blind_type 스키마 검증 실패: $BLIND_TYPE"
+    exit 1
+  fi
+else
+  echo "ℹ️ 신규 데이터베이스이므로 애플리케이션이 초기 스키마를 생성합니다."
+fi
+echo "✅ 데이터베이스 마이그레이션 및 스키마 검증 완료"
+
+# ===== 8. 백엔드 서비스 배포 =====
+log_step "8️⃣ 백엔드 서비스 배포"
 echo "🐳 Docker 이미지 빌드..."
 docker compose build app || { echo "❌ 이미지 빌드 실패"; exit 1; }
 

@@ -102,6 +102,7 @@ database/
 !init.sql
 # 문서용 측정 스크립트는 포함 (DB 덤프가 아님)
 !docs/sql/**/*.sql
+!db/migration/**/*.sql
 
 # 프론트엔드 데이터 파일은 포함
 !byeolnight-frontend/src/data/

@@ -27,4 +27,8 @@ public class CinemaCollectionResultDto {
     public boolean isCreated() {
         return status == Status.CREATED;
     }
+
+    public boolean isSuccessful() {
+        return status == Status.CREATED || status == Status.ALREADY_CREATED_TODAY;
+    }
 }

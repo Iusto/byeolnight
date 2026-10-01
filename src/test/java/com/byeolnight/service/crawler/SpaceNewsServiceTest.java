@@ -2,6 +2,8 @@ package com.byeolnight.service.crawler;
 
 import com.byeolnight.dto.ai.NewsAiContentDto;
 import com.byeolnight.dto.ai.NewsApiResponseDto;
+import com.byeolnight.dto.admin.NewsStatusDto;
+import com.byeolnight.dto.crawler.NewsCollectionResultDto;
 import com.byeolnight.entity.News;
 import com.byeolnight.entity.post.Post;
 import com.byeolnight.entity.user.User;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class SpaceNewsServiceTest {
@@ -94,6 +97,26 @@ class SpaceNewsServiceTest {
 
         verify(translationService, times(1)).generateNewsContent(article);
         verify(persistenceService, times(1)).save(article, generated, newsBot);
+    }
+
+    @Test
+    @DisplayName("게시글 저장 예외를 최근 실행 실패와 비정상 상태로 기록한다")
+    void reportsPersistenceFailureAsUnhealthy() {
+        NewsApiResponseDto.Result article = article();
+        NewsAiContentDto generated = generatedContent();
+        stubCollection(article, 1);
+        when(validator.isHighQualityNews(article)).thenReturn(true);
+        when(translationService.generateNewsContent(article)).thenReturn(Optional.of(generated));
+        when(persistenceService.save(article, generated, newsBot))
+                .thenThrow(new RuntimeException("schema mismatch"));
+
+        NewsCollectionResultDto result = service.collectAndSaveSpaceNews();
+        NewsStatusDto status = service.getStatus();
+
+        assertThat(result.getStatus()).isEqualTo(NewsCollectionResultDto.Status.FAILED);
+        assertThat(result.getErrorType()).isEqualTo("RuntimeException");
+        assertThat(status.isSystemHealthy()).isFalse();
+        assertThat(status.getLastExecution()).isSameAs(result);
     }
 
     private void stubCollection(NewsApiResponseDto.Result article, int maxPosts) {

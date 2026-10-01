@@ -157,6 +157,7 @@ public class CinemaService {
         long total = postRepository.countByCategory(Post.Category.STARLIGHT_CINEMA);
         Optional<Post> latest = postRepository.findFirstByCategoryOrderByCreatedAtDesc(Post.Category.STARLIGHT_CINEMA);
         long today = postRepository.countByCategoryAndCreatedAtAfter(Post.Category.STARLIGHT_CINEMA, todayStart());
+        boolean lastExecutionFailed = lastResult != null && !lastResult.isSuccessful();
         CinemaStatusDto.CinemaStatusDtoBuilder builder = CinemaStatusDto.builder()
                 .totalCinemaPosts(total)
                 .latestPostExists(latest.isPresent())
@@ -183,6 +184,10 @@ public class CinemaService {
             builder.daysSinceLastUpdate(-1L)
                     .systemHealthy(false)
                     .warning("등록된 별빛시네마 게시물이 없습니다.");
+        }
+        if (lastExecutionFailed) {
+            builder.systemHealthy(false)
+                    .warning(lastResult.getMessage());
         }
         builder.statusMessage(today > 0
                 ? "오늘의 영상이 등록되었습니다."
