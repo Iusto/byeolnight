@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Post } from '../../types/post';
+import { getBlindedPostTitle, getPostBlindBadgeClass, getPostBlindLabel } from '../../utils/postBlind';
 import { UserIconDisplay } from '../user';
 
 interface PostListItemProps {
@@ -13,9 +14,7 @@ interface PostListItemProps {
 
 export default function PostListItem({ post, isHot = false, isAdmin, selectedPosts, onSelect, showContent = false }: PostListItemProps) {
   const isBlinded = post.blinded && !isAdmin;
-  const displayTitle = isBlinded ? 
-    (post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드 처리됨' : '신고로 블라인드 처리됨') : 
-    post.title;
+  const displayTitle = isBlinded ? getBlindedPostTitle(post.blindType) : post.title;
   const displayContent = isBlinded ? '내용을 볼 수 없습니다.' : post.content;
   const displayWriter = isBlinded ? '***' : post.writer;
   const displayStats = isBlinded ? '*' : '';
@@ -42,12 +41,8 @@ export default function PostListItem({ post, isHot = false, isAdmin, selectedPos
                 {isHot && <span className="text-orange-400 flex-shrink-0">🔥</span>}
                 <span className="break-words">{displayTitle}</span>
                 {post.blinded && (
-                  <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${
-                    post.blindType === 'ADMIN_BLIND' 
-                      ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
-                      : 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30'
-                  }`}>
-                    {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+                  <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${getPostBlindBadgeClass(post.blindType)}`}>
+                    {getPostBlindLabel(post.blindType)}
                   </span>
                 )}
               </h4>

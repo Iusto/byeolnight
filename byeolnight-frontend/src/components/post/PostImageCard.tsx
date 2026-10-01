@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Post } from '../../types/post';
 import { extractFirstImage } from '../../utils/formatters';
+import { getBlindedPostTitle, getPostBlindBadgeClass, getPostBlindLabel } from '../../utils/postBlind';
 import { UserIconDisplay } from '../user';
 
 interface PostImageCardProps {
@@ -12,9 +13,7 @@ interface PostImageCardProps {
 
 export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }: PostImageCardProps) {
   const isBlinded = post.blinded && !isAdmin;
-  const displayTitle = isBlinded ? 
-    (post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드 처리됨' : '신고로 블라인드 처리됨') : 
-    post.title;
+  const displayTitle = isBlinded ? getBlindedPostTitle(post.blindType) : post.title;
   const displayWriter = isBlinded ? '***' : post.writer;
   const displayStats = isBlinded ? '*' : '';
   const imageUrl = isBlinded ? null : extractFirstImage(post.content);
@@ -52,12 +51,8 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
           
           {post.blinded && (
             <div className="absolute top-2 right-2 z-20">
-              <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                post.blindType === 'ADMIN_BLIND' 
-                  ? 'bg-red-600/90 text-red-100 border border-red-400/50' 
-                  : 'bg-yellow-600/90 text-yellow-100 border border-yellow-400/50'
-              }`}>
-                {post.blindType === 'ADMIN_BLIND' ? '관리자' : '신고'}
+              <span className={`text-xs px-2 py-1 rounded-full font-bold ${getPostBlindBadgeClass(post.blindType, true)}`}>
+                {getPostBlindLabel(post.blindType, true)}
               </span>
             </div>
           )}
@@ -79,12 +74,8 @@ export default function PostImageCard({ post, isAdmin, selectedPosts, onSelect }
           {post.blinded && (
             <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
               <span className="text-4xl mb-2">🔒</span>
-              <span className={`text-xs px-2 py-1 rounded font-bold ${
-                post.blindType === 'ADMIN_BLIND' 
-                  ? 'bg-red-600/90 text-red-100' 
-                  : 'bg-yellow-600/90 text-yellow-100'
-              }`}>
-                {post.blindType === 'ADMIN_BLIND' ? '관리자 블라인드' : '신고 블라인드'}
+              <span className={`text-xs px-2 py-1 rounded font-bold ${getPostBlindBadgeClass(post.blindType, true)}`}>
+                {getPostBlindLabel(post.blindType)}
               </span>
             </div>
           )}

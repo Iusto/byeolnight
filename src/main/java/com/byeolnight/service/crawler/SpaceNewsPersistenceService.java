@@ -52,7 +52,6 @@ public class SpaceNewsPersistenceService {
                 .category(Post.Category.NEWS)
                 .writer(writer)
                 .build();
-        post.markPendingReview();
         return postRepository.save(post);
     }
 
