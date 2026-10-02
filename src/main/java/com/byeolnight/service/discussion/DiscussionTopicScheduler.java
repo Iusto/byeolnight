@@ -62,10 +62,9 @@ public class DiscussionTopicScheduler {
                     .build();
             
             discussionPost.setAsDiscussionTopic();
-            discussionPost.markPendingReview();
             postRepository.save(discussionPost);
 
-            log.info("새로운 토론 주제 생성 및 검수 대기 등록 완료: {} - {}", title, java.time.LocalDateTime.now());
+            log.info("새로운 토론 주제 생성 및 공개 완료: {} - {}", title, java.time.LocalDateTime.now());
 
         } catch (Exception e) {
             log.error("토론 주제 생성 실패 - {}", java.time.LocalDateTime.now(), e);

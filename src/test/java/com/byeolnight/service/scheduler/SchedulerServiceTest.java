@@ -5,6 +5,7 @@ import com.byeolnight.entity.user.User;
 import com.byeolnight.repository.post.PostRepository;
 import com.byeolnight.repository.user.UserRepository;
 import com.byeolnight.service.PostCleanupScheduler;
+import com.byeolnight.service.ai.NewsBasedDiscussionService;
 import com.byeolnight.service.discussion.DiscussionTopicScheduler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,9 +29,39 @@ class SchedulerServiceTest {
 
     @Mock private PostRepository postRepository;
     @Mock private UserRepository userRepository;
+    @Mock private NewsBasedDiscussionService newsBasedDiscussionService;
     
     @InjectMocks private PostCleanupScheduler postCleanupScheduler;
     @InjectMocks private DiscussionTopicScheduler discussionTopicScheduler;
+
+    @Test
+    @DisplayName("자동 생성된 토론 주제는 즉시 공개 상태로 저장한다")
+    void generatedDiscussionTopicIsSavedAsPublicPost() {
+        User systemUser = User.builder()
+                .email("system@byeolnight.com")
+                .nickname("별 보는 밤")
+                .password("password")
+                .role(User.Role.ADMIN)
+                .build();
+        when(userRepository.findByEmail("system@byeolnight.com"))
+                .thenReturn(Optional.of(systemUser));
+        when(newsBasedDiscussionService.generateNewsBasedDiscussion())
+                .thenReturn("제목: 우주 탐사의 미래\n내용: 우주 탐사의 방향을 토론해 보세요.");
+        when(postRepository.findByDiscussionTopicTrueAndPinnedTrue())
+                .thenReturn(Collections.emptyList());
+        when(postRepository.findByDiscussionTopicTrueAndCreatedAtAfter(any(LocalDateTime.class)))
+                .thenReturn(Collections.emptyList());
+
+        discussionTopicScheduler.generateDailyDiscussionTopic();
+
+        verify(postRepository).save(argThat(post ->
+                post.getCategory() == Post.Category.DISCUSSION
+                        && post.isDiscussionTopic()
+                        && post.isPinned()
+                        && !post.isBlinded()
+                        && post.getBlindType() == null
+                        && post.getBlindedAt() == null));
+    }
 
     @Test
     @DisplayName("게시글 정리 스케줄러 - 만료된 게시글 없을 때")

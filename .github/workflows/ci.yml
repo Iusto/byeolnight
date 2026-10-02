@@ -72,17 +72,25 @@ jobs:
     - name: 운영 스키마 마이그레이션 호환성 검증
       run: |
         mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e \
-          "CREATE TABLE posts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, category VARCHAR(32) NOT NULL, blinded BIT NOT NULL DEFAULT 0, blind_type ENUM('ADMIN_BLIND','REPORT_BLIND') NULL, blinded_at DATETIME NULL, blinded_by_admin_id BIGINT NULL, is_deleted BIT NOT NULL DEFAULT 0)"
+          "CREATE TABLE posts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, category VARCHAR(32) NOT NULL, blinded BIT NOT NULL DEFAULT 0, blind_type ENUM('ADMIN_BLIND','REPORT_BLIND') NULL, blinded_at DATETIME NULL, blinded_by_admin_id BIGINT NULL, discussion_topic BIT NOT NULL DEFAULT 0, is_deleted BIT NOT NULL DEFAULT 0)"
         mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test \
           < db/migration/20260928_expand_posts_blind_type.sql
         mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e \
           "INSERT INTO posts(category, blinded, blind_type, blinded_at) VALUES ('NEWS', 1, 'PENDING_REVIEW', NOW())"
+        mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e \
+          "INSERT INTO posts(category, blinded, blind_type, blinded_at, discussion_topic) VALUES ('DISCUSSION', 1, 'PENDING_REVIEW', NOW(), 1)"
         test "$(mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -Nse \
           "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='byeolnight_test' AND TABLE_NAME='posts' AND COLUMN_NAME='blind_type'")" = "varchar"
         mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test \
           < db/migration/20261001_publish_collected_content.sql
         test "$(mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -Nse \
           "SELECT COUNT(*) FROM posts WHERE category='NEWS' AND blinded=0 AND blind_type IS NULL")" = "1"
+        test "$(mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -Nse \
+          "SELECT COUNT(*) FROM posts WHERE category='DISCUSSION' AND blinded=1 AND blind_type='PENDING_REVIEW'")" = "1"
+        mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test \
+          < db/migration/20261002_publish_discussion_topics.sql
+        test "$(mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -Nse \
+          "SELECT COUNT(*) FROM posts WHERE category='DISCUSSION' AND discussion_topic=1 AND blinded=0 AND blind_type IS NULL")" = "1"
         mysql --protocol=TCP -h 127.0.0.1 -uroot -ptest byeolnight_test -e "DROP TABLE posts"
 
     - name: 테스트 및 빌드
