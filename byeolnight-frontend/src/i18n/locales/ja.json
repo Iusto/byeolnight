@@ -15,6 +15,7 @@
     "points": "出席チェック"
   },
   "post": {
+    "resize_image": "ドラッグまたは矢印キーで画像の幅を調整",
     "title": "タイトル",
     "content": "内容",
     "create": "投稿作成",

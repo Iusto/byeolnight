@@ -62,7 +62,7 @@ export default function PostForm({
         const currentImageUrls = (newContent.match(/!\[[^\]]*\]\([^)]+\)/g) || [])
           .map(match => {
             const urlMatch = match.match(/\(([^)]+)\)/);
-            return urlMatch ? urlMatch[1] : null;
+            return urlMatch ? urlMatch[1].replace(/\s+"[^"]*"$/, '') : null;
           })
           .filter(Boolean);
 
@@ -141,7 +141,7 @@ export default function PostForm({
         if (instance) {
           const currentContent = instance.getMarkdown();
           const escapedUrl = imageToRemove.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'gi');
+          const imgRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}(?:\\s+"[^"]*")?\\)`, 'gi');
           const newContent = currentContent.replace(imgRegex, '').replace(/\n\n+/g, '\n\n');
           
           instance.setMarkdown(newContent);
