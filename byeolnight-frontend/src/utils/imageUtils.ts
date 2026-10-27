@@ -6,9 +6,12 @@ export const isValidImageUrl = (url: string): boolean => {
   return IMAGE_URL_REGEX.test(url);
 };
 
-/** 마크다운 이미지 제목에 저장한 표시 너비만 허용한다. */
-export const getImageWidth = (title?: string | null): number | undefined => {
-  const match = title?.match(/^width=(\d{1,4})$/);
-  const width = match ? Number(match[1]) : 0;
-  return width > 0 && width <= 4096 ? width : undefined;
+/** 기존 너비 전용 제목과 가로·세로 크기 제목을 검증한다. */
+export const getImageDimensions = (title?: string | null): { width?: number; height?: number } => {
+  const match = title?.match(/^width=(\d{1,4})(?: height=(\d{1,4}))?$/);
+  if (!match) return {};
+  const width = Number(match[1]);
+  const height = match[2] ? Number(match[2]) : undefined;
+  if (width < 1 || width > 4096 || (height !== undefined && (height < 1 || height > 4096))) return {};
+  return height === undefined ? { width } : { width, height };
 };

@@ -15,7 +15,7 @@
     "points": "Attendance"
   },
   "post": {
-    "resize_image": "Resize image width by dragging or using arrow keys",
+    "resize_image": "Resize image width and height by dragging or using arrow keys",
     "title": "Title",
     "content": "Content",
     "create": "Write Post",
