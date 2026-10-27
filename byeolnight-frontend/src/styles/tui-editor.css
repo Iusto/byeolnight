@@ -80,7 +80,7 @@
   border-radius: 0.375rem !important;
 }
 
-/* 이미지 비율을 유지하면서 표시 너비를 조절한다. */
+/* 이미지 가로·세로 크기를 각각 조절한다. */
 .editor-resizable-image {
   position: relative;
   display: inline-block;
@@ -113,7 +113,7 @@
   color: white;
   font-size: 18px;
   line-height: 20px;
-  cursor: ew-resize;
+  cursor: nwse-resize;
   touch-action: none;
   user-select: none;
 }

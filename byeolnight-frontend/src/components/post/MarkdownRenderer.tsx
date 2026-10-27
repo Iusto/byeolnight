@@ -4,7 +4,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import YouTubeEmbed from './YouTubeEmbed';
-import { getImageWidth } from '../../utils/imageUtils';
+import { getImageDimensions } from '../../utils/imageUtils';
 
 interface MarkdownRendererProps {
   content: string;
@@ -130,26 +130,31 @@ export default function MarkdownRenderer({
           </code>
         ),
         // 이미지 컴포넌트 커스터마이징
-        img: ({ src, alt, title, ...props }) => (
-          <img 
-            src={src} 
-            alt={alt} 
-            {...props}
-            width={getImageWidth(title) ?? props.width}
-            title={getImageWidth(title) ? undefined : title}
-            style={{
-              maxWidth: '100%',
-              height: 'auto',
-              margin: '16px 0',
-              borderRadius: '8px',
-              display: 'block',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-              cursor: 'pointer'
-            }}
-            onClick={() => src && window.open(src, '_blank')}
-            loading="lazy"
-          />
-        ),
+        img: ({ src, alt, title, ...props }) => {
+          const { width, height } = getImageDimensions(title);
+          return (
+            <img
+              src={src}
+              alt={alt}
+              {...props}
+              width={width ?? props.width}
+              height={height ?? props.height}
+              title={width ? undefined : title}
+              style={{
+                maxWidth: '100%',
+                height: 'auto',
+                aspectRatio: width && height ? `${width} / ${height}` : undefined,
+                margin: '16px 0',
+                borderRadius: '8px',
+                display: 'block',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                cursor: 'pointer'
+              }}
+              onClick={() => src && window.open(src, '_blank')}
+              loading="lazy"
+            />
+          );
+        },
         a: ({ href, children, ...props }) => {
           if (href && YOUTUBE_REGEX.test(href)) {
             try {

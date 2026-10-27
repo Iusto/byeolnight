@@ -15,7 +15,7 @@
     "points": "출석체크"
   },
   "post": {
-    "resize_image": "드래그하거나 방향키로 이미지 너비 조절",
+    "resize_image": "드래그하거나 방향키로 이미지 가로·세로 크기 조절",
     "title": "제목",
     "content": "내용",
     "create": "글쓰기",
