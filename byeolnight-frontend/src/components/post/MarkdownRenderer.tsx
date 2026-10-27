@@ -4,6 +4,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import YouTubeEmbed from './YouTubeEmbed';
+import { getImageWidth } from '../../utils/imageUtils';
 
 interface MarkdownRendererProps {
   content: string;
@@ -50,7 +51,7 @@ export default function MarkdownRenderer({
           attributes: {
             '*': ['className', 'style'],
             'a': ['href', 'target', 'rel'],
-            'img': ['src', 'alt', 'width', 'height']
+            'img': ['src', 'alt', 'title', 'width', 'height']
           }
         }]
       ]}
@@ -129,11 +130,13 @@ export default function MarkdownRenderer({
           </code>
         ),
         // 이미지 컴포넌트 커스터마이징
-        img: ({ src, alt, ...props }) => (
+        img: ({ src, alt, title, ...props }) => (
           <img 
             src={src} 
             alt={alt} 
             {...props}
+            width={getImageWidth(title) ?? props.width}
+            title={getImageWidth(title) ? undefined : title}
             style={{
               maxWidth: '100%',
               height: 'auto',

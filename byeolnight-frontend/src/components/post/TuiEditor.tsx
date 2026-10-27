@@ -1,7 +1,7 @@
 // TuiEditor.tsx
 // Toast UI Editor 커스텀 래퍼 컴포넌트 - 다국어 placeholder 반영 및 이미지 검열 업로드 처리
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { Editor } from '@toast-ui/react-editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
 import '@toast-ui/editor/dist/theme/toastui-editor-dark.css';
@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { isValidImageUrl } from '../../utils/imageUtils';
 import { isHandlingImageUpload } from './imageUploadState';
 import type { TuiEditorHandle } from './tuiEditorTypes';
+import createImageResizePlugin from './imageResizePlugin';
 
 interface TuiEditorProps {
   value: string;
@@ -32,6 +33,7 @@ const TuiEditor = forwardRef<TuiEditorHandle, TuiEditorProps>(({
   const editorRef = useRef<Editor>(null);
   const previousMarkdownRef = useRef<string>('');
   const effectivePlaceholder = placeholder ?? t('home.content_placeholder');
+  const plugins = useMemo(() => [createImageResizePlugin(() => t('post.resize_image'))], [t]);
 
   // 외부에서 ref로 에디터 인스턴스 접근 허용
   useImperativeHandle(ref, () => ({
@@ -126,6 +128,7 @@ const TuiEditor = forwardRef<TuiEditorHandle, TuiEditorProps>(({
       usageStatistics={false}
       onChange={handleChange}
       theme="dark"
+      plugins={plugins}
       hooks={{ addImageBlobHook: onUploadImage }}
       toolbarItems={[
         ['heading', 'bold', 'italic', 'strike'],
