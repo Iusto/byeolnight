@@ -289,9 +289,11 @@ class IssServiceTest {
 
             // then - 폴백 기본값 확인
             assertThat(result).isNotNull();
-            assertThat(result.getNextPassDirection()).isEqualTo("NORTHEAST");
-            assertThat(result.getEstimatedDuration()).isEqualTo("5-7분");
-            assertThat(result.getVisibilityQuality()).isEqualTo("GOOD");
+            assertThat(result.getNextPassDirection()).isNull();
+            assertThat(result.getEstimatedDuration()).isNull();
+            assertThat(result.getNextPassTime()).isNull();
+            assertThat(result.getMessageKey()).isEqualTo("iss.unavailable");
+            assertThat(result.getVisibilityQuality()).isNull();
             assertThat(result.getMaxElevation()).isNull();
         }
 
@@ -306,8 +308,8 @@ class IssServiceTest {
 
             // then
             assertThat(result).isNotNull();
-            assertThat(result.getNextPassTime()).isNotBlank();
-            assertThat(result.getEstimatedDuration()).isEqualTo("5-7분");
+            assertThat(result.getNextPassTime()).isNull();
+            assertThat(result.getEstimatedDuration()).isNull();
         }
 
         @Test

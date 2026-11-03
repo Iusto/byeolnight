@@ -293,3 +293,6 @@ CLAUDE.md
 plan.md
 계획.md
 AGENTS.md
+
+# ISS 궤도 데이터 런타임 캐시
+/data/iss/
