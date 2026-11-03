@@ -143,6 +143,12 @@ const IssTracker: React.FC<IssTrackerProps> = ({ latitude, longitude }) => {
         </div>
       )}
 
+      {!iss.nextPassTime && (
+        <div className="relative mx-5 mb-5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+          <p className="text-xs text-amber-200">{t('weather.iss_no_data')}</p>
+        </div>
+      )}
+
       {/* 다음 관측 카드 */}
       {iss.nextPassTime && (
         <div className="relative mx-5 mb-5 rounded-lg border border-cyan-500/15 overflow-hidden bg-gradient-to-br from-cyan-500/[0.06] to-blue-500/[0.04]">

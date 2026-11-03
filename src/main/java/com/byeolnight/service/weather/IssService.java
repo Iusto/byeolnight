@@ -45,7 +45,7 @@ public class IssService {
             Double altitudeKm = calculateCurrentAltitude(latitude, longitude);
 
             return IssObservationResponse.builder()
-                .messageKey("iss.detailed_status")
+                .messageKey(nextPass.getNextPassTime() != null ? "iss.detailed_status" : "iss.unavailable")
                 .friendlyMessage("")
                 .currentAltitudeKm(altitudeKm != null ? altitudeKm : 408.0)
                 .currentVelocityKmh(ISS_ORBITAL_VELOCITY_KMH)
@@ -87,6 +87,9 @@ public class IssService {
      * 위도/경도를 1도 단위로 그리드화하여 캐싱 (한국 내 사용자는 대부분 같은 캐시 히트).
      */
     private IssPassData calculateNextIssPass(double latitude, double longitude) {
+        // 측정 데이터가 만료되면 남아 있는 예측 캐시도 제공하지 않는다.
+        TLE tle = tleFetchService.getIssTle();
+        if (tle == null) return createFallbackPassData();
         // 1도 단위 그리드 캐시 키
         String cacheKey = String.format("iss:%d:%d", Math.round(latitude), Math.round(longitude));
 
@@ -101,12 +104,6 @@ public class IssService {
         // TLE 기반 실제 계산
         meterRegistry.counter("cache.iss.miss").increment();
         try {
-            TLE tle = tleFetchService.getIssTle();
-            if (tle == null) {
-                log.warn("TLE 데이터 없음, 폴백 사용");
-                return createFallbackPassData();
-            }
-
             GroundStationPosition observer = new GroundStationPosition(latitude, longitude, 0);
             PassPredictor predictor = new PassPredictor(tle, observer);
             SatPassTime passTime = predictor.nextSatPass(new Date());
@@ -178,15 +175,7 @@ public class IssService {
     }
 
     private IssPassData createFallbackPassData() {
-        LocalDateTime nextPass = LocalDateTime.now().plusHours(3);
-        return IssPassData.builder()
-            .nextPassTime(nextPass.format(DateTimeFormatter.ofPattern("HH:mm")))
-            .nextPassDate(nextPass.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-            .nextPassDirection("NORTHEAST")
-            .estimatedDuration("5-7분")
-            .visibilityQuality("GOOD")
-            .maxElevation(null)
-            .build();
+        return IssPassData.builder().build();
     }
 
     private IssObservationResponse createFallbackIssInfo() {
@@ -228,7 +217,10 @@ public class IssService {
         }
 
         boolean isExpired() {
-            return System.currentTimeMillis() - cachedAt > PASS_CACHE_TTL_MS;
+            long now = System.currentTimeMillis();
+            long passStart = LocalDateTime.parse(data.getNextPassDate() + "T" + data.getNextPassTime())
+                    .atZone(ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli();
+            return now - cachedAt > PASS_CACHE_TTL_MS || now >= passStart;
         }
     }
 }

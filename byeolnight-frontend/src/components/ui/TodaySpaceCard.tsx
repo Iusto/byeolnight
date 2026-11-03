@@ -197,7 +197,7 @@ export default function TodaySpaceCard({ latestNews, latestCinema }: TodaySpaceC
               </p>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">{t('weather.iss_no_upcoming_pass')}</p>
+            <p className="text-xs text-slate-400">{t(iss.messageKey === 'iss.unavailable' || iss.messageKey === 'iss.fallback' ? 'weather.iss_no_data' : 'weather.iss_no_upcoming_pass')}</p>
           )}
         </div>
 

@@ -1,5 +1,46 @@
 # ISS 관측 예보 시스템
 
+## 2026-11-01 운영 장애 대응 (현재 동작)
+
+아래 변경 내용이 이 문서의 과거 구현 설명보다 우선한다.
+
+- 공급원: CelesTrak 우선, 연결 실패·잘못된 응답·오래된 데이터이면 AMSAT 일일 TLE로 전환한다.
+  - CelesTrak: `https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE`
+  - AMSAT: `https://www.amsat.org/tle/dailytle.txt`
+  - 두 공급원 모두 API 키가 필요 없다. Space-Track은 계정 인증이 필요하므로 이번 구현에 포함하지 않았다.
+- 앱 시작 시 디스크 캐시만 복원하고, 첫 외부 조회는 스케줄러가 수행한다.
+  화면의 `getIssTle()`는 메모리만 읽으므로 외부 연결 실패가 화면 요청을 지연시키지 않는다.
+- 연결 제한 3초, 요청 제한 5초. 수집 성공 후 12시간, 모두 실패하면 2시간 이후 재시도한다.
+  CelesTrak의 비정상 HTTP 응답은 로그를 남기고 해당 프로세스의 자동 조회를 중단한다.
+  재시작으로 중단이 해제되므로 원인을 확인하지 않은 반복 재시작은 피한다.
+- 여러 위성 중 NORAD 25544의 TLE 두 줄을 추출한다. TLE 측정 시각으로부터 72시간이 지나거나
+  현재보다 1시간 넘게 미래인 데이터는 거부한다. 72시간은 서비스의 보수적 운영 상한이며 정확도 보증이 아니다.
+- 정상 데이터는 `iss.tle.cache-file`에 저장한다. 기본 경로는 `./data/iss/last-normal.tle`이다.
+  Compose의 `iss_tle_data` 볼륨이 `/app/data/iss`를 보존한다. `docker compose down -v`는 이 데이터도 삭제한다.
+- 데이터가 없을 때 과거의 임의 예측(`현재 + 3시간`, 북동쪽, GOOD)을 반환하지 않는다.
+  예측 필드는 null, 화면에는 조회 불가 문구를 표시한다. 패스 시작 시각이 지난 예측 캐시도 만료시킨다.
+
+### 배포 전후 확인
+
+1. EC2에서 AMSAT 접속 및 ISS 포함 여부 확인:
+
+```bash
+curl -fSL --connect-timeout 5 --max-time 10 \
+  'https://www.amsat.org/tle/dailytle.txt' | grep -B 1 -A 1 '^1 25544'
+```
+
+2. 백엔드·프론트엔드 변경과 Compose 볼륨을 함께 배포한다. 컨테이너 재시작만으로 새 코드가 적용되지 않는다.
+3. `ISS TLE 갱신 성공: 공급원=AMSAT` 또는 `공급원=CelesTrak` 로그와
+   `/api/weather/iss?latitude=37.5665&longitude=126.9780`의 `nextPassTime`을 확인한다.
+4. 이후 컨테이너 재생성 시 `ISS TLE 디스크 캐시 복원 완료` 로그를 확인한다.
+
+검증: `TleFetchServiceTest`에서 공급원 전환, 파일 복원, 재시도 제한, HTTP 오류 공급원 중단,
+유효기간 만료와 비정상 응답을 검증한다. 실제 EC2의 AMSAT 연결 가능 여부는 별도 운영 확인이 필요하다.
+
+---
+
+## 이전 구현 기록
+
 > 하드코딩에서 TLE + SGP4 궤도 역학 기반 실제 계산으로의 전환
 
 ## 개선 결과

@@ -53,6 +53,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
+      - iss_tle_data:/app/data/iss
       - /etc/localtime:/etc/localtime:ro
     logging:
       driver: json-file
@@ -127,6 +128,7 @@ services:
       - byeolnight-network
 
 volumes:
+  iss_tle_data:
   mysql_data:
   redis_data:
 
